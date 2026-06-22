@@ -1,0 +1,374 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+  FREELANCER
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(FREELANCER)
+  passwordHash  String?   // Add passwordHash for developer Credentials Login
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  
+  freelancerProfile Freelancer?
+  companyProfile    Company?
+  notifications     Notification[]
+  reviewsWritten    Review[]        @relation("ReviewsWritten")
+  reviewsReceived   Review[]        @relation("ReviewsReceived")
+  adminLogs         AdminLog[]
+  messages          Message[]
+  sharedFiles       SharedFile[]
+  projectUpdates    ProjectUpdate[]
+  assignedTasks     Task[]          @relation("AssignedTasks")
+  createdTasks      Task[]          @relation("CreatedTasks")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Freelancer {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  bio               String?  @db.Text
+  skills            String[] // Array of lowercase skills for indexing
+  experienceYears   Int      @default(0)
+  portfolioUrl      String?
+  resumeUrl         String?
+  rating            Float    @default(0.0)
+  completedProjects Int      @default(0)
+  completionRate    Float    @default(100.0) // Percentage (0-100)
+
+  // New fields for freelancer profile options
+  professionalHeadline String?
+  experience           Json?     // Array of Experience objects: { id, title, company, startDate, endDate, current, description }
+  certifications       Json?     // Array of Certification objects: { id, name, issuer, year }
+  portfolioItems       Json?     // Array of PortfolioItem objects: { id, title, description, type, url, fileUrl }
+  responseTime         String?   @default("Within 24 hours")
+  availabilityStatus   String?   @default("AVAILABLE") // AVAILABLE, BUSY, UNAVAILABLE
+  verificationBadges   String[]  @default([])
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications    Application[]
+  recommendations Recommendation[]
+  savedByCompanies SavedFreelancer[]
+  savedProjects   SavedProject[]
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String
+  description String?  @db.Text
+  industry    String?
+  website     String?
+  location    String?
+
+  // New fields for extended Company Profile page
+  logoUrl            String?   @default("")
+  companySize        String?   @default("10-50 employees")
+  foundedYear        Int?      @default(2020)
+  linkedin           String?   @default("")
+  email              String?   @default("")
+  phone              String?   @default("")
+  missionVision      String?   @db.Text @default("")
+  workCulture        String?   @db.Text @default("")
+  hiringPhilosophy   String?   @db.Text @default("")
+  galleryPhotos      String[]  @default([])
+  galleryVideos      String[]  @default([])
+  benefits           String[]  @default([])
+  teamMembers        Json?     @default("[]") // Array of { name, role, photoUrl }
+  verificationBadges String[]  @default([]) // e.g. ["Identity Verified", "Business Verified", ...]
+  trustScore         Int       @default(90)
+  reputationScore    Int       @default(90)
+  sentimentAnalysis  String?   @db.Text @default("")
+  completionRate     Float     @default(100.0)
+  retentionRate      Float     @default(100.0)
+  paymentReliability Float     @default(100.0)
+  avgResponseTime    String?   @default("Within 24 hours")
+  avgTimeToHire      String?   @default("14 days")
+  hiringSuccessRate  Float     @default(100.0)
+  followers          String[]  @default([]) // User IDs of followers
+  watchlistUsers     String[]  @default([]) // User IDs watchlisting
+  talentCommunity    String[]  @default([]) // User IDs in talent community
+  jobAlertsUsers     String[]  @default([]) // User IDs subscribed to job alerts
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects          Project[]
+  savedFreelancers  SavedFreelancer[]
+}
+
+model SavedFreelancer {
+  id           String   @id @default(cuid())
+  companyId    String
+  freelancerId String
+  savedAt      DateTime @default(now())
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, freelancerId])
+  @@index([freelancerId])
+}
+
+model Project {
+  id                 String          @id @default(cuid())
+  companyId          String
+  title              String
+  description        String          @db.Text
+  budget             Float
+  priority           ProjectPriority @default(MEDIUM)
+  requiredSkills     String[]
+  experienceRequired Int             @default(0)
+  status             ProjectStatus   @default(OPEN)
+  freelancersLimit   Int             @default(1)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications    Application[]
+  recommendations Recommendation[]
+  reviews         Review[]
+  savedByFreelancers SavedProject[]
+  messages        Message[]
+  sharedFiles     SharedFile[]
+  projectUpdates  ProjectUpdate[]
+  tasks           Task[]
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  projectId    String
+  freelancerId String
+  coverLetter  String            @db.Text
+  aiScore      Float             @default(0.0)
+  status       ApplicationStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, freelancerId])
+  @@index([freelancerId])
+  @@index([status])
+}
+
+model Recommendation {
+  id           String   @id @default(cuid())
+  projectId    String
+  freelancerId String
+  score        Float
+  createdAt    DateTime @default(now())
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, freelancerId])
+  @@index([freelancerId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  projectId   String
+  reviewerId  String
+  revieweeId  String
+  rating      Int      // 1 to 5
+  comment     String   @db.Text
+  createdAt   DateTime @default(now())
+
+  // New sub-scores for company reviews by freelancers
+  communicationScore      Int?
+  paymentReliabilityScore Int?
+  projectClarityScore     Int?
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer User    @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee User    @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+}
+
+model SavedProject {
+  id           String   @id @default(cuid())
+  freelancerId String
+  projectId    String
+  savedAt      DateTime @default(now())
+
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([freelancerId, projectId])
+  @@index([projectId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  projectId     String
+  senderId      String
+  content       String   @db.Text
+  channel       String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
+  createdAt     DateTime @default(now())
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender        User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([senderId])
+}
+
+model SharedFile {
+  id            String   @id @default(cuid())
+  projectId     String
+  uploadedById  String
+  fileName      String
+  fileUrl       String   @db.Text
+  fileSize      String?
+  channel       String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
+  uploadedAt    DateTime @default(now())
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy    User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([uploadedById])
+}
+
+model ProjectUpdate {
+  id            String   @id @default(cuid())
+  projectId     String
+  createdById   String
+  title         String
+  description   String   @db.Text
+  status        String   // e.g. "PENDING", "IN_PROGRESS", "COMPLETED"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdById])
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  projectId     String
+  title         String
+  description   String?   @db.Text
+  status        String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  priority      String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  dueDate       DateTime?
+  assignedToId  String?   // User ID of the assigned user
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo    User?     @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy     User      @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([assignedToId])
+  @@index([createdById])
+}

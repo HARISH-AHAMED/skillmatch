@@ -1,0 +1,2551 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Archive,
+  CheckSquare,
+  CreditCard,
+  Users,
+  Send,
+  Paperclip,
+  Download,
+  X,
+  Plus,
+  Clock,
+  AlertCircle,
+  Calendar,
+  Trash2,
+  Edit,
+  CheckCircle2,
+  ChevronRight,
+  Play,
+  Pause,
+  Mic,
+  Bot,
+  Printer,
+  Search,
+  Eye,
+  Sparkles,
+} from "lucide-react";
+import {
+  sendMessage,
+  shareFile,
+  createProjectUpdate,
+  updateProjectUpdateStatus,
+  createTask,
+  updateTaskStatus,
+  updateTaskDetails,
+  deleteTask,
+  deleteFile,
+  updateDeliverableStatus,
+  uploadDeliverableVersion,
+} from "@/actions/collaborationActions";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface MessageItem {
+  id: string;
+  content: string;
+  createdAt: Date | string;
+  senderId: string;
+  channel: string;
+  sender: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+  };
+}
+
+interface SharedFileItem {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: string | null;
+  uploadedAt: Date | string;
+  uploadedById: string;
+  channel: string;
+  uploadedBy: {
+    id: string;
+    name: string | null;
+    role: string;
+  };
+}
+
+interface ProjectUpdateItem {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+  createdById: string;
+  createdBy: {
+    id: string;
+    name: string | null;
+    role: string;
+  };
+}
+
+interface TaskItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  dueDate: Date | string | null;
+  assignedToId: string | null;
+  createdById: string;
+  createdAt: Date | string;
+  assignedTo: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+  } | null;
+  createdBy: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+  };
+}
+
+interface WorkspaceViewProps {
+  role: "COMPANY" | "FREELANCER";
+  currentUserId: string;
+  projectId: string;
+  projectTitle: string;
+  projectBudget: number;
+  companyName: string;
+  hiredFreelancers: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+    freelancerId: string;
+  }[];
+  companyUser: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    role: string;
+  };
+  initialMessages: MessageItem[];
+  initialFiles: SharedFileItem[];
+  initialUpdates: ProjectUpdateItem[];
+  initialTasks: TaskItem[];
+}
+
+interface DeliverableMeta {
+  size: string;
+  status: "PENDING" | "APPROVED" | "REVISION_REQUESTED";
+  feedback?: string;
+  version: number;
+}
+
+// Helpers for serializing file properties & milestones
+function parseDeliverableMeta(fileSizeStr: string | null): DeliverableMeta {
+  if (!fileSizeStr) return { size: "Unknown size", status: "PENDING", version: 1 };
+  try {
+    const parsed = JSON.parse(fileSizeStr);
+    if (parsed && typeof parsed === "object" && "status" in parsed) {
+      return {
+        size: parsed.size || "Unknown size",
+        status: parsed.status || "PENDING",
+        feedback: parsed.feedback || "",
+        version: parsed.version || 1,
+      };
+    }
+  } catch (e) {}
+  return { size: fileSizeStr, status: "PENDING", version: 1 };
+}
+
+function parseMilestoneAmount(title: string, description: string): { amount: number; cleanTitle: string } {
+  const titleMatch = title.match(/\[(?:Value:?\s*\$?)?([\d,]+)\]/);
+  if (titleMatch) {
+    const amount = parseFloat(titleMatch[1].replace(/,/g, ""));
+    const cleanTitle = title.replace(titleMatch[0], "").trim();
+    return { amount, cleanTitle };
+  }
+  
+  const descMatch = description.match(/\[(?:Value:?\s*\$?)?([\d,]+)\]/);
+  if (descMatch) {
+    const amount = parseFloat(descMatch[1].replace(/,/g, ""));
+    return { amount, cleanTitle: title };
+  }
+
+  const rawMatch = title.match(/\$(\d+[\d,]*)/);
+  if (rawMatch) {
+    const amount = parseFloat(rawMatch[1].replace(/,/g, ""));
+    return { amount, cleanTitle: title };
+  }
+
+  return { amount: 0, cleanTitle: title };
+}
+
+export function WorkspaceView({
+  role,
+  currentUserId,
+  projectId,
+  projectTitle,
+  projectBudget,
+  companyName,
+  hiredFreelancers,
+  companyUser,
+  initialMessages,
+  initialFiles,
+  initialUpdates,
+  initialTasks,
+}: WorkspaceViewProps) {
+  const router = useRouter();
+
+  // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "payments" | "team"
+  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "payments" | "team">("overview");
+
+  // Mobile menu drawer toggle state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Mobile chat view toggler: shows channels list on mobile vs the conversation
+  const [showMobileChatSidebar, setShowMobileChatSidebar] = useState(true);
+
+  // Active Chat Channel or DM Key
+  const [activeChannel, setActiveChannel] = useState<string>("group");
+
+  // Helper: Get DM channel key with another user
+  const getDMChannelKey = (otherUserId: string) => {
+    return `dm:${[currentUserId, otherUserId].sort().join(":")}`;
+  };
+
+  // Helper: Resolve Channel Display Name
+  const getChannelName = (chan: string) => {
+    if (chan === "group") return "group-chat";
+    if (chan === "freelancers") return "freelancers-private";
+    if (chan.startsWith("dm:")) {
+      const parts = chan.split(":");
+      const otherId = parts[1] === currentUserId ? parts[2] : parts[1];
+      if (otherId === companyUser.id) return `${companyName} (Client)`;
+      const fUser = hiredFreelancers.find((f) => f.id === otherId);
+      return fUser ? `${fUser.name} (Freelancer)` : "Direct Message";
+    }
+    return chan;
+  };
+
+  // Sync states
+  const [messages, setMessages] = useState<MessageItem[]>(initialMessages);
+  const [files, setFiles] = useState<SharedFileItem[]>(initialFiles);
+  const [updates, setUpdates] = useState<ProjectUpdateItem[]>(initialUpdates);
+  const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
+
+  // Sync background polling every 3s
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
+
+  useEffect(() => {
+    setFiles(initialFiles);
+  }, [initialFiles]);
+
+  useEffect(() => {
+    setUpdates(initialUpdates);
+  }, [initialUpdates]);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchWorkspaceUpdates = async () => {
+      try {
+        const res = await fetch(`/api/workspace/${projectId}`);
+        if (!res.ok || !active) return;
+        const data = await res.json();
+        if (!active) return;
+
+        setMessages((curr) => {
+          const hasNew = curr.length !== data.messages.length || 
+            (curr.length > 0 && data.messages.length > 0 && curr[curr.length - 1].id !== data.messages[data.messages.length - 1].id);
+          return hasNew ? data.messages : curr;
+        });
+
+        setTasks((curr) => {
+          const serialize = (list: TaskItem[]) => list.map(t => `${t.id}-${t.status}-${t.priority}-${t.assignedToId}`).join("|");
+          return serialize(data.tasks) !== serialize(curr) ? data.tasks : curr;
+        });
+
+        setFiles((curr) => (curr.length !== data.files.length ? data.files : curr));
+        setUpdates((curr) => (curr.length !== data.updates.length ? data.updates : curr));
+      } catch (err) {
+        console.error("Workspace sync error:", err);
+      }
+    };
+
+    const interval = setInterval(fetchWorkspaceUpdates, 3000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [projectId]);
+
+  // UI state variables
+  const [newMessage, setNewMessage] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice recording simulation
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceWave, setVoiceWave] = useState<number[]>([]);
+  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // AI Chat Assistant
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiConversation, setAiConversation] = useState<{ sender: "user" | "ai"; text: string; time: Date }[]>([
+    { sender: "ai", text: "Hello! I am your Talentra AI Workspace Assistant. Ask me anything about your project milestones, deadlines, budget, or tasks.", time: new Date() }
+  ]);
+  const [isAITyping, setIsAITyping] = useState(false);
+  const aiScrollRef = useRef<HTMLDivElement>(null);
+
+  // Modals
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState("MEDIUM");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState("");
+  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+
+  // Deliverables upload / review
+  const [deliverableVersionTargetId, setDeliverableVersionTargetId] = useState<string | null>(null);
+  const [selectedPreviewFile, setSelectedPreviewFile] = useState<SharedFileItem | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState("");
+  const [isReviewing, setIsReviewing] = useState(false);
+
+  // Milestones add
+  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
+  const [newMilestoneDesc, setNewMilestoneDesc] = useState("");
+  const [newMilestoneValue, setNewMilestoneValue] = useState("");
+  const [isSubmittingMilestone, setIsSubmittingMilestone] = useState(false);
+
+  // Invoice generator
+  const [selectedInvoiceMilestone, setSelectedInvoiceMilestone] = useState<ProjectUpdateItem | null>(null);
+
+  // Search filtering
+  const [taskSearch, setTaskSearch] = useState("");
+
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const routerRefresh = useRouter();
+
+  // Scroll to bottom of chat
+  useEffect(() => {
+    if (activeView === "messages") {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeView]);
+
+  useEffect(() => {
+    if (aiScrollRef.current) {
+      aiScrollRef.current.scrollTop = aiScrollRef.current.scrollHeight;
+    }
+  }, [aiConversation, showAIAssistant]);
+
+  // Formatter bytes
+  const formatBytes = (bytes: number, decimals = 2) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+  };
+
+  // HANDLER: General Send Message
+  const handleSendMessage = async (e: React.FormEvent, contentText?: string) => {
+    if (e) e.preventDefault();
+    const textToSend = contentText || newMessage;
+    if (!textToSend.trim() || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    if (!contentText) setNewMessage("");
+
+    const optimistic: MessageItem = {
+      id: `temp-${Date.now()}`,
+      content: textToSend,
+      createdAt: new Date().toISOString(),
+      senderId: currentUserId,
+      channel: activeChannel,
+      sender: {
+        id: currentUserId,
+        name: role === "COMPANY" ? companyName : (hiredFreelancers.find(f => f.id === currentUserId)?.name || "Freelancer"),
+        image: role === "COMPANY" ? companyUser.image : (hiredFreelancers.find(f => f.id === currentUserId)?.image || null),
+        role,
+      },
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+
+    const result = await sendMessage(projectId, textToSend, activeChannel);
+    setIsSendingMessage(false);
+
+    if (result.error) {
+      alert(result.error);
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+    }
+  };
+
+  // HANDLER: Share File Deliverable
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isNewVersionOfId?: string) => {
+    const fileObj = e.target.files?.[0];
+    if (!fileObj || isUploadingFile) return;
+
+    setIsUploadingFile(true);
+    const fileName = fileObj.name;
+    const bytesFormatted = formatBytes(fileObj.size);
+    const tempId = `temp-file-${Date.now()}`;
+    const mockFileUrl = `/workspace/downloads/${encodeURIComponent(fileName)}`;
+
+    const metaInfo: DeliverableMeta = {
+      size: bytesFormatted,
+      status: "PENDING",
+      version: isNewVersionOfId ? 2 : 1,
+    };
+
+    const optimistic: SharedFileItem = {
+      id: tempId,
+      fileName,
+      fileUrl: mockFileUrl,
+      fileSize: JSON.stringify(metaInfo),
+      uploadedAt: new Date().toISOString(),
+      uploadedById: currentUserId,
+      channel: activeChannel,
+      uploadedBy: {
+        id: currentUserId,
+        name: role === "COMPANY" ? companyName : (hiredFreelancers.find(f => f.id === currentUserId)?.name || "Freelancer"),
+        role,
+      },
+    };
+
+    setFiles((prev) => [optimistic, ...prev]);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", fileObj);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      const realUrl = data.url;
+
+      let result;
+      if (isNewVersionOfId) {
+        result = await uploadDeliverableVersion(projectId, isNewVersionOfId, fileName, realUrl, bytesFormatted);
+      } else {
+        result = await shareFile(projectId, fileName, realUrl, JSON.stringify(metaInfo), activeChannel);
+      }
+
+      if (result.error) {
+        alert(result.error);
+        setFiles((prev) => prev.filter(f => f.id !== tempId));
+      }
+    } catch (err: any) {
+      alert("Failed to share file deliverable.");
+      setFiles((prev) => prev.filter(f => f.id !== tempId));
+    } finally {
+      setIsUploadingFile(false);
+      setDeliverableVersionTargetId(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // HANDLER: Delete File
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm("Are you sure you want to delete this deliverable?")) return;
+    setFiles((prev) => prev.filter(f => f.id !== fileId));
+    const result = await deleteFile(projectId, fileId);
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  // HANDLER: Deliverable review actions
+  const handleReviewDeliverable = async (fileId: string, status: "APPROVED" | "REVISION_REQUESTED") => {
+    if (!reviewFeedback.trim()) {
+      alert("Please provide revision feedback or approval comments first.");
+      return;
+    }
+    setIsReviewing(true);
+
+    const result = await updateDeliverableStatus(projectId, fileId, status, reviewFeedback);
+    setIsReviewing(false);
+
+    if (result.error) {
+      alert(result.error);
+    } else {
+      setReviewFeedback("");
+      setSelectedPreviewFile(null);
+      
+      // Auto-update milestone if approved
+      if (status === "APPROVED") {
+        // Find corresponding milestone update title to auto complete
+        const deliverable = files.find(f => f.id === fileId);
+        if (deliverable) {
+          const matchingMilestone = updates.find(u => 
+            u.title.toLowerCase().includes(deliverable.fileName.split(".")[0].toLowerCase()) && 
+            u.status !== "COMPLETED"
+          );
+          if (matchingMilestone) {
+            await updateProjectUpdateStatus(projectId, matchingMilestone.id, "COMPLETED");
+          }
+        }
+      }
+    }
+  };
+
+  // HANDLER: Milestones CRUD
+  const handleCreateMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMilestoneTitle.trim() || !newMilestoneValue.trim() || isSubmittingMilestone) return;
+
+    setIsSubmittingMilestone(true);
+    const amountVal = parseFloat(newMilestoneValue.replace(/[^0-9.]/g, "")) || 0;
+    const formattedTitle = `[Value: $${amountVal.toLocaleString()}] ${newMilestoneTitle.trim()}`;
+
+    const result = await createProjectUpdate(projectId, formattedTitle, newMilestoneDesc, "PENDING");
+    setIsSubmittingMilestone(false);
+    setNewMilestoneTitle("");
+    setNewMilestoneDesc("");
+    setNewMilestoneValue("");
+    setShowAddMilestoneModal(false);
+
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  const handleUpdateMilestoneStatus = async (updateId: string, newStatus: string) => {
+    const result = await updateProjectUpdateStatus(projectId, updateId, newStatus);
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  // HANDLER: Tasks CRUD
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim() || isSubmittingTask) return;
+
+    setIsSubmittingTask(true);
+    const result = await createTask(projectId, newTaskTitle, newTaskDesc, newTaskPriority, newTaskDueDate, newTaskAssignee);
+    setIsSubmittingTask(false);
+    setNewTaskTitle("");
+    setNewTaskDesc("");
+    setNewTaskPriority("MEDIUM");
+    setNewTaskDueDate("");
+    setNewTaskAssignee("");
+    setShowAddTaskModal(false);
+
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
+    setTasks((prev) => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    const result = await updateTaskStatus(projectId, taskId, newStatus);
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  const handleUpdateTaskDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask || isUpdatingTask) return;
+
+    setIsUpdatingTask(true);
+    const result = await updateTaskDetails(projectId, selectedTask.id, {
+      title: selectedTask.title,
+      description: selectedTask.description || "",
+      priority: selectedTask.priority,
+      dueDate: selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString() : "",
+      assignedToId: selectedTask.assignedToId || null,
+    });
+    setIsUpdatingTask(false);
+    setShowTaskDetailModal(false);
+    setSelectedTask(null);
+
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    setTasks((prev) => prev.filter(t => t.id !== taskId));
+    setShowTaskDetailModal(false);
+    setSelectedTask(null);
+    const result = await deleteTask(projectId, taskId);
+    if (result.error) {
+      alert(result.error);
+    }
+  };
+
+  // SIMULATION: Voice recording
+  const startVoiceRecording = () => {
+    setIsRecordingVoice(true);
+    setRecordingSeconds(0);
+    setVoiceWave([2, 5, 2, 8, 2, 4, 3]);
+    recordingTimer.current = setInterval(() => {
+      setRecordingSeconds((prev) => prev + 1);
+      // random wave height simulation
+      setVoiceWave(Array.from({ length: 15 }, () => Math.floor(Math.random() * 28) + 4));
+    }, 1000);
+  };
+
+  const stopAndSendVoice = async () => {
+    if (recordingTimer.current) clearInterval(recordingTimer.current);
+    setIsRecordingVoice(false);
+
+    const minutes = Math.floor(recordingSeconds / 60);
+    const seconds = recordingSeconds % 60;
+    const durStr = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    const simulatedVoiceMsg = `[VOICE:voice_rec_${Date.now()}.mp3|duration:${durStr}]`;
+
+    await handleSendMessage(null as any, simulatedVoiceMsg);
+  };
+
+  const cancelVoiceRecording = () => {
+    if (recordingTimer.current) clearInterval(recordingTimer.current);
+    setIsRecordingVoice(false);
+  };
+
+  // SIMULATION: AI Chatbot responses
+  const handleAISubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiInput.trim()) return;
+
+    const userText = aiInput;
+    setAiInput("");
+    setAiConversation((prev) => [...prev, { sender: "user", text: userText, time: new Date() }]);
+    setIsAITyping(true);
+
+    setTimeout(() => {
+      const lower = userText.toLowerCase();
+      let reply = "";
+
+      if (lower.includes("task") || lower.includes("to do") || lower.includes("kanban")) {
+        const todoCount = tasks.filter(t => t.status === "TODO").length;
+        const progressCount = tasks.filter(t => t.status === "IN_PROGRESS").length;
+        const doneCount = tasks.filter(t => t.status === "DONE").length;
+        reply = `There are currently **${tasks.length} tasks** in the Kanban Board: \n• **${todoCount}** in To Do\n• **${progressCount}** In Progress\n• **${doneCount}** Done.\nLet me know if you would like me to list them by priority!`;
+      } else if (lower.includes("budget") || lower.includes("escrow") || lower.includes("money") || lower.includes("pay")) {
+        // Calculate milestones values
+        let released = 0;
+        let held = 0;
+        let pending = 0;
+        updates.forEach(u => {
+          const { amount } = parseMilestoneAmount(u.title, u.description);
+          if (u.status === "COMPLETED") released += amount;
+          else if (u.status === "IN_PROGRESS") held += amount;
+          else pending += amount;
+        });
+
+        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** $${projectBudget.toLocaleString()}\n• **Escrow Wallet secured:** $${held.toLocaleString()} (funded milestones in progress)\n• **Released to Freelancer:** $${released.toLocaleString()}\n• **Remaining unfunded milestones:** $${pending.toLocaleString()}.`;
+      } else if (lower.includes("deadline") || lower.includes("date") || lower.includes("timeline")) {
+        reply = `The final project timeline deadline is scheduled for **December 28, 2026**. Please coordinate tasks and milestones accordingly to prevent delivery lags.`;
+      } else if (lower.includes("deliverable") || lower.includes("file") || lower.includes("submission")) {
+        const approved = files.filter(f => parseDeliverableMeta(f.fileSize).status === "APPROVED").length;
+        const pending = files.filter(f => parseDeliverableMeta(f.fileSize).status === "PENDING").length;
+        reply = `In the Deliverables archive, there are **${files.length} submissions** in total:\n• **${approved}** Approved deliverables\n• **${pending}** Pending client review.\nYou can view, approve, or request revisions directly in the Deliverables tab.`;
+      } else if (lower.includes("draft") || lower.includes("write")) {
+        reply = `Here is a drafted message for your collaborator:\n\n*"Hi, just checking in on the progress of the milestone deliverables. Let me know if you need any resources or have questions. Thanks!"*\n\nCopy and paste this into the Messages tab to send!`;
+      } else {
+        reply = `I can help you audit this project. Ask me about tasks ("list tasks"), budget escrow status ("show wallet balance"), or file submissions ("check deliverables").`;
+      }
+
+      setAiConversation((prev) => [...prev, { sender: "ai", text: reply, time: new Date() }]);
+      setIsAITyping(false);
+    }, 850);
+  };
+
+  // CRITICAL: Filter tasks
+  const filteredTasksList = tasks.filter(t => 
+    t.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
+    (t.description && t.description.toLowerCase().includes(taskSearch.toLowerCase()))
+  );
+
+  // MILESTONE COMPLETION CALCULATION
+  const completedMilestones = updates.filter((u) => u.status === "COMPLETED").length;
+  const milestonePercentage = updates.length > 0 ? Math.round((completedMilestones / updates.length) * 100) : 0;
+
+  // ESCROW CALCULATIONS
+  let fundsEscrowed = 0;
+  let fundsPaid = 0;
+  updates.forEach((u) => {
+    const { amount } = parseMilestoneAmount(u.title, u.description);
+    if (u.status === "COMPLETED") {
+      fundsPaid += amount;
+    } else if (u.status === "IN_PROGRESS") {
+      fundsEscrowed += amount;
+    }
+  });
+
+  return (
+    <div className="flex flex-col lg:flex-row bg-[#f8fbff]/90 border-0 sm:border border-slate-200/80 rounded-none sm:rounded-3xl shadow-none sm:shadow-xl overflow-hidden min-h-[720px] backdrop-blur-md glass-panel relative">
+      
+      {/* Mobile Top Header (Visible only on mobile/tablet) */}
+      <div className="lg:hidden bg-slate-900 text-slate-100 p-4 flex items-center justify-between border-b border-slate-800 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 -ml-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/40 border border-slate-700/30 cursor-pointer"
+            title="Open Menu"
+          >
+            {/* Hamburger Icon */}
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white text-xs shadow-sm">
+            {projectTitle[0]?.toUpperCase() || "T"}
+          </div>
+          <span className="font-extrabold text-xs truncate max-w-[150px] leading-tight">{projectTitle}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="primary" className="text-[8px] font-black uppercase tracking-wider py-0.5 px-2">
+            {activeView}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Sidebar Mobile Backdrop Blur overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 1. SIDE NAVIGATION BAR */}
+      <div className={`
+        fixed inset-y-0 left-0 w-[260px] bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col shrink-0 z-50 transition-transform duration-300
+        lg:static lg:translate-x-0 h-full
+        ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        
+        {/* Workspace Branding Header */}
+        <div className="p-5 border-b border-slate-800 bg-slate-950/40 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-lg shadow-[#3ac0ff]/20 shrink-0">
+              {projectTitle[0]?.toUpperCase() || "T"}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black text-[#3ac0ff] tracking-widest uppercase leading-none">Workspace</p>
+              <p className="text-sm font-extrabold text-white tracking-tight truncate mt-1 leading-tight">{projectTitle}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-1 text-slate-400 hover:text-white rounded-lg lg:hidden cursor-pointer"
+            title="Close Menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* User Profile Badge */}
+        <div className="px-4 py-3 mx-2 my-3 rounded-2xl bg-slate-800/40 border border-slate-850 flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-[#002d59] border border-[#3ac0ff]/30 flex items-center justify-center font-bold text-xs text-white overflow-hidden shrink-0">
+            {role === "COMPANY" ? (companyUser.image ? <img src={companyUser.image} className="h-full w-full object-cover" /> : "C") : "F"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white truncate">{role === "COMPANY" ? companyName : "Freelancer"}</p>
+            <Badge variant="primary" className="text-[8px] font-extrabold px-1.5 py-0 mt-0.5 uppercase tracking-wider">
+              {role === "COMPANY" ? "Client Manager" : "Contractor"}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Navigation Sidebar Menu */}
+        <div className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
+          {[
+            { id: "overview", label: "Overview", icon: LayoutDashboard },
+            { id: "messages", label: "Messages", icon: MessageSquare },
+            { id: "deliverables", label: "Deliverables", icon: Archive },
+            { id: "tasks", label: "Tasks", icon: CheckSquare },
+            { id: "payments", label: "Payments", icon: CreditCard },
+            { id: "team", label: "Team Directory", icon: Users },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveView(item.id as any);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? "bg-gradient-to-r from-[#002d59] to-[#004282] border border-[#3ac0ff]/30 text-white shadow-md shadow-sky-500/5"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
+                }`}
+              >
+                <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-[#3ac0ff]" : "text-slate-500"}`} />
+                <span>{item.label}</span>
+                {item.id === "messages" && messages.length > 0 && (
+                  <span className="ml-auto bg-sky-500/20 text-[#3ac0ff] text-[8px] font-black px-1.5 py-0.5 rounded-full border border-sky-400/20">
+                    {messages.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Budget stats sidebar summary */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/40 m-2 rounded-2xl">
+          <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+            <span>Project Budget</span>
+            <span className="font-extrabold text-[#3ac0ff]">${projectBudget.toLocaleString()}</span>
+          </div>
+          <div className="h-1.5 bg-slate-850 rounded-full overflow-hidden mt-2.5">
+            <div className="h-full bg-gradient-to-r from-[#3ac0ff] to-[#002d59]" style={{ width: `${milestonePercentage}%` }} />
+          </div>
+          <p className="text-[8px] text-slate-500 mt-1.5 font-bold text-right uppercase">{milestonePercentage}% Milestones Paid</p>
+        </div>
+
+      </div>
+
+      {/* 2. MAIN AREA */}
+      <div className="flex-1 flex flex-col min-w-0 bg-white/70">
+        
+        {/* VIEW AREA */}
+        <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeView}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="h-full"
+            >
+              
+              {/* overview TAB */}
+              {activeView === "overview" && (
+                <div className="space-y-6">
+                  
+                  {/* Banner header card with glassmorphism */}
+                  <div className="bg-gradient-to-r from-slate-950 to-[#002d59] border border-slate-850 rounded-3xl p-6 text-white relative overflow-hidden shadow-lg">
+                    <div className="absolute top-0 right-0 -mt-6 -mr-6 h-40 w-40 rounded-full bg-[#3ac0ff]/15 blur-3xl" />
+                    <div className="relative space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Badge variant="accent" className="text-[9px] font-black uppercase tracking-wider mb-2">
+                            Freelance Project Portal
+                          </Badge>
+                          <h1 className="text-2xl font-black tracking-tight">{projectTitle}</h1>
+                          <p className="text-slate-400 text-xs mt-1.5 max-w-xl leading-relaxed">
+                            Welcome to your workspace. Sync on tasks, track milestone disbursements, upload final deliverables, and ask our AI assistant for reports.
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestones completed</p>
+                          <p className="text-3xl font-black text-[#3ac0ff] mt-0.5">{milestonePercentage}%</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-800 text-xs">
+                        <div>
+                          <span className="text-slate-450 block text-[9px] font-bold uppercase tracking-wider">Total Contract Value</span>
+                          <span className="font-extrabold text-[#3ac0ff] text-sm mt-0.5 block">${projectBudget.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-450 block text-[9px] font-bold uppercase tracking-wider">Funds Paid to Date</span>
+                          <span className="font-extrabold text-emerald-450 text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-450 block text-[9px] font-bold uppercase tracking-wider">Secured in Escrow</span>
+                          <span className="font-extrabold text-sky-400 text-sm mt-0.5 block">${fundsEscrowed.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-450 block text-[9px] font-bold uppercase tracking-wider">Contract Deadline</span>
+                          <span className="font-extrabold text-amber-400 text-sm mt-0.5 block">Dec 28, 2026</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Overview panels grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    {/* Left & Middle: Recent Activity Feed & Upcoming Milestone */}
+                    <div className="lg:col-span-2 space-y-6">
+                      
+                      {/* Upcoming Milestone Spotlight */}
+                      <Card className="border border-slate-200/60 p-5 shadow-xs relative overflow-hidden bg-white">
+                        <div className="absolute top-0 right-0 bg-[#3ac0ff]/10 text-[#002d59] font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-[#3ac0ff]/20">
+                          Milestone Phase
+                        </div>
+                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Upcoming Milestone</h3>
+                        
+                        {updates.filter(u => u.status !== "COMPLETED").length === 0 ? (
+                          <div className="py-6 flex items-center gap-3 text-slate-450 text-xs font-bold">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            All milestones successfully delivered and completed!
+                          </div>
+                        ) : (
+                          (() => {
+                            const nextMilestone = updates.filter(u => u.status !== "COMPLETED").reverse()[0];
+                            const { amount, cleanTitle } = parseMilestoneAmount(nextMilestone.title, nextMilestone.description);
+                            return (
+                              <div className="mt-3.5 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-extrabold text-slate-800 text-sm">{cleanTitle}</h4>
+                                  <Badge variant={nextMilestone.status === "IN_PROGRESS" ? "primary" : "neutral"}>
+                                    {nextMilestone.status.replace("_", " ").toLowerCase()}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                                  {nextMilestone.description || "No description provided."}
+                                </p>
+                                <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
+                                  <span className="font-bold text-slate-700">Milestone Value: <span className="text-[#002d59]">${amount.toLocaleString()}</span></span>
+                                  {role === "COMPANY" && nextMilestone.status === "PENDING" && (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(nextMilestone.id, "IN_PROGRESS")}
+                                      size="sm"
+                                      variant="secondary"
+                                      className="text-xs py-1 h-7 font-bold cursor-pointer"
+                                    >
+                                      Fund and Start Milestone
+                                    </Button>
+                                  )}
+                                  {role === "COMPANY" && nextMilestone.status === "IN_PROGRESS" && (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(nextMilestone.id, "COMPLETED")}
+                                      size="sm"
+                                      variant="primary"
+                                      className="text-xs py-1 h-7 font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    >
+                                      Approve and Release Funds
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        )}
+                      </Card>
+
+                      {/* Recent Activity Feed */}
+                      <Card className="border border-slate-200/60 p-5 shadow-xs bg-white">
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Recent Workspace Activity</h3>
+                          <span className="text-[10px] text-slate-400 font-bold">Auto Synced</span>
+                        </div>
+                        <div className="mt-4 space-y-4 max-h-[280px] overflow-y-auto pr-1">
+                          
+                          {/* Aggregate logs chronologically */}
+                          {(() => {
+                            const logs: { id: string; type: string; title: string; desc: string; date: Date }[] = [];
+                            updates.forEach(u => logs.push({ id: u.id, type: "milestone", title: `Milestone Status: ${u.status.replace("_", " ")}`, desc: u.title, date: new Date(u.createdAt) }));
+                            tasks.forEach(t => logs.push({ id: t.id, type: "task", title: `Task: ${t.status}`, desc: t.title, date: new Date(t.createdAt) }));
+                            files.forEach(f => logs.push({ id: f.id, type: "file", title: "Deliverable Shared", desc: f.fileName, date: new Date(f.uploadedAt) }));
+                            
+                            // Sort logs descending
+                            logs.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+                            if (logs.length === 0) {
+                              return (
+                                <p className="text-xs text-slate-450 py-6 text-center">No activity logged in this workspace yet.</p>
+                              );
+                            }
+
+                            return logs.slice(0, 6).map((log, idx) => (
+                              <div key={`${log.id}-${idx}`} className="flex gap-3 text-xs leading-relaxed items-start">
+                                <div className={`h-6 w-6 rounded-full shrink-0 flex items-center justify-center ${
+                                  log.type === "milestone" ? "bg-purple-50 text-purple-650" : 
+                                  log.type === "task" ? "bg-amber-50 text-amber-650" : "bg-sky-50 text-sky-655"
+                                }`}>
+                                  {log.type === "milestone" && <Sparkles className="h-3 w-3" />}
+                                  {log.type === "task" && <CheckSquare className="h-3 w-3" />}
+                                  {log.type === "file" && <Archive className="h-3 w-3" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-extrabold text-slate-800 leading-tight">{log.title}</p>
+                                  <p className="text-slate-450 text-[10px] mt-0.5 truncate">{log.desc}</p>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-400 shrink-0 whitespace-nowrap">
+                                  {log.date.toLocaleDateString([], { month: "short", day: "numeric" })}
+                                </span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </Card>
+
+                    </div>
+
+                    {/* Right: Quick circular progress summary */}
+                    <div className="space-y-6">
+                      <Card className="border border-slate-200/60 p-6 shadow-xs flex flex-col items-center justify-center text-center bg-white">
+                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-6">Contract Status</h3>
+                        
+                        {/* Circular progress container */}
+                        <div className="relative h-28 w-28 flex items-center justify-center">
+                          <svg className="absolute h-full w-full transform -rotate-90">
+                            <circle cx="56" cy="56" r="48" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
+                            <circle cx="56" cy="56" r="48" stroke="url(#blueGrad)" strokeWidth="8" fill="transparent"
+                              strokeDasharray={301.6}
+                              strokeDashoffset={301.6 - (301.6 * milestonePercentage) / 100}
+                              strokeLinecap="round"
+                            />
+                            <defs>
+                              <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#3ac0ff" />
+                                <stop offset="100%" stopColor="#002d59" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                          <div className="text-center">
+                            <p className="text-2xl font-black text-slate-800 leading-none">{milestonePercentage}%</p>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Paid</p>
+                          </div>
+                        </div>
+
+                        <p className="text-xs font-extrabold text-slate-700 mt-6 leading-tight">
+                          {completedMilestones} of {updates.length} Milestone Phases Done
+                        </p>
+                        <p className="text-[10px] text-slate-450 mt-1">
+                          Funds are released automatically upon final client milestone approval.
+                        </p>
+                      </Card>
+
+                      {/* Workspace team profiles short preview */}
+                      <Card className="border border-slate-200/60 p-5 shadow-xs bg-white space-y-3">
+                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Collaborators</h3>
+                        
+                        <div className="space-y-3 pt-1 text-xs">
+                          {/* Company */}
+                          <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 rounded-full bg-slate-900 flex items-center justify-center font-bold text-[10px] text-white">C</div>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-slate-800 truncate">{companyName}</p>
+                              <p className="text-[8px] font-black text-slate-400 uppercase leading-none mt-0.5">Client</p>
+                            </div>
+                          </div>
+                          {/* Freelancers */}
+                          {hiredFreelancers.map(f => (
+                            <div key={f.id} className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-sky-500/20 text-[#002d59] font-extrabold flex items-center justify-center text-[10px]">
+                                {f.name ? f.name[0].toUpperCase() : "F"}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-extrabold text-slate-800 truncate">{f.name}</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase leading-none mt-0.5">Freelancer</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* messages TAB */}
+              {activeView === "messages" && (
+                <div className="flex flex-col lg:flex-row gap-6 h-[580px]">
+                  
+                  {/* Sub-sidebar for private channels and DM selector */}
+                  <div className={`w-full lg:w-[200px] shrink-0 bg-slate-50 border border-slate-200/60 rounded-3xl p-4 space-y-5 flex flex-col justify-start overflow-y-auto ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                    {/* Channels */}
+                    <div className="space-y-1 bg-white p-3 rounded-2xl border border-slate-100">
+                      <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1 mb-2">Channels</h4>
+                      <button
+                        onClick={() => {
+                          setActiveChannel("group");
+                          setShowMobileChatSidebar(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer ${
+                          activeChannel === "group"
+                            ? "bg-[#002d59]/10 text-[#002d59] border border-[#002d59]/5"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent"
+                        }`}
+                      >
+                        <span className="text-slate-400 font-extrabold">#</span>
+                        <span className="truncate">group-chat</span>
+                      </button>
+
+                      {role === "FREELANCER" && (
+                        <button
+                          onClick={() => {
+                            setActiveChannel("freelancers");
+                            setShowMobileChatSidebar(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 ${
+                            activeChannel === "freelancers"
+                              ? "bg-amber-500/10 text-amber-700 border border-amber-500/5"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent"
+                          }`}
+                          title="Only hired freelancers can view this private channel"
+                        >
+                          <span className="text-amber-500 font-extrabold">🔒</span>
+                          <span className="truncate text-amber-750">freelancers-private</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Direct Messages */}
+                    <div className="space-y-1 bg-white p-3 rounded-2xl border border-slate-100 flex-1 overflow-y-auto">
+                      <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1 mb-2">Direct Messages</h4>
+                      
+                      {role === "FREELANCER" && (
+                        <button
+                          onClick={() => {
+                            setActiveChannel(getDMChannelKey(companyUser.id));
+                            setShowMobileChatSidebar(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all cursor-pointer ${
+                            activeChannel === getDMChannelKey(companyUser.id)
+                              ? "bg-[#002d59]/10 text-[#002d59]"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="truncate">{companyName} (Client)</span>
+                        </button>
+                      )}
+
+                      {role === "FREELANCER"
+                        ? hiredFreelancers
+                            .filter((f) => f.id !== currentUserId)
+                            .map((f) => (
+                              <button
+                                key={f.id}
+                                onClick={() => {
+                                  setActiveChannel(getDMChannelKey(f.id));
+                                  setShowMobileChatSidebar(false);
+                                }}
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all cursor-pointer mt-1 ${
+                                  activeChannel === getDMChannelKey(f.id)
+                                    ? "bg-[#002d59]/10 text-[#002d59]"
+                                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                }`}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                <span className="truncate">{f.name}</span>
+                              </button>
+                            ))
+                        : hiredFreelancers.map((f) => (
+                            <button
+                              key={f.id}
+                              onClick={() => {
+                                  setActiveChannel(getDMChannelKey(f.id));
+                                  setShowMobileChatSidebar(false);
+                                }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all cursor-pointer mt-1 ${
+                                activeChannel === getDMChannelKey(f.id)
+                                  ? "bg-[#002d59]/10 text-[#002d59]"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                              }`}
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="truncate">{f.name}</span>
+                            </button>
+                          ))}
+                    </div>
+                  </div>
+
+                  {/* Left: General Chat interface */}
+                  <div className={`flex-1 flex flex-col bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs relative ${!showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                    
+                    {/* Chat Header */}
+                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                      <div className="flex items-center min-w-0">
+                        {!showMobileChatSidebar && (
+                          <button
+                            onClick={() => setShowMobileChatSidebar(true)}
+                            className="mr-3 p-1.5 text-slate-500 hover:text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all lg:hidden cursor-pointer flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
+                          >
+                            &larr; Chat List
+                          </button>
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-black text-slate-800 truncate">
+                            {activeChannel === "group" && "💬 group-chat"}
+                            {activeChannel === "freelancers" && "🔒 freelancers-private"}
+                            {activeChannel.startsWith("dm:") && `👤 DM: ${getChannelName(activeChannel)}`}
+                          </h3>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
+                            {activeChannel === "group" && "Whole Group Discussion Thread"}
+                            {activeChannel === "freelancers" && "Private Freelancers-Only Thread"}
+                            {activeChannel.startsWith("dm:") && "Private Direct Message Thread"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* AI Assistant Button */}
+                      <button
+                        onClick={() => setShowAIAssistant(!showAIAssistant)}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                          showAIAssistant 
+                            ? "bg-gradient-to-r from-[#002d59] to-[#004282] border-slate-850 text-white shadow-sm"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Bot className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">AI Assistant</span>
+                      </button>
+                    </div>
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                      
+                      <div className="px-4 py-2 rounded-2xl bg-amber-55/60 border border-amber-200/30 flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <p className="text-[9px] font-bold text-amber-700 uppercase tracking-wide">
+                          Important: Messages automatically clear after 7 days to maintain clean workspaces.
+                        </p>
+                      </div>
+
+                      {messages.filter((m) => m.channel === activeChannel).length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-2 p-8">
+                          <MessageSquare className="h-8 w-8 text-slate-350" />
+                          <p className="text-xs font-bold">Workspace thread is quiet.</p>
+                          <p className="text-[10px]">Send a greeting message or files to begin collaboration.</p>
+                        </div>
+                      ) : (
+                        messages.filter((m) => m.channel === activeChannel).map((msg) => {
+                          const isMe = msg.senderId === currentUserId;
+                          const isVoice = msg.content.startsWith("[VOICE:");
+
+                          // Extract voice metadata
+                          let voiceDur = "0:00";
+                          if (isVoice) {
+                            const durMatch = msg.content.match(/duration:([^\]]+)/);
+                            if (durMatch) voiceDur = durMatch[1];
+                          }
+
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex gap-3 max-w-[85%] ${isMe ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+                            >
+                              {/* Avatar */}
+                              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[#002d59] to-slate-800 flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-sm">
+                                {msg.sender.image ? <img src={msg.sender.image} className="h-full w-full object-cover" /> : (msg.sender.name ? msg.sender.name[0].toUpperCase() : "U")}
+                              </div>
+
+                              <div className="space-y-1 min-w-0">
+                                <div className={`flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase ${isMe ? "justify-end" : ""}`}>
+                                  <span>{msg.sender.name}</span>
+                                  <span className="text-[7px] bg-slate-100 text-slate-500 px-1 rounded tracking-wider">{msg.sender.role.toLowerCase()}</span>
+                                </div>
+
+                                {/* Bubble content */}
+                                <div className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs break-words ${
+                                  isMe
+                                    ? "bg-gradient-to-r from-[#002d59] to-[#004282] text-white rounded-tr-none"
+                                    : "bg-slate-150 text-slate-800 rounded-tl-none border border-slate-200/50"
+                                }`}>
+                                  {isVoice ? (
+                                    <div className="flex items-center gap-3.5 min-w-[200px]">
+                                      <button className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center shrink-0 cursor-pointer">
+                                        <Play className="h-4 w-4 fill-white" />
+                                      </button>
+                                      <div className="flex-1 space-y-1">
+                                        <div className="flex items-center gap-0.5 h-6">
+                                          {Array.from({ length: 18 }).map((_, i) => (
+                                            <div
+                                              key={i}
+                                              className="bg-white/60 w-0.5 rounded-full"
+                                              style={{ height: `${Math.floor(Math.random() * 16) + 4}px` }}
+                                            />
+                                          ))}
+                                        </div>
+                                        <div className="flex justify-between text-[8px] text-white/85 font-black uppercase">
+                                          <span>Voice Message</span>
+                                          <span>{voiceDur}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    msg.content
+                                  )}
+                                </div>
+
+                                <div className={`text-[8px] text-slate-400 flex items-center gap-1.5 mt-1 ${isMe ? "justify-end" : ""}`}>
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                </div>
+
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={chatBottomRef} />
+                    </div>
+
+                    {/* Voice Recording Simulation Visual Overlay */}
+                    {isRecordingVoice && (
+                      <div className="absolute inset-x-0 bottom-0 bg-slate-950/90 text-white p-5 flex flex-col items-center justify-center gap-3 border-t border-slate-850 z-20">
+                        <div className="flex items-center gap-3">
+                          <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
+                          <span className="text-xs font-black uppercase tracking-wider">Recording Voice Message</span>
+                        </div>
+                        <div className="flex items-end gap-1.5 h-8">
+                          {voiceWave.map((h, i) => (
+                            <div
+                              key={i}
+                              className="w-1.5 bg-[#3ac0ff] rounded-full transition-all duration-300 shadow-md shadow-sky-500/20"
+                              style={{ height: `${h}px` }}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-extrabold text-slate-400">
+                          {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60) < 10 ? "0" : ""}{recordingSeconds % 60}
+                        </span>
+                        <div className="flex gap-3 mt-1.5 text-xs">
+                          <Button size="sm" variant="ghost" onClick={cancelVoiceRecording} className="text-slate-400 hover:text-white cursor-pointer">
+                            Cancel
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={stopAndSendVoice} className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                            Send Message
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chat Input form bar */}
+                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={(e) => handleFileUpload(e)}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingFile}
+                        className="p-2.5 bg-white hover:bg-slate-100 text-slate-550 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
+                        title="Upload file attachment"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={startVoiceRecording}
+                        disabled={isRecordingVoice}
+                        className="p-2.5 bg-white hover:bg-slate-100 text-rose-600 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
+                        title="Record simulated voice message"
+                      >
+                        <Mic className="h-4 w-4" />
+                      </button>
+                      <Input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type standard chat message here..."
+                        disabled={isSendingMessage || isUploadingFile}
+                        className="flex-1 bg-white text-xs border-slate-200/80"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={isSendingMessage || !newMessage.trim() || isUploadingFile}
+                        className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-xs h-9 cursor-pointer flex items-center gap-1"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        <span>Send</span>
+                      </Button>
+                    </form>
+
+                  </div>
+
+                  {/* Right Panel: Ask AI assistant */}
+                  {showAIAssistant && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="w-full lg:w-[320px] bg-[#f0f6ff]/95 lg:bg-[#f0f6ff]/70 border border-slate-200/60 rounded-3xl p-4 flex flex-col h-full shadow-md lg:shadow-xs absolute lg:relative inset-0 lg:inset-auto z-20 lg:z-auto"
+                    >
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-[#002d59]" />
+                          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Talentra AI Chat</h3>
+                        </div>
+                        <button onClick={() => setShowAIAssistant(false)} className="text-slate-400 hover:text-slate-700">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Conversation thread */}
+                      <div ref={aiScrollRef} className="flex-1 overflow-y-auto py-3 space-y-3 text-[11px] leading-relaxed">
+                        {aiConversation.map((msg, idx) => (
+                          <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
+                            <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+                              {msg.sender === "user" ? "You" : "Talentra Assistant"}
+                            </span>
+                            <div className={`p-3 rounded-2xl max-w-[90%] shadow-xs leading-relaxed whitespace-pre-line ${
+                              msg.sender === "user"
+                                ? "bg-white text-slate-800 border border-slate-150 rounded-tr-none"
+                                : "bg-gradient-to-tr from-[#002d59] to-[#004282] text-white rounded-tl-none"
+                            }`}>
+                              {msg.text}
+                            </div>
+                          </div>
+                        ))}
+                        {isAITyping && (
+                          <div className="flex items-center gap-1.5 py-1 text-slate-400 font-bold uppercase text-[9px]">
+                            <Sparkles className="h-3.5 w-3.5 animate-spin text-[#3ac0ff]" />
+                            <span>AI is processing project state...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI input form */}
+                      <form onSubmit={handleAISubmit} className="mt-2 flex gap-1.5">
+                        <Input
+                          type="text"
+                          value={aiInput}
+                          onChange={(e) => setAiInput(e.target.value)}
+                          placeholder="Ask about tasks, budget, timeline..."
+                          className="text-[11px] bg-white h-8 py-1 focus:ring-[#002d59]/20"
+                        />
+                        <Button type="submit" size="sm" className="h-8 cursor-pointer bg-[#002d59] text-white">
+                          <Send className="h-3 w-3" />
+                        </Button>
+                      </form>
+                    </motion.div>
+                  )}
+
+                </div>
+              )}
+
+              {/* deliverables TAB */}
+              {activeView === "deliverables" && (
+                <div className="space-y-6">
+                  
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                    <div>
+                      <h2 className="text-base font-black text-slate-800">Workspace Deliverables</h2>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        Upload final files, track version iterations, and request revisions.
+                      </p>
+                    </div>
+                    {role === "FREELANCER" && (
+                      <div>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={(e) => handleFileUpload(e, deliverableVersionTargetId || undefined)}
+                          className="hidden"
+                        />
+                        <Button
+                          onClick={() => { setDeliverableVersionTargetId(null); fileInputRef.current?.click(); }}
+                          disabled={isUploadingFile}
+                          className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          <span>Submit Deliverable</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {files.length === 0 ? (
+                    <div className="py-20 text-center text-slate-400 space-y-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-350">
+                        <Archive className="h-5 w-5" />
+                      </div>
+                      <p className="text-xs font-extrabold text-slate-700">No deliverables shared yet.</p>
+                      <p className="text-[10px] max-w-xs mx-auto">
+                        Freelancers can submit final documents or files here for review, revision tracking, and final budget release.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {files.map((file) => {
+                        const meta = parseDeliverableMeta(file.fileSize);
+                        return (
+                          <Card key={file.id} className="border border-slate-200/60 p-5 bg-white relative hover:shadow-md transition-all flex flex-col justify-between gap-4">
+                            
+                            {/* Version and status header */}
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-extrabold text-[#002d59] bg-[#3ac0ff]/20 px-2 py-0.5 rounded-lg border border-[#3ac0ff]/30 text-[9px] uppercase tracking-wider">
+                                Version v{meta.version}
+                              </span>
+                              <Badge
+                                variant={
+                                  meta.status === "APPROVED"
+                                    ? "success"
+                                    : meta.status === "REVISION_REQUESTED"
+                                    ? "danger"
+                                    : "warning"
+                                }
+                                className="text-[8px] font-black uppercase tracking-wider px-2"
+                              >
+                                {meta.status.replace("_", " ")}
+                              </Badge>
+                            </div>
+
+                            {/* File Name & details */}
+                            <div className="min-w-0 py-2">
+                              <h4 className="font-extrabold text-slate-800 truncate text-sm" title={file.fileName}>
+                                {file.fileName}
+                              </h4>
+                              <p className="text-[10px] text-slate-450 mt-1">
+                                Size: {meta.size} • Shared: {new Date(file.uploadedAt).toLocaleDateString()}
+                              </p>
+                              {meta.feedback && (
+                                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] leading-relaxed text-slate-655 max-h-[80px] overflow-y-auto">
+                                  <strong className="block text-slate-700 font-bold uppercase text-[8px] tracking-wider mb-0.5">Feedback:</strong>
+                                  {meta.feedback}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions bar */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs mt-auto">
+                              
+                              <div className="flex items-center gap-1.5">
+                                {/* Download */}
+                                <a
+                                  href={file.fileUrl}
+                                  download={file.fileName}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-[#002d59] transition-all cursor-pointer inline-flex items-center justify-center"
+                                  title="Download File"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </a>
+                                {/* Preview */}
+                                <button
+                                  onClick={() => setSelectedPreviewFile(file)}
+                                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-[#002d59] transition-all cursor-pointer inline-flex items-center justify-center"
+                                  title="Preview File"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </button>
+                                {/* Delete */}
+                                {(role === "COMPANY" || file.uploadedById === currentUserId) && (
+                                  <button
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all cursor-pointer inline-flex items-center justify-center"
+                                    title="Delete Deliverable"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Upload new version / Review buttons */}
+                              <div className="flex items-center gap-1.5">
+                                {role === "FREELANCER" && meta.status === "REVISION_REQUESTED" && (
+                                  <Button
+                                    onClick={() => {
+                                      setDeliverableVersionTargetId(file.id);
+                                      fileInputRef.current?.click();
+                                    }}
+                                    size="xs"
+                                    variant="secondary"
+                                    className="text-[9px] font-black uppercase tracking-wider py-1 h-7 cursor-pointer"
+                                  >
+                                    Submit New Version
+                                  </Button>
+                                )}
+                                {role === "COMPANY" && meta.status === "PENDING" && (
+                                  <Button
+                                    onClick={() => setSelectedPreviewFile(file)}
+                                    size="xs"
+                                    variant="primary"
+                                    className="text-[9px] font-black uppercase tracking-wider py-1 h-7 cursor-pointer"
+                                  >
+                                    Audit Review
+                                  </Button>
+                                )}
+                              </div>
+
+                            </div>
+
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Lightbox / Preview & Review Modal */}
+                  {selectedPreviewFile && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }} />
+                      <div className="relative w-full max-w-2xl bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+                        <div className="h-1.5 bg-gradient-to-r from-[#002d59] to-[#3ac0ff]" />
+                        
+                        <div className="p-6 space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-[8px] bg-sky-100 text-[#002d59] border border-sky-200/50 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                File Previewer Lightbox
+                              </span>
+                              <h3 className="font-extrabold text-[#002d59] text-base truncate mt-1 max-w-[400px]">
+                                {selectedPreviewFile.fileName}
+                              </h3>
+                            </div>
+                            <button
+                              onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }}
+                              className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Simulated Sandbox File Previewer */}
+                          <div className="h-[240px] bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center">
+                            {selectedPreviewFile.fileName.endsWith(".png") || selectedPreviewFile.fileName.endsWith(".jpg") || selectedPreviewFile.fileName.endsWith(".jpeg") ? (
+                              <img src={selectedPreviewFile.fileUrl} className="h-full w-full object-contain" alt="Preview Image" />
+                            ) : selectedPreviewFile.fileName.endsWith(".js") || selectedPreviewFile.fileName.endsWith(".ts") || selectedPreviewFile.fileName.endsWith(".tsx") || selectedPreviewFile.fileName.endsWith(".html") || selectedPreviewFile.fileName.endsWith(".json") ? (
+                              <div className="w-full h-full p-4 font-mono text-[9px] text-slate-700 leading-normal overflow-y-auto whitespace-pre bg-slate-900 border-none text-left">
+                                <span className="text-emerald-450 font-bold block">// talentra workspace deliverable sandbox viewer</span>
+                                <span className="text-purple-400">import</span> React <span className="text-purple-400">from</span> <span className="text-amber-300">"react"</span>;{"\n"}
+                                <span className="text-purple-400">export default function</span> Component() &#123;{"\n"}
+                                {"  "}return ({"\n"}
+                                {"    "}&lt;<span className="text-[#3ac0ff]">div</span> className=<span className="text-amber-300">"workspace-render"</span>&gt;{"\n"}
+                                {"      "}&lt;<span className="text-[#3ac0ff]">h1</span>&gt;Redesigned Page Sandbox Preview Successfully Loaded&lt;/<span className="text-[#3ac0ff]">h1</span>&gt;{"\n"}
+                                {"    "}&lt;/<span className="text-[#3ac0ff]">div</span>&gt;{"\n"}
+                                {"  "});{"\n"}
+                                &#125;;
+                              </div>
+                            ) : (
+                              <div className="text-center p-6 space-y-2">
+                                <Archive className="h-10 w-10 text-slate-300 mx-auto" />
+                                <p className="text-xs font-bold text-slate-700">Document Sandbox Viewer</p>
+                                <p className="text-[10px] text-slate-400">
+                                  File: {selectedPreviewFile.fileName} ({parseDeliverableMeta(selectedPreviewFile.fileSize).size})
+                                </p>
+                                <a
+                                  href={selectedPreviewFile.fileUrl}
+                                  download
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[#002d59] font-bold text-[10px] mt-2 cursor-pointer"
+                                >
+                                  <Download className="h-3 w-3" /> Download to view contents
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Client review feedback form details */}
+                          {role === "COMPANY" && parseDeliverableMeta(selectedPreviewFile.fileSize).status === "PENDING" ? (
+                            <div className="space-y-3 pt-3 border-t border-slate-150">
+                              <label className="block text-[9px] font-black text-slate-450 uppercase tracking-wider">
+                                Audit Review Feedback (Required)
+                              </label>
+                              <textarea
+                                value={reviewFeedback}
+                                onChange={(e) => setReviewFeedback(e.target.value)}
+                                placeholder="State review approval remarks or specific revision requests guidelines..."
+                                rows={2.5}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20 focus:border-[#002d59] text-xs text-slate-800 bg-white"
+                              />
+                              <div className="flex justify-end gap-2 pt-1 text-xs">
+                                <Button
+                                  onClick={() => handleReviewDeliverable(selectedPreviewFile.id, "REVISION_REQUESTED")}
+                                  disabled={isReviewing || !reviewFeedback.trim()}
+                                  className="bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100/50 text-[10px] font-black uppercase tracking-wider px-4 cursor-pointer"
+                                >
+                                  Request Revisions
+                                </Button>
+                                <Button
+                                  onClick={() => handleReviewDeliverable(selectedPreviewFile.id, "APPROVED")}
+                                  disabled={isReviewing || !reviewFeedback.trim()}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider px-4 cursor-pointer"
+                                >
+                                  Approve Submission
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end pt-2 text-xs">
+                              <Button
+                                onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 cursor-pointer"
+                              >
+                                Close
+                              </Button>
+                            </div>
+                          )}
+
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+              {/* tasks TAB */}
+              {activeView === "tasks" && (
+                <div className="space-y-6">
+                  
+                  {/* Kanban toolbar */}
+                  <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 pb-3 border-b border-slate-200/60">
+                    <div>
+                      <h2 className="text-base font-black text-slate-800">Kanban Board</h2>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        Coordinate execution cycles and audit progress indicators.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 text-xs">
+                      <div className="relative w-48 shrink-0">
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          type="text"
+                          value={taskSearch}
+                          onChange={(e) => setTaskSearch(e.target.value)}
+                          placeholder="Search tasks..."
+                          className="pl-8 bg-white h-8 text-[11px] border-slate-200/80"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => setShowAddTaskModal(true)}
+                        className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Create Task</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Kanban Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    
+                    {/* Columns mapping TODO, IN_PROGRESS, DONE */}
+                    {(["TODO", "IN_PROGRESS", "DONE"] as const).map((col) => {
+                      const colTasks = filteredTasksList.filter(t => t.status === col);
+                      return (
+                        <div key={col} className="bg-slate-100/40 border border-slate-200/40 rounded-2xl p-4 flex flex-col min-h-[440px]">
+                          
+                          {/* Column Header */}
+                          <div className="flex items-center justify-between pb-3.5 border-b border-slate-200/50 mb-3.5">
+                            <span className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                              {col === "TODO" && "📋 To Do"}
+                              {col === "IN_PROGRESS" && "⚡ In Progress"}
+                              {col === "DONE" && "✅ Done"}
+                            </span>
+                            <Badge variant="neutral" className="px-2">{colTasks.length}</Badge>
+                          </div>
+
+                          {/* Task Cards Container */}
+                          <div className="flex-1 space-y-3.5">
+                            {colTasks.length === 0 ? (
+                              <div className="border border-dashed border-slate-200 rounded-2xl py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                Empty Column
+                              </div>
+                            ) : (
+                              colTasks.map((task) => (
+                                <div
+                                  key={task.id}
+                                  onClick={() => { setSelectedTask(task); setShowTaskDetailModal(true); }}
+                                  className="bg-white border border-slate-200/60 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-[#3ac0ff]/50 transition-all cursor-pointer group flex flex-col gap-3"
+                                >
+                                  <div className="flex justify-between items-start gap-2.5">
+                                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#002d59] transition-colors leading-snug line-clamp-2">
+                                      {task.title}
+                                    </h4>
+                                    <Badge
+                                      className="text-[7px] font-black uppercase tracking-wider px-1.5 shrink-0"
+                                      variant={
+                                        task.priority === "HIGH"
+                                          ? "danger"
+                                          : task.priority === "MEDIUM"
+                                          ? "primary"
+                                          : "neutral"
+                                      }
+                                    >
+                                      {task.priority}
+                                    </Badge>
+                                  </div>
+
+                                  {task.description && (
+                                    <p className="text-[10px] text-slate-450 line-clamp-2 leading-relaxed">
+                                      {task.description}
+                                    </p>
+                                  )}
+
+                                  {/* Card Footer: details and status cycles */}
+                                  <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-[9px] text-slate-400">
+                                    
+                                    <div className="flex items-center gap-1">
+                                      {task.dueDate ? (
+                                        <>
+                                          <Calendar className="h-3 w-3 shrink-0" />
+                                          <span>{new Date(task.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+                                        </>
+                                      ) : (
+                                        <span>No due date</span>
+                                      )}
+                                    </div>
+
+                                    {/* Action tags to move task column */}
+                                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                      {col !== "TODO" && (
+                                        <button
+                                          onClick={() => handleUpdateTaskStatus(task.id, col === "DONE" ? "IN_PROGRESS" : "TODO")}
+                                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                          title="Move Left"
+                                        >
+                                          &larr;
+                                        </button>
+                                      )}
+                                      {col !== "DONE" && (
+                                        <button
+                                          onClick={() => handleUpdateTaskStatus(task.id, col === "TODO" ? "IN_PROGRESS" : "DONE")}
+                                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all font-bold"
+                                          title="Move Right"
+                                        >
+                                          &rarr;
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {/* Avatar */}
+                                    <div className="h-5.5 w-5.5 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-bold text-[8px] overflow-hidden shrink-0">
+                                      {task.assignedTo?.image ? (
+                                        <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
+                                      ) : (
+                                        task.assignedTo?.name ? task.assignedTo.name[0].toUpperCase() : "U"
+                                      )}
+                                    </div>
+
+                                  </div>
+
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                        </div>
+                      );
+                    })}
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* payments TAB */}
+              {activeView === "payments" && (
+                <div className="space-y-6">
+                  
+                  {/* Escrow wallet dashboard */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <Card className="bg-gradient-to-r from-slate-900 to-[#002d59] border border-slate-800 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+                      <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-[#3ac0ff]/10 blur-xl" />
+                      <div className="relative space-y-1.5">
+                        <span className="text-[9px] font-black text-[#3ac0ff] uppercase tracking-wider">Secured Escrow Wallet</span>
+                        <h3 className="text-3xl font-black">${fundsEscrowed.toLocaleString()}</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1.5">Held safely in Smart Escrow</p>
+                      </div>
+                    </Card>
+
+                    <Card className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xs relative overflow-hidden">
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Released / Paid to Date</span>
+                        <h3 className="text-3xl font-black text-[#002d59]">${fundsPaid.toLocaleString()}</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1.5">Transferred to freelancer</p>
+                      </div>
+                    </Card>
+
+                    <Card className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xs relative overflow-hidden">
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Remaining Balance</span>
+                        <h3 className="text-3xl font-black text-slate-600">${(projectBudget - fundsPaid - fundsEscrowed).toLocaleString()}</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1.5">Total Contract Budget left</p>
+                      </div>
+                    </Card>
+
+                  </div>
+
+                  {/* Milestones payments list */}
+                  <Card className="border border-slate-200/60 p-5 bg-white shadow-xs">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">Contract Milestone Payments</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">Audit payments status for each contract phase</p>
+                      </div>
+                      {role === "COMPANY" && (
+                        <Button
+                          onClick={() => setShowAddMilestoneModal(true)}
+                          size="sm"
+                          className="bg-[#002d59] hover:bg-[#001f3f] text-white text-xs font-bold h-8 cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add Milestone Phase
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {updates.length === 0 ? (
+                        <p className="text-xs text-slate-450 py-10 text-center">No milestone phases created for this contract.</p>
+                      ) : (
+                        updates.map((milestone) => {
+                          const { amount, cleanTitle } = parseMilestoneAmount(milestone.title, milestone.description);
+                          return (
+                            <div
+                              key={milestone.id}
+                              className="p-4 border border-slate-200/50 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs"
+                            >
+                              <div className="space-y-1.5 flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-extrabold text-slate-850 text-sm truncate">{cleanTitle}</h4>
+                                  <Badge
+                                    variant={
+                                      milestone.status === "COMPLETED"
+                                        ? "success"
+                                        : milestone.status === "IN_PROGRESS"
+                                        ? "primary"
+                                        : "neutral"
+                                    }
+                                    className="text-[8px] font-black uppercase tracking-wider"
+                                  >
+                                    {milestone.status === "COMPLETED" ? "Released" : milestone.status === "IN_PROGRESS" ? "Escrow Funded" : "Pending Funding"}
+                                  </Badge>
+                                </div>
+                                <p className="text-slate-500 max-w-xl">{milestone.description || "No description provided."}</p>
+                              </div>
+
+                              {/* Value amount & release action triggers */}
+                              <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end shrink-0">
+                                <div className="text-right">
+                                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Phase Value</span>
+                                  <span className="font-extrabold text-[#002d59] text-sm">${amount.toLocaleString()}</span>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  {/* Invoice Generator Trigger */}
+                                  {milestone.status === "COMPLETED" && (
+                                    <Button
+                                      onClick={() => setSelectedInvoiceMilestone(milestone)}
+                                      size="xs"
+                                      variant="outline"
+                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
+                                    >
+                                      <Printer className="h-3 w-3 mr-1" /> Invoice
+                                    </Button>
+                                  )}
+
+                                  {/* Fund milestone client */}
+                                  {role === "COMPANY" && milestone.status === "PENDING" && (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "IN_PROGRESS")}
+                                      size="xs"
+                                      variant="secondary"
+                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
+                                    >
+                                      Fund Escrow
+                                    </Button>
+                                  )}
+
+                                  {/* Release payment client */}
+                                  {role === "COMPANY" && milestone.status === "IN_PROGRESS" && (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "COMPLETED")}
+                                      size="xs"
+                                      variant="primary"
+                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    >
+                                      Release Funds
+                                    </Button>
+                                  )}
+
+                                  {/* Request release freelancer */}
+                                  {role === "FREELANCER" && milestone.status === "IN_PROGRESS" && (
+                                    <Button
+                                      onClick={() => handleSendMessage(null as any, `👋 Requests release of Escrow Funds for milestone: "${cleanTitle}".`)}
+                                      size="xs"
+                                      variant="outline"
+                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
+                                    >
+                                      Request Release
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Payment history log */}
+                  <Card className="border border-slate-200/60 p-5 bg-white shadow-xs space-y-3.5">
+                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Transaction History Log</h3>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[9px] pb-2">
+                            <th className="py-2.5">Reference ID</th>
+                            <th className="py-2.5">Transaction Type</th>
+                            <th className="py-2.5">Date</th>
+                            <th className="py-2.5">Amount</th>
+                            <th className="py-2.5 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 text-slate-655 font-medium">
+                          {updates.filter(u => u.status !== "PENDING").map((u, idx) => {
+                            const { amount } = parseMilestoneAmount(u.title, u.description);
+                            return (
+                              <React.Fragment key={u.id}>
+                                {/* Deposit event */}
+                                <tr>
+                                  <td className="py-3 font-mono text-[10px] text-slate-400">TXN-DEP-{u.id.slice(0,6)}</td>
+                                  <td className="py-3">Escrow Deposit ({u.title.split("]")[1]?.trim() || u.title})</td>
+                                  <td className="py-3 text-[10px] text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                  <td className="py-3 text-slate-800 font-bold">${amount.toLocaleString()}</td>
+                                  <td className="py-3 text-right">
+                                    <Badge variant="success" className="text-[7px]">COMPLETED</Badge>
+                                  </td>
+                                </tr>
+                                {/* Release event if completed */}
+                                {u.status === "COMPLETED" && (
+                                  <tr>
+                                    <td className="py-3 font-mono text-[10px] text-slate-400">TXN-REL-{u.id.slice(0,6)}</td>
+                                    <td className="py-3">Escrow Release to Freelancer</td>
+                                    <td className="py-3 text-[10px] text-slate-400">{new Date(u.updatedAt || u.createdAt).toLocaleDateString()}</td>
+                                    <td className="py-3 text-emerald-650 font-bold">-${amount.toLocaleString()}</td>
+                                    <td className="py-3 text-right">
+                                      <Badge variant="success" className="text-[7px]">COMPLETED</Badge>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+
+                  {/* Invoice Printable Modal Overlay */}
+                  {selectedInvoiceMilestone && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSelectedInvoiceMilestone(null)} />
+                      <div className="relative w-full max-w-lg bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+                        
+                        {/* Printable container */}
+                        <div id="printable-invoice" className="p-8 space-y-6 text-xs text-slate-800 bg-white">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h2 className="text-lg font-black uppercase text-[#002d59] tracking-tight">Talentra Invoice</h2>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Reference: INV-{selectedInvoiceMilestone.id.slice(0, 8).toUpperCase()}</p>
+                            </div>
+                            <button onClick={() => setSelectedInvoiceMilestone(null)} className="text-slate-400 hover:text-slate-700 print:hidden cursor-pointer">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-6 text-slate-655 font-medium">
+                            <div>
+                              <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Billed To:</strong>
+                              <p className="font-extrabold text-slate-800">{companyName}</p>
+                              <p className="text-[10px]">Client Organization</p>
+                              <p className="text-[10px]">Active Project Workspace</p>
+                            </div>
+                            <div>
+                              <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Billed By:</strong>
+                              <p className="font-extrabold text-slate-800">{hiredFreelancers[0]?.name || "Freelancer Professional"}</p>
+                              <p className="text-[10px]">Verified Contractor</p>
+                              <p className="text-[10px]">{hiredFreelancers[0]?.name?.toLowerCase().replace(/\s+/g, "")}@talentra.com</p>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-b border-slate-150 py-3.5 space-y-2">
+                            <div className="flex justify-between text-slate-400 font-bold uppercase text-[8px] tracking-widest">
+                              <span>Service Description</span>
+                              <span>Total Price</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-slate-800 text-sm">
+                              <span>Milestone Release: {parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).cleanTitle}</span>
+                              <span>${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
+                            </div>
+                            <p className="text-[10px] text-slate-450 leading-relaxed pt-1">
+                              {selectedInvoiceMilestone.description || "Milestone completed successfully according to deliverables criteria specifications."}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1.5 pt-2">
+                            <div className="flex justify-between w-40 text-slate-500 font-medium">
+                              <span>Subtotal:</span>
+                              <span className="font-bold text-slate-850">${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
+                            </div>
+                            <div className="flex justify-between w-40 text-slate-500 font-medium">
+                              <span>Taxes (0%):</span>
+                              <span className="font-bold text-slate-850">$0.00</span>
+                            </div>
+                            <div className="flex justify-between w-40 text-sm font-black border-t border-slate-200 pt-2 text-[#002d59]">
+                              <span>Total paid:</span>
+                              <span>${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
+                            </div>
+                          </div>
+
+                          <div className="text-center pt-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100">
+                            Thank you for collaborating through Talentra.
+                          </div>
+                        </div>
+
+                        {/* Modal control bar */}
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between print:hidden">
+                          <Button
+                            onClick={() => setSelectedInvoiceMilestone(null)}
+                            variant="outline"
+                            className="text-xs font-bold cursor-pointer"
+                          >
+                            Close Modal
+                          </Button>
+                          <Button
+                            onClick={() => window.print()}
+                            variant="primary"
+                            className="text-xs font-bold bg-[#002d59] text-white cursor-pointer"
+                          >
+                            Print / Save PDF
+                          </Button>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+              {/* team TAB */}
+              {activeView === "team" && (
+                <div className="space-y-6">
+                  
+                  <div>
+                    <h2 className="text-base font-black text-slate-800">Team Directory</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      Collaborator profiles, reputation indices, and verified professional skills.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Freelancer Profile card */}
+                    {hiredFreelancers.map((freelancer) => (
+                      <Card key={freelancer.id} className="border border-slate-200/60 p-6 bg-white shadow-xs relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-emerald-500/10 text-emerald-700 font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-emerald-500/10">
+                          Active Contractor
+                        </div>
+
+                        <div className="flex gap-4 items-start">
+                          <div className="h-16 w-16 rounded-full bg-slate-900 border border-slate-200 flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0">
+                            {freelancer.image ? <img src={freelancer.image} className="h-full w-full object-cover" /> : freelancer.name?.[0].toUpperCase()}
+                          </div>
+                          
+                          <div className="space-y-1.5 min-w-0">
+                            <h3 className="font-extrabold text-slate-850 text-base truncate">{freelancer.name}</h3>
+                            <p className="text-[11px] font-bold text-[#002d59] uppercase tracking-wide">Freelancer Professional</p>
+                            
+                            <div className="flex items-center gap-2 pt-1">
+                              <div className="flex items-center text-amber-500 font-bold text-xs">
+                                ★ 4.9 <span className="text-slate-400 font-medium ml-1">(24 reviews)</span>
+                              </div>
+                              <span className="text-slate-300">•</span>
+                              <div className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
+                                98% Reputation Score
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-655">
+                          <div>
+                            <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Verified Professional Skills:</strong>
+                            <div className="flex flex-wrap gap-1.5">
+                              {["React", "TypeScript", "NextJS", "Prisma ORM", "TailwindCSS", "PostgreSQL"].map((sk, idx) => (
+                                <Badge key={idx} variant="primary" className="text-[8px] font-black uppercase tracking-wider py-0.5 px-2">
+                                  {sk}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-[10px] font-medium pt-1.5">
+                            <div>
+                              <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Avg Response Time</span>
+                              <span className="text-slate-800 font-extrabold mt-0.5 block">Under 12 Hours</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">On-Time Delivery</span>
+                              <span className="text-slate-800 font-extrabold mt-0.5 block">100% Satisfaction</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </Card>
+                    ))}
+
+                    {/* Client Profile Card */}
+                    <Card className="border border-slate-200/60 p-6 bg-white shadow-xs relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-sky-500/10 text-sky-750 font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-sky-500/10">
+                        Employer Owner
+                      </div>
+
+                      <div className="flex gap-4 items-start">
+                        <div className="h-16 w-16 rounded-full bg-[#002d59] border border-slate-800 flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0">
+                          {companyUser.image ? <img src={companyUser.image} className="h-full w-full object-cover" /> : "C"}
+                        </div>
+                        
+                        <div className="space-y-1.5 min-w-0">
+                          <h3 className="font-extrabold text-slate-850 text-base truncate">{companyName}</h3>
+                          <p className="text-[11px] font-bold text-[#002d59] uppercase tracking-wide">Client Organization</p>
+                          
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="flex items-center text-amber-500 font-bold text-xs">
+                              ★ 4.8 <span className="text-slate-400 font-medium ml-1">(12 reviews)</span>
+                            </div>
+                            <span className="text-slate-300">•</span>
+                            <div className="text-[10px] text-sky-600 font-black uppercase tracking-wider">
+                              99% Payment Reliability
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-655">
+                        <div className="grid grid-cols-2 gap-4 text-[10px] font-medium">
+                          <div>
+                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Company Size</span>
+                            <span className="text-slate-800 font-extrabold mt-0.5 block">10-50 Employees</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Location</span>
+                            <span className="text-slate-800 font-extrabold mt-0.5 block">San Francisco, CA</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Founded Year</span>
+                            <span className="text-slate-800 font-extrabold mt-0.5 block">2021</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Trust Score</span>
+                            <span className="text-emerald-600 font-extrabold mt-0.5 block">95/100 Verified</span>
+                          </div>
+                        </div>
+                      </div>
+
+                    </Card>
+
+                  </div>
+
+                </div>
+              )}
+
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+      </div>
+
+      {/* MODAL: CREATE KANBAN TASK */}
+      {showAddTaskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setShowAddTaskModal(false)} />
+          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            <div className="h-1.5 bg-gradient-to-r from-[#002d59] to-[#3ac0ff]" />
+            <form onSubmit={handleCreateTask} className="p-6 space-y-4 text-xs">
+              <div className="flex justify-between items-center">
+                <h3 className="font-extrabold text-[#002d59] text-base">Create Kanban Task</h3>
+                <button type="button" onClick={() => setShowAddTaskModal(false)} className="text-slate-400 hover:text-slate-700">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Task Title</label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g. Implement user dashboard checkout button"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="bg-white border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Description</label>
+                <textarea
+                  placeholder="Provide checklist details or specific task guidelines..."
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20 focus:border-[#002d59] text-xs text-slate-800 bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Priority</label>
+                  <select
+                    value={newTaskPriority}
+                    onChange={(e) => setNewTaskPriority(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                  >
+                    <option value="LOW">🔵 Low</option>
+                    <option value="MEDIUM">🟡 Medium</option>
+                    <option value="HIGH">🔴 High</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Due Date</label>
+                  <Input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="bg-white border-slate-200 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Assignee</label>
+                <select
+                  value={newTaskAssignee}
+                  onChange={(e) => setNewTaskAssignee(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                >
+                  <option value="">Unassigned</option>
+                  <option value={companyUser.id}>{companyUser.name} (Client Manager)</option>
+                  {hiredFreelancers.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name} (Freelancer)</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button onClick={() => setShowAddTaskModal(false)} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmittingTask || !newTaskTitle.trim()} className="bg-[#002d59] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                  {isSubmittingTask ? "Creating..." : "Create Task"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT/DETAIL KANBAN TASK */}
+      {showTaskDetailModal && selectedTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} />
+          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            <div className="h-1.5 bg-[#002d59]" />
+            <form onSubmit={handleUpdateTaskDetails} className="p-6 space-y-4 text-xs">
+              <div className="flex justify-between items-center">
+                <h3 className="font-extrabold text-[#002d59] text-base">Task Details</h3>
+                <button type="button" onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} className="text-slate-400 hover:text-slate-700">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Task Title</label>
+                <Input
+                  type="text"
+                  required
+                  value={selectedTask.title}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
+                  className="bg-white border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Description</label>
+                <textarea
+                  value={selectedTask.description || ""}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20 focus:border-[#002d59] text-xs text-slate-800 bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Priority</label>
+                  <select
+                    value={selectedTask.priority}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, priority: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                  >
+                    <option value="LOW">🔵 Low</option>
+                    <option value="MEDIUM">🟡 Medium</option>
+                    <option value="HIGH">🔴 High</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Due Date</label>
+                  <Input
+                    type="date"
+                    value={selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString().split("T")[0] : ""}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, dueDate: e.target.value ? new Date(e.target.value) : null })}
+                    className="bg-white border-slate-200 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Assignee</label>
+                  <select
+                    value={selectedTask.assignedToId || ""}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, assignedToId: e.target.value || null })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                  >
+                    <option value="">Unassigned</option>
+                    <option value={companyUser.id}>{companyUser.name} (Client Manager)</option>
+                    {hiredFreelancers.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name} (Freelancer)</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Status Board</label>
+                  <select
+                    value={selectedTask.status}
+                    onChange={(e) => handleUpdateTaskStatus(selectedTask.id, e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                  >
+                    <option value="TODO">📋 To Do</option>
+                    <option value="IN_PROGRESS">⚡ In Progress</option>
+                    <option value="DONE">✅ Done</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-2">
+                <Button
+                  onClick={() => handleDeleteTask(selectedTask.id)}
+                  variant="outline"
+                  className="text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isUpdatingTask || !selectedTask.title.trim()} className="bg-[#002d59] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                    {isUpdatingTask ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD MILESTONE PHASE */}
+      {showAddMilestoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setShowAddMilestoneModal(false)} />
+          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            <div className="h-1.5 bg-gradient-to-r from-[#002d59] to-[#3ac0ff]" />
+            <form onSubmit={handleCreateMilestone} className="p-6 space-y-4 text-xs">
+              <div className="flex justify-between items-center">
+                <h3 className="font-extrabold text-[#002d59] text-base">Create Milestone Phase</h3>
+                <button type="button" onClick={() => setShowAddMilestoneModal(false)} className="text-slate-400 hover:text-slate-700">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestone Name</label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g. Core landing page layout designs"
+                  value={newMilestoneTitle}
+                  onChange={(e) => setNewMilestoneTitle(e.target.value)}
+                  className="bg-white border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestone Budget Value ($)</label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g. 1500"
+                  value={newMilestoneValue}
+                  onChange={(e) => setNewMilestoneValue(e.target.value)}
+                  className="bg-white border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Deliverable Criteria Description</label>
+                <textarea
+                  placeholder="Explain exactly what criteria the freelancer needs to satisfy to release this payment amount..."
+                  value={newMilestoneDesc}
+                  onChange={(e) => setNewMilestoneDesc(e.target.value)}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20 focus:border-[#002d59] text-xs text-slate-800 bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button onClick={() => setShowAddMilestoneModal(false)} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmittingMilestone || !newMilestoneTitle.trim() || !newMilestoneValue.trim()} className="bg-[#002d59] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                  {isSubmittingMilestone ? "Creating..." : "Fund Milestone Phase"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
