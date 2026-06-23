@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { fileToBase64 } from "@/lib/utils";
 import {
   Upload,
   Plus,
@@ -157,21 +158,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     try {
       let finalLogoUrl = logoPreview;
 
-      // Upload logo if a new file is selected
+      // Convert logo to Base64 if a new file is selected
       if (logoFile) {
-        const formData = new FormData();
-        formData.append("file", logoFile);
-
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          finalLogoUrl = uploadData.url;
-        } else {
-          console.error("Logo upload failed.");
+        try {
+          finalLogoUrl = await fileToBase64(logoFile, 1.5);
+        } catch (uploadErr: any) {
+          setMessage({ type: "error", text: uploadErr.message || "Failed to process logo image." });
+          setLoading(false);
+          return;
         }
       }
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { fileToBase64 } from "@/lib/utils";
 import {
   User,
   FileText,
@@ -173,25 +174,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // File Upload Helper
-  const uploadFile = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const uploadRes = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!uploadRes.ok) {
-      const errData = await uploadRes.json();
-      throw new Error(errData.error || "Failed to upload file");
-    }
-
-    const data = await uploadRes.json();
-    return data.url;
-  };
-
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -201,13 +183,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       return;
     }
 
-    setUploadProgress("Uploading photo...");
+    setUploadProgress("Converting photo...");
     try {
-      const photoUrl = await uploadFile(file);
+      const photoUrl = await fileToBase64(file, 1.5);
       setImage(photoUrl);
-      setUploadProgress("Photo uploaded!");
+      setUploadProgress("Photo updated (Click Save Settings below to apply)!");
     } catch (err: any) {
-      alert(err.message || "Failed to upload photo");
+      alert(err.message || "Failed to read photo");
       setUploadProgress(null);
     }
   };
@@ -240,11 +222,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       return;
     }
     setLoading(true);
-    setUploadProgress("Uploading certification image...");
+    setUploadProgress("Processing certification image...");
     try {
       let imageUrl = "";
       if (certFile) {
-        imageUrl = await uploadFile(certFile);
+        imageUrl = await fileToBase64(certFile, 1.5);
       }
       const item: CertificationItem = {
         id: `cert-${Date.now()}`,
@@ -284,8 +266,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
       if (selectedFiles && selectedFiles.length > 0) {
         for (let i = 0; i < selectedFiles.length; i++) {
-          setUploadProgress(`Uploading project screenshot ${i + 1} of ${selectedFiles.length}...`);
-          const fileUrl = await uploadFile(selectedFiles[i]);
+          setUploadProgress(`Processing project screenshot ${i + 1} of ${selectedFiles.length}...`);
+          const file = selectedFiles[i];
+          const limit = newPort.type === "VIDEO" ? 3.0 : 1.5;
+          const fileUrl = await fileToBase64(file, limit);
           uploadedUrls.push(fileUrl);
         }
         finalFileUrl = uploadedUrls[0];
@@ -342,8 +326,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       let finalResumeUrl = resumeUrl;
 
       if (resumeFile) {
-        setUploadProgress("Uploading resume...");
-        finalResumeUrl = await uploadFile(resumeFile);
+        setUploadProgress("Processing resume...");
+        finalResumeUrl = await fileToBase64(resumeFile, 2.0);
         setResumeUrl(finalResumeUrl);
       }
 

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { fileToBase64 } from "@/lib/utils";
 import { applyToProject } from "@/actions/applicationActions";
 import {
   toggleFollowCompany,
@@ -263,21 +264,8 @@ export function CompanyProfileView({
 
     setUploadingMedia(true);
     try {
-      const formData = new FormData();
-      formData.append("file", mediaFile);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to upload file");
-      }
-
-      const data = await res.json();
-      const fileUrl = data.url;
+      const limit = uploadType === "VIDEO" ? 3.0 : 1.5;
+      const fileUrl = await fileToBase64(mediaFile, limit);
 
       // Update database profile gallery lists
       const updatedPhotos = uploadType === "PHOTO" ? [...galleryPhotos, fileUrl] : galleryPhotos;

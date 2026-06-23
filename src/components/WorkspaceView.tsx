@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { fileToBase64 } from "@/lib/utils";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -447,20 +448,7 @@ export function WorkspaceView({
     setFiles((prev) => [optimistic, ...prev]);
 
     try {
-      const formData = new FormData();
-      formData.append("file", fileObj);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const data = await response.json();
-      const realUrl = data.url;
+      const realUrl = await fileToBase64(fileObj, 3.0);
 
       let result;
       if (isNewVersionOfId) {

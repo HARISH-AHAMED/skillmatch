@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { fileToBase64 } from "@/lib/utils";
 import {
   Briefcase,
   Star,
@@ -143,24 +144,6 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
     }
   };
 
-  const uploadFile = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const uploadRes = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!uploadRes.ok) {
-      const errData = await uploadRes.json();
-      throw new Error(errData.error || "Failed to upload file");
-    }
-
-    const data = await uploadRes.json();
-    return data.url;
-  };
-
   const formatLink = (url: string | null | undefined): string | null => {
     if (!url || !url.trim()) return null;
     const trimmed = url.trim();
@@ -178,7 +161,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
     }
 
     setLoading(true);
-    setUploadProgress("Uploading files...");
+    setUploadProgress("Processing files...");
     setMessage(null);
 
     try {
@@ -186,8 +169,10 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
 
       if (selectedFiles && selectedFiles.length > 0) {
         for (let i = 0; i < selectedFiles.length; i++) {
-          setUploadProgress(`Uploading project screenshot ${i + 1} of ${selectedFiles.length}...`);
-          const fileUrl = await uploadFile(selectedFiles[i]);
+          setUploadProgress(`Processing project screenshot ${i + 1} of ${selectedFiles.length}...`);
+          const file = selectedFiles[i];
+          const limit = newPort.type === "VIDEO" ? 3.0 : 1.5;
+          const fileUrl = await fileToBase64(file, limit);
           uploadedUrls.push(fileUrl);
         }
       }
@@ -255,12 +240,14 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       let finalImages = editingItem.images || [];
       let finalFileUrl = editingItem.fileUrl || "";
 
-      // If new files were selected, upload them
+      // If new files were selected, process them
       if (selectedFiles && selectedFiles.length > 0) {
         const uploadedUrls: string[] = [];
         for (let i = 0; i < selectedFiles.length; i++) {
-          setUploadProgress(`Uploading file ${i + 1} of ${selectedFiles.length}...`);
-          const fileUrl = await uploadFile(selectedFiles[i]);
+          setUploadProgress(`Processing file ${i + 1} of ${selectedFiles.length}...`);
+          const file = selectedFiles[i];
+          const limit = editingItem.type === "VIDEO" ? 3.0 : 1.5;
+          const fileUrl = await fileToBase64(file, limit);
           uploadedUrls.push(fileUrl);
         }
         finalImages = uploadedUrls;
