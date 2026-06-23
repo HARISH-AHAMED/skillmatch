@@ -80,7 +80,11 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
     // Fetch redirect URL and navigate
     try {
       const url = await getNotificationRedirectUrl(notif.id);
-      router.push(url);
+      if (url.includes("/workspace/")) {
+        window.open(url, "_blank");
+      } else {
+        router.push(url);
+      }
     } catch (error) {
       console.error("Failed to redirect for notification:", error);
     }

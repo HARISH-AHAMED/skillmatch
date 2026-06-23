@@ -85,9 +85,9 @@ export default async function FreelancerApplicationsPage() {
                 <div className="flex items-center gap-3">
                   {getStatusBadge(app.status)}
                   {app.status === ApplicationStatus.HIRED && (
-                    <Link href={`/freelancer/workspace/${app.id}`}>
+                    <Link href={`/workspace/${app.id}`} target="_blank" rel="noopener noreferrer">
                       <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white font-bold text-[10px] py-1 px-3 h-auto">
-                        Enter Workspace
+                        Open Workspace
                       </Button>
                     </Link>
                   )}

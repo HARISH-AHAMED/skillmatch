@@ -316,9 +316,9 @@ export default async function FreelancerDashboard() {
                         HIRED & ACTIVE
                       </Badge>
                       <span className="text-sm font-bold text-[#002d59]">${app.project.budget}</span>
-                      <Link href={`/freelancer/workspace/${app.id}`}>
+                      <Link href={`/workspace/${app.id}`} target="_blank" rel="noopener noreferrer">
                         <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white font-bold text-[10px] py-1.5 px-3 h-auto">
-                          Workspace
+                          Open Workspace
                         </Button>
                       </Link>
                     </div>

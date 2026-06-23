@@ -158,6 +158,8 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
                   <Link
                     key={ws.id}
                     href={ws.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={cn(
                       "flex items-center gap-3 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all duration-150 cursor-pointer truncate",
                       isActive

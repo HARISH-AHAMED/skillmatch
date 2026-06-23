@@ -46,13 +46,26 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
       {/* Mobile Drawer Overlay Backdrop */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-35 md:hidden"
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-35 md:hidden"
+            />
+            {/* Mobile close button positioned outside the sidebar drawer */}
+            <div className="fixed left-[272px] top-4 z-50 md:hidden animate-in fade-in duration-200">
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-2 text-white bg-slate-900/60 hover:bg-slate-900/80 border border-slate-800 rounded-xl cursor-pointer flex items-center justify-center shadow-lg"
+                title="Close navigation menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </>
         )}
       </AnimatePresence>
 
@@ -63,17 +76,6 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Mobile close button overlay */}
-        <div className="absolute top-5 right-5 md:hidden z-50">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-1 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer flex items-center justify-center"
-            title="Close navigation menu"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        
         {/* Render standard Sidebar but pass hidden on mobile class */}
         <Sidebar role={role} userName={userName} className="border-none w-full" />
       </div>

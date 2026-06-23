@@ -24,7 +24,8 @@ import {
   Sparkles,
   X,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from "lucide-react";
 
 interface CompletedProjectsViewProps {
@@ -55,6 +56,7 @@ interface PortfolioItem {
   url?: string;
   fileUrl?: string; // main/legacy
   images?: string[]; // multi-image list
+  liveLink?: string | null;
 }
 
 export function CompletedProjectsView({ freelancer, completedProjects }: CompletedProjectsViewProps) {
@@ -114,7 +116,10 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
     type: "IMAGE",
     url: "",
     images: [],
+    liveLink: null,
   });
+
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
@@ -156,6 +161,15 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
     return data.url;
   };
 
+  const formatLink = (url: string | null | undefined): string | null => {
+    if (!url || !url.trim()) return null;
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
   const handleAddPortfolioItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPort.title || !newPort.description) {
@@ -178,12 +192,15 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
         }
       }
 
+      const formattedLiveLink = formatLink(newPort.liveLink);
+
       const newItem: PortfolioItem = {
         id: `port-${Date.now()}`,
         title: newPort.title,
         description: newPort.description,
         type: newPort.type,
-        url: newPort.type === "IMAGE" && uploadedUrls.length > 0 ? uploadedUrls[0] : newPort.url,
+        liveLink: formattedLiveLink,
+        url: newPort.url || formattedLiveLink || "",
         fileUrl: uploadedUrls[0] || "",
         images: uploadedUrls,
       };
@@ -210,13 +227,87 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       setMessage({ type: "success", text: "Portfolio project added successfully!" });
       
       // Reset State
-      setNewPort({ title: "", description: "", type: "IMAGE", url: "", images: [] });
+      setNewPort({ title: "", description: "", type: "IMAGE", url: "", images: [], liveLink: null });
       setSelectedFiles(null);
       setSelectedFilePreviews([]);
       setShowPortModal(false);
     } catch (err: any) {
       console.error(err);
       setMessage({ type: "error", text: err.message || "Failed to save project. Please try again." });
+    } finally {
+      setLoading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleEditPortfolioItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem || !editingItem.title || !editingItem.description) {
+      alert("Please enter a title and description.");
+      return;
+    }
+
+    setLoading(true);
+    setUploadProgress("Saving changes...");
+    setMessage(null);
+
+    try {
+      let finalImages = editingItem.images || [];
+      let finalFileUrl = editingItem.fileUrl || "";
+
+      // If new files were selected, upload them
+      if (selectedFiles && selectedFiles.length > 0) {
+        const uploadedUrls: string[] = [];
+        for (let i = 0; i < selectedFiles.length; i++) {
+          setUploadProgress(`Uploading file ${i + 1} of ${selectedFiles.length}...`);
+          const fileUrl = await uploadFile(selectedFiles[i]);
+          uploadedUrls.push(fileUrl);
+        }
+        finalImages = uploadedUrls;
+        finalFileUrl = uploadedUrls[0];
+      }
+
+      const formattedLiveLink = formatLink(editingItem.liveLink);
+
+      const updatedItem: PortfolioItem = {
+        ...editingItem,
+        liveLink: formattedLiveLink,
+        url: editingItem.url || formattedLiveLink || "",
+        fileUrl: finalFileUrl,
+        images: finalImages,
+      };
+
+      const updatedPortfolio = portfolioItems.map((item) =>
+        item.id === editingItem.id ? updatedItem : item
+      );
+
+      setPortfolioItems(updatedPortfolio);
+
+      // Save to database
+      setUploadProgress("Updating database profile...");
+      await updateFreelancerProfile({
+        bio: freelancer.bio || "",
+        skills: freelancer.skills,
+        experienceYears: freelancer.experienceYears,
+        resumeUrl: freelancer.resumeUrl || "",
+        professionalHeadline: freelancer.professionalHeadline || "",
+        experience: freelancer.experience,
+        certifications: freelancer.certifications,
+        portfolioItems: updatedPortfolio,
+        responseTime: freelancer.responseTime || "Within 24 hours",
+        availabilityStatus: freelancer.availabilityStatus || "AVAILABLE",
+        verificationBadges: freelancer.verificationBadges,
+      });
+
+      setMessage({ type: "success", text: "Portfolio project updated successfully!" });
+      
+      // Reset State
+      setEditingItem(null);
+      setSelectedFiles(null);
+      setSelectedFilePreviews([]);
+    } catch (err: any) {
+      console.error(err);
+      setMessage({ type: "error", text: err.message || "Failed to save changes." });
     } finally {
       setLoading(false);
       setUploadProgress(null);
@@ -417,12 +508,17 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       {/* Portfolio Gallery Projects Content */}
       {activeTab === "portfolio" && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-[#002d59]">Portfolio Project Showcase</h3>
               <p className="text-xs text-slate-500">Showcase screenshots, repositories, and custom project highlights.</p>
             </div>
-            <Button onClick={() => setShowPortModal(true)} size="sm" className="gap-1 px-4 cursor-pointer text-xs">
+            <Button
+              type="button"
+              onClick={() => setShowPortModal(true)}
+              size="sm"
+              className="whitespace-nowrap shrink-0 gap-1.5 px-4 py-2 cursor-pointer text-xs flex items-center justify-center font-bold bg-[#002d59] text-white hover:bg-[#003f7a] transition-all duration-200 shadow-sm shadow-[#002d59]/10 rounded-xl"
+            >
               <Plus className="h-4 w-4" /> Add Portfolio Item
             </Button>
           </div>
@@ -488,27 +584,57 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   </div>
 
                   <div className="flex justify-between items-center pt-3.5 border-t border-slate-100 mt-2">
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-[#3ac0ff] hover:text-[#002d59] font-bold transition-colors"
-                      >
-                        <span>Open Link</span>
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 italic">No external link</span>
-                    )}
+                    <div className="flex flex-wrap gap-3">
+                      {item.liveLink ? (
+                        <a
+                          href={item.liveLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-[#002d59] font-extrabold transition-colors"
+                        >
+                          <span>Live Demo</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : null}
 
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      disabled={loading}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="h-4.5 w-4.5" />
-                    </button>
+                      {item.url && item.url !== item.liveLink ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-[#3ac0ff] hover:text-[#002d59] font-extrabold transition-colors"
+                        >
+                          <span>
+                            {item.type === "GITHUB" ? "View Code" : "Open Link"}
+                          </span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : null}
+
+                      {!item.liveLink && !item.url ? (
+                        <span className="text-[10px] text-slate-400 italic font-medium">No links available</span>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(item)}
+                        className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                        title="Edit Project"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(item.id)}
+                        disabled={loading}
+                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                        title="Delete Project"
+                      >
+                        <Trash2 className="h-4.5 w-4.5" />
+                      </button>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -606,13 +732,19 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     </div>
                   )}
 
+                  <Input
+                    label="Live Project Link (Optional)"
+                    placeholder="https://example.com"
+                    value={newPort.liveLink || ""}
+                    onChange={(e) => setNewPort({ ...newPort, liveLink: e.target.value || null })}
+                  />
+
                   {newPort.type !== "IMAGE" && newPort.type !== "VIDEO" && (
                     <Input
-                      label="Repository or Website Live URL"
+                      label="Repository or Website URL (Optional)"
                       placeholder="https://..."
                       value={newPort.url}
                       onChange={(e) => setNewPort({ ...newPort, url: e.target.value })}
-                      required
                     />
                   )}
 
@@ -631,6 +763,144 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     </Button>
                     <Button type="submit" size="sm" disabled={loading}>
                       {loading ? "Uploading & Saving..." : "Add to Gallery"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {/* Edit Portfolio Project modal popup */}
+          {editingItem && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setEditingItem(null); }} />
+              <div className="relative w-full max-w-lg bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Edit Completed Portfolio Project</h3>
+
+                <form onSubmit={handleEditPortfolioItem} className="space-y-4">
+                  <Input
+                    label="Project Title"
+                    placeholder="Expense Tracker"
+                    value={editingItem.title}
+                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                    required
+                  />
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Project Description</label>
+                    <textarea
+                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                      placeholder="Outline what features this project has and how you built it..."
+                      value={editingItem.description}
+                      onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Project Type</label>
+                    <select
+                      value={editingItem.type}
+                      onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                    >
+                      <option value="IMAGE">🖼️ Local Images Showcase (Multiple Uploads)</option>
+                      <option value="VIDEO">🎥 Local Video Demo Showcase</option>
+                      <option value="GITHUB">💻 GitHub Repository Project</option>
+                      <option value="WEBSITE">🌐 Live Deploy Website</option>
+                      <option value="CASE_STUDY">📝 Research Case Study</option>
+                    </select>
+                  </div>
+
+                  <Input
+                    label="Live Project Link (Optional)"
+                    placeholder="https://example.com"
+                    value={editingItem.liveLink || ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, liveLink: e.target.value || null })}
+                  />
+
+                  {editingItem.type !== "IMAGE" && editingItem.type !== "VIDEO" && (
+                    <Input
+                      label="Repository or Website URL (Optional)"
+                      placeholder="https://..."
+                      value={editingItem.url || ""}
+                      onChange={(e) => setEditingItem({ ...editingItem, url: e.target.value })}
+                    />
+                  )}
+
+                  {editingItem.type === "IMAGE" && (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-slate-600">Upload New Project Images (Replaces existing)</label>
+                      <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-350 p-6 rounded-2xl bg-slate-50 transition-colors relative cursor-pointer group">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                        <div className="text-center space-y-1">
+                          <Upload className="h-6 w-6 text-slate-400 mx-auto group-hover:scale-105 transition-transform" />
+                          <p className="text-[10px] font-bold text-slate-600 uppercase">Select project files</p>
+                          <p className="text-[9px] text-slate-400 font-semibold">Upload multiple screenshots (Max 5MB each)</p>
+                        </div>
+                      </div>
+
+                      {selectedFilePreviews.length > 0 ? (
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block">Upload Previews ({selectedFilePreviews.length})</span>
+                          <div className="grid grid-cols-4 gap-2">
+                            {selectedFilePreviews.map((preview, index) => (
+                              <div key={index} className="aspect-video border border-slate-200 rounded-xl overflow-hidden bg-white relative">
+                                <img src={preview} alt="preview" className="h-full w-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : editingItem.images && editingItem.images.length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block">Current Images ({editingItem.images.length})</span>
+                          <div className="grid grid-cols-4 gap-2">
+                            {editingItem.images.map((imgUrl, index) => (
+                              <div key={index} className="aspect-video border border-slate-200 rounded-xl overflow-hidden bg-white relative">
+                                <img src={imgUrl} alt="existing" className="h-full w-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {editingItem.type === "VIDEO" && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-600">Upload New Demo Video File (Max 20MB, Optional)</label>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => {
+                          if (e.target.files) setSelectedFiles(e.target.files);
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-200 text-slate-800"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFiles(null);
+                        setSelectedFilePreviews([]);
+                        setEditingItem(null);
+                      }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" size="sm" disabled={loading}>
+                      {loading ? "Saving Changes..." : "Save Changes"}
                     </Button>
                   </div>
                 </form>

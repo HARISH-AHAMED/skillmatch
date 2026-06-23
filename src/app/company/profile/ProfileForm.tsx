@@ -220,7 +220,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-4 pb-2 mb-6">
+      <div className="flex overflow-x-auto no-scrollbar border-b border-slate-200 gap-4 pb-2 mb-6 whitespace-nowrap scroll-smooth md:overflow-x-visible">
         {[
           { id: "basic", label: "Basic Details" },
           { id: "values", label: "Philosophy & Culture" },
@@ -231,7 +231,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             key={tab.id}
             type="button"
             onClick={() => setActiveFormTab(tab.id as any)}
-            className={`text-xs font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
+            className={`text-xs font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 shrink-0 ${
               activeFormTab === tab.id
                 ? "border-[#002d59] text-[#002d59] font-black"
                 : "border-transparent text-slate-400 hover:text-slate-700"

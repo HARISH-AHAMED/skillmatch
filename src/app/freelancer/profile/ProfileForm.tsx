@@ -413,13 +413,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       )}
 
       {/* Tabs Selector Navigation */}
-      <div className="flex flex-wrap border-b border-slate-100 pb-1.5 gap-2">
+      <div className="flex flex-nowrap overflow-x-auto no-scrollbar border-b border-slate-100 pb-2 mb-2 gap-2 whitespace-nowrap scroll-smooth md:flex-wrap md:overflow-x-visible md:pb-1.5 md:mb-0">
         {(["info", "skills", "experience", "certifications", "portfolio"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 ${
               activeTab === tab
                 ? "bg-[#002d59] text-white shadow-md shadow-[#002d59]/10"
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"

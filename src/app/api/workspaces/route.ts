@@ -35,7 +35,7 @@ export async function GET() {
       const workspaces = activeApps.map((app) => ({
         id: app.id,
         label: app.project.title,
-        href: `/freelancer/workspace/${app.id}`,
+        href: `/workspace/${app.id}`,
         applicationIds: [app.id],
       }));
 
@@ -80,7 +80,7 @@ export async function GET() {
           workspacesMap.set(projectId, {
             id: app.id,
             label: app.project.title,
-            href: `/company/workspace/${app.id}`,
+            href: `/workspace/${app.id}`,
             applicationIds: [app.id],
           });
         }

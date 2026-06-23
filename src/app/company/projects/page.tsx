@@ -169,9 +169,9 @@ export default async function CompanyProjectsPage() {
                         <span className="font-bold text-[#002d59]">
                           {app.freelancer.user.name || "Freelancer"}
                         </span>
-                        <Link href={`/company/workspace/${app.id}`}>
+                        <Link href={`/workspace/${app.id}`} target="_blank" rel="noopener noreferrer">
                           <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white text-[10px] py-1 px-2.5 h-auto">
-                            Workspace
+                            Open Workspace
                           </Button>
                         </Link>
                       </div>
