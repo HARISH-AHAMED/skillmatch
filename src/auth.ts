@@ -91,7 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
-          image: user.image,
+          image: user.image && user.image.startsWith("data:") ? null : user.image,
           role: user.role,
         };
       },
@@ -103,7 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as any).role || Role.FREELANCER;
         token.name = user.name;
-        token.picture = user.image;
+        token.picture = user.image && user.image.startsWith("data:") ? null : user.image;
       } else {
         const userId = (token.id || token.sub) as string;
         if (userId) {
@@ -114,7 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (dbUser) {
             token.role = dbUser.role;
             token.name = dbUser.name;
-            token.picture = dbUser.image;
+            token.picture = dbUser.image && dbUser.image.startsWith("data:") ? null : dbUser.image;
           }
         }
       }
@@ -125,7 +125,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = (token.id || token.sub) as string;
         session.user.role = token.role as Role;
         if (token.name) session.user.name = token.name as string;
-        if (token.picture) session.user.image = token.picture as string;
+        if (token.picture) {
+          session.user.image = (token.picture as string).startsWith("data:") ? null : (token.picture as string);
+        } else {
+          session.user.image = null;
+        }
       }
       return session;
     },
