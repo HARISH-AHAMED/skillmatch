@@ -158,6 +158,7 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
     name: project.company.companyName,
     image: project.company.user.image,
     role: project.company.user.role,
+    companyId: project.company.id,
   };
 
   // Auto-cleanup: delete messages older than 7 days for this project

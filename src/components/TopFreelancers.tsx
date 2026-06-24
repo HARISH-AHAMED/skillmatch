@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trophy, Star, Briefcase, Zap, ChevronRight, Medal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Trophy, Star, Briefcase, Zap, ChevronRight, Medal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface TopFreelancerItem {
@@ -68,7 +69,9 @@ function getAvailabilityDot(status: string | null) {
 }
 
 export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   if (topFreelancers.length === 0) return null;
 
@@ -124,7 +127,17 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               <div className="p-5 space-y-3.5">
                 {/* Avatar + name */}
                 <div className="flex items-center gap-3">
-                  <div className={cn("relative h-12 w-12 rounded-full border-2 shrink-0 overflow-hidden bg-slate-100", `ring-2 ${style.ring}`)}>
+                  <button
+                    type="button"
+                    onClick={() => f.image && setLightboxImage(f.image)}
+                    disabled={!f.image}
+                    className={cn(
+                      "relative h-12 w-12 rounded-full border-2 shrink-0 overflow-hidden bg-slate-100 text-left p-0",
+                      `ring-2 ${style.ring}`,
+                      f.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
+                    )}
+                    title={f.image ? "Click to view full image" : undefined}
+                  >
                     {f.image ? (
                       <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
                     ) : (
@@ -133,13 +146,23 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       </div>
                     )}
                     {/* Availability */}
-                    <div className="absolute bottom-0 right-0">
+                    <div className="absolute bottom-0 right-0 z-10">
                       {getAvailabilityDot(f.availabilityStatus)}
                     </div>
-                  </div>
+                  </button>
                   <div>
-                    <p className="text-sm font-black text-[#002d59] leading-tight">{f.name}</p>
-                    <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{f.headline || "Freelancer"}</p>
+                    <p
+                      onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                      className="text-sm font-black text-[#002d59] leading-tight cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
+                    >
+                      {f.name}
+                    </p>
+                    <p
+                      onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                      className="text-[10px] text-slate-500 line-clamp-1 mt-0.5 cursor-pointer hover:text-[#3ac0ff] transition-colors"
+                    >
+                      {f.headline || "Freelancer"}
+                    </p>
                   </div>
                 </div>
 
@@ -220,7 +243,16 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                 <span className="w-7 text-xs font-black text-slate-400 shrink-0">#{f.rank}</span>
 
                 {/* Avatar */}
-                <div className="h-9 w-9 rounded-full shrink-0 overflow-hidden bg-slate-100 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => f.image && setLightboxImage(f.image)}
+                  disabled={!f.image}
+                  className={cn(
+                    "h-9 w-9 rounded-full shrink-0 overflow-hidden bg-slate-100 border border-slate-200 p-0 text-left",
+                    f.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
+                  )}
+                  title={f.image ? "Click to view full image" : undefined}
+                >
                   {f.image ? (
                     <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
                   ) : (
@@ -228,12 +260,22 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       {f.name[0]?.toUpperCase()}
                     </div>
                   )}
-                </div>
+                </button>
 
                 {/* Name + headline */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-[#002d59] truncate">{f.name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{f.headline || "Freelancer"}</p>
+                  <p
+                    onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                    className="text-xs font-bold text-[#002d59] truncate cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
+                  >
+                    {f.name}
+                  </p>
+                  <p
+                    onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                    className="text-[10px] text-slate-400 truncate cursor-pointer hover:text-[#3ac0ff] transition-colors"
+                  >
+                    {f.headline || "Freelancer"}
+                  </p>
                 </div>
 
                 {/* Stats */}
@@ -272,6 +314,26 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200", expanded ? "rotate-90" : "rotate-0")} />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Lightbox Zoom-In Modal Overlay */}
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setLightboxImage(null)}
+          />
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            title="Close image overlay"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+            <img src={lightboxImage} alt="lightbox preview" className="object-contain max-h-[80vh] max-w-[90vw]" />
+          </div>
         </div>
       )}
     </div>

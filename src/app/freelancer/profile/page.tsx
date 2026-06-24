@@ -96,7 +96,7 @@ export default async function FreelancerProfilePage() {
                           <Star className="h-3 w-3 fill-amber-500/20" />
                           <span className="text-[10px] font-bold text-slate-700">{projectReview.rating}★</span>
                         </div>
-                        <p className="text-[10px] text-slate-650 italic leading-normal line-clamp-3">
+                        <p className="text-[10px] text-slate-600 italic leading-normal line-clamp-3">
                           &quot;{projectReview.comment}&quot;
                         </p>
                         <p className="text-[9px] text-slate-400 text-right mt-1">— {projectReview.reviewer.name}</p>

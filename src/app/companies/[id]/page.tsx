@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Navbar } from "@/components/Navbar";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { CompanyProfileView } from "./CompanyProfileView";
 import { Role } from "@prisma/client";
 
@@ -27,7 +28,6 @@ export default async function PublicCompanyProfilePage({ params }: PageProps) {
     db.project.findMany({
       where: {
         companyId: id,
-        status: "OPEN",
       },
       orderBy: {
         createdAt: "desc",
@@ -86,6 +86,27 @@ export default async function PublicCompanyProfilePage({ params }: PageProps) {
   const initialAlertState = currentUserId ? company.jobAlertsUsers.includes(currentUserId) : false;
   const initialWatchlistState = currentUserId ? company.watchlistUsers.includes(currentUserId) : false;
   const initialCommunityState = currentUserId ? company.talentCommunity.includes(currentUserId) : false;
+
+  if (session?.user) {
+    return (
+      <DashboardLayout role={session.user.role} userName={session.user.name}>
+        <CompanyProfileView
+          company={company as any}
+          projects={projects}
+          reviews={reviews}
+          currentUserId={currentUserId}
+          isCompanyOwner={isCompanyOwner}
+          isFreelancer={isFreelancer}
+          initialAppliedProjectIds={initialAppliedProjectIds}
+          initialSavedProjectIds={initialSavedProjectIds}
+          initialFollowState={initialFollowState}
+          initialAlertState={initialAlertState}
+          initialWatchlistState={initialWatchlistState}
+          initialCommunityState={initialCommunityState}
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f8ff] flex flex-col">

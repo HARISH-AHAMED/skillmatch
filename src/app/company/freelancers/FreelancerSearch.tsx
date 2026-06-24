@@ -205,8 +205,8 @@ export function FreelancerSearch({
   });
   const [showFilters, setShowFilters] = useState(true);
 
-  // Selected profile modal
-  const [selectedProfile, setSelectedProfile] = useState<FreelancerItem | null>(null);
+  // Lightbox Zoom-In Modal state
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const buildSearchParams = useCallback(
     (overrides?: Partial<Record<string, string>>) => {
@@ -579,7 +579,8 @@ export function FreelancerSearch({
                   freelancer={freelancer}
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
-                  onViewProfile={() => setSelectedProfile(freelancer)}
+                  onViewProfile={() => router.push(`/company/freelancers/${freelancer.id}`)}
+                  onViewImage={setLightboxImage}
                 />
               ))}
             </div>
@@ -617,7 +618,8 @@ export function FreelancerSearch({
                   freelancer={freelancer}
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
-                  onViewProfile={() => setSelectedProfile(freelancer)}
+                  onViewProfile={() => router.push(`/company/freelancers/${freelancer.id}`)}
+                  onViewImage={setLightboxImage}
                 />
               ))}
             </div>
@@ -625,14 +627,24 @@ export function FreelancerSearch({
         </>
       )}
 
-      {/* Profile Detail Modal */}
-      {selectedProfile && (
-        <FreelancerProfileModal
-          freelancer={selectedProfile}
-          isSaved={savedIds.has(selectedProfile.id)}
-          onToggleSave={() => handleToggleSave(selectedProfile)}
-          onClose={() => setSelectedProfile(null)}
-        />
+      {/* Lightbox Zoom-In Modal Overlay */}
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setLightboxImage(null)}
+          />
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            title="Close image overlay"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+            <img src={lightboxImage} alt="lightbox preview" className="object-contain max-h-[80vh] max-w-[90vw]" />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -656,11 +668,13 @@ function FreelancerCard({
   isSaved,
   onToggleSave,
   onViewProfile,
+  onViewImage,
 }: {
   freelancer: FreelancerItem;
   isSaved: boolean;
   onToggleSave: () => void;
   onViewProfile: () => void;
+  onViewImage: (img: string) => void;
 }) {
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
 
@@ -672,7 +686,15 @@ function FreelancerCard({
       <div className="p-5 flex flex-col flex-1 space-y-4">
         {/* Avatar + Name + Headline */}
         <div className="flex items-start gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#002d59]/10 to-[#3ac0ff]/20 border border-slate-200 flex items-center justify-center font-black text-[#002d59] text-lg shrink-0 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
+            disabled={!freelancer.user.image}
+            className={`h-12 w-12 rounded-xl bg-gradient-to-br from-[#002d59]/10 to-[#3ac0ff]/20 border border-slate-200 flex items-center justify-center font-black text-[#002d59] text-lg shrink-0 overflow-hidden ${
+              freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
+            }`}
+            title={freelancer.user.image ? "Click to view full image" : undefined}
+          >
             {freelancer.user.image ? (
               <img
                 src={freelancer.user.image}
@@ -682,10 +704,13 @@ function FreelancerCard({
             ) : (
               freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
             )}
-          </div>
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-1.5">
-              <h3 className="text-sm font-extrabold text-[#002d59] truncate group-hover:text-[#1a6baf] transition-colors leading-normal">
+              <h3
+                onClick={onViewProfile}
+                className="text-sm font-extrabold text-[#002d59] truncate group-hover:text-[#1a6baf] transition-colors leading-normal cursor-pointer hover:underline"
+              >
                 {freelancer.user.name}
               </h3>
               {/* Heart Button */}
@@ -812,325 +837,6 @@ function FreelancerCard({
               <FileText className="h-3.5 w-3.5" />
             </a>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FreelancerProfileModal({
-  freelancer,
-  isSaved,
-  onToggleSave,
-  onClose,
-}: {
-  freelancer: FreelancerItem;
-  isSaved: boolean;
-  onToggleSave: () => void;
-  onClose: () => void;
-}) {
-  const avail = getAvailabilityConfig(freelancer.availabilityStatus);
-  const expList = Array.isArray(freelancer.experience) ? (freelancer.experience as any[]) : [];
-  const certList = Array.isArray(freelancer.certifications) ? (freelancer.certifications as any[]) : [];
-  const portList = Array.isArray(freelancer.portfolioItems) ? (freelancer.portfolioItems as any[]) : [];
-
-  const getPortfolioIcon = (type: string) => {
-    switch (type) {
-      case "IMAGE": return <ImageIcon className="h-4 w-4 text-indigo-500" />;
-      case "VIDEO": return <Video className="h-4 w-4 text-amber-500" />;
-      case "GITHUB": return <FileCode className="h-4 w-4 text-slate-800" />;
-      case "WEBSITE": return <Globe className="h-4 w-4 text-emerald-600" />;
-      case "CASE_STUDY": return <FileText className="h-4 w-4 text-sky-500" />;
-      default: return <ExternalLink className="h-4 w-4 text-slate-400" />;
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl bg-white border border-slate-100 shadow-2xl rounded-3xl overflow-y-auto max-h-[92vh] z-10 animate-in zoom-in-95 duration-200">
-        {/* Gradient accent bar */}
-        <div className="h-1.5 bg-gradient-to-r from-[#002d59] via-[#1a6baf] to-[#3ac0ff] rounded-t-3xl" />
-
-        <div className="p-7 space-y-5">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          {/* Profile Header */}
-          <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#002d59]/10 to-[#3ac0ff]/20 border border-slate-200 flex items-center justify-center font-black text-xl text-[#002d59] shrink-0 overflow-hidden">
-              {freelancer.user.image ? (
-                <img src={freelancer.user.image} alt={freelancer.user.name || ""} className="h-full w-full object-cover" />
-              ) : (
-                freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
-              )}
-            </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between pr-8">
-                <h2 className="text-xl font-black text-[#002d59] tracking-tight">{freelancer.user.name}</h2>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleSave();
-                  }}
-                  className="p-1 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
-                  title={isSaved ? "Remove Bookmark" : "Bookmark Freelancer"}
-                >
-                  <Heart
-                    className={`h-5 w-5 transition-colors ${
-                      isSaved
-                        ? "fill-rose-500 text-rose-500"
-                        : "text-slate-300 hover:text-rose-450"
-                    }`}
-                  />
-                </button>
-              </div>
-              {freelancer.professionalHeadline && (
-                <p className="text-xs font-bold text-[#3ac0ff]">{freelancer.professionalHeadline}</p>
-              )}
-              <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                <Mail className="h-3 w-3" />
-                <span>{freelancer.user.email}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${avail.badge}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${avail.dot}`} />
-                  {avail.label}
-                </span>
-                {isSaved && (
-                  <span className="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in duration-200">
-                    <Heart className="h-3 w-3 fill-rose-500 text-rose-500" />
-                    Saved Talent
-                  </span>
-                )}
-                {freelancer.responseTime && (
-                  <span className="text-[9px] text-slate-500 font-semibold flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" /> {freelancer.responseTime}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Verification Badges */}
-          {freelancer.verificationBadges?.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {freelancer.verificationBadges.map((badge) => (
-                <span key={badge} className="inline-flex items-center gap-1 bg-sky-50 border border-sky-200 text-[9px] font-black text-[#002d59] px-2 py-0.5 rounded-full">
-                  <CheckCircle className="h-2.5 w-2.5 text-sky-500" />
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-            <div>
-              <p className="text-lg font-black text-[#002d59]">{freelancer.experienceYears}y</p>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Experience</p>
-            </div>
-            <div className="border-x border-slate-200/60">
-              <p className="text-lg font-black text-[#002d59] flex items-center justify-center gap-0.5">
-                <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                {freelancer.rating.toFixed(1)}
-              </p>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Rating</p>
-            </div>
-            <div>
-              <p className="text-lg font-black text-[#002d59]">{freelancer.completedProjects}</p>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Projects Done</p>
-            </div>
-          </div>
-
-          {/* Bio */}
-          {freelancer.bio && (
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Professional Bio</p>
-              <p className="text-xs text-slate-600 leading-relaxed italic bg-slate-50/70 border border-slate-100 p-3.5 rounded-xl font-medium">
-                &quot;{freelancer.bio}&quot;
-              </p>
-            </div>
-          )}
-
-          {/* Skills */}
-          <div className="space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Skills & Expertise</p>
-            <div className="flex flex-wrap gap-1.5">
-              {freelancer.skills.map((skill) => (
-                <span key={skill} className="text-[10px] font-bold bg-[#002d59]/5 text-[#002d59] border border-[#002d59]/10 px-2.5 py-1 rounded-full">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Work Experience */}
-          {expList.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Work Experience ({expList.length})</p>
-              <div className="space-y-2.5">
-                {expList.map((exp: any, idx: number) => (
-                  <div key={exp.id || idx} className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-xl text-xs space-y-1">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-extrabold text-[#002d59]">{exp.title}</h4>
-                      <span className="text-[9px] bg-white border border-slate-200 px-2 py-0.5 rounded-full font-bold text-slate-500">
-                        {exp.startDate} – {exp.current ? "Present" : exp.endDate}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-[#3ac0ff] font-bold">{exp.company}</p>
-                    {exp.description && (
-                      <p className="text-[10px] text-slate-550 leading-relaxed">{exp.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Certifications */}
-          {certList.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Certifications ({certList.length})</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {certList.map((cert: any, idx: number) => (
-                  <div key={cert.id || idx} className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl flex items-center gap-3 text-xs">
-                    {cert.imageUrl ? (
-                      <a href={cert.imageUrl} target="_blank" rel="noopener noreferrer" className="h-9 w-9 border border-slate-200 bg-white rounded-xl overflow-hidden shrink-0 cursor-zoom-in">
-                        <img src={cert.imageUrl} alt={cert.name} className="h-full w-full object-cover" />
-                      </a>
-                    ) : (
-                      <div className="p-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 shrink-0">
-                        <Award className="h-4 w-4" />
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-bold text-[#002d59] leading-tight">{cert.name}</p>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                        {cert.issuer} • {cert.year}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Portfolio */}
-          {portList.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Portfolio Gallery ({portList.length})</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {portList.map((item: any, idx: number) => (
-                  <div key={item.id || idx} className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-xl flex flex-col space-y-2 hover:border-sky-200 transition-colors text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        {getPortfolioIcon(item.type)}
-                        <span className="font-black text-[#002d59] truncate">{item.title}</span>
-                      </div>
-                      <span className="text-[8px] font-bold text-slate-500 uppercase border border-slate-200 bg-white px-1.5 py-0.5 rounded-full">
-                        {item.type.replace("_", " ")}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-550 leading-relaxed line-clamp-2">{item.description}</p>
-                    {/* Image grid */}
-                    {item.images?.length > 0 && (
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {item.images.map((img: string, i: number) => (
-                          <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="aspect-video bg-white border border-slate-200 rounded-lg overflow-hidden h-10 cursor-zoom-in">
-                            <img src={img} alt="screenshot" className="h-full w-full object-cover" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                    {item.url && (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-[#3ac0ff] hover:text-[#002d59] flex items-center gap-1 transition-colors mt-auto">
-                        Open Link <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Platform Projects */}
-          {freelancer.applications.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                Platform Completed Projects ({freelancer.applications.length})
-              </p>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {freelancer.applications.map((app) => (
-                  <div key={app.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold text-[#002d59]">{app.project.title}</p>
-                      <p className="text-[10px] text-slate-550">Hired by {app.project.company.companyName}</p>
-                    </div>
-                    <span className="font-bold text-emerald-700">${app.project.budget}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Client Reviews */}
-          {freelancer.user.reviewsReceived.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                Client Reviews ({freelancer.user.reviewsReceived.length})
-              </p>
-              <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
-                {freelancer.user.reviewsReceived.map((rev) => (
-                  <div key={rev.id} className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-[#002d59] truncate max-w-[70%]">{rev.project.title}</span>
-                      <StarRating rating={rev.rating} />
-                    </div>
-                    <p className="text-[10px] text-slate-650 italic leading-relaxed">&quot;{rev.comment}&quot;</p>
-                    <p className="text-[9px] text-slate-400 text-right">— {rev.reviewer.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Resume Link */}
-          {freelancer.resumeUrl && (
-            <div className="pt-3 border-t border-slate-100">
-              <a
-                href={freelancer.resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-[#002d59] hover:text-[#3ac0ff] font-bold bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl transition-colors shadow-sm"
-              >
-                <FileText className="h-4 w-4 text-slate-500" />
-                View Resume / CV
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button
-              onClick={onClose}
-              className="px-5 py-2 text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl transition-all cursor-pointer"
-            >
-              Close Profile
-            </button>
-          </div>
         </div>
       </div>
     </div>

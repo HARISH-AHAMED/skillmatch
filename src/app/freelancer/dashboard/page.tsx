@@ -109,7 +109,7 @@ export default async function FreelancerDashboard() {
       {/* Welcome header based on Screenshot 2 */}
       <div className="flex justify-between items-center bg-transparent">
         <div>
-          <span className="text-[10px] font-bold text-slate-550 tracking-widest uppercase">
+          <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">
             Freelancer Dashboard
           </span>
           <h1 className="text-3xl font-black text-[#002d59] tracking-tight mt-0.5">

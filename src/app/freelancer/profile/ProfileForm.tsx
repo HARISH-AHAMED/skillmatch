@@ -422,7 +422,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         {/* TAB 1: Profile Info */}
         {activeTab === "info" && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 border border-slate-150/40 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 border border-slate-200/40 rounded-2xl">
               <div className="relative">
                 <div className="h-20 w-20 rounded-2xl bg-sky-100 border border-slate-200 overflow-hidden flex items-center justify-center font-bold text-[#002d59] text-2xl shadow-inner">
                   {image ? (
@@ -432,7 +432,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   )}
                 </div>
                 <label className="absolute -bottom-1.5 -right-1.5 p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-sm cursor-pointer transition-transform hover:scale-105">
-                  <Upload className="h-3.5 w-3.5 text-slate-650" />
+                  <Upload className="h-3.5 w-3.5 text-slate-600" />
                   <input
                     type="file"
                     accept="image/*"
@@ -445,7 +445,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
               <div className="flex-1 space-y-1 text-center sm:text-left">
                 <h4 className="text-xs font-bold text-slate-700">Profile Photo</h4>
-                <p className="text-[10px] text-slate-550 leading-relaxed max-w-sm">
+                <p className="text-[10px] text-slate-500 leading-relaxed max-w-sm">
                   Upload a clear image file (PNG, JPG, WebP, SVG). Size limit: 5MB.
                 </p>
               </div>
@@ -522,7 +522,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                       className={`px-3 py-1.5 text-[10px] font-bold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
                         isChecked
                           ? "bg-sky-50 border-sky-300 text-[#002d59] shadow-sm"
-                          : "bg-white border-slate-200 text-slate-400 hover:border-slate-350"
+                          : "bg-white border-slate-200 text-slate-400 hover:border-slate-400"
                       }`}
                     >
                       <CheckCircle className={`h-3.5 w-3.5 ${isChecked ? "text-sky-500 fill-sky-50" : "text-slate-300"}`} />
@@ -558,7 +558,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="space-y-1.5 pt-1">
               <label className="block text-xs font-semibold text-slate-600">Resume / CV (PDF format)</label>
               {resumeUrl && (
-                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-150/70 rounded-xl mb-1.5">
+                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl mb-1.5">
                   <span className="text-xs text-slate-600 font-semibold truncate max-w-[70%]">
                     Active CV: {resumeUrl.split("/").pop()}
                   </span>
@@ -628,7 +628,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                         <Briefcase className="h-4 w-4 text-[#002d59]" />
                         <h4 className="text-xs font-bold text-[#002d59]">{item.title}</h4>
                       </div>
-                      <p className="text-[10px] text-slate-650 font-medium">
+                      <p className="text-[10px] text-slate-600 font-medium">
                         {item.company} • <span className="italic">{item.startDate} to {item.current ? "Present" : item.endDate}</span>
                       </p>
                       <p className="text-[10px] text-slate-500 max-w-xl leading-relaxed">{item.description}</p>
@@ -691,7 +691,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                         onChange={(e) => setNewExp({ ...newExp, current: e.target.checked, endDate: e.target.checked ? "" : newExp.endDate })}
                         className="rounded border-slate-300 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
                       />
-                      <label htmlFor="currJob" className="text-xs font-semibold text-slate-650 cursor-pointer">
+                      <label htmlFor="currJob" className="text-xs font-semibold text-slate-600 cursor-pointer">
                         Currently working here
                       </label>
                     </div>
@@ -727,7 +727,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <div>
                 <h4 className="text-xs font-bold text-slate-700">Certificates & Awards</h4>
-                <p className="text-[10px] text-slate-550">List professional credentials, qualifications, or badges.</p>
+                <p className="text-[10px] text-slate-500">List professional credentials, qualifications, or badges.</p>
               </div>
               <button
                 type="button"
@@ -853,7 +853,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <div>
                 <h4 className="text-xs font-bold text-slate-700">Portfolio Gallery Showcase</h4>
-                <p className="text-[10px] text-slate-550">Showcase past work, code repositories, websites, and case studies.</p>
+                <p className="text-[10px] text-slate-500">Showcase past work, code repositories, websites, and case studies.</p>
               </div>
               <button
                 type="button"
@@ -869,7 +869,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               {portfolioItems.map((item) => (
                 <div
                   key={item.id}
-                  className="p-5 bg-white border border-slate-150/60 rounded-2xl shadow-sm flex flex-col justify-between space-y-3 hover:border-sky-200 transition-all group relative"
+                  className="p-5 bg-white border border-slate-200/60 rounded-2xl shadow-sm flex flex-col justify-between space-y-3 hover:border-sky-200 transition-all group relative"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -881,7 +881,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                         {item.type.replace("_", " ")}
                       </Badge>
                     </div>
-                    <p className="text-[10px] text-slate-550 leading-relaxed font-medium line-clamp-3">
+                    <p className="text-[10px] text-slate-500 leading-relaxed font-medium line-clamp-3">
                       {item.description}
                     </p>
 
@@ -889,7 +889,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     {item.images && item.images.length > 0 && (
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         {item.images.map((img: string, i: number) => (
-                          <div key={i} className="aspect-video bg-white border border-slate-150 rounded-lg overflow-hidden h-10 relative">
+                          <div key={i} className="aspect-video bg-white border border-slate-200 rounded-lg overflow-hidden h-10 relative">
                             <img src={img} alt="screenshot" className="h-full w-full object-cover" />
                           </div>
                         ))}

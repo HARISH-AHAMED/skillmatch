@@ -6,11 +6,13 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ children, className, hoverable = true, ...props }: CardProps) {
+  const hasBg = className?.split(/\s+/).some(c => c.startsWith("bg-") || c.startsWith("from-") || c.startsWith("to-"));
   return (
     <div
       className={cn(
-        "glass-panel rounded-2xl p-6 transition-all duration-300",
-        hoverable && "glass-panel-hover",
+        hasBg ? "rounded-2xl p-6 border border-slate-200/50 shadow-sm" : "glass-panel rounded-2xl p-6",
+        "transition-all duration-300",
+        hoverable && !hasBg && "glass-panel-hover",
         className
       )}
       {...props}

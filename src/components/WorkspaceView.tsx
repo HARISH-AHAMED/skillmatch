@@ -139,6 +139,7 @@ interface WorkspaceViewProps {
     name: string | null;
     image: string | null;
     role: string;
+    companyId: string;
   };
   initialMessages: MessageItem[];
   initialFiles: SharedFileItem[];
@@ -193,6 +194,216 @@ function parseMilestoneAmount(title: string, description: string): { amount: num
   return { amount: 0, cleanTitle: title };
 }
 
+function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0 to 1
+  const audioContextRef = useRef<any>(null);
+  const playTimerRef = useRef<any>(null);
+  const startTimeRef = useRef<number>(0);
+  const pausedAtRef = useRef<number>(0);
+
+  // Parse duration
+  let voiceDur = "0:00";
+  const durMatch = content.match(/duration:([^\]]+)/);
+  if (durMatch) voiceDur = durMatch[1];
+
+  const [minStr, secStr] = voiceDur.split(":");
+  const totalSeconds = (parseInt(minStr) || 0) * 60 + (parseInt(secStr) || 0) || 5; // fallback to 5s if parsing fails
+
+  // Deterministic bar heights to avoid layout shifts / constant random jittering
+  const barHeights = [12, 6, 14, 8, 16, 10, 15, 7, 18, 9, 14, 6, 13, 8, 15, 7, 12, 10];
+
+  const stopAudio = () => {
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch (e) {}
+      audioContextRef.current = null;
+    }
+    if (playTimerRef.current) {
+      clearInterval(playTimerRef.current);
+      playTimerRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      // Pause
+      if (startTimeRef.current > 0) {
+        pausedAtRef.current = (Date.now() - startTimeRef.current) / 1000;
+      }
+      stopAudio();
+    } else {
+      // Play
+      setIsPlaying(true);
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        // Fallback animation if Web Audio API not supported
+        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
+        playTimerRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startTimeRef.current) / 1000;
+          if (elapsed >= totalSeconds) {
+            setProgress(0);
+            pausedAtRef.current = 0;
+            stopAudio();
+          } else {
+            setProgress(elapsed / totalSeconds);
+          }
+        }, 100);
+        return;
+      }
+
+      try {
+        const ctx = new AudioCtx();
+        audioContextRef.current = ctx;
+        if (ctx.state === "suspended") {
+          ctx.resume();
+        }
+
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        // Warm triangle wave has higher-order harmonics, which are easily hearable on laptop/phone speakers
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+
+        // Bandpass filter centered at 700Hz with high resonance simulates a speech formant (vowels)
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(700, ctx.currentTime);
+        filter.Q.setValueAtTime(1.8, ctx.currentTime);
+
+        // Sound start
+        gain.gain.setValueAtTime(0.001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.08);
+
+        // Speech simulation notes
+        const durationSec = totalSeconds - pausedAtRef.current;
+        let time = ctx.currentTime + 0.15;
+        const step = 0.12;
+        while (time < ctx.currentTime + durationSec - 0.15) {
+          // Vary the pitch slightly inside vocal range (300Hz - 420Hz)
+          const freq = 300 + Math.random() * 120;
+          osc.frequency.setValueAtTime(freq, time);
+
+          // Sweep the bandpass filter frequency to simulate vocal formant changes
+          const filterFreq = 500 + Math.random() * 700;
+          filter.frequency.setValueAtTime(filterFreq, time);
+
+          // Modulate volume to simulate speech rhythms & word breaks
+          const vol = Math.random() > 0.4 ? 0.3 : 0.015;
+          gain.gain.linearRampToValueAtTime(vol, time);
+          time += step;
+        }
+
+        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime + durationSec - 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationSec);
+
+        osc.start();
+        osc.stop(ctx.currentTime + durationSec);
+
+        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
+
+        playTimerRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startTimeRef.current) / 1000;
+          if (elapsed >= totalSeconds) {
+            setProgress(0);
+            pausedAtRef.current = 0;
+            stopAudio();
+          } else {
+            setProgress(elapsed / totalSeconds);
+          }
+        }, 100);
+
+      } catch (err) {
+        console.error("Audio playback error:", err);
+        // Fail-safe visual animation
+        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
+        playTimerRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startTimeRef.current) / 1000;
+          if (elapsed >= totalSeconds) {
+            setProgress(0);
+            pausedAtRef.current = 0;
+            stopAudio();
+          } else {
+            setProgress(elapsed / totalSeconds);
+          }
+        }, 100);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        try {
+          audioContextRef.current.close();
+        } catch (e) {}
+      }
+      if (playTimerRef.current) {
+        clearInterval(playTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Compute how many bars are highlighted based on progress
+  const activeBarsCount = Math.floor(progress * barHeights.length);
+
+  // Dynamic styling based on sender/receiver (isMe)
+  const buttonBgClass = isMe
+    ? "bg-white/20 hover:bg-white/30 text-white"
+    : "bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300/40";
+  const iconClass = isMe ? "text-white fill-white" : "text-slate-700 fill-slate-700";
+  const textClass = isMe ? "text-white/85" : "text-slate-600";
+
+  return (
+    <div className="flex items-center gap-3.5 min-w-[200px]">
+      <button
+        type="button"
+        onClick={handlePlayPause}
+        className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 cursor-pointer border-none transition-colors ${buttonBgClass}`}
+      >
+        {isPlaying ? (
+          <Pause className={`h-4 w-4 ${isMe ? "fill-white text-white" : "fill-slate-700 text-slate-700"}`} />
+        ) : (
+          <Play className={`h-4 w-4 ${iconClass}`} />
+        )}
+      </button>
+      <div className="flex-1 space-y-1">
+        <div className="flex items-center gap-0.5 h-6">
+          {barHeights.map((h, i) => {
+            const isPlayed = i <= activeBarsCount && progress > 0;
+            const barBgClass = isMe
+              ? isPlayed ? "bg-white" : "bg-white/30"
+              : isPlayed ? "bg-[#002d59]" : "bg-slate-300";
+            return (
+              <div
+                key={i}
+                className={`w-0.5 rounded-full transition-all duration-150 ${barBgClass}`}
+                style={{ height: `${h}px` }}
+              />
+            );
+          })}
+        </div>
+        <div className={`flex justify-between text-[8px] font-black uppercase tracking-wider ${textClass}`}>
+          <span>Voice Message</span>
+          <span>
+            {isPlaying
+              ? `${Math.floor((progress * totalSeconds) / 60)}:${(Math.floor(progress * totalSeconds) % 60) < 10 ? "0" : ""}${Math.floor(progress * totalSeconds) % 60}`
+              : voiceDur}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function WorkspaceView({
   role,
   currentUserId,
@@ -209,8 +420,8 @@ export function WorkspaceView({
 }: WorkspaceViewProps) {
   const router = useRouter();
 
-  // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "payments" | "team"
-  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "payments" | "team">("overview");
+  // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "team"
+  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "team">("overview");
 
   // Mobile menu drawer toggle state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -758,7 +969,14 @@ export function WorkspaceView({
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider hidden xs:inline">Team:</span>
             <div className="flex -space-x-1.5 overflow-hidden">
               <div
-                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 cursor-pointer shadow-sm"
+                onClick={() => {
+                  if (role === "FREELANCER") {
+                    router.push(`/companies/${companyUser.companyId}`);
+                  }
+                }}
+                className={`h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm ${
+                  role === "FREELANCER" ? "cursor-pointer hover:opacity-90" : ""
+                }`}
                 title={`${companyName} (Client)`}
               >
                 C
@@ -766,7 +984,14 @@ export function WorkspaceView({
               {hiredFreelancers.map((f) => (
                 <div
                   key={f.id}
-                  className="h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden cursor-pointer shadow-sm"
+                  onClick={() => {
+                    if (role === "COMPANY") {
+                      router.push(`/company/freelancers/${f.freelancerId}`);
+                    }
+                  }}
+                  className={`h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm ${
+                    role === "COMPANY" ? "cursor-pointer hover:opacity-90" : ""
+                  }`}
                   title={`${f.name} (Freelancer)`}
                 >
                   {f.image ? (
@@ -848,7 +1073,6 @@ export function WorkspaceView({
           { id: "tasks", label: "Tasks", icon: CheckSquare },
           { id: "deliverables", label: "Deliverables", icon: Archive },
           { id: "messages", label: "Chat", icon: MessageSquare },
-          { id: "payments", label: "Payments", icon: CreditCard },
           { id: "team", label: "Team", icon: Users },
         ].map((item) => {
           const Icon = item.icon;
@@ -928,7 +1152,7 @@ export function WorkspaceView({
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-[9px] font-black text-slate-350 uppercase tracking-wider">Milestones completed</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestones completed</p>
                           <p className="text-3xl font-black text-[#3ac0ff] mt-0.5">{milestonePercentage}%</p>
                         </div>
                       </div>
@@ -940,7 +1164,7 @@ export function WorkspaceView({
                         </div>
                         <div>
                           <span className="text-slate-200 block text-[9px] font-bold uppercase tracking-wider">Funds Paid to Date</span>
-                          <span className="font-extrabold text-emerald-350 text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
+                          <span className="font-extrabold text-emerald-300 text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
                         </div>
                         <div>
                           <span className="text-slate-200 block text-[9px] font-bold uppercase tracking-wider">Secured in Escrow</span>
@@ -968,7 +1192,7 @@ export function WorkspaceView({
                         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Upcoming Milestone</h3>
                         
                         {updates.filter(u => u.status !== "COMPLETED").length === 0 ? (
-                          <div className="py-6 flex items-center gap-3 text-slate-450 text-xs font-bold">
+                          <div className="py-6 flex items-center gap-3 text-slate-400 text-xs font-bold">
                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                             All milestones successfully delivered and completed!
                           </div>
@@ -1036,15 +1260,15 @@ export function WorkspaceView({
 
                             if (logs.length === 0) {
                               return (
-                                <p className="text-xs text-slate-450 py-6 text-center">No activity logged in this workspace yet.</p>
+                                <p className="text-xs text-slate-400 py-6 text-center">No activity logged in this workspace yet.</p>
                               );
                             }
-
+ 
                             return logs.slice(0, 6).map((log, idx) => (
                               <div key={`${log.id}-${idx}`} className="flex gap-3 text-xs leading-relaxed items-start">
                                 <div className={`h-6 w-6 rounded-full shrink-0 flex items-center justify-center ${
-                                  log.type === "milestone" ? "bg-purple-50 text-purple-650" : 
-                                  log.type === "task" ? "bg-amber-50 text-amber-650" : "bg-sky-50 text-sky-655"
+                                  log.type === "milestone" ? "bg-purple-50 text-purple-600" : 
+                                  log.type === "task" ? "bg-amber-50 text-amber-600" : "bg-sky-50 text-sky-600"
                                 }`}>
                                   {log.type === "milestone" && <Sparkles className="h-3 w-3" />}
                                   {log.type === "task" && <CheckSquare className="h-3 w-3" />}
@@ -1052,7 +1276,7 @@ export function WorkspaceView({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="font-extrabold text-slate-800 leading-tight">{log.title}</p>
-                                  <p className="text-slate-450 text-[10px] mt-0.5 truncate">{log.desc}</p>
+                                  <p className="text-slate-400 text-[10px] mt-0.5 truncate">{log.desc}</p>
                                 </div>
                                 <span className="text-[9px] font-bold text-slate-400 shrink-0 whitespace-nowrap">
                                   {log.date.toLocaleDateString([], { month: "short", day: "numeric" })}
@@ -1095,7 +1319,7 @@ export function WorkspaceView({
                         <p className="text-xs font-extrabold text-slate-700 mt-6 leading-tight">
                           {completedMilestones} of {updates.length} Milestone Phases Done
                         </p>
-                        <p className="text-[10px] text-slate-450 mt-1">
+                        <p className="text-[10px] text-slate-400 mt-1">
                           Funds are released automatically upon final client milestone approval.
                         </p>
                       </Card>
@@ -1107,20 +1331,70 @@ export function WorkspaceView({
                         <div className="space-y-3 pt-1 text-xs">
                           {/* Company */}
                           <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-[10px] text-white">C</div>
+                            <div
+                              onClick={() => {
+                                if (role === "FREELANCER") {
+                                  router.push(`/companies/${companyUser.companyId}`);
+                                }
+                              }}
+                              className={`h-7 w-7 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-[10px] text-white overflow-hidden shrink-0 ${
+                                role === "FREELANCER" ? "cursor-pointer hover:opacity-90" : ""
+                              }`}
+                            >
+                              {companyUser.image ? (
+                                <img src={companyUser.image} className="h-full w-full object-cover" />
+                              ) : (
+                                "C"
+                              )}
+                            </div>
                             <div className="min-w-0">
-                              <p className="font-extrabold text-slate-800 truncate">{companyName}</p>
+                              <p
+                                onClick={() => {
+                                  if (role === "FREELANCER") {
+                                    router.push(`/companies/${companyUser.companyId}`);
+                                  }
+                                }}
+                                className={`font-extrabold text-slate-800 truncate ${
+                                  role === "FREELANCER" ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""
+                                }`}
+                              >
+                                {companyName}
+                              </p>
                               <p className="text-[8px] font-black text-slate-400 uppercase leading-none mt-0.5">Client</p>
                             </div>
                           </div>
                           {/* Freelancers */}
                           {hiredFreelancers.map(f => (
                             <div key={f.id} className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-sky-500/20 text-[#002d59] font-extrabold flex items-center justify-center text-[10px]">
-                                {f.name ? f.name[0].toUpperCase() : "F"}
+                              <div
+                                onClick={() => {
+                                  if (role === "COMPANY") {
+                                    router.push(`/company/freelancers/${f.freelancerId}`);
+                                  }
+                                }}
+                                className={`h-7 w-7 rounded-full bg-sky-500/20 text-[#002d59] font-extrabold flex items-center justify-center text-[10px] overflow-hidden shrink-0 ${
+                                  role === "COMPANY" ? "cursor-pointer hover:opacity-90" : ""
+                                }`}
+                              >
+                                {f.image ? (
+                                  <img src={f.image} className="h-full w-full object-cover" />
+                                ) : (
+                                  f.name ? f.name[0].toUpperCase() : "F"
+                                )}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-extrabold text-slate-800 truncate">{f.name}</p>
+                                <p
+                                  onClick={() => {
+                                    if (role === "COMPANY") {
+                                      router.push(`/company/freelancers/${f.freelancerId}`);
+                                    }
+                                  }}
+                                  className={`font-extrabold text-slate-800 truncate ${
+                                    role === "COMPANY" ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""
+                                  }`}
+                                >
+                                  {f.name}
+                                </p>
                                 <p className="text-[8px] font-black text-slate-400 uppercase leading-none mt-0.5">Freelancer</p>
                               </div>
                             </div>
@@ -1137,9 +1411,8 @@ export function WorkspaceView({
               {/* messages TAB */}
               {activeView === "messages" && (
                 <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-175px)] min-h-[460px]">
-                  
-                  {/* Left: WhatsApp-style Sub-sidebar for channels and DMs */}
-                  <div className={`w-full lg:w-[240px] shrink-0 bg-white border border-slate-200 rounded-3xl p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-sm ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                    {/* Left: WhatsApp-style Sub-sidebar for channels and DMs */}
+                  <div className={`w-full lg:w-[280px] shrink-0 bg-white border border-slate-200 rounded-3xl p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-sm ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     {/* Channels section */}
                     <div className="space-y-1 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                       <h4 className="text-[9px] font-black text-[#002d59] uppercase tracking-widest pl-1 mb-2">Channels</h4>
@@ -1149,14 +1422,19 @@ export function WorkspaceView({
                           setActiveChannel("group");
                           setShowMobileChatSidebar(false);
                         }}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer border ${
+                        className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer border ${
                           activeChannel === "group"
                             ? "bg-[#3ac0ff]/15 border-[#3ac0ff]/30 text-[#002d59] shadow-xs"
-                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 border-transparent"
+                            : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent"
                         }`}
                       >
-                        <span className="text-slate-450 font-extrabold">#</span>
-                        <span className="truncate">group-chat</span>
+                        <div className="h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs">
+                          <Users className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-extrabold text-xs truncate">Group Chat</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Public Channel</p>
+                        </div>
                       </button>
  
                       {role === "FREELANCER" && (
@@ -1166,15 +1444,20 @@ export function WorkspaceView({
                             setActiveChannel("freelancers");
                             setShowMobileChatSidebar(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
+                          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
                             activeChannel === "freelancers"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "text-slate-555 hover:bg-slate-50 hover:text-slate-800 border-transparent"
+                              ? "bg-[#3ac0ff]/15 border-[#3ac0ff]/30 text-[#002d59] shadow-xs"
+                              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent"
                           }`}
                           title="Only hired freelancers can view this private channel"
                         >
-                          <span className="text-amber-500 font-extrabold">🔒</span>
-                          <span className="truncate">freelancers-private</span>
+                          <div className="h-8 w-8 rounded-full bg-amber-500 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs">
+                            <Users className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-extrabold text-xs truncate">Freelancers Private</p>
+                            <p className="text-[9px] text-amber-600 font-bold uppercase tracking-wider mt-0.5">🔒 Private Channel</p>
+                          </div>
                         </button>
                       )}
                     </div>
@@ -1190,14 +1473,24 @@ export function WorkspaceView({
                             setActiveChannel(getDMChannelKey(companyUser.id));
                             setShowMobileChatSidebar(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer border ${
+                          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer border ${
                             activeChannel === getDMChannelKey(companyUser.id)
                               ? "bg-[#3ac0ff]/15 border-[#3ac0ff]/30 text-[#002d59] shadow-xs"
-                              : "text-slate-555 hover:bg-slate-50 hover:text-slate-800 border-transparent"
+                              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent"
                           }`}
                         >
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                          <span className="truncate">{companyName} (Client)</span>
+                          <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0 overflow-hidden shadow-xs relative">
+                            {companyUser.image ? (
+                              <img src={companyUser.image} className="h-full w-full object-cover" />
+                            ) : (
+                              <span>{companyName[0].toUpperCase()}</span>
+                            )}
+                            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-white" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-extrabold text-xs truncate">{companyName}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Client Representative</p>
+                          </div>
                         </button>
                       )}
 
@@ -1212,14 +1505,24 @@ export function WorkspaceView({
                                   setActiveChannel(getDMChannelKey(f.id));
                                   setShowMobileChatSidebar(false);
                                 }}
-                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
+                                className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
                                   activeChannel === getDMChannelKey(f.id)
                                     ? "bg-[#3ac0ff]/15 border-[#3ac0ff]/30 text-[#002d59] shadow-xs"
-                                    : "text-slate-555 hover:bg-slate-50 hover:text-slate-800 border-transparent"
+                                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent"
                                 }`}
                               >
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                <span className="truncate">{f.name}</span>
+                                <div className="h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-xs relative">
+                                  {f.image ? (
+                                    <img src={f.image} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <span>{f.name ? f.name[0].toUpperCase() : "U"}</span>
+                                  )}
+                                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-white" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-extrabold text-xs truncate">{f.name}</p>
+                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
+                                </div>
                               </button>
                             ))
                         : hiredFreelancers.map((f) => (
@@ -1230,14 +1533,24 @@ export function WorkspaceView({
                                   setActiveChannel(getDMChannelKey(f.id));
                                   setShowMobileChatSidebar(false);
                                 }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
+                              className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer mt-1 border ${
                                 activeChannel === getDMChannelKey(f.id)
                                   ? "bg-[#3ac0ff]/15 border-[#3ac0ff]/30 text-[#002d59] shadow-xs"
-                                  : "text-slate-555 hover:bg-slate-50 hover:text-slate-800 border-transparent"
+                                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent"
                               }`}
                             >
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              <span className="truncate">{f.name}</span>
+                              <div className="h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-xs relative">
+                                {f.image ? (
+                                  <img src={f.image} className="h-full w-full object-cover" />
+                                ) : (
+                                  <span>{f.name ? f.name[0].toUpperCase() : "U"}</span>
+                                )}
+                                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-white" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-extrabold text-xs truncate">{f.name}</p>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
+                              </div>
                             </button>
                           ))}
                     </div>
@@ -1254,26 +1567,119 @@ export function WorkspaceView({
                           <button
                             type="button"
                             onClick={() => setShowMobileChatSidebar(true)}
-                            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all lg:hidden cursor-pointer flex items-center gap-1 text-[9px] font-black uppercase tracking-wider"
+                            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all lg:hidden cursor-pointer flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shrink-0"
                           >
                             &larr; Chats
                           </button>
                         )}
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-black text-slate-800 truncate flex items-center gap-1.5">
-                            <span className="text-[#3ac0ff] font-extrabold text-base">
-                              {activeChannel === "group" ? "#" : activeChannel === "freelancers" ? "🔒" : "👤"}
-                            </span>
-                            <span>{getChannelName(activeChannel)}</span>
-                          </h3>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
-                            {activeChannel === "group" && "Whole Group Discussion Thread"}
-                            {activeChannel === "freelancers" && "Private Freelancers-Only Thread"}
-                            {activeChannel.startsWith("dm:") && "Private Direct Message"}
-                          </p>
-                        </div>
+
+                        {/* Profile Image / Group Icon next to name inside Header */}
+                        {(() => {
+                          const getActiveChannelHeaderInfo = () => {
+                            if (activeChannel === "group") {
+                              return {
+                                name: "Group Chat",
+                                detail: "Whole Group Discussion Thread",
+                                image: null,
+                                isGroup: true,
+                                bg: "bg-[#002d59]",
+                                icon: <Users className="h-4 w-4 text-white" />
+                              };
+                            }
+                            if (activeChannel === "freelancers") {
+                              return {
+                                name: "Freelancers Private",
+                                detail: "Private Freelancers-Only Thread",
+                                image: null,
+                                isGroup: true,
+                                bg: "bg-amber-500",
+                                icon: <Users className="h-4 w-4 text-white" />
+                              };
+                            }
+                            if (activeChannel.startsWith("dm:")) {
+                              const targetId = activeChannel.slice(3);
+                              if (companyUser.id === targetId) {
+                                return {
+                                  name: companyName,
+                                  detail: "Client Representative",
+                                  image: companyUser.image,
+                                  isGroup: false,
+                                  bg: "bg-slate-200",
+                                  initial: companyName[0].toUpperCase()
+                                };
+                              }
+                              const freelancer = hiredFreelancers.find(f => f.id === targetId);
+                              return {
+                                name: freelancer?.name || "User",
+                                detail: freelancer?.role.toLowerCase() || "Workspace Professional",
+                                image: freelancer?.image,
+                                isGroup: false,
+                                bg: "bg-[#002d59]",
+                                initial: freelancer?.name ? freelancer.name[0].toUpperCase() : "U"
+                              };
+                            }
+                            return {
+                              name: "Chat Thread",
+                              detail: "Direct messaging thread",
+                              image: null,
+                              isGroup: false,
+                              bg: "bg-[#002d59]",
+                              initial: "C"
+                            };
+                          };
+                          const headerInfo = getActiveChannelHeaderInfo();
+                          const handleHeaderClick = () => {
+                             if (role === "COMPANY" && activeChannel.startsWith("dm:")) {
+                               const targetId = activeChannel.slice(3);
+                               const freelancer = hiredFreelancers.find(f => f.id === targetId);
+                               if (freelancer) {
+                                 router.push(`/company/freelancers/${freelancer.freelancerId}`);
+                               }
+                             } else if (role === "FREELANCER" && activeChannel.startsWith("dm:")) {
+                               const targetId = activeChannel.slice(3);
+                               if (targetId === companyUser.id) {
+                                 router.push(`/companies/${companyUser.companyId}`);
+                               }
+                             }
+                           };
+                           const isClickableDM = (role === "COMPANY" && activeChannel.startsWith("dm:") && hiredFreelancers.some(f => f.id === activeChannel.slice(3))) || (role === "FREELANCER" && activeChannel.startsWith("dm:") && activeChannel.slice(3) === companyUser.id);
+                          return (
+                            <>
+                              <div
+                                 onClick={handleHeaderClick}
+                                 className={`h-9 w-9 rounded-full ${headerInfo.bg} flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-xs relative ${
+                                   isClickableDM ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+                                 }`}
+                               >
+                                {headerInfo.isGroup ? (
+                                  headerInfo.icon
+                                ) : headerInfo.image ? (
+                                  <img src={headerInfo.image} className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="text-slate-705 font-bold">{headerInfo.initial}</span>
+                                )}
+                                {!headerInfo.isGroup && (
+                                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white animate-pulse" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <h3
+                                   onClick={handleHeaderClick}
+                                   className={`text-sm font-black text-slate-800 truncate ${
+                                     isClickableDM ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""
+                                   }`}
+                                 >
+                                  {headerInfo.name}
+                                </h3>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
+                                  {headerInfo.detail}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
-                      
+
                       {/* AI Assistant Button */}
                       <button
                         type="button"
@@ -1301,7 +1707,7 @@ export function WorkspaceView({
 
                       {messages.filter((m) => m.channel === activeChannel).length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-2 p-8">
-                          <MessageSquare className="h-8 w-8 text-slate-355" />
+                          <MessageSquare className="h-8 w-8 text-slate-400" />
                           <p className="text-xs font-bold">Workspace thread is quiet.</p>
                           <p className="text-[10px]">Send a greeting message or files to begin collaboration.</p>
                         </div>
@@ -1316,6 +1722,15 @@ export function WorkspaceView({
                             const durMatch = msg.content.match(/duration:([^\]]+)/);
                             if (durMatch) voiceDur = durMatch[1];
                           }
+                          const freelancerInfo = hiredFreelancers.find(f => f.id === msg.senderId);
+                          const isFreelancerSender = !!freelancerInfo;
+                          const handleSenderClick = () => {
+                             if (role === "COMPANY" && isFreelancerSender) {
+                               router.push(`/company/freelancers/${freelancerInfo.freelancerId}`);
+                             } else if (role === "FREELANCER" && msg.senderId === companyUser.id) {
+                               router.push(`/companies/${companyUser.companyId}`);
+                             }
+                           };
 
                           return (
                             <div
@@ -1323,13 +1738,23 @@ export function WorkspaceView({
                               className={`flex gap-3 max-w-[85%] ${isMe ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                             >
                               {/* Avatar */}
-                              <div className="h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-sm">
+                              <div
+                                 onClick={handleSenderClick}
+                                 className={`h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-sm ${
+                                   (role === "COMPANY" && isFreelancerSender) || (role === "FREELANCER" && msg.senderId === companyUser.id) ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+                                 }`}
+                               >
                                 {msg.sender.image ? <img src={msg.sender.image} className="h-full w-full object-cover" /> : (msg.sender.name ? msg.sender.name[0].toUpperCase() : "U")}
                               </div>
 
                               <div className="space-y-1 min-w-0">
                                 <div className={`flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase ${isMe ? "justify-end" : ""}`}>
-                                  <span>{msg.sender.name}</span>
+                                  <span
+                                     onClick={handleSenderClick}
+                                     className={(role === "COMPANY" && isFreelancerSender) || (role === "FREELANCER" && msg.senderId === companyUser.id) ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""}
+                                   >
+                                     {msg.sender.name}
+                                   </span>
                                   <span className="text-[7px] bg-slate-100 text-slate-500 px-1 rounded tracking-wider">{msg.sender.role.toLowerCase()}</span>
                                 </div>
 
@@ -1337,29 +1762,10 @@ export function WorkspaceView({
                                 <div className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs break-words ${
                                   isMe
                                     ? "bg-gradient-to-r from-[#002d59] to-[#004282] text-white rounded-tr-none"
-                                    : "bg-slate-150 text-slate-800 rounded-tl-none border border-slate-200/50"
+                                    : "bg-slate-200 text-slate-800 rounded-tl-none border border-slate-200/50"
                                 }`}>
                                   {isVoice ? (
-                                    <div className="flex items-center gap-3.5 min-w-[200px]">
-                                      <button type="button" className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center shrink-0 cursor-pointer border-none">
-                                        <Play className="h-4 w-4 fill-white" />
-                                      </button>
-                                      <div className="flex-1 space-y-1">
-                                        <div className="flex items-center gap-0.5 h-6">
-                                          {Array.from({ length: 18 }).map((_, i) => (
-                                            <div
-                                              key={i}
-                                              className="bg-white/60 w-0.5 rounded-full"
-                                              style={{ height: `${Math.floor(Math.random() * 16) + 4}px` }}
-                                            />
-                                          ))}
-                                        </div>
-                                        <div className="flex justify-between text-[8px] text-white/85 font-black uppercase">
-                                          <span>Voice Message</span>
-                                          <span>{voiceDur}</span>
-                                        </div>
-                                      </div>
-                                    </div>
+                                    <VoiceMessagePlayer content={msg.content} isMe={isMe} />
                                   ) : (
                                     msg.content
                                   )}
@@ -1420,7 +1826,7 @@ export function WorkspaceView({
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploadingFile}
-                        className="p-2.5 bg-white hover:bg-slate-100 text-slate-550 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
+                        className="p-2.5 bg-white hover:bg-slate-100 text-slate-500 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
                         title="Upload file attachment"
                       >
                         <Paperclip className="h-4 w-4" />
@@ -1480,7 +1886,7 @@ export function WorkspaceView({
                             </span>
                             <div className={`p-3 rounded-2xl max-w-[90%] shadow-xs leading-relaxed whitespace-pre-line ${
                               msg.sender === "user"
-                                ? "bg-white text-slate-800 border border-slate-150 rounded-tr-none"
+                                ? "bg-white text-slate-800 border border-slate-200/60 rounded-tr-none"
                                 : "bg-gradient-to-tr from-[#002d59] to-[#004282] text-white rounded-tl-none"
                             }`}>
                               {msg.text}
@@ -1547,7 +1953,7 @@ export function WorkspaceView({
 
                   {files.length === 0 ? (
                     <div className="py-20 text-center text-slate-400 space-y-3">
-                      <div className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-350">
+                      <div className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
                         <Archive className="h-5 w-5" />
                       </div>
                       <p className="text-xs font-extrabold text-slate-700">No deliverables shared yet.</p>
@@ -1590,7 +1996,7 @@ export function WorkspaceView({
                                 Size: {meta.size} • Shared: {new Date(file.uploadedAt).toLocaleDateString()}
                               </p>
                               {meta.feedback && (
-                                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] leading-relaxed text-slate-655 max-h-[80px] overflow-y-auto">
+                                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] leading-relaxed text-slate-600 max-h-[80px] overflow-y-auto">
                                   <strong className="block text-slate-700 font-bold uppercase text-[8px] tracking-wider mb-0.5">Feedback:</strong>
                                   {meta.feedback}
                                 </div>
@@ -1728,8 +2134,8 @@ export function WorkspaceView({
 
                           {/* Client review feedback form details */}
                           {role === "COMPANY" && parseDeliverableMeta(selectedPreviewFile.fileSize).status === "PENDING" ? (
-                            <div className="space-y-3 pt-3 border-t border-slate-150">
-                              <label className="block text-[9px] font-black text-slate-450 uppercase tracking-wider">
+                            <div className="space-y-3 pt-3 border-t border-slate-200">
+                              <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">
                                 Audit Review Feedback (Required)
                               </label>
                               <textarea
@@ -1969,7 +2375,7 @@ export function WorkspaceView({
                               className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                                 selectedFreelancerFilter === "all"
                                   ? "bg-[#002d59] border-[#002d59] text-white shadow-sm font-black"
-                                  : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
+                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                               }`}
                             >
                               <span>👥 All Freelancers</span>
@@ -1990,8 +2396,8 @@ export function WorkspaceView({
                                   onClick={() => setSelectedFreelancerFilter(freelancer.id)}
                                   className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                                     selectedFreelancerFilter === freelancer.id
-                                      ? "bg-sky-500/15 border-sky-400/40 text-[#002d59] font-black ring-1 ring-sky-400/30 shadow-xs"
-                                      : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
+                                      ? "bg-[#002d59]/10 border-[#002d59]/40 text-[#002d59] font-black ring-1 ring-[#002d59]/30 shadow-xs"
+                                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                                   }`}
                                 >
                                   <div className="h-4 w-4 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-300">
@@ -2005,7 +2411,7 @@ export function WorkspaceView({
                                   </div>
                                   <span>{freelancer.name || "Freelancer"}</span>
                                   <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black ${
-                                    selectedFreelancerFilter === freelancer.id ? "bg-sky-500/30 text-[#002d59]" : "bg-slate-200/60 text-slate-700"
+                                    selectedFreelancerFilter === freelancer.id ? "bg-[#002d59]/20 text-[#002d59]" : "bg-slate-200/60 text-slate-700"
                                   }`}>
                                     {freelancerDoneCount}
                                   </span>
@@ -2025,7 +2431,7 @@ export function WorkspaceView({
                             <button
                               type="button"
                               onClick={() => { setSelectedFreelancerFilter("all"); setTaskSearch(""); }}
-                              className="text-[9px] font-bold text-sky-500 hover:text-sky-600 underline cursor-pointer shrink-0"
+                              className="text-[9px] font-bold text-[#002d59] hover:text-[#001f3f] underline cursor-pointer shrink-0"
                             >
                               Reset Filter
                             </button>
@@ -2036,7 +2442,7 @@ export function WorkspaceView({
                       {/* Display results */}
                       {completedTasks.length === 0 ? (
                         <div className="py-20 text-center text-slate-400 space-y-3 bg-white border border-slate-200/60 rounded-3xl p-8 shadow-xs">
-                          <div className="h-12 w-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-350">
+                          <div className="h-12 w-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
                             <CheckSquare className="h-5 w-5" />
                           </div>
                           <p className="text-xs font-extrabold text-slate-700">No completed tasks match your criteria.</p>
@@ -2061,7 +2467,7 @@ export function WorkspaceView({
                           {sortedDates.map((dateStr) => (
                             <div key={dateStr} className="relative space-y-4 animate-in fade-in slide-in-from-left-4 duration-200">
                               {/* Timeline dot */}
-                              <div className="absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full bg-white border-4 border-[#3ac0ff] shadow-sm" />
+                              <div className="absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full bg-white border-4 border-[#002d59] shadow-sm" />
                               
                               {/* Date Header */}
                               <div className="inline-block bg-[#002d59]/5 border border-[#002d59]/10 rounded-xl px-3 py-1">
@@ -2076,7 +2482,7 @@ export function WorkspaceView({
                                   <Card
                                     key={task.id}
                                     onClick={() => { setSelectedTask(task); setShowTaskDetailModal(true); }}
-                                    className="p-4 bg-white border border-slate-200 hover:border-[#3ac0ff]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 group"
+                                    className="p-4 bg-white border border-slate-200 hover:border-[#002d59]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 group"
                                   >
                                     <div className="space-y-1.5">
                                       <div className="flex justify-between items-start gap-2">
@@ -2105,7 +2511,7 @@ export function WorkspaceView({
 
                                     <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-[10px]">
                                       <div className="flex items-center gap-2">
-                                        <div className="h-6.5 w-6.5 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
+                                        <div className="h-6.5 w-6.5 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
                                           {task.assignedTo?.image ? (
                                             <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
                                           ) : (
@@ -2137,295 +2543,7 @@ export function WorkspaceView({
                     </div>
                   )}
 
-                </div>
-              )}
-
-              {/* payments TAB */}
-              {activeView === "payments" && (
-                <div className="space-y-6">
-                  
-                  {/* Escrow wallet dashboard */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    
-                    <Card className="bg-gradient-to-r from-[#002d59] to-[#004f8c] border border-slate-200/60 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-                      <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-[#3ac0ff]/15 blur-xl" />
-                      <div className="relative space-y-1.5">
-                        <span className="text-[9px] font-black text-[#3ac0ff] uppercase tracking-wider">Secured Escrow Wallet</span>
-                        <h3 className="text-3xl font-black">${fundsEscrowed.toLocaleString()}</h3>
-                        <p className="text-[10px] text-slate-200 font-bold uppercase tracking-wider pt-1.5">Held safely in Smart Escrow</p>
-                      </div>
-                    </Card>
-
-                    <Card className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xs relative overflow-hidden">
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Released / Paid to Date</span>
-                        <h3 className="text-3xl font-black text-[#002d59]">${fundsPaid.toLocaleString()}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1.5">Transferred to freelancer</p>
-                      </div>
-                    </Card>
-
-                    <Card className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xs relative overflow-hidden">
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Remaining Balance</span>
-                        <h3 className="text-3xl font-black text-slate-600">${(projectBudget - fundsPaid - fundsEscrowed).toLocaleString()}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1.5">Total Contract Budget left</p>
-                      </div>
-                    </Card>
-
-                  </div>
-
-                  {/* Milestones payments list */}
-                  <Card className="border border-slate-200/60 p-5 bg-white shadow-xs">
-                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">Contract Milestone Payments</h3>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">Audit payments status for each contract phase</p>
-                      </div>
-                      {role === "COMPANY" && (
-                        <Button
-                          onClick={() => setShowAddMilestoneModal(true)}
-                          size="sm"
-                          className="bg-[#002d59] hover:bg-[#001f3f] text-white text-xs font-bold h-8 cursor-pointer"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add Milestone Phase
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="mt-4 space-y-4">
-                      {updates.length === 0 ? (
-                        <p className="text-xs text-slate-450 py-10 text-center">No milestone phases created for this contract.</p>
-                      ) : (
-                        updates.map((milestone) => {
-                          const { amount, cleanTitle } = parseMilestoneAmount(milestone.title, milestone.description);
-                          return (
-                            <div
-                              key={milestone.id}
-                              className="p-4 border border-slate-200/50 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs"
-                            >
-                              <div className="space-y-1.5 flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className="font-extrabold text-slate-850 text-sm truncate">{cleanTitle}</h4>
-                                  <Badge
-                                    variant={
-                                      milestone.status === "COMPLETED"
-                                        ? "success"
-                                        : milestone.status === "IN_PROGRESS"
-                                        ? "primary"
-                                        : "neutral"
-                                    }
-                                    className="text-[8px] font-black uppercase tracking-wider"
-                                  >
-                                    {milestone.status === "COMPLETED" ? "Released" : milestone.status === "IN_PROGRESS" ? "Escrow Funded" : "Pending Funding"}
-                                  </Badge>
-                                </div>
-                                <p className="text-slate-500 max-w-xl">{milestone.description || "No description provided."}</p>
-                              </div>
-
-                              {/* Value amount & release action triggers */}
-                              <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end shrink-0">
-                                <div className="text-right">
-                                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Phase Value</span>
-                                  <span className="font-extrabold text-[#002d59] text-sm">${amount.toLocaleString()}</span>
-                                </div>
-
-                                <div className="flex gap-2">
-                                  {/* Invoice Generator Trigger */}
-                                  {milestone.status === "COMPLETED" && (
-                                    <Button
-                                      onClick={() => setSelectedInvoiceMilestone(milestone)}
-                                      size="xs"
-                                      variant="outline"
-                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
-                                    >
-                                      <Printer className="h-3 w-3 mr-1" /> Invoice
-                                    </Button>
-                                  )}
-
-                                  {/* Fund milestone client */}
-                                  {role === "COMPANY" && milestone.status === "PENDING" && (
-                                    <Button
-                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "IN_PROGRESS")}
-                                      size="xs"
-                                      variant="secondary"
-                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
-                                    >
-                                      Fund Escrow
-                                    </Button>
-                                  )}
-
-                                  {/* Release payment client */}
-                                  {role === "COMPANY" && milestone.status === "IN_PROGRESS" && (
-                                    <Button
-                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "COMPLETED")}
-                                      size="xs"
-                                      variant="primary"
-                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    >
-                                      Release Funds
-                                    </Button>
-                                  )}
-
-                                  {/* Request release freelancer */}
-                                  {role === "FREELANCER" && milestone.status === "IN_PROGRESS" && (
-                                    <Button
-                                      onClick={() => handleSendMessage(null as any, `👋 Requests release of Escrow Funds for milestone: "${cleanTitle}".`)}
-                                      size="xs"
-                                      variant="outline"
-                                      className="text-[9px] py-1.5 h-8 font-black uppercase tracking-wider cursor-pointer"
-                                    >
-                                      Request Release
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </Card>
-
-                  {/* Payment history log */}
-                  <Card className="border border-slate-200/60 p-5 bg-white shadow-xs space-y-3.5">
-                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Transaction History Log</h3>
-                    
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[9px] pb-2">
-                            <th className="py-2.5">Reference ID</th>
-                            <th className="py-2.5">Transaction Type</th>
-                            <th className="py-2.5">Date</th>
-                            <th className="py-2.5">Amount</th>
-                            <th className="py-2.5 text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 text-slate-655 font-medium">
-                          {updates.filter(u => u.status !== "PENDING").map((u, idx) => {
-                            const { amount } = parseMilestoneAmount(u.title, u.description);
-                            return (
-                              <React.Fragment key={u.id}>
-                                {/* Deposit event */}
-                                <tr>
-                                  <td className="py-3 font-mono text-[10px] text-slate-400">TXN-DEP-{u.id.slice(0,6)}</td>
-                                  <td className="py-3">Escrow Deposit ({u.title.split("]")[1]?.trim() || u.title})</td>
-                                  <td className="py-3 text-[10px] text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
-                                  <td className="py-3 text-slate-800 font-bold">${amount.toLocaleString()}</td>
-                                  <td className="py-3 text-right">
-                                    <Badge variant="success" className="text-[7px]">COMPLETED</Badge>
-                                  </td>
-                                </tr>
-                                {/* Release event if completed */}
-                                {u.status === "COMPLETED" && (
-                                  <tr>
-                                    <td className="py-3 font-mono text-[10px] text-slate-400">TXN-REL-{u.id.slice(0,6)}</td>
-                                    <td className="py-3">Escrow Release to Freelancer</td>
-                                    <td className="py-3 text-[10px] text-slate-400">{new Date(u.updatedAt || u.createdAt).toLocaleDateString()}</td>
-                                    <td className="py-3 text-emerald-650 font-bold">-${amount.toLocaleString()}</td>
-                                    <td className="py-3 text-right">
-                                      <Badge variant="success" className="text-[7px]">COMPLETED</Badge>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-
-                  {/* Invoice Printable Modal Overlay */}
-                  {selectedInvoiceMilestone && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSelectedInvoiceMilestone(null)} />
-                      <div className="relative w-full max-w-lg bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
-                        
-                        {/* Printable container */}
-                        <div id="printable-invoice" className="p-8 space-y-6 text-xs text-slate-800 bg-white">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h2 className="text-lg font-black uppercase text-[#002d59] tracking-tight">Talentra Invoice</h2>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Reference: INV-{selectedInvoiceMilestone.id.slice(0, 8).toUpperCase()}</p>
-                            </div>
-                            <button onClick={() => setSelectedInvoiceMilestone(null)} className="text-slate-400 hover:text-slate-700 print:hidden cursor-pointer">
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-6 text-slate-655 font-medium">
-                            <div>
-                              <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Billed To:</strong>
-                              <p className="font-extrabold text-slate-800">{companyName}</p>
-                              <p className="text-[10px]">Client Organization</p>
-                              <p className="text-[10px]">Active Project Workspace</p>
-                            </div>
-                            <div>
-                              <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Billed By:</strong>
-                              <p className="font-extrabold text-slate-800">{hiredFreelancers[0]?.name || "Freelancer Professional"}</p>
-                              <p className="text-[10px]">Verified Contractor</p>
-                              <p className="text-[10px]">{hiredFreelancers[0]?.name?.toLowerCase().replace(/\s+/g, "")}@talentra.com</p>
-                            </div>
-                          </div>
-
-                          <div className="border-t border-b border-slate-150 py-3.5 space-y-2">
-                            <div className="flex justify-between text-slate-400 font-bold uppercase text-[8px] tracking-widest">
-                              <span>Service Description</span>
-                              <span>Total Price</span>
-                            </div>
-                            <div className="flex justify-between font-bold text-slate-800 text-sm">
-                              <span>Milestone Release: {parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).cleanTitle}</span>
-                              <span>${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
-                            </div>
-                            <p className="text-[10px] text-slate-450 leading-relaxed pt-1">
-                              {selectedInvoiceMilestone.description || "Milestone completed successfully according to deliverables criteria specifications."}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col items-end gap-1.5 pt-2">
-                            <div className="flex justify-between w-40 text-slate-500 font-medium">
-                              <span>Subtotal:</span>
-                              <span className="font-bold text-slate-850">${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
-                            </div>
-                            <div className="flex justify-between w-40 text-slate-500 font-medium">
-                              <span>Taxes (0%):</span>
-                              <span className="font-bold text-slate-850">$0.00</span>
-                            </div>
-                            <div className="flex justify-between w-40 text-sm font-black border-t border-slate-200 pt-2 text-[#002d59]">
-                              <span>Total paid:</span>
-                              <span>${parseMilestoneAmount(selectedInvoiceMilestone.title, selectedInvoiceMilestone.description).amount.toLocaleString()}.00</span>
-                            </div>
-                          </div>
-
-                          <div className="text-center pt-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100">
-                            Thank you for collaborating through Talentra.
-                          </div>
-                        </div>
-
-                        {/* Modal control bar */}
-                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between print:hidden">
-                          <Button
-                            onClick={() => setSelectedInvoiceMilestone(null)}
-                            variant="outline"
-                            className="text-xs font-bold cursor-pointer"
-                          >
-                            Close Modal
-                          </Button>
-                          <Button
-                            onClick={() => window.print()}
-                            variant="primary"
-                            className="text-xs font-bold bg-[#002d59] text-white cursor-pointer"
-                          >
-                            Print / Save PDF
-                          </Button>
-                        </div>
-
-                      </div>
-                    </div>
-                  )}
-
+     
                 </div>
               )}
 
@@ -2450,12 +2568,32 @@ export function WorkspaceView({
                         </div>
 
                         <div className="flex gap-4 items-start">
-                          <div className="h-16 w-16 rounded-full bg-sky-500/20 border border-slate-200 flex items-center justify-center font-bold text-xl text-[#002d59] overflow-hidden shrink-0">
+                          <div
+                             onClick={() => {
+                               if (role === "COMPANY") {
+                                 router.push(`/company/freelancers/${freelancer.freelancerId}`);
+                               }
+                             }}
+                             className={`h-16 w-16 rounded-full bg-[#002d59]/10 border border-slate-200 flex items-center justify-center font-bold text-xl text-[#002d59] overflow-hidden shrink-0 ${
+                               role === "COMPANY" ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+                             }`}
+                           >
                             {freelancer.image ? <img src={freelancer.image} className="h-full w-full object-cover" /> : freelancer.name?.[0].toUpperCase()}
                           </div>
                           
                           <div className="space-y-1.5 min-w-0">
-                            <h3 className="font-extrabold text-slate-850 text-base truncate">{freelancer.name}</h3>
+                            <h3
+                               onClick={() => {
+                                 if (role === "COMPANY") {
+                                   router.push(`/company/freelancers/${freelancer.freelancerId}`);
+                                 }
+                               }}
+                               className={`font-extrabold text-slate-850 text-base truncate ${
+                                 role === "COMPANY" ? "cursor-pointer hover:underline hover:text-[#002d59]" : ""
+                               }`}
+                             >
+                               {freelancer.name}
+                            </h3>
                             <p className="text-[11px] font-bold text-[#002d59] uppercase tracking-wide">Freelancer Professional</p>
                             
                             <div className="flex items-center gap-2 pt-1">
@@ -2470,7 +2608,7 @@ export function WorkspaceView({
                           </div>
                         </div>
 
-                        <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-655">
+                        <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-600 font-medium">
                           <div>
                             <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Verified Professional Skills:</strong>
                             <div className="flex flex-wrap gap-1.5">
@@ -2499,7 +2637,7 @@ export function WorkspaceView({
 
                     {/* Client Profile Card */}
                     <Card className="border border-slate-200/60 p-6 bg-white shadow-xs relative overflow-hidden">
-                      <div className="absolute top-0 right-0 bg-sky-500/10 text-sky-750 font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-sky-500/10">
+                      <div className="absolute top-0 right-0 bg-[#002d59]/10 text-[#002d59] font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-[#002d59]/10">
                         Employer Owner
                       </div>
 
@@ -2517,14 +2655,14 @@ export function WorkspaceView({
                               ★ 4.8 <span className="text-slate-400 font-medium ml-1">(12 reviews)</span>
                             </div>
                             <span className="text-slate-300">•</span>
-                            <div className="text-[10px] text-sky-600 font-black uppercase tracking-wider">
+                            <div className="text-[10px] text-[#002d59] font-black uppercase tracking-wider">
                               99% Payment Reliability
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-655">
+                      <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-600 font-medium">
                         <div className="grid grid-cols-2 gap-4 text-[10px] font-medium">
                           <div>
                             <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Company Size</span>

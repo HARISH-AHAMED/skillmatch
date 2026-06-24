@@ -215,7 +215,7 @@ export default function LoginPage() {
         </Card>
 
         {/* Link back or registration */}
-        <p className="text-center text-xs text-slate-550 font-medium">
+        <p className="text-center text-xs text-slate-500 font-medium">
           Do not have an account?{" "}
           <Link href="/register" className="text-sky-600 hover:text-sky-700 font-bold">
             Create Account

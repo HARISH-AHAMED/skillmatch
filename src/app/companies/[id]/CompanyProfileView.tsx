@@ -41,6 +41,7 @@ import {
   X,
   Upload,
   Bookmark,
+  ArrowLeft,
   ArrowRight,
   TrendingUp,
   BrainCircuit,
@@ -309,6 +310,17 @@ export function CompanyProfileView({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
+      {/* Back Button */}
+      <div className="flex items-center">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-[#002d59] bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all duration-200 shadow-sm cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4 text-slate-500" />
+          <span>Back</span>
+        </button>
+      </div>
+
       {/* 1. Header Banner */}
       <Card className="overflow-hidden bg-gradient-to-r from-[#002d59] to-[#0a4885] border-0 text-white relative shadow-xl rounded-3xl">
         <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-20 -translate-y-10 scale-150">
@@ -425,7 +437,7 @@ export function CompanyProfileView({
       </Card>
 
       {/* 2. Content Tabs */}
-      <div className="flex border-b border-slate-200 gap-6 pb-2.5">
+      <div className="flex border-b border-slate-200 gap-6 pb-2.5 overflow-x-auto scrollbar-none whitespace-nowrap">
         {[
           { id: "overview", label: "Overview", count: null },
           { id: "projects", label: "Open Gigs", count: projects.length },
@@ -435,7 +447,7 @@ export function CompanyProfileView({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`text-sm font-extrabold pb-2 transition-all cursor-pointer border-b-2 px-1 flex items-center gap-1.5 uppercase tracking-wide ${
+            className={`text-sm font-extrabold pb-2 transition-all cursor-pointer border-b-2 px-1 flex items-center gap-1.5 uppercase tracking-wide shrink-0 ${
               activeTab === tab.id
                 ? "border-[#002d59] text-[#002d59] font-black"
                 : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
@@ -494,25 +506,25 @@ export function CompanyProfileView({
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
                     <Sparkles className="h-4 w-4 text-sky-500" /> Mission & Vision
                   </h4>
-                  <p className="text-[11px] text-slate-550 leading-relaxed font-medium">
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                     {company.missionVision || "To deliver absolute quality code and build next-generation scalable payment systems."}
                   </p>
                 </Card>
-
+ 
                 <Card className="p-6 bg-white border border-slate-100 shadow-sm space-y-2.5 rounded-2xl">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
                     <Users className="h-4 w-4 text-emerald-500" /> Work Culture
                   </h4>
-                  <p className="text-[11px] text-slate-550 leading-relaxed font-medium">
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                     {company.workCulture || "High ownership, asynchronous speed, extreme simplicity, and focus on craft and developer tools."}
                   </p>
                 </Card>
-
+ 
                 <Card className="p-6 bg-white border border-slate-100 shadow-sm space-y-2.5 rounded-2xl">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
                     <Award className="h-4 w-4 text-indigo-500" /> Hiring Strategy
                   </h4>
-                  <p className="text-[11px] text-slate-550 leading-relaxed font-medium">
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                     {company.hiringPhilosophy || "We hire proactive builders who take pride in writing robust code libraries and designing clean user experiences."}
                   </p>
                 </Card>
@@ -556,7 +568,7 @@ export function CompanyProfileView({
 
               {projects.length === 0 ? (
                 <Card className="p-10 text-center text-xs text-slate-400 bg-white border border-slate-100 rounded-3xl flex flex-col items-center gap-2">
-                  <Briefcase className="h-10 w-10 text-slate-350" />
+                  <Briefcase className="h-10 w-10 text-slate-400" />
                   No open gigs found. Toggle notification alerts to know when the company posts.
                 </Card>
               ) : (
@@ -572,6 +584,9 @@ export function CompanyProfileView({
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={project.status === "OPEN" ? "success" : project.status === "IN_PROGRESS" ? "warning" : "neutral"} className="text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider">
+                              {project.status === "OPEN" ? "Open" : project.status.replace("_", " ").toLowerCase()}
+                            </Badge>
                             {project.priority === "HIGH" && <Badge variant="danger">High Priority</Badge>}
                             {project.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
                             <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
@@ -582,7 +597,7 @@ export function CompanyProfileView({
                           <h4 className="text-base font-extrabold text-[#002d59] group-hover:text-[#3ac0ff] transition-colors">
                             {project.title}
                           </h4>
-                          <span className="text-[10px] text-slate-450 font-semibold uppercase block">
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">
                             Required Experience: {project.experienceRequired} years
                           </span>
                         </div>
@@ -612,7 +627,7 @@ export function CompanyProfileView({
                             className={`p-2 rounded-xl border cursor-pointer transition-all ${
                               isSaved
                                 ? "bg-amber-50 text-amber-600 border-amber-200"
-                                : "bg-white text-slate-400 hover:text-slate-600 border-slate-200 hover:border-slate-350"
+                                : "bg-white text-slate-400 hover:text-slate-600 border-slate-200 hover:border-slate-400"
                             }`}
                             title={isSaved ? "Unsave Project" : "Save Project"}
                           >
@@ -628,7 +643,11 @@ export function CompanyProfileView({
                             View Details
                           </Button>
 
-                          {hasApplied ? (
+                          {project.status !== "OPEN" ? (
+                            <Badge variant="neutral" className="px-4 py-1.5 rounded-xl font-bold text-[10px] uppercase">
+                              {project.status.replace("_", " ").toLowerCase()}
+                            </Badge>
+                          ) : hasApplied ? (
                             <Badge variant="success" className="px-4 py-1.5 rounded-xl font-bold text-[10px]">
                               Applied
                             </Badge>
@@ -690,13 +709,13 @@ export function CompanyProfileView({
               {/* Review cards */}
               <div className="space-y-4">
                 {reviews.length === 0 ? (
-                  <Card className="p-10 text-center text-xs text-slate-450 bg-white border border-slate-100 rounded-3xl flex flex-col items-center gap-2">
+                  <Card className="p-10 text-center text-xs text-slate-400 bg-white border border-slate-100 rounded-3xl flex flex-col items-center gap-2">
                     <MessageSquare className="h-9 w-9 text-slate-300" />
                     No freelancer reviews received yet.
                   </Card>
                 ) : (
                   reviews.map((rev) => (
-                    <Card key={rev.id} className="p-6 bg-white border border-slate-150/60 shadow-sm rounded-3xl space-y-4 hover:shadow-md transition-all">
+                    <Card key={rev.id} className="p-6 bg-white border border-slate-200/60 shadow-sm rounded-3xl space-y-4 hover:shadow-md transition-all">
                       <div className="flex justify-between items-center pb-3.5 border-b border-slate-100">
                         <div>
                           <h4 className="text-xs font-black text-[#002d59]">{rev.project.title}</h4>
@@ -716,12 +735,12 @@ export function CompanyProfileView({
 
                       <div className="flex gap-2.5 items-start">
                         <MessageSquareQuote className="h-5 w-5 text-sky-500/70 shrink-0 mt-0.5" />
-                        <p className="text-xs text-slate-655 font-medium italic leading-relaxed">
+                        <p className="text-xs text-slate-600 font-medium italic leading-relaxed">
                           &quot;{rev.comment}&quot;
                         </p>
                       </div>
-
-                      <div className="flex justify-start gap-6 pt-3 border-t border-slate-100 text-[10px] text-slate-450 font-bold">
+ 
+                      <div className="flex justify-start gap-6 pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-bold">
                         <span>Communication: {rev.communicationScore || 5}/5</span>
                         <span>Payment Speed: {rev.paymentReliabilityScore || 5}/5</span>
                         <span>Project Clarity: {rev.projectClarityScore || 5}/5</span>
@@ -747,7 +766,7 @@ export function CompanyProfileView({
                 {/* Grid layout of photos */}
                 {galleryPhotos.length === 0 && galleryVideos.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl py-12 flex flex-col items-center gap-2">
-                    <ImageIcon className="h-8 w-8 text-slate-350" />
+                    <ImageIcon className="h-8 w-8 text-slate-400" />
                     No gallery photos or workspace images uploaded.
                   </div>
                 ) : (
@@ -758,7 +777,7 @@ export function CompanyProfileView({
                           <div
                             key={idx}
                             onClick={() => setZoomedImage(url)}
-                            className="aspect-video bg-slate-50 border border-slate-150 rounded-2xl overflow-hidden cursor-zoom-in hover:border-sky-300 transition-all relative group shadow-sm"
+                            className="aspect-video bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden cursor-zoom-in hover:border-sky-300 transition-all relative group shadow-sm"
                           >
                             <img
                               src={url}
@@ -788,7 +807,7 @@ export function CompanyProfileView({
 
                 {/* Upload gallery photos/videos (only available for Company Owner!) */}
                 {isCompanyOwner && (
-                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-150 rounded-2xl mt-6 space-y-4 text-xs">
+                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl mt-6 space-y-4 text-xs">
                     <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                       <span className="font-bold text-[#002d59] flex items-center gap-1.5">
                         <Upload className="h-4 w-4 text-sky-500" /> Upload Media to Gallery
@@ -821,11 +840,9 @@ export function CompanyProfileView({
                           Video
                         </label>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row items-center gap-4">
+                                        <div className="flex flex-col md:flex-row items-center gap-4">
                       <div className="flex-grow w-full">
-                        <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-350 p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
+                        <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
                           <input
                             type="file"
                             accept={uploadType === "PHOTO" ? "image/*" : "video/*"}
@@ -833,14 +850,14 @@ export function CompanyProfileView({
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
                           <div className="text-center space-y-1">
-                            <Plus className="h-5 w-5 text-slate-450 mx-auto group-hover:scale-110 transition-transform" />
+                            <Plus className="h-5 w-5 text-slate-400 mx-auto group-hover:scale-110 transition-transform" />
                             <p className="text-[10px] font-bold text-slate-600 uppercase">Select File</p>
-                            <p className="text-[9px] text-slate-450 font-medium">
+                            <p className="text-[9px] text-slate-400 font-medium">
                               Upload {uploadType.toLowerCase()} file (Max {uploadType === "VIDEO" ? "20MB" : "5MB"})
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </div>  </div>
 
                       {mediaPreview && uploadType === "PHOTO" && (
                         <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white relative">
@@ -880,7 +897,7 @@ export function CompanyProfileView({
                 </div>
 
                 {teamList.length === 0 ? (
-                  <div className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-150 rounded-xl">
+                  <div className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 rounded-xl">
                     No team members listed yet.
                   </div>
                 ) : (
@@ -899,7 +916,7 @@ export function CompanyProfileView({
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-xs font-black text-[#002d59] truncate">{member.name}</h4>
-                          <p className="text-[10px] text-slate-450 font-semibold truncate mt-0.5">{member.role}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">{member.role}</p>
                         </div>
                       </div>
                     ))}
@@ -918,57 +935,172 @@ export function CompanyProfileView({
               <BrainCircuit className="h-44 w-44" />
             </div>
             <div className="flex items-center gap-2 relative z-10">
-              <div className="p-2 bg-sky-450/20 backdrop-blur-md rounded-xl border border-sky-300/20">
+              <div className="p-2 bg-sky-500/20 backdrop-blur-md rounded-xl border border-sky-300/20">
                 <BrainCircuit className="h-5 w-5 text-sky-300" />
               </div>
               <h3 className="text-sm font-black uppercase tracking-wider">AI Company Insights</h3>
             </div>
+ 
+            {activeTab === "overview" && (
+              <>
+                <div className="flex justify-between items-center pt-2 relative z-10">
+                  <div>
+                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Company Trust Score</span>
+                    <span className="text-3xl font-black text-white">{company.trustScore}%</span>
+                  </div>
+                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                    <span>{company.trustScore}</span>
+                  </div>
+                </div>
 
-            <div className="flex justify-between items-center pt-2 relative z-10">
-              <div>
-                <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Company Trust Score</span>
-                <span className="text-3xl font-black text-white">{company.trustScore}%</span>
-              </div>
-              <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
-                <span>{company.trustScore}</span>
-              </div>
-            </div>
+                <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Project Completion Rate</span>
+                    <strong className="font-bold text-sky-200">{company.completionRate}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Freelancer Retention Rate</span>
+                    <strong className="font-bold text-sky-200">{company.retentionRate}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Payment Reliability</span>
+                    <strong className="font-bold text-sky-200">{company.paymentReliability}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Reputation Score</span>
+                    <strong className="font-bold text-sky-200">{company.reputationScore}%</strong>
+                  </div>
+                </div>
+              </>
+            )}
 
-            {/* AI Insights analytics bullet lists */}
-            <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-350 font-medium">Project Completion Rate</span>
-                <strong className="font-bold text-sky-200">{company.completionRate}%</strong>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-350 font-medium">Freelancer Retention Rate</span>
-                <strong className="font-bold text-sky-200">{company.retentionRate}%</strong>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-350 font-medium">Payment Reliability</span>
-                <strong className="font-bold text-sky-200">{company.paymentReliability}%</strong>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-350 font-medium">Reputation Score</span>
-                <strong className="font-bold text-sky-200">{company.reputationScore}%</strong>
-              </div>
-            </div>
+            {activeTab === "projects" && (
+              <>
+                <div className="flex justify-between items-center pt-2 relative z-10">
+                  <div>
+                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Project Match Score</span>
+                    <span className="text-3xl font-black text-white">96%</span>
+                  </div>
+                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                    <span>96</span>
+                  </div>
+                </div>
 
-            {company.sentimentAnalysis && (
+                <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Active Hiring Success</span>
+                    <strong className="font-bold text-sky-200">{company.hiringSuccessRate}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Avg Project Budget</span>
+                    <strong className="font-bold text-sky-200">
+                      ${projects.length > 0 ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0) / projects.length) : "1,200"}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Avg Time-to-Hire</span>
+                    <strong className="font-bold text-sky-200">{company.avgTimeToHire || "14 days"}</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Response Rate</span>
+                    <strong className="font-bold text-sky-200">{company.avgResponseTime || "Within 1 hour"}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === "reviews" && (
+              <>
+                <div className="flex justify-between items-center pt-2 relative z-10">
+                  <div>
+                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Review Reputation</span>
+                    <span className="text-3xl font-black text-white">{company.reputationScore}%</span>
+                  </div>
+                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                    <span>{company.reputationScore}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Communication Score</span>
+                    <strong className="font-bold text-sky-200">{avgCommunication.toFixed(1)} / 5.0</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Payment Promptness</span>
+                    <strong className="font-bold text-sky-200">{avgPayment.toFixed(1)} / 5.0</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Project Requirement Clarity</span>
+                    <strong className="font-bold text-sky-200">{avgClarity.toFixed(1)} / 5.0</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Total Verified Reviews</span>
+                    <strong className="font-bold text-sky-200">{reviews.length}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === "gallery_team" && (
+              <>
+                <div className="flex justify-between items-center pt-2 relative z-10">
+                  <div>
+                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Culture Health Index</span>
+                    <span className="text-3xl font-black text-white">95%</span>
+                  </div>
+                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                    <span>95</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Core Team Members</span>
+                    <strong className="font-bold text-sky-200">{teamList.length} members</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Founded Year</span>
+                    <strong className="font-bold text-sky-200">{company.foundedYear || "N/A"}</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Office Photos & Videos</span>
+                    <strong className="font-bold text-sky-200">{galleryPhotos.length + galleryVideos.length} items</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 font-medium">Benefits & Perks Listed</span>
+                    <strong className="font-bold text-sky-200">{company.benefits.length} benefits</strong>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {(activeTab === "overview" || activeTab === "reviews") && company.sentimentAnalysis && (
               <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1 text-[11px] relative z-10">
                 <span className="font-bold uppercase tracking-wider text-sky-300 block text-[9px]">Review Sentiment Analysis</span>
-                <p className="text-slate-205 italic leading-relaxed">
+                <p className="text-slate-200 italic leading-relaxed">
                   &quot;{company.sentimentAnalysis}&quot;
                 </p>
               </div>
             )}
 
-            <div className="p-3.5 bg-sky-400/10 border border-sky-400/20 text-sky-100 rounded-2xl space-y-1 text-[11px] relative z-10 font-medium">
+            <div className="p-3.5 bg-sky-400/10 border border-sky-400/20 text-sky-100 rounded-2xl space-y-1 text-[11px] relative z-10 font-medium font-sans">
               <span className="font-bold uppercase tracking-wider text-sky-300 block text-[9px] flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" /> AI Predictive Hiring Insight
               </span>
               <p className="leading-relaxed">
-                &quot;Companies with similar hiring patterns successfully complete 94% of projects.&quot;
+                {activeTab === "overview" && (
+                  `"Companies with similar hiring patterns successfully complete 94% of projects."`
+                )}
+                {activeTab === "projects" && (
+                  `"Gigs with detailed skill badges attract 3x higher quality applicants."`
+                )}
+                {activeTab === "reviews" && (
+                  `"High payment promptness scores improve company profile visibility by 25%."`
+                )}
+                {activeTab === "gallery_team" && (
+                  `"Companies presenting rich workspace media see 45% higher retention."`
+                )}
               </p>
             </div>
           </Card>
@@ -976,57 +1108,213 @@ export function CompanyProfileView({
           {/* Company Statistics */}
           <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Hiring Statistics</h3>
-              <p className="text-xs text-slate-500">Platform performance history metrics</p>
+              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">
+                {activeTab === "overview" && "Hiring Statistics"}
+                {activeTab === "projects" && "Project Statistics"}
+                {activeTab === "reviews" && "Reputation Statistics"}
+                {activeTab === "gallery_team" && "Culture & Team Stats"}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {activeTab === "overview" && "Platform performance history metrics"}
+                {activeTab === "projects" && "Overview of company gig activity"}
+                {activeTab === "reviews" && "Contractor ratings overview metrics"}
+                {activeTab === "gallery_team" && "Office environment & details summary"}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Posted Gigs</span>
-                <span className="text-lg font-black text-[#002d59] mt-0.5 block">{projects.length + (reviews.length || 2)}</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">Active Projects</span>
-                <span className="text-lg font-black text-sky-600 mt-0.5 block">{projects.length}</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Completed Gigs</span>
-                  <span className="text-lg font-black text-emerald-600 mt-0.5 block">{reviews.length || 0} Gigs</span>
+            {activeTab === "overview" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Posted Gigs</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{projects.length + (reviews.length || 2)}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Response Time</span>
-                  <span className="text-xs font-semibold text-slate-700 mt-0.5 block">{company.avgResponseTime || "Within 1 hour"}</span>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Active Projects</span>
+                  <span className="text-lg font-black text-sky-600 mt-0.5 block">{projects.length}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Completed Gigs</span>
+                    <span className="text-lg font-black text-emerald-600 mt-0.5 block">{reviews.length || 0} Gigs</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Response Time</span>
+                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">{company.avgResponseTime || "Within 1 hour"}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === "projects" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Gigs</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{projects.length}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Open Gigs</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">
+                    {projects.filter((p: any) => p.status === "OPEN" || p.status === "ACTIVE").length}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Closed Gigs</span>
+                    <span className="text-lg font-black text-slate-500 mt-0.5 block">
+                      {projects.filter((p: any) => p.status !== "OPEN" && p.status !== "ACTIVE").length}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Budget</span>
+                    <span className="text-xs font-bold text-emerald-600 mt-0.5 block">
+                      ${projects.length > 0 ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0) / projects.length) : "1,200"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "reviews" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Reviews</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{reviews.length}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Rating</span>
+                  <span className="text-lg font-black text-amber-500 mt-0.5 block">
+                    {reviews.length ? (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1) : "5.0"}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Rec. Rate</span>
+                    <span className="text-lg font-black text-emerald-600 mt-0.5 block">98%</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Review Freq.</span>
+                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">Regular</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "gallery_team" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Team Size</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{teamList.length}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Gallery Size</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{galleryPhotos.length + galleryVideos.length}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Company Age</span>
+                    <span className="text-lg font-black text-slate-700 mt-0.5 block">
+                      {company.foundedYear ? new Date().getFullYear() - company.foundedYear + " yrs" : "N/A"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Listed Perks</span>
+                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">{company.benefits.length} Perks</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Hiring Activity & Skills */}
           <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Hiring Activity</h3>
-              <p className="text-xs text-slate-500">Skills and rate indicators</p>
+              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">
+                {activeTab === "overview" && "Hiring Activity"}
+                {activeTab === "projects" && "Project Activity"}
+                {activeTab === "reviews" && "Feedback Activity"}
+                {activeTab === "gallery_team" && "Culture Activity"}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {activeTab === "overview" && "Skills and rate indicators"}
+                {activeTab === "projects" && "Bid and category trends"}
+                {activeTab === "reviews" && "Contractor satisfaction indicators"}
+                {activeTab === "gallery_team" && "Retention and cultural indicators"}
+              </p>
             </div>
 
             <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Hiring Success Rate</span>
-                <strong className="text-slate-800 font-bold text-sm">{company.hiringSuccessRate}%</strong>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Average Time to Hire</span>
-                <strong className="text-slate-800 font-bold text-sm">{company.avgTimeToHire || "14 days"}</strong>
-              </div>
+              {activeTab === "overview" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Hiring Success Rate</span>
+                    <strong className="text-slate-800 font-bold text-sm">{company.hiringSuccessRate}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Average Time to Hire</span>
+                    <strong className="text-slate-800 font-bold text-sm">{company.avgTimeToHire || "14 days"}</strong>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "projects" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Avg Time to Fill</span>
+                    <strong className="text-slate-800 font-bold text-sm">12 days avg</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Active Bid Frequency</span>
+                    <strong className="text-slate-800 font-bold text-sm">High (18 bids/project)</strong>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "reviews" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Contractor Satisfaction</span>
+                    <strong className="text-slate-800 font-bold text-sm">4.9 / 5.0</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Milestone Resolution</span>
+                    <strong className="text-slate-800 font-bold text-sm">100%</strong>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "gallery_team" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Freelancer Retention</span>
+                    <strong className="text-slate-800 font-bold text-sm">{company.retentionRate}%</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Hiring Philosophy</span>
+                    <strong className="text-slate-800 font-bold text-[11px] truncate max-w-[150px]" title={company.hiringPhilosophy || "Growth-oriented"}>
+                      {company.hiringPhilosophy || "Growth-oriented"}
+                    </strong>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Most Hired Skills</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                  {activeTab === "gallery_team" ? "Core Perks Highlight" : "Most Hired Skills"}
+                </span>
                 <div className="flex flex-wrap gap-1">
-                  {["React", "Next.js", "UI/UX Design", "Python", "TypeScript", "PostgreSQL"].map((skill) => (
-                    <Badge key={skill} variant="neutral" className="text-[9px] py-0.5 font-bold">
-                      {skill}
-                    </Badge>
-                  ))}
+                  {activeTab === "gallery_team" ? (
+                    (company.benefits.length > 0 ? company.benefits.slice(0, 4) : ["Flexible Hours", "Health Wellness", "Remote Workspace"]).map((benefit) => (
+                      <Badge key={benefit} variant="neutral" className="text-[9px] py-0.5 font-bold">
+                        {benefit}
+                      </Badge>
+                    ))
+                  ) : (
+                    ["React", "Next.js", "UI/UX Design", "Python", "TypeScript", "PostgreSQL"].map((skill) => (
+                      <Badge key={skill} variant="neutral" className="text-[9px] py-0.5 font-bold">
+                        {skill}
+                      </Badge>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -1057,23 +1345,23 @@ export function CompanyProfileView({
                   href={company.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-150/40 hover:border-slate-250 transition-colors text-slate-700 font-semibold cursor-pointer"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-200/40 hover:border-slate-300 transition-colors text-slate-700 font-semibold cursor-pointer"
                 >
                   <Building2 className="h-4.5 w-4.5 text-blue-700" />
                   <span className="truncate">LinkedIn Profile</span>
                 </a>
               )}
-
+ 
               {company.email && (
                 <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 font-semibold">
-                  <Mail className="h-4.5 w-4.5 text-slate-450" />
+                  <Mail className="h-4.5 w-4.5 text-slate-400" />
                   <span className="truncate">{company.email}</span>
                 </div>
               )}
-
+ 
               {company.phone && (
                 <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 font-semibold">
-                  <Phone className="h-4.5 w-4.5 text-slate-450" />
+                  <Phone className="h-4.5 w-4.5 text-slate-400" />
                   <span className="truncate">{company.phone}</span>
                 </div>
               )}
@@ -1089,7 +1377,7 @@ export function CompanyProfileView({
           <div className="relative max-w-4xl max-h-[85vh] bg-white border border-slate-100 rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
             <button
               onClick={() => setZoomedImage(null)}
-              className="absolute top-4 right-4 p-1.5 text-slate-650 hover:text-slate-900 bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 text-slate-600 hover:text-slate-900 bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1109,7 +1397,7 @@ export function CompanyProfileView({
           <Card className="relative w-full max-w-lg p-8 z-10 border-slate-100 bg-white shadow-2xl rounded-3xl">
             <button
               onClick={() => setSelectedProject(null)}
-              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-750 rounded-full hover:bg-slate-100"
+              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1233,7 +1521,7 @@ export function CompanyProfileView({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-105">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
                 <Button
                   variant="outline"
                   onClick={() => setViewingProject(null)}
@@ -1241,7 +1529,11 @@ export function CompanyProfileView({
                 >
                   Close
                 </Button>
-                {appliedProjectIds.includes(viewingProject.id) ? (
+                {viewingProject.status !== "OPEN" ? (
+                  <Badge variant="neutral" className="px-6 py-2.5 rounded-xl text-xs font-semibold uppercase">
+                    {viewingProject.status.replace("_", " ").toLowerCase()}
+                  </Badge>
+                ) : appliedProjectIds.includes(viewingProject.id) ? (
                   <Badge variant="success" className="px-6 py-2.5 rounded-xl text-xs font-semibold">
                     Applied
                   </Badge>

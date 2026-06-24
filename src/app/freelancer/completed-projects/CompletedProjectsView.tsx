@@ -347,7 +347,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       case "CASE_STUDY":
         return <FileText className="h-5 w-5 text-sky-500" />;
       default:
-        return <LinkIcon className="h-5 w-5 text-slate-450" />;
+        return <LinkIcon className="h-5 w-5 text-slate-400" />;
     }
   };
 
@@ -439,7 +439,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-650 italic font-medium leading-relaxed">
+                        <p className="text-xs text-slate-600 italic font-medium leading-relaxed">
                           &quot;{reviewOfFreelancer.comment}&quot;
                         </p>
                         <p className="text-[10px] text-slate-400 text-right">— {reviewOfFreelancer.reviewer.name}</p>
@@ -463,7 +463,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-650 italic font-medium leading-relaxed">
+                        <p className="text-xs text-slate-600 italic font-medium leading-relaxed">
                           &quot;{reviewOfCompany.comment}&quot;
                         </p>
                         <div className="flex justify-between items-center text-[9px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
@@ -520,7 +520,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
               {portfolioItems.map((item) => (
                 <Card
                   key={item.id}
-                  className="p-6 bg-white border border-slate-150/70 shadow-sm rounded-2xl flex flex-col justify-between space-y-4 hover:shadow-md transition-all group"
+                  className="p-6 bg-white border border-slate-200/70 shadow-sm rounded-2xl flex flex-col justify-between space-y-4 hover:shadow-md transition-all group"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -533,7 +533,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-slate-550 leading-relaxed font-medium line-clamp-3">
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-3">
                       {item.description}
                     </p>
 
@@ -544,7 +544,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                           <div
                             key={idx}
                             onClick={() => setZoomedImage(imgUrl)}
-                            className="aspect-video bg-white border border-slate-150 rounded-xl overflow-hidden cursor-zoom-in group-hover:border-sky-300 transition-colors relative"
+                            className="aspect-video bg-white border border-slate-200 rounded-xl overflow-hidden cursor-zoom-in group-hover:border-sky-300 transition-colors relative"
                           >
                             <img src={imgUrl} alt={`${item.title} screenshot ${idx + 1}`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
                           </div>
@@ -555,7 +555,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                       item.type === "IMAGE" && (
                         <div
                           onClick={() => setZoomedImage(item.fileUrl!)}
-                          className="aspect-video bg-white border border-slate-150 rounded-xl overflow-hidden cursor-zoom-in relative mt-2"
+                          className="aspect-video bg-white border border-slate-200 rounded-xl overflow-hidden cursor-zoom-in relative mt-2"
                         >
                           <img src={item.fileUrl} alt={item.title} className="h-full w-full object-cover" />
                         </div>
@@ -673,7 +673,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   {newPort.type === "IMAGE" && (
                     <div className="space-y-2">
                       <label className="block text-xs font-semibold text-slate-600">Upload Project Images (Screenshots)</label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-350 p-6 rounded-2xl bg-slate-50 transition-colors relative cursor-pointer group">
+                      <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-6 rounded-2xl bg-slate-50 transition-colors relative cursor-pointer group">
                         <input
                           type="file"
                           accept="image/*"
@@ -817,7 +817,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   {editingItem.type === "IMAGE" && (
                     <div className="space-y-2">
                       <label className="block text-xs font-semibold text-slate-600">Upload New Project Images (Replaces existing)</label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-350 p-6 rounded-2xl bg-slate-50 transition-colors relative cursor-pointer group">
+                      <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-6 rounded-2xl bg-slate-50 transition-colors relative cursor-pointer group">
                         <input
                           type="file"
                           accept="image/*"
@@ -946,7 +946,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                       onClick={() => setReviewRating(star)}
                       className="text-amber-400 hover:scale-110 transition-transform cursor-pointer"
                     >
-                      <Star className={`h-7 w-7 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-350"}`} />
+                      <Star className={`h-7 w-7 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-400"}`} />
                     </button>
                   ))}
                 </div>

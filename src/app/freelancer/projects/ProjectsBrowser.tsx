@@ -228,8 +228,8 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                       }}
                       className={`p-2 rounded-xl transition-all border cursor-pointer ${
                         savedProjectIds.includes(project.id)
-                          ? "bg-amber-50 text-amber-600 border-amber-250"
-                          : "bg-white text-slate-400 hover:text-slate-600 border-slate-200 hover:border-slate-350"
+                          ? "bg-amber-50 text-amber-600 border-amber-300"
+                          : "bg-white text-slate-400 hover:text-slate-600 border-slate-200 hover:border-slate-400"
                       }`}
                       title={savedProjectIds.includes(project.id) ? "Unsave Project" : "Save Project"}
                     >
