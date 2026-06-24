@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className="min-h-screen text-slate-800 antialiased selection:bg-sky-500/30">
         <SessionProvider>
           {children}
+          <RealtimeNotifications />
         </SessionProvider>
       </body>
     </html>

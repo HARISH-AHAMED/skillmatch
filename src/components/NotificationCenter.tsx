@@ -110,8 +110,8 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
         <>
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           <div className={cn(
-            "absolute mt-2.5 w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200/80 shadow-2xl rounded-2xl p-4 z-40 animate-in fade-in slide-in-from-top-3 duration-200",
-            align === "left" ? "left-0" : "right-0"
+            "fixed inset-x-4 top-16 md:absolute md:top-auto md:mt-2.5 md:w-96 md:max-w-none bg-white border border-slate-200/80 shadow-2xl rounded-2xl p-4 z-40 animate-in fade-in slide-in-from-top-3 duration-200",
+            align === "left" ? "md:left-0 md:right-auto" : "md:right-0 md:left-auto"
           )}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
               <h3 className="font-bold text-[#002d59] text-sm">Notifications</h3>
@@ -126,7 +126,7 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
               )}
             </div>
 
-            <div className="max-h-96 overflow-y-auto space-y-2.5 pr-1">
+            <div className="max-h-[calc(100vh-12rem)] md:max-h-96 overflow-y-auto space-y-2.5 pr-1">
               {notifications.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">No notifications yet.</p>
               ) : (
