@@ -265,7 +265,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   </button>
                   <div>
                     <h3
-                      onClick={() => router.push(`/company/freelancers/${app.freelancer.id}`)}
+                      onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
                       className="text-sm font-bold text-[#002d59] hover:text-[#3ac0ff] cursor-pointer transition-colors"
                     >
                       {app.freelancer.user.name}
@@ -329,7 +329,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => router.push(`/company/freelancers/${app.freelancer.id}`)}
+                  onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
                   className="cursor-pointer text-xs gap-1.5"
                 >
                   <User className="h-3.5 w-3.5 text-[#002d59]" /> View Profile

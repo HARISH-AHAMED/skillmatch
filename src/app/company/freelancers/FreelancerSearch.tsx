@@ -579,7 +579,7 @@ export function FreelancerSearch({
                   freelancer={freelancer}
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
-                  onViewProfile={() => router.push(`/company/freelancers/${freelancer.id}`)}
+                  onViewProfile={() => router.push(`/freelancers/${freelancer.id}`)}
                   onViewImage={setLightboxImage}
                 />
               ))}
@@ -618,7 +618,7 @@ export function FreelancerSearch({
                   freelancer={freelancer}
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
-                  onViewProfile={() => router.push(`/company/freelancers/${freelancer.id}`)}
+                  onViewProfile={() => router.push(`/freelancers/${freelancer.id}`)}
                   onViewImage={setLightboxImage}
                 />
               ))}

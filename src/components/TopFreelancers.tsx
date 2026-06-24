@@ -152,13 +152,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                   </button>
                   <div>
                     <p
-                      onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                      onClick={() => router.push(`/freelancers/${f.id}`)}
                       className="text-sm font-black text-[#002d59] leading-tight cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
                     >
                       {f.name}
                     </p>
                     <p
-                      onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                      onClick={() => router.push(`/freelancers/${f.id}`)}
                       className="text-[10px] text-slate-500 line-clamp-1 mt-0.5 cursor-pointer hover:text-[#3ac0ff] transition-colors"
                     >
                       {f.headline || "Freelancer"}
@@ -265,13 +265,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                 {/* Name + headline */}
                 <div className="flex-1 min-w-0">
                   <p
-                    onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                    onClick={() => router.push(`/freelancers/${f.id}`)}
                     className="text-xs font-bold text-[#002d59] truncate cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
                   >
                     {f.name}
                   </p>
                   <p
-                    onClick={() => router.push(`/company/freelancers/${f.id}`)}
+                    onClick={() => router.push(`/freelancers/${f.id}`)}
                     className="text-[10px] text-slate-400 truncate cursor-pointer hover:text-[#3ac0ff] transition-colors"
                   >
                     {f.headline || "Freelancer"}
