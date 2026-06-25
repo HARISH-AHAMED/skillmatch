@@ -376,67 +376,54 @@ export function CompanyProfileView({
             </div>
           </div>
 
-          {/* Action buttons (Follow, Watchlist, Alert, Community, or Edit Profile) */}
+          {/* Action buttons (Follow, Watchlist, Alert, Community) */}
           <div className="flex flex-wrap justify-center gap-2 max-w-sm">
-            {isCompanyOwner ? (
-              <Button
-                variant="primary"
-                onClick={() => router.push("/company/profile")}
-                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white border-0"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit Profile
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant={isFollowing ? "outline" : "primary"}
-                  onClick={handleFollowToggle}
-                  className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold border-white/25 hover:border-white ${
-                    isFollowing ? "bg-white/15 text-white hover:bg-white/20" : "bg-[#3ac0ff] hover:bg-[#3ac0ff]/90 text-white"
-                  }`}
-                >
-                  <Heart className={`h-4 w-4 ${isFollowing ? "fill-white text-white" : "text-white"}`} />
-                  {isFollowing ? "Following" : "Follow"} ({followerCount})
-                </Button>
+            <Button
+              variant={isFollowing ? "outline" : "primary"}
+              onClick={handleFollowToggle}
+              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold border-white/25 hover:border-white ${
+                isFollowing ? "bg-white/15 text-white hover:bg-white/20" : "bg-[#3ac0ff] hover:bg-[#3ac0ff]/90 text-white"
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${isFollowing ? "fill-white text-white" : "text-white"}`} />
+              {isFollowing ? "Following" : "Follow"} ({followerCount})
+            </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={handleAlertToggle}
-                  className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                    isAlerted ? "bg-amber-400/20 text-amber-200 border-amber-400/30" : ""
-                  }`}
-                  title="Job Alerts"
-                >
-                  <Bell className={`h-4 w-4 ${isAlerted ? "fill-amber-300" : ""}`} />
-                  {isAlerted ? "Alerts On" : "Job Alerts"}
-                </Button>
+            <Button
+              variant="outline"
+              onClick={handleAlertToggle}
+              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
+                isAlerted ? "bg-amber-400/20 text-amber-200 border-amber-400/30" : ""
+              }`}
+              title="Job Alerts"
+            >
+              <Bell className={`h-4 w-4 ${isAlerted ? "fill-amber-300" : ""}`} />
+              {isAlerted ? "Alerts On" : "Job Alerts"}
+            </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={handleWatchlistToggle}
-                  className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                    isWatchlisted ? "bg-rose-400/20 text-rose-200 border-rose-400/30" : ""
-                  }`}
-                  title="Watchlist"
-                >
-                  <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-300 text-rose-300" : ""}`} />
-                  {isWatchlisted ? "Watchlisted" : "Watchlist"}
-                </Button>
+            <Button
+              variant="outline"
+              onClick={handleWatchlistToggle}
+              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
+                isWatchlisted ? "bg-rose-400/20 text-rose-200 border-rose-400/30" : ""
+              }`}
+              title="Watchlist"
+            >
+              <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-300 text-rose-300" : ""}`} />
+              {isWatchlisted ? "Watchlisted" : "Watchlist"}
+            </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={handleCommunityToggle}
-                  className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                    isCommunity ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/30" : ""
-                  }`}
-                  title="Talent Community"
-                >
-                  <Users className="h-4 w-4" />
-                  {isCommunity ? "Community Joined" : "Join Talent"}
-                </Button>
-              </>
-            )}
+            <Button
+              variant="outline"
+              onClick={handleCommunityToggle}
+              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
+                isCommunity ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/30" : ""
+              }`}
+              title="Talent Community"
+            >
+              <Users className="h-4 w-4" />
+              {isCommunity ? "Community Joined" : "Join Talent"}
+            </Button>
 
             <Button
               variant="outline"
@@ -446,6 +433,17 @@ export function CompanyProfileView({
               <Share2 className="h-4 w-4" />
               {copied ? "Link Copied!" : "Share Profile"}
             </Button>
+
+            {/* Edit Profile — only visible to company owner */}
+            {isCompanyOwner && (
+              <Button
+                onClick={() => router.push("/company/profile")}
+                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-md"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
           </div>
         </div>
       </Card>

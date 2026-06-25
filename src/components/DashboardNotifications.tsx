@@ -54,26 +54,12 @@ export function DashboardNotifications({ initialNotifications }: DashboardNotifi
   };
 
   const handleNotificationClick = async (notif: NotificationItem) => {
+    if (!notif.read) {
+      await handleRead(notif.id);
+    }
     try {
-      // Get redirect URL FIRST before marking as read
       const url = await getNotificationRedirectUrl(notif.id);
-
-      // Mark as read in background (fire-and-forget, don't block navigation)
-      if (!notif.read) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-        );
-        markAsRead(notif.id).catch((e) =>
-          console.error("Failed to mark notification as read:", e)
-        );
-      }
-
-      // Navigate
-      if (url.includes("/workspace/")) {
-        window.open(url, "_blank");
-      } else {
-        router.push(url);
-      }
+      router.push(url);
     } catch (error) {
       console.error("Failed to redirect for notification:", error);
     }

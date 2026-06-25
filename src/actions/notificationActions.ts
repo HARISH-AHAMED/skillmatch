@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { revalidatePath } from "next/cache";
 
 export async function markAsRead(notificationId: string) {
   const session = await auth();
@@ -22,6 +23,7 @@ export async function markAsRead(notificationId: string) {
     data: { read: true },
   });
 
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -39,6 +41,7 @@ export async function markAllAsRead() {
     data: { read: true },
   });
 
+  revalidatePath("/", "layout");
   return { success: true };
 }
 

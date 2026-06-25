@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { toggleSaveFreelancer } from "@/actions/savedFreelancerActions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +13,6 @@ import {
   Star,
   Clock,
   X,
-  Pencil,
   ExternalLink,
   Briefcase,
   CheckCircle,
@@ -25,6 +23,7 @@ import {
   Video,
   FileCode,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 
 interface ReviewReceivedItem {
@@ -81,18 +80,20 @@ interface FreelancerProfileDetailProps {
     applications: CompletedApplicationItem[];
   };
   initialSaved: boolean;
+  currentUserId?: string | null;
 }
 
 export function FreelancerProfileDetail({
   freelancer,
   initialSaved,
+  currentUserId,
 }: FreelancerProfileDetailProps) {
   const router = useRouter();
-  const { data: session } = useSession();
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
-  const isOwnProfile = session?.user?.id === freelancer.user.id;
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  const isOwnProfile = !!currentUserId && currentUserId === freelancer.user.id;
 
   const handleToggleSave = async () => {
     setIsSaving(true);

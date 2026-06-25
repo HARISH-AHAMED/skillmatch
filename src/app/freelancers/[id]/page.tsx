@@ -13,8 +13,10 @@ interface PageProps {
 }
 
 export default async function PublicFreelancerProfilePage({ params }: PageProps) {
-  const session = await auth();
   const { id } = await params;
+
+  const session = await auth();
+  const currentUserId = session?.user?.id || null;
 
   // Fetch freelancer detailed data
   const freelancer = await db.freelancer.findUnique({
@@ -62,13 +64,13 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
     notFound();
   }
 
-  // Check if saved (only relevant if logged in as a company user)
+  // Check if saved by the currently logged-in user
   let isSaved = false;
-  if (session?.user) {
+  if (currentUserId) {
     const savedRecord = await db.savedFreelancer.findFirst({
       where: {
         freelancerId: id,
-        company: { userId: session.user.id },
+        company: { userId: currentUserId },
       },
     });
     isSaved = !!savedRecord;
@@ -85,16 +87,14 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
     );
   }
 
+  // Unauthenticated – show with public Navbar
   return (
     <div className="min-h-screen bg-[#f4f8ff] flex flex-col">
-      {/* Navbar header */}
       <Navbar />
-
-      {/* Main Container */}
-      <main className="flex-grow max-w-7xl w-full mx-auto px-6 py-10">
+      <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-10">
         <FreelancerProfileDetail
           freelancer={freelancer as any}
-          initialSaved={isSaved}
+          initialSaved={false}
         />
       </main>
     </div>

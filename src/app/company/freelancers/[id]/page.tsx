@@ -16,6 +16,8 @@ export default async function FreelancerProfilePage({ params }: PageProps) {
     redirect("/login");
   }
 
+  const currentUserId = session.user.id;
+
   const { id } = await params;
 
   // Fetch freelancer detailed data
@@ -77,6 +79,7 @@ export default async function FreelancerProfilePage({ params }: PageProps) {
     <FreelancerProfileDetail
       freelancer={freelancer as any}
       initialSaved={isSaved}
+      currentUserId={currentUserId}
     />
   );
 }

@@ -69,24 +69,17 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
   };
 
   const handleNotificationClick = async (notif: NotificationItem) => {
-    // Close popover immediately
+    // Mark as read immediately if unread
+    if (!notif.read) {
+      await handleRead(notif.id);
+    }
+    
+    // Close popover
     setIsOpen(false);
-
+    
+    // Fetch redirect URL and navigate
     try {
-      // Get redirect URL FIRST before marking as read
       const url = await getNotificationRedirectUrl(notif.id);
-
-      // Mark as read in background (fire-and-forget, don't block navigation)
-      if (!notif.read) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-        );
-        markAsRead(notif.id).catch((e) =>
-          console.error("Failed to mark notification as read:", e)
-        );
-      }
-
-      // Navigate
       if (url.includes("/workspace/")) {
         window.open(url, "_blank");
       } else {
