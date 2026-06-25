@@ -97,22 +97,26 @@ export function RealtimeNotifications() {
   };
 
   const handleToastClick = async (id: string) => {
-    // Dismiss toast locally
+    // Dismiss toast locally first
     handleToastDismiss(id);
 
     try {
-      // Mark read in database
-      await markAsRead(id);
-      
-      // Fetch redirect URL
+      // Get redirect URL FIRST before doing anything else
       const url = await getNotificationRedirectUrl(id);
+
+      // Mark as read in the background (fire-and-forget, don't await)
+      markAsRead(id).catch((e) =>
+        console.error("Failed to mark notification as read:", e)
+      );
+
+      // Navigate immediately
       if (url.includes("/workspace/")) {
         window.open(url, "_blank");
       } else {
         router.push(url);
       }
     } catch (error) {
-      console.error("Failed to navigate/mark read from toast click:", error);
+      console.error("Failed to navigate from toast click:", error);
     }
   };
 
