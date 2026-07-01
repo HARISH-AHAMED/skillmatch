@@ -91,7 +91,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         return [
           { name: "Dashboard", href: "/company/dashboard", icon: LayoutDashboard },
           { name: "My Profile", href: "/company/profile", icon: UserCircle },
-          { name: "My Projects", href: "/company/projects", icon: Briefcase },
+          { name: "My Projects", href: "/company/projects", icon: Briefcase, exact: true },
           { name: "Post New Project", href: "/company/projects/new", icon: PlusCircle },
           { name: "Review Applicants", href: "/company/applicants", icon: ClipboardList },
           { name: "Search Freelancers", href: "/company/freelancers", icon: UserSearch },
@@ -138,7 +138,9 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}
