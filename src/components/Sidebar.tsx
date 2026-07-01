@@ -117,23 +117,25 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
   };
 
   return (
-    <aside className={cn("w-64 border-r border-slate-200/60 bg-[#f8faff] h-screen sticky top-0 flex flex-col justify-between p-6 z-30", className)}>
-      <div>
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-md shadow-[#3ac0ff]/20">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-[#002d59] tracking-tight text-base leading-none">Talentra</h1>
-              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1 inline-block">
-                {role} Space
-              </span>
-            </div>
+    <aside className={cn("w-64 border-r border-slate-200/60 bg-[#f8faff] h-screen sticky top-0 flex flex-col p-6 z-30", className)}>
+      {/* Logo + notifications — always visible at top */}
+      <div className="flex items-center justify-between mb-8 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-md shadow-[#3ac0ff]/20">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <NotificationCenter initialNotifications={notifications} align="left" />
+          <div>
+            <h1 className="font-bold text-[#002d59] tracking-tight text-base leading-none">Talentra</h1>
+            <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1 inline-block">
+              {role} Space
+            </span>
+          </div>
         </div>
+        <NotificationCenter initialNotifications={notifications} align="left" />
+      </div>
 
+      {/* Scrollable nav area — flex-1 + overflow so it never pushes logout off screen */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none">
         {/* Navigation items */}
         <nav className="space-y-1">
           {menuItems.map((item) => {
@@ -152,7 +154,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
                     : "text-slate-600 hover:text-[#002d59] hover:bg-slate-100 border border-transparent"
                 )}
               >
-                <Icon className={cn("h-4.5 w-4.5", isActive ? "text-[#002d59]" : "text-slate-400")} />
+                <Icon className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-[#002d59]" : "text-slate-400")} />
                 {item.name}
               </Link>
             );
@@ -194,6 +196,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
           </div>
         )}
       </div>
+
 
       {/* Profile summary & Logout */}
       <div className="border-t border-slate-200/80 pt-4 space-y-3">
