@@ -45,6 +45,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
   const pathname = usePathname();
   const [workspaces, setWorkspaces] = useState<{ id: string; label: string; href: string; applicationIds?: string[] }[]>([]);
   const [profileHref, setProfileHref] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -63,9 +64,8 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         const res = await fetch("/api/profile");
         if (res.ok) {
           const data = await res.json();
-          if (data.href) {
-            setProfileHref(data.href);
-          }
+          if (data.href) setProfileHref(data.href);
+          if (data.image) setProfileImage(data.image);
         }
       } catch (error) {
         console.error("Failed to load profile info:", error);
@@ -198,10 +198,14 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         {profileHref ? (
           <Link
             href={profileHref}
-            className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-100/80 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-100/80 rounded-xl transition-colors cursor-pointer group"
           >
-            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0">
-              {userName ? userName[0].toUpperCase() : "U"}
+            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-[#3ac0ff]/50 transition-all">
+              {profileImage ? (
+                <img src={profileImage} alt={userName || "Profile"} className="h-full w-full object-cover" />
+              ) : (
+                userName ? userName[0].toUpperCase() : "U"
+              )}
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
@@ -210,8 +214,12 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
           </Link>
         ) : (
           <div className="flex items-center gap-3 px-2 py-1.5">
-            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0">
-              {userName ? userName[0].toUpperCase() : "U"}
+            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0 overflow-hidden">
+              {profileImage ? (
+                <img src={profileImage} alt={userName || "Profile"} className="h-full w-full object-cover" />
+              ) : (
+                userName ? userName[0].toUpperCase() : "U"
+              )}
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>

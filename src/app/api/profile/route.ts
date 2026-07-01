@@ -13,6 +13,13 @@ export async function GET() {
   const role = session.user.role;
 
   try {
+    // Fetch the user's image from the User table
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { image: true },
+    });
+    const image = user?.image ?? null;
+
     if (role === Role.FREELANCER) {
       const freelancer = await db.freelancer.findUnique({
         where: { userId },
@@ -23,6 +30,7 @@ export async function GET() {
           role,
           profileId: freelancer.id,
           href: `/freelancers/${freelancer.id}`,
+          image,
         });
       }
     } else if (role === Role.COMPANY) {
@@ -35,6 +43,7 @@ export async function GET() {
           role,
           profileId: company.id,
           href: `/companies/${company.id}`,
+          image,
         });
       }
     }
@@ -43,6 +52,7 @@ export async function GET() {
       role,
       profileId: null,
       href: null,
+      image,
     });
   } catch (error) {
     console.error("Failed to fetch profile info:", error);
