@@ -215,59 +215,51 @@ export function FreelancerProfileDetail({
 
       {/* Main Profile Showcase Card */}
       <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm relative">
-        {/* Banner with rich gradient */}
-        <div className="h-32 bg-gradient-to-r from-[#002d59] via-[#0b4880] to-[#3ac0ff]" />
 
-        <div className="px-6 pb-6 relative">
-          {/* Avatar floating and overlapping banner */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-10 mb-4">
-            <div className="flex items-end gap-4.5">
-              <button
-                type="button"
-                onClick={() => freelancer.user.image && setLightboxImage(freelancer.user.image)}
-                disabled={!freelancer.user.image}
-                className={`h-20 w-20 rounded-3xl bg-white border-4 border-white overflow-hidden flex items-center justify-center font-black text-2xl text-[#002d59] shrink-0 shadow-md relative ${
-                  freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
-                }`}
-                title={freelancer.user.image ? "Click to view full image" : undefined}
-              >
-                {freelancer.user.image ? (
-                  <img
-                    src={freelancer.user.image}
-                    alt={freelancer.user.name || "User"}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
-                )}
-                <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white animate-pulse" />
-              </button>
+        {/* Banner */}
+        <div className="h-44 bg-gradient-to-br from-[#001f3f] via-[#002d59] to-[#3ac0ff] relative overflow-hidden">
+          {/* Decorative blobs */}
+          <div className="absolute -top-8 -right-8 h-48 w-48 rounded-full bg-white/5 blur-2xl" />
+          <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-[#3ac0ff]/10 blur-xl" />
+        </div>
 
-              <div className="space-y-1.5 pb-1">
-                <h2 className="text-xl font-black text-[#002d59] tracking-tight leading-none flex items-center gap-2">
-                  {freelancer.user.name}
-                </h2>
-                {freelancer.professionalHeadline ? (
-                  <p className="text-xs font-bold text-[#3ac0ff] leading-none">
-                    {freelancer.professionalHeadline}
-                  </p>
-                ) : (
-                  <p className="text-xs font-bold text-slate-400 leading-none">Talentra Verified Freelancer</p>
-                )}
-              </div>
-            </div>
+        {/* Profile content below banner */}
+        <div className="px-8 pb-6 relative">
 
-            {/* Badges container */}
-            <div className="flex flex-wrap gap-1.5 self-start sm:self-end pt-2 sm:pt-0">
-              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
+          {/* Avatar row — overlaps banner by half */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12">
+            {/* Avatar */}
+            <button
+              type="button"
+              onClick={() => freelancer.user.image && setLightboxImage(freelancer.user.image)}
+              disabled={!freelancer.user.image}
+              className={`h-24 w-24 rounded-3xl bg-white border-4 border-white overflow-hidden flex items-center justify-center font-black text-3xl text-[#002d59] shrink-0 shadow-xl relative ${
+                freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
+              }`}
+              title={freelancer.user.image ? "Click to view full image" : undefined}
+            >
+              {freelancer.user.image ? (
+                <img
+                  src={freelancer.user.image}
+                  alt={freelancer.user.name || "User"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
+              )}
+              <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+            </button>
+
+            {/* Badges — aligned to right on desktop */}
+            <div className="flex flex-wrap gap-1.5 self-end pb-1">
+              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.dot}`} />
                 {avail.label}
               </span>
-
               {freelancer.verificationBadges && freelancer.verificationBadges.map((badge) => (
                 <span
                   key={badge}
-                  className="inline-flex items-center gap-1 bg-sky-50 text-[9px] font-black text-[#002d59] border border-sky-100 px-2.5 py-0.5 rounded-full shadow-xs"
+                  className="inline-flex items-center gap-1 bg-sky-50 text-[9px] font-black text-[#002d59] border border-sky-100 px-2.5 py-1 rounded-full shadow-xs"
                 >
                   <CheckCircle className="h-3 w-3 text-sky-500 fill-sky-50" />
                   {badge}
@@ -276,9 +268,23 @@ export function FreelancerProfileDetail({
             </div>
           </div>
 
+          {/* Name + Headline — well below the avatar overlap zone */}
+          <div className="mt-4 mb-4 space-y-1">
+            <h2 className="text-2xl font-black text-[#002d59] tracking-tight leading-tight">
+              {freelancer.user.name}
+            </h2>
+            {freelancer.professionalHeadline ? (
+              <p className="text-sm font-semibold text-[#3ac0ff] leading-snug">
+                {freelancer.professionalHeadline}
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-slate-400 leading-snug">Talentra Verified Freelancer</p>
+            )}
+          </div>
+
           {/* Quick contact and response time */}
-          <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 pt-3 border-t border-slate-100">
-            <span className="flex items-center gap-1 text-slate-400">
+          <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 pt-4 border-t border-slate-100">
+            <span className="flex items-center gap-1.5 text-slate-400">
               <Mail className="h-3.5 w-3.5 text-slate-400" />
               {freelancer.user.email}
             </span>
