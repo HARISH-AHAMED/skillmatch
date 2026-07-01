@@ -34,7 +34,7 @@ import {
   Search,
   Eye,
   Sparkles,
-  Zap,
+  LayoutGrid,
 } from "lucide-react";
 import {
   sendMessage,
@@ -945,22 +945,26 @@ export function WorkspaceView({
     <div className="h-screen w-screen flex flex-col bg-[#f4f8ff] text-slate-850 font-sans overflow-hidden">
       
       {/* Workspace Top Header — professional single-bar layout */}
-      <header className="bg-white border-b border-slate-200/80 px-4 md:px-6 h-14 flex items-center justify-between gap-3 shrink-0 shadow-sm z-30">
+      <header className="bg-white border-b border-slate-200/80 px-4 md:px-6 h-16 flex items-center justify-between gap-4 shrink-0 shadow-sm z-30">
 
         {/* LEFT — project identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#002d59] to-[#3ac0ff] flex items-center justify-center font-black text-white text-sm shadow-md shrink-0">
-            {projectTitle[0]?.toUpperCase() || "T"}
+          {/* Company logo as project icon */}
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#002d59] to-[#3ac0ff] flex items-center justify-center font-black text-white text-sm shadow-md shrink-0 overflow-hidden border border-white/10">
+            {companyUser.image
+              ? <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" />
+              : <span className="text-sm font-black">{projectTitle[0]?.toUpperCase() || "T"}</span>
+            }
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-black text-[#002d59] tracking-tight truncate max-w-[120px] sm:max-w-xs">{projectTitle}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-sm font-black text-[#002d59] tracking-tight leading-snug">{projectTitle}</h1>
               <span className="hidden sm:flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full shrink-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live
               </span>
             </div>
-            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest hidden sm:block">Workspace</p>
+            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest hidden sm:block mt-0.5">{companyName} · Workspace</p>
           </div>
         </div>
 
@@ -1039,10 +1043,10 @@ export function WorkspaceView({
           <div className="relative">
             <Button
               onClick={() => setShowQuickActions(!showQuickActions)}
-              className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-[11px] h-8 px-3 flex items-center gap-1.5 cursor-pointer rounded-xl shadow-sm"
+              className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-[11px] h-8 px-3.5 flex items-center gap-1.5 cursor-pointer rounded-xl shadow-sm"
             >
-              <Zap className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Actions</span>
+              <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+              <span>Quick Actions</span>
               <ChevronRight className={`h-3 w-3 transition-transform duration-200 ${showQuickActions ? "rotate-270" : "rotate-90"}`} />
             </Button>
 
