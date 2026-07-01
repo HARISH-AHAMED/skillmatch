@@ -34,6 +34,7 @@ import {
   Search,
   Eye,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import {
   sendMessage,
@@ -943,67 +944,76 @@ export function WorkspaceView({
   return (
     <div className="h-screen w-screen flex flex-col bg-[#f4f8ff] text-slate-850 font-sans overflow-hidden">
       
-      {/* SaaS Workspace Top Control Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 shadow-sm relative z-30">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-md shadow-[#3ac0ff]/20">
-              {projectTitle[0]?.toUpperCase() || "T"}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm md:text-base font-black text-[#002d59] tracking-tight leading-none">{projectTitle}</h1>
-                <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Active
-                </span>
-              </div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Standalone Workspace</p>
-            </div>
+      {/* Workspace Top Header — professional single-bar layout */}
+      <header className="bg-white border-b border-slate-200/80 px-4 md:px-6 h-14 flex items-center justify-between gap-3 shrink-0 shadow-sm z-30">
+
+        {/* LEFT — project identity */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#002d59] to-[#3ac0ff] flex items-center justify-center font-black text-white text-sm shadow-md shrink-0">
+            {projectTitle[0]?.toUpperCase() || "T"}
           </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-black text-[#002d59] tracking-tight truncate max-w-[120px] sm:max-w-xs">{projectTitle}</h1>
+              <span className="hidden sm:flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full shrink-0">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest hidden sm:block">Workspace</p>
+          </div>
+        </div>
 
-          <div className="hidden sm:block h-6 w-px bg-slate-200" />
+        {/* DIVIDER */}
+        <div className="hidden md:block h-6 w-px bg-slate-200 shrink-0" />
 
-          {/* Collaborator Avatars list */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider hidden xs:inline">Team:</span>
-            <div className="flex -space-x-1.5 overflow-hidden">
+        {/* CENTER — team avatars + budget/deadline chips (hidden on small mobile) */}
+        <div className="hidden sm:flex items-center gap-3 flex-1 justify-center">
+          {/* Team stack */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Team</span>
+            <div className="flex -space-x-2">
               <div
-                onClick={() => {
-                  router.push(`/companies/${companyUser.companyId}`);
-                }}
-                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+                onClick={() => router.push(`/companies/${companyUser.companyId}`)}
+                className="h-7 w-7 rounded-full bg-[#002d59] border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shrink-0 shadow cursor-pointer hover:scale-105 hover:z-10 transition-transform overflow-hidden"
                 title={`${companyName} (Client)`}
               >
-                {companyUser.image ? (
-                  <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" />
-                ) : (
-                  "C"
-                )}
+                {companyUser.image ? <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" /> : companyName[0]?.toUpperCase()}
               </div>
               {hiredFreelancers.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => {
-                    router.push(`/freelancers/${f.freelancerId}`);
-                  }}
-                  className="h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => router.push(`/freelancers/${f.freelancerId}`)}
+                  className="h-7 w-7 rounded-full bg-sky-500 border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shrink-0 shadow cursor-pointer hover:scale-105 hover:z-10 transition-transform overflow-hidden"
                   title={`${f.name} (Freelancer)`}
                 >
-                  {f.image ? (
-                    <img src={f.image} alt={f.name || ""} className="h-full w-full object-cover" />
-                  ) : (
-                    f.name ? f.name[0].toUpperCase() : "F"
-                  )}
+                  {f.image ? <img src={f.image} alt={f.name || ""} className="h-full w-full object-cover" /> : f.name?.[0]?.toUpperCase()}
                 </div>
               ))}
             </div>
           </div>
+
+          <div className="h-4 w-px bg-slate-200" />
+
+          {/* Budget chip */}
+          <div className="flex items-center gap-1.5 bg-[#f4f8ff] border border-slate-200 rounded-lg px-2.5 py-1">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Budget</span>
+            <span className="text-[11px] font-extrabold text-[#002d59]">${projectBudget.toLocaleString()}</span>
+          </div>
+
+          {/* Deadline chip */}
+          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/60 rounded-lg px-2.5 py-1">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due</span>
+            <span className="text-[11px] font-extrabold text-amber-600">Dec 28, 2026</span>
+          </div>
         </div>
 
-        {/* Right side: current user avatar + metadata + quick actions */}
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          {/* Current logged-in user avatar */}
+        {/* DIVIDER */}
+        <div className="hidden md:block h-6 w-px bg-slate-200 shrink-0" />
+
+        {/* RIGHT — current user avatar + quick actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Current user avatar with "You" ring */}
           {(() => {
             const isCompany = role === "COMPANY";
             const currentImg = isCompany
@@ -1014,68 +1024,65 @@ export function WorkspaceView({
               : hiredFreelancers.find(f => f.id === currentUserId)?.name ?? "You";
             return (
               <div
-                className="h-8 w-8 rounded-full border-2 border-[#3ac0ff] overflow-hidden bg-[#002d59] flex items-center justify-center text-xs font-black text-white shadow-md shrink-0"
+                className="h-8 w-8 rounded-full border-2 border-[#3ac0ff] overflow-hidden bg-[#002d59] flex items-center justify-center text-xs font-black text-white shadow shrink-0"
                 title={`${currentName} (You)`}
               >
-                {currentImg ? (
-                  <img src={currentImg} alt={currentName} className="h-full w-full object-cover" />
-                ) : (
-                  currentName[0]?.toUpperCase() ?? "U"
-                )}
+                {currentImg
+                  ? <img src={currentImg} alt={currentName} className="h-full w-full object-cover" />
+                  : currentName[0]?.toUpperCase() ?? "U"
+                }
               </div>
             );
           })()}
-
-          <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 px-4 py-1.5 rounded-xl">
-            <div>
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none">Budget</span>
-              <span className="font-extrabold text-[#002d59] text-[11px] mt-0.5 block leading-none">${projectBudget.toLocaleString()}</span>
-            </div>
-            <div className="h-4 w-px bg-slate-200" />
-            <div>
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none">Deadline</span>
-              <span className="font-extrabold text-amber-600 text-[11px] mt-0.5 block leading-none">Dec 28, 2026</span>
-            </div>
-          </div>
 
           {/* Quick Actions Dropdown */}
           <div className="relative">
             <Button
               onClick={() => setShowQuickActions(!showQuickActions)}
-              className="bg-[#002d59] hover:bg-[#001f3f] border border-slate-200 text-white font-bold text-xs h-8 px-3.5 flex items-center gap-1 cursor-pointer rounded-xl"
+              className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-[11px] h-8 px-3 flex items-center gap-1.5 cursor-pointer rounded-xl shadow-sm"
             >
-              <span>Quick Actions</span>
+              <Zap className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Actions</span>
               <ChevronRight className={`h-3 w-3 transition-transform duration-200 ${showQuickActions ? "rotate-270" : "rotate-90"}`} />
             </Button>
-            
+
             {showQuickActions && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowQuickActions(false)} />
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 pb-1.5 border-b border-slate-100 mb-1">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Quick Actions</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => { setShowQuickActions(false); setShowAddTaskModal(true); }}
-                    className="w-full text-left px-4 py-2.5 text-xs text-slate-600 hover:text-[#002d59] hover:bg-slate-50 font-bold transition-all flex items-center gap-2 cursor-pointer border-none bg-transparent"
+                    className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:text-[#002d59] hover:bg-slate-50 font-semibold transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <CheckSquare className="h-3.5 w-3.5 text-sky-550" />
+                    <div className="h-6 w-6 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
+                      <CheckSquare className="h-3.5 w-3.5 text-sky-600" />
+                    </div>
                     Create Task
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowQuickActions(false); fileInputRef.current?.click(); }}
-                    className="w-full text-left px-4 py-2.5 text-xs text-slate-600 hover:text-[#002d59] hover:bg-slate-50 font-bold transition-all flex items-center gap-2 cursor-pointer border-none bg-transparent"
+                    className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:text-[#002d59] hover:bg-slate-50 font-semibold transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <Paperclip className="h-3.5 w-3.5 text-emerald-600" />
+                    <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Paperclip className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
                     Share Deliverable
                   </button>
                   {role === "COMPANY" && (
                     <button
                       type="button"
                       onClick={() => { setShowQuickActions(false); setShowAddMilestoneModal(true); }}
-                      className="w-full text-left px-4 py-2.5 text-xs text-slate-600 hover:text-[#002d59] hover:bg-slate-50 font-bold transition-all flex items-center gap-2 cursor-pointer border-t border-slate-100 bg-transparent border-none"
+                      className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:text-[#002d59] hover:bg-slate-50 font-semibold transition-all flex items-center gap-2.5 cursor-pointer border-t border-slate-100"
                     >
-                      <Sparkles className="h-3.5 w-3.5 text-purple-650" />
-                      Add Milestone Phase
+                      <div className="h-6 w-6 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                        <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                      </div>
+                      Add Milestone
                     </button>
                   )}
                 </div>
@@ -1084,6 +1091,7 @@ export function WorkspaceView({
           </div>
         </div>
       </header>
+
 
       {/* Top Navigation Tabs */}
       <nav className="bg-white border-b border-slate-200 px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">
