@@ -302,53 +302,58 @@ export function FreelancerSearch({
 
   return (
     <div className="space-y-6">
-      {/* Sticky Search & Tab Controls */}
-      <div className="sticky top-0 z-20 bg-[#f4f8ff] -mt-2 py-2 space-y-4">
-        {/* Premium Tab Buttons */}
-        <div className="flex border-b border-slate-200 bg-white rounded-t-2xl shadow-sm px-4">
+      {/* Title + Tabs Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-black text-[#002d59] tracking-tight">Find Talent</h1>
+          <p className="text-xs text-slate-500 font-semibold mt-1">Connect with verified top-tier freelancers and remote specialists.</p>
+        </div>
+        {/* Tabs as sleek pills */}
+        <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/40 shrink-0">
           <button
             onClick={() => setActiveTab("search")}
-            className={`flex items-center gap-2 px-6 py-3.5 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-black tracking-wider uppercase rounded-lg transition-all cursor-pointer border-none bg-transparent ${
               activeTab === "search"
-                ? "border-[#002d59] text-[#002d59]"
-                : "border-transparent text-slate-400 hover:text-slate-650"
+                ? "bg-white text-[#002d59] shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <Search className="h-4 w-4" />
-            Search Talent
+            <Search className="h-3.5 w-3.5" />
+            Search
           </button>
           <button
             onClick={() => setActiveTab("saved")}
-            className={`flex items-center gap-2 px-6 py-3.5 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-black tracking-wider uppercase rounded-lg transition-all cursor-pointer border-none bg-transparent ${
               activeTab === "saved"
-                ? "border-[#002d59] text-[#002d59]"
-                : "border-transparent text-slate-400 hover:text-slate-650"
+                ? "bg-white text-rose-600 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <Heart className="h-4 w-4 fill-rose-500 text-rose-500" />
-            Saved Freelancers ({savedList.length})
+            <Heart className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-rose-500 text-rose-500 animate-pulse" : "text-slate-400"}`} />
+            Bookmarks ({savedList.length})
           </button>
         </div>
+      </div>
 
-        {activeTab === "search" && (
-          <div className="space-y-4">
-            {/* Search Bar + Sort + Filter toggle row */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-white p-4 rounded-b-2xl border-t border-slate-100 shadow-sm">
+      {activeTab === "search" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Search Bar + Sort + Filter toggle row */}
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-2xl border border-slate-200/60 shadow-xs">
             {/* Keyword search */}
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search by name, headline, or bio keywords..."
+                placeholder="Search name, headline, bio keywords..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && commitSearch({ q: e.currentTarget.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 shadow-sm"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl text-xs bg-slate-50 hover:bg-slate-100/55 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-2 focus:ring-[#002d59]/10 transition-all shadow-2xs focus:outline-none"
               />
               {q && (
                 <button
                   onClick={() => { setQ(""); commitSearch({ q: "" }); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer border-none bg-transparent"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -356,30 +361,30 @@ export function FreelancerSearch({
             </div>
 
             {/* Sort dropdown */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <select
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); commitSearch({ sortBy: e.target.value }); }}
-                className="pl-4 pr-8 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-700 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer appearance-none shadow-sm min-w-[160px]"
+                className="w-full lg:w-auto pl-4 pr-9 py-2.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-750 focus:border-[#002d59] focus:ring-2 focus:ring-[#002d59]/10 cursor-pointer appearance-none shadow-2xs focus:outline-none min-w-[160px]"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
 
             {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-sm ${
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs shrink-0 ${
                 showFilters
-                  ? "bg-[#002d59] text-white border-[#002d59]"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                  ? "bg-[#002d59] text-white border-[#002d59] hover:bg-[#001f3f]"
+                  : "bg-white text-slate-750 border-slate-200 hover:bg-slate-50 hover:border-slate-350"
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filters
+              <span>Filters</span>
               {activeFilterCount > 0 && (
                 <span className={`h-4.5 w-4.5 rounded-full text-[9px] font-black flex items-center justify-center ${
                   showFilters ? "bg-white text-[#002d59]" : "bg-[#002d59] text-white"
@@ -393,7 +398,7 @@ export function FreelancerSearch({
             <button
               onClick={() => commitSearch()}
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#3ac0ff] hover:bg-[#29aaeb] text-white border border-[#3ac0ff]/30 transition-all cursor-pointer shadow-sm flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#3ac0ff] hover:bg-[#29aaeb] text-white border border-[#3ac0ff]/20 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
             >
               <Search className="h-3.5 w-3.5" />
               {isPending ? "Searching..." : "Search"}
@@ -402,7 +407,7 @@ export function FreelancerSearch({
 
           {/* Expanded filter panel */}
           {showFilters && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-[#002d59]" />
@@ -411,14 +416,14 @@ export function FreelancerSearch({
                 {activeFilterCount > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="text-[10px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors"
+                    className="text-[10px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors border-none bg-transparent"
                   >
                     <X className="h-3 w-3" /> Clear all filters
                   </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {/* Skills Filter */}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
@@ -428,14 +433,13 @@ export function FreelancerSearch({
                     <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="react, node.js, typescript"
+                      placeholder="react, node.js..."
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitSearch({ skills: e.currentTarget.value })}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10"
                     />
                   </div>
-                  <p className="text-[9px] text-slate-400">Freelancers must match ALL listed skills</p>
                 </div>
 
                 {/* Experience Range */}
@@ -448,7 +452,7 @@ export function FreelancerSearch({
                     <select
                       value={expRange}
                       onChange={(e) => { setExpRange(e.target.value); commitSearch({ expRange: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
                     >
                       {EXP_OPTIONS.map((opt) => (
                         <option
@@ -473,7 +477,7 @@ export function FreelancerSearch({
                     <select
                       value={minRating}
                       onChange={(e) => { setMinRating(e.target.value); commitSearch({ minRating: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
                     >
                       {RATING_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -493,7 +497,7 @@ export function FreelancerSearch({
                     <select
                       value={minCompleted}
                       onChange={(e) => { setMinCompleted(e.target.value); commitSearch({ minCompleted: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
                     >
                       {COMPLETED_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -513,7 +517,7 @@ export function FreelancerSearch({
                     <select
                       value={availability}
                       onChange={(e) => { setAvailability(e.target.value); commitSearch({ availability: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
                     >
                       {AVAILABILITY_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -539,9 +543,8 @@ export function FreelancerSearch({
               )}
             </div>
           )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {activeTab === "search" ? (
         <>
@@ -679,70 +682,71 @@ function FreelancerCard({
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
 
   return (
-    <div className="bg-white border border-slate-200/70 rounded-2xl shadow-sm hover:shadow-md hover:border-[#3ac0ff]/40 transition-all duration-200 flex flex-col group overflow-hidden relative">
-      {/* Card Header with gradient accent */}
-      <div className="relative h-1.5 bg-gradient-to-r from-[#002d59] via-[#1a6baf] to-[#3ac0ff]" />
+    <div className="bg-white border border-slate-200/60 rounded-3xl shadow-xs hover:shadow-md hover:border-[#3ac0ff]/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
+      {/* Premium accent bar at top */}
+      <div className="relative h-1 w-full bg-gradient-to-r from-[#002d59] via-[#1a6baf] to-[#3ac0ff]/80" />
 
-      <div className="p-5 flex flex-col flex-1 space-y-4">
+      <div className="p-6 flex flex-col flex-1 space-y-4">
         {/* Avatar + Name + Headline */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
           <button
             type="button"
             onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
             disabled={!freelancer.user.image}
-            className={`h-12 w-12 rounded-xl bg-gradient-to-br from-[#002d59]/10 to-[#3ac0ff]/20 border border-slate-200 flex items-center justify-center font-black text-[#002d59] text-lg shrink-0 overflow-hidden ${
-              freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
+            className={`h-14 w-14 rounded-2xl bg-[#002d59]/5 border border-slate-200/80 flex items-center justify-center font-black text-[#002d59] text-xl shrink-0 overflow-hidden shadow-2xs relative ${
+              freelancer.user.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
             }`}
-            title={freelancer.user.image ? "Click to view full image" : undefined}
+            title={freelancer.user.image ? "Click to expand image" : undefined}
           >
             {freelancer.user.image ? (
               <img
                 src={freelancer.user.image}
                 alt={freelancer.user.name || "User"}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-transform group-hover:scale-105 duration-200"
               />
             ) : (
               freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
             )}
+            <span className={`absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white shadow-sm ${avail.dot}`} />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-1.5">
+            <div className="flex items-start justify-between gap-2">
               <h3
                 onClick={onViewProfile}
-                className="text-sm font-extrabold text-[#002d59] truncate group-hover:text-[#1a6baf] transition-colors leading-normal cursor-pointer hover:underline"
+                className="text-sm font-black text-[#002d59] leading-snug truncate hover:underline hover:text-[#1a6baf] transition-colors cursor-pointer"
               >
                 {freelancer.user.name}
               </h3>
-              {/* Heart Button */}
+              {/* Bookmark Button */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleSave();
                 }}
-                className="p-1 rounded-lg hover:bg-slate-100 transition-all shrink-0 cursor-pointer -mt-1"
+                className="p-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/60 transition-all shrink-0 cursor-pointer -mt-1"
                 title={isSaved ? "Remove Bookmark" : "Bookmark Freelancer"}
               >
                 <Heart
-                  className={`h-4.5 w-4.5 transition-colors ${
+                  className={`h-4 w-4 transition-all duration-200 ${
                     isSaved
-                      ? "fill-rose-500 text-rose-500"
-                      : "text-slate-300 hover:text-rose-450"
+                      ? "fill-rose-500 text-rose-500 scale-110"
+                      : "text-slate-350 hover:text-rose-450 hover:scale-105"
                   }`}
                 />
               </button>
             </div>
             {freelancer.professionalHeadline && (
-              <p className="text-[10px] text-[#3ac0ff] font-bold truncate leading-tight mt-0.5">
+              <p className="text-[10px] text-[#3ac0ff] font-bold truncate leading-tight mt-1">
                 {freelancer.professionalHeadline}
               </p>
             )}
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${avail.dot}`} />
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${avail.badge}`}>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border tracking-wide uppercase shrink-0 ${avail.badge}`}>
                 {avail.label}
               </span>
               {isSaved && (
-                <span className="text-[8px] font-black text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 animate-in fade-in duration-200">
+                <span className="text-[8px] font-black text-rose-600 bg-rose-50 border border-rose-150 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-in fade-in zoom-in-95 duration-150">
                   <Heart className="h-2 w-2 fill-rose-500 text-rose-500" />
                   Saved
                 </span>
@@ -751,22 +755,22 @@ function FreelancerCard({
           </div>
         </div>
 
-        {/* Stat Row */}
-        <div className="grid grid-cols-3 gap-2 bg-slate-50/70 border border-slate-100 rounded-xl p-3 text-center">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-2 bg-slate-50/60 border border-slate-200/30 rounded-2xl p-3 text-center">
           <div>
             <p className="text-sm font-black text-[#002d59]">{freelancer.experienceYears}y</p>
-            <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Exp</p>
+            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Exp</p>
           </div>
-          <div className="border-x border-slate-200/60">
+          <div className="border-x border-slate-200/50">
             <div className="flex items-center justify-center gap-0.5">
               <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
               <p className="text-sm font-black text-[#002d59]">{freelancer.rating.toFixed(1)}</p>
             </div>
-            <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Rating</p>
+            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Rating</p>
           </div>
           <div>
             <p className="text-sm font-black text-[#002d59]">{freelancer.completedProjects}</p>
-            <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Done</p>
+            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Done</p>
           </div>
         </div>
 
@@ -777,66 +781,60 @@ function FreelancerCard({
           </p>
         )}
 
-        {/* Skills */}
-        <div className="flex flex-wrap gap-1.5">
-          {freelancer.skills.slice(0, 5).map((skill) => (
+        {/* Skills Tag List */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {freelancer.skills.slice(0, 4).map((skill) => (
             <span
               key={skill}
-              className="text-[9px] font-bold bg-[#002d59]/5 text-[#002d59] border border-[#002d59]/10 px-2 py-0.5 rounded-full"
+              className="text-[9px] font-bold bg-slate-50 text-slate-600 border border-slate-200/50 px-2 py-0.5 rounded-lg shadow-2xs"
             >
               {skill}
             </span>
           ))}
-          {freelancer.skills.length > 5 && (
-            <span className="text-[9px] font-bold text-slate-400 px-1 py-0.5">
-              +{freelancer.skills.length - 5} more
+          {freelancer.skills.length > 4 && (
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider self-center pl-0.5">
+              +{freelancer.skills.length - 4} more
             </span>
           )}
         </div>
 
-        {/* Response time */}
-        {freelancer.responseTime && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
-            <Clock className="h-3 w-3 text-slate-400" />
-            Responds {freelancer.responseTime.toLowerCase()}
-          </div>
-        )}
-
-        {/* Verification Badges */}
-        {freelancer.verificationBadges && freelancer.verificationBadges.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {freelancer.verificationBadges.map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center gap-0.5 text-[8px] font-black text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full"
-              >
-                <CheckCircle className="h-2.5 w-2.5 text-sky-500" />
-                {badge}
+        {/* Bottom Metadata & CTAs */}
+        <div className="space-y-3 pt-3 border-t border-slate-100 mt-auto">
+          <div className="flex items-center justify-between gap-3 text-[10px] text-slate-450 font-bold">
+            {freelancer.responseTime && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+                Responds {freelancer.responseTime.toLowerCase()}
               </span>
-            ))}
+            )}
+            {freelancer.verificationBadges && freelancer.verificationBadges.length > 0 && (
+              <div className="flex items-center gap-1 ml-auto">
+                <CheckCircle className="h-3 w-3 text-sky-500 shrink-0" />
+                <span className="text-[9px] text-sky-700 font-black uppercase tracking-wider">Verified</span>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* CTA */}
-        <div className="flex gap-2 pt-2 border-t border-slate-100 mt-auto">
-          <button
-            onClick={onViewProfile}
-            className="flex-1 py-2 text-xs font-bold bg-[#002d59] hover:bg-[#1a4a8a] text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <User className="h-3.5 w-3.5" />
-            View Full Profile
-          </button>
-          {freelancer.resumeUrl && (
-            <a
-              href={freelancer.resumeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
-              title="View Resume"
+          <div className="flex gap-2">
+            <button
+              onClick={onViewProfile}
+              className="flex-1 py-2.5 text-xs font-bold bg-[#002d59] hover:bg-[#001f3f] text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
             >
-              <FileText className="h-3.5 w-3.5" />
-            </a>
-          )}
+              <User className="h-3.5 w-3.5" />
+              View Profile
+            </button>
+            {freelancer.resumeUrl && (
+              <a
+                href={freelancer.resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer flex items-center justify-center border border-slate-200/60 shadow-2xs shrink-0"
+                title="View Resume"
+              >
+                <FileText className="h-3.5 w-3.5 text-slate-500" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
