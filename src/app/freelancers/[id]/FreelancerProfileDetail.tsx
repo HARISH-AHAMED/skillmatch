@@ -163,22 +163,22 @@ export function FreelancerProfileDetail({
 
   return (
     <div className="space-y-6">
-      {/* Back button link */}
-      <div className="flex items-center justify-between">
+      {/* Back button + quick actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-xs"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-xs w-fit"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
           Back to list
         </button>
 
         {/* Quick action buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {isOwnProfile ? (
             <Button
               onClick={() => router.push("/freelancer/profile")}
-              className="text-xs font-bold h-9 bg-amber-500 hover:bg-amber-600 border-0 text-white rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="text-xs font-bold h-9 bg-amber-500 hover:bg-amber-600 border-0 text-white rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs flex-1 sm:flex-none justify-center"
             >
               <Pencil className="h-4 w-4" />
               Edit Profile
@@ -188,10 +188,10 @@ export function FreelancerProfileDetail({
               onClick={handleToggleSave}
               disabled={isSaving}
               variant="outline"
-              className="text-xs font-bold h-9 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="text-xs font-bold h-9 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs flex-1 sm:flex-none justify-center"
             >
               <Heart
-                className={`h-4.5 w-4.5 transition-colors ${
+                className={`h-4 w-4 shrink-0 transition-colors ${
                   isSaved ? "fill-rose-500 text-rose-500" : "text-slate-400"
                 }`}
               />
@@ -204,14 +204,15 @@ export function FreelancerProfileDetail({
               href={freelancer.resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 h-9 px-4 rounded-xl transition-colors border border-slate-200/50 shadow-xs"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 h-9 px-4 rounded-xl transition-colors border border-slate-200/50 shadow-xs flex-1 sm:flex-none"
             >
-              <FileText className="h-4 w-4 text-slate-500" />
+              <FileText className="h-4 w-4 text-slate-500 shrink-0" />
               View Resume
             </a>
           )}
         </div>
       </div>
+
 
       {/* Main Profile Showcase Card */}
       <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm relative">
