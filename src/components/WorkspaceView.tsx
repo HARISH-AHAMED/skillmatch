@@ -947,12 +947,8 @@ export function WorkspaceView({
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 shadow-sm relative z-30">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-md shadow-[#3ac0ff]/20 overflow-hidden shrink-0">
-              {companyUser.image ? (
-                <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-sm">{projectTitle[0]?.toUpperCase() || "T"}</span>
-              )}
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-md shadow-[#3ac0ff]/20">
+              {projectTitle[0]?.toUpperCase() || "T"}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -976,10 +972,14 @@ export function WorkspaceView({
                 onClick={() => {
                   router.push(`/companies/${companyUser.companyId}`);
                 }}
-                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                 title={`${companyName} (Client)`}
               >
-                C
+                {companyUser.image ? (
+                  <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" />
+                ) : (
+                  "C"
+                )}
               </div>
               {hiredFreelancers.map((f) => (
                 <div
@@ -1001,8 +1001,31 @@ export function WorkspaceView({
           </div>
         </div>
 
-        {/* Right side metadata metrics & Quick Actions */}
-        <div className="flex flex-wrap items-center gap-4 text-xs">
+        {/* Right side: current user avatar + metadata + quick actions */}
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {/* Current logged-in user avatar */}
+          {(() => {
+            const isCompany = role === "COMPANY";
+            const currentImg = isCompany
+              ? companyUser.image
+              : hiredFreelancers.find(f => f.id === currentUserId)?.image ?? null;
+            const currentName = isCompany
+              ? companyName
+              : hiredFreelancers.find(f => f.id === currentUserId)?.name ?? "You";
+            return (
+              <div
+                className="h-8 w-8 rounded-full border-2 border-[#3ac0ff] overflow-hidden bg-[#002d59] flex items-center justify-center text-xs font-black text-white shadow-md shrink-0"
+                title={`${currentName} (You)`}
+              >
+                {currentImg ? (
+                  <img src={currentImg} alt={currentName} className="h-full w-full object-cover" />
+                ) : (
+                  currentName[0]?.toUpperCase() ?? "U"
+                )}
+              </div>
+            );
+          })()}
+
           <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 px-4 py-1.5 rounded-xl">
             <div>
               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none">Budget</span>
@@ -1118,7 +1141,11 @@ export function WorkspaceView({
       </nav>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 overflow-y-auto bg-[#f4f8ff] p-4 md:p-6 lg:p-8">
+      <main className={`flex-1 bg-[#f4f8ff] ${
+        activeView === "messages"
+          ? "overflow-hidden p-2 md:p-4 lg:p-6"
+          : "overflow-y-auto p-4 md:p-6 lg:p-8"
+      }`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeView}
@@ -1389,7 +1416,7 @@ export function WorkspaceView({
 
               {/* messages TAB */}
               {activeView === "messages" && (
-                <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-175px)] min-h-[460px]">
+                <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[400px]">
                     {/* Left: WhatsApp-style Sub-sidebar for channels and DMs */}
                   <div className={`w-full lg:w-[280px] shrink-0 bg-white border border-slate-200 rounded-3xl p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-sm ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     {/* Channels section */}
@@ -1790,8 +1817,8 @@ export function WorkspaceView({
                       </div>
                     )}
 
-                    {/* Chat Input form bar — sticky on mobile, pinned at bottom */}
-                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0 sticky bottom-0 z-10">
+                    {/* Chat Input form bar */}
+                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0">
                       <input
                         type="file"
                         ref={fileInputRef}
