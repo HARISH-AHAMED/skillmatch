@@ -947,8 +947,12 @@ export function WorkspaceView({
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 shadow-sm relative z-30">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-md shadow-[#3ac0ff]/20">
-              {projectTitle[0]?.toUpperCase() || "T"}
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#3ac0ff] to-[#002d59] flex items-center justify-center font-black text-white shadow-md shadow-[#3ac0ff]/20 overflow-hidden shrink-0">
+              {companyUser.image ? (
+                <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-sm">{projectTitle[0]?.toUpperCase() || "T"}</span>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -968,56 +972,32 @@ export function WorkspaceView({
           <div className="flex items-center gap-1.5">
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider hidden xs:inline">Team:</span>
             <div className="flex -space-x-1.5 overflow-hidden">
-              {/* Company avatar — highlight if current user is the company */}
               <div
-                onClick={() => { router.push(`/companies/${companyUser.companyId}`); }}
-                className={`h-6 w-6 rounded-full bg-[#002d59] border-2 flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity relative ${
-                  companyUser.id === currentUserId ? "border-[#3ac0ff] ring-2 ring-[#3ac0ff]/40" : "border-white"
-                }`}
-                title={`${companyUser.id === currentUserId ? "You — " : ""}${companyName} (Client)`}
+                onClick={() => {
+                  router.push(`/companies/${companyUser.companyId}`);
+                }}
+                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                title={`${companyName} (Client)`}
               >
-                {companyUser.image ? (
-                  <img src={companyUser.image} alt={companyName} className="h-full w-full object-cover rounded-full" />
-                ) : (
-                  "C"
-                )}
-                {companyUser.id === currentUserId && (
-                  <span className="absolute -top-1.5 -right-1 bg-[#3ac0ff] text-white text-[6px] font-black px-0.5 rounded leading-none py-px">YOU</span>
-                )}
+                C
               </div>
               {hiredFreelancers.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => { router.push(`/freelancers/${f.freelancerId}`); }}
-                  className={`h-6 w-6 rounded-full bg-sky-500 border-2 flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity relative ${
-                    f.id === currentUserId ? "border-[#3ac0ff] ring-2 ring-[#3ac0ff]/40" : "border-white"
-                  }`}
-                  title={`${f.id === currentUserId ? "You — " : ""}${f.name} (Freelancer)`}
+                  onClick={() => {
+                    router.push(`/freelancers/${f.freelancerId}`);
+                  }}
+                  className="h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                  title={`${f.name} (Freelancer)`}
                 >
                   {f.image ? (
                     <img src={f.image} alt={f.name || ""} className="h-full w-full object-cover" />
                   ) : (
                     f.name ? f.name[0].toUpperCase() : "F"
                   )}
-                  {f.id === currentUserId && (
-                    <span className="absolute -top-1.5 -right-1 bg-[#3ac0ff] text-white text-[6px] font-black px-0.5 rounded leading-none py-px">YOU</span>
-                  )}
                 </div>
               ))}
             </div>
-            {/* Current user name chip — visible on sm+ */}
-            {(() => {
-              const currentName =
-                companyUser.id === currentUserId
-                  ? companyName
-                  : hiredFreelancers.find((f) => f.id === currentUserId)?.name ?? null;
-              return currentName ? (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-black text-[#002d59] bg-[#3ac0ff]/10 border border-[#3ac0ff]/30 px-2 py-0.5 rounded-full">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#3ac0ff]" />
-                  {currentName}
-                </span>
-              ) : null;
-            })()}
           </div>
         </div>
 
@@ -1409,7 +1389,7 @@ export function WorkspaceView({
 
               {/* messages TAB */}
               {activeView === "messages" && (
-                <div className="flex flex-col lg:flex-row gap-6 h-[calc(100dvh-175px)] min-h-[460px]">
+                <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-175px)] min-h-[460px]">
                     {/* Left: WhatsApp-style Sub-sidebar for channels and DMs */}
                   <div className={`w-full lg:w-[280px] shrink-0 bg-white border border-slate-200 rounded-3xl p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-sm ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     {/* Channels section */}
@@ -1556,7 +1536,7 @@ export function WorkspaceView({
                   </div>
 
                   {/* Right Chat Interface */}
-                  <div className={`flex-1 min-h-0 flex flex-col bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs relative ${!showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                  <div className={`flex-1 flex flex-col bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs relative ${!showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     
                     {/* Chat Header */}
                     <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
@@ -1810,8 +1790,8 @@ export function WorkspaceView({
                       </div>
                     )}
 
-                    {/* Chat Input form bar */}
-                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0">
+                    {/* Chat Input form bar — sticky on mobile, pinned at bottom */}
+                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0 sticky bottom-0 z-10">
                       <input
                         type="file"
                         ref={fileInputRef}
