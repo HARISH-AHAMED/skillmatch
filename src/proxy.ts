@@ -7,10 +7,10 @@ export const proxy = auth((req) => {
   const userRole = req.auth?.user?.role;
   const pathname = nextUrl.pathname;
 
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isCompanyRoute = pathname.startsWith("/company");
-  const isFreelancerRoute = pathname.startsWith("/freelancer");
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isCompanyRoute = pathname === "/company" || pathname.startsWith("/company/");
+  const isFreelancerRoute = pathname === "/freelancer" || pathname.startsWith("/freelancer/");
+  const isAuthRoute = pathname === "/login" || pathname.startsWith("/login/") || pathname === "/register" || pathname.startsWith("/register/");
 
   // Admin access control boundary
   // Force logged-in admins to stay within /admin paths

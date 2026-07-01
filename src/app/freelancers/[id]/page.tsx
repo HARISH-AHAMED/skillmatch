@@ -82,6 +82,7 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
         <FreelancerProfileDetail
           freelancer={freelancer as any}
           initialSaved={isSaved}
+          currentUserId={currentUserId}
         />
       </DashboardLayout>
     );
@@ -95,6 +96,7 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
         <FreelancerProfileDetail
           freelancer={freelancer as any}
           initialSaved={false}
+          currentUserId={currentUserId}
         />
       </main>
     </div>

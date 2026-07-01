@@ -330,13 +330,18 @@ export function CompanyProfileView({
         <div className="p-8 md:p-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative z-10">
           {/* Logo & Basic Info */}
           <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6">
-            <div className="h-24 w-24 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-2 flex items-center justify-center shadow-2xl relative overflow-hidden group">
+            <button
+              type="button"
+              onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
+              className="h-24 w-24 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-2 flex items-center justify-center shadow-2xl relative overflow-hidden group cursor-zoom-in hover:brightness-95 transition-all"
+              title="Click to view full logo"
+            >
               <img
                 src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
                 alt={company.companyName}
                 className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
               />
-            </div>
+            </button>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 <h1 className="text-2xl md:text-3xl font-black tracking-tight">{company.companyName}</h1>

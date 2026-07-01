@@ -970,13 +970,9 @@ export function WorkspaceView({
             <div className="flex -space-x-1.5 overflow-hidden">
               <div
                 onClick={() => {
-                  if (role === "FREELANCER") {
-                    router.push(`/companies/${companyUser.companyId}`);
-                  }
+                  router.push(`/companies/${companyUser.companyId}`);
                 }}
-                className={`h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm ${
-                  role === "FREELANCER" ? "cursor-pointer hover:opacity-90" : ""
-                }`}
+                className="h-6 w-6 rounded-full bg-[#002d59] border border-white flex items-center justify-center text-[8px] font-bold text-white shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                 title={`${companyName} (Client)`}
               >
                 C
@@ -985,13 +981,9 @@ export function WorkspaceView({
                 <div
                   key={f.id}
                   onClick={() => {
-                    if (role === "COMPANY") {
-                      router.push(`/company/freelancers/${f.freelancerId}`);
-                    }
+                    router.push(`/freelancers/${f.freelancerId}`);
                   }}
-                  className={`h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm ${
-                    role === "COMPANY" ? "cursor-pointer hover:opacity-90" : ""
-                  }`}
+                  className="h-6 w-6 rounded-full bg-sky-500 border border-white flex items-center justify-center text-[8px] font-extrabold text-white shrink-0 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                   title={`${f.name} (Freelancer)`}
                 >
                   {f.image ? (
@@ -1329,17 +1321,12 @@ export function WorkspaceView({
                         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Collaborators</h3>
                         
                         <div className="space-y-3 pt-1 text-xs">
-                          {/* Company */}
-                          <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2">
                             <div
                               onClick={() => {
-                                if (role === "FREELANCER") {
-                                  router.push(`/companies/${companyUser.companyId}`);
-                                }
+                                router.push(`/companies/${companyUser.companyId}`);
                               }}
-                              className={`h-7 w-7 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-[10px] text-white overflow-hidden shrink-0 ${
-                                role === "FREELANCER" ? "cursor-pointer hover:opacity-90" : ""
-                              }`}
+                              className="h-7 w-7 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-[10px] text-white overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                             >
                               {companyUser.image ? (
                                 <img src={companyUser.image} className="h-full w-full object-cover" />
@@ -1350,13 +1337,9 @@ export function WorkspaceView({
                             <div className="min-w-0">
                               <p
                                 onClick={() => {
-                                  if (role === "FREELANCER") {
-                                    router.push(`/companies/${companyUser.companyId}`);
-                                  }
+                                  router.push(`/companies/${companyUser.companyId}`);
                                 }}
-                                className={`font-extrabold text-slate-800 truncate ${
-                                  role === "FREELANCER" ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""
-                                }`}
+                                className="font-extrabold text-slate-800 truncate cursor-pointer hover:underline hover:text-[#3ac0ff]"
                               >
                                 {companyName}
                               </p>
@@ -1368,13 +1351,9 @@ export function WorkspaceView({
                             <div key={f.id} className="flex items-center gap-2">
                               <div
                                 onClick={() => {
-                                  if (role === "COMPANY") {
-                                    router.push(`/company/freelancers/${f.freelancerId}`);
-                                  }
+                                  router.push(`/freelancers/${f.freelancerId}`);
                                 }}
-                                className={`h-7 w-7 rounded-full bg-sky-500/20 text-[#002d59] font-extrabold flex items-center justify-center text-[10px] overflow-hidden shrink-0 ${
-                                  role === "COMPANY" ? "cursor-pointer hover:opacity-90" : ""
-                                }`}
+                                className="h-7 w-7 rounded-full bg-sky-500/20 text-[#002d59] font-extrabold flex items-center justify-center text-[10px] overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                               >
                                 {f.image ? (
                                   <img src={f.image} className="h-full w-full object-cover" />
@@ -1385,13 +1364,9 @@ export function WorkspaceView({
                               <div className="min-w-0">
                                 <p
                                   onClick={() => {
-                                    if (role === "COMPANY") {
-                                      router.push(`/company/freelancers/${f.freelancerId}`);
-                                    }
+                                    router.push(`/freelancers/${f.freelancerId}`);
                                   }}
-                                  className={`font-extrabold text-slate-800 truncate ${
-                                    role === "COMPANY" ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""
-                                  }`}
+                                  className="font-extrabold text-slate-800 truncate cursor-pointer hover:underline hover:text-[#3ac0ff]"
                                 >
                                   {f.name}
                                 </p>
@@ -1629,20 +1604,17 @@ export function WorkspaceView({
                           };
                           const headerInfo = getActiveChannelHeaderInfo();
                           const handleHeaderClick = () => {
-                             if (role === "COMPANY" && activeChannel.startsWith("dm:")) {
+                             if (activeChannel.startsWith("dm:")) {
                                const targetId = activeChannel.slice(3);
                                const freelancer = hiredFreelancers.find(f => f.id === targetId);
                                if (freelancer) {
-                                 router.push(`/company/freelancers/${freelancer.freelancerId}`);
-                               }
-                             } else if (role === "FREELANCER" && activeChannel.startsWith("dm:")) {
-                               const targetId = activeChannel.slice(3);
-                               if (targetId === companyUser.id) {
+                                 router.push(`/freelancers/${freelancer.freelancerId}`);
+                               } else if (targetId === companyUser.id) {
                                  router.push(`/companies/${companyUser.companyId}`);
                                }
                              }
                            };
-                           const isClickableDM = (role === "COMPANY" && activeChannel.startsWith("dm:") && hiredFreelancers.some(f => f.id === activeChannel.slice(3))) || (role === "FREELANCER" && activeChannel.startsWith("dm:") && activeChannel.slice(3) === companyUser.id);
+                           const isClickableDM = activeChannel.startsWith("dm:") && (hiredFreelancers.some(f => f.id === activeChannel.slice(3)) || activeChannel.slice(3) === companyUser.id);
                           return (
                             <>
                               <div
@@ -1725,9 +1697,9 @@ export function WorkspaceView({
                           const freelancerInfo = hiredFreelancers.find(f => f.id === msg.senderId);
                           const isFreelancerSender = !!freelancerInfo;
                           const handleSenderClick = () => {
-                             if (role === "COMPANY" && isFreelancerSender) {
-                               router.push(`/company/freelancers/${freelancerInfo.freelancerId}`);
-                             } else if (role === "FREELANCER" && msg.senderId === companyUser.id) {
+                             if (isFreelancerSender) {
+                               router.push(`/freelancers/${freelancerInfo.freelancerId}`);
+                             } else if (msg.senderId === companyUser.id) {
                                router.push(`/companies/${companyUser.companyId}`);
                              }
                            };
@@ -1741,7 +1713,7 @@ export function WorkspaceView({
                               <div
                                  onClick={handleSenderClick}
                                  className={`h-8 w-8 rounded-full bg-[#002d59] flex items-center justify-center font-bold text-xs text-white shrink-0 overflow-hidden shadow-sm ${
-                                   (role === "COMPANY" && isFreelancerSender) || (role === "FREELANCER" && msg.senderId === companyUser.id) ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+                                   isFreelancerSender || msg.senderId === companyUser.id ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
                                  }`}
                                >
                                 {msg.sender.image ? <img src={msg.sender.image} className="h-full w-full object-cover" /> : (msg.sender.name ? msg.sender.name[0].toUpperCase() : "U")}
@@ -1751,7 +1723,7 @@ export function WorkspaceView({
                                 <div className={`flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase ${isMe ? "justify-end" : ""}`}>
                                   <span
                                      onClick={handleSenderClick}
-                                     className={(role === "COMPANY" && isFreelancerSender) || (role === "FREELANCER" && msg.senderId === companyUser.id) ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""}
+                                     className={isFreelancerSender || msg.senderId === companyUser.id ? "cursor-pointer hover:underline hover:text-[#3ac0ff]" : ""}
                                    >
                                      {msg.sender.name}
                                    </span>
@@ -2570,13 +2542,9 @@ export function WorkspaceView({
                         <div className="flex gap-4 items-start">
                           <div
                              onClick={() => {
-                               if (role === "COMPANY") {
-                                 router.push(`/company/freelancers/${freelancer.freelancerId}`);
-                               }
+                               router.push(`/freelancers/${freelancer.freelancerId}`);
                              }}
-                             className={`h-16 w-16 rounded-full bg-[#002d59]/10 border border-slate-200 flex items-center justify-center font-bold text-xl text-[#002d59] overflow-hidden shrink-0 ${
-                               role === "COMPANY" ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
-                             }`}
+                             className="h-16 w-16 rounded-full bg-[#002d59]/10 border border-slate-200 flex items-center justify-center font-bold text-xl text-[#002d59] overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                            >
                             {freelancer.image ? <img src={freelancer.image} className="h-full w-full object-cover" /> : freelancer.name?.[0].toUpperCase()}
                           </div>
@@ -2584,14 +2552,10 @@ export function WorkspaceView({
                           <div className="space-y-1.5 min-w-0">
                             <h3
                                onClick={() => {
-                                 if (role === "COMPANY") {
-                                   router.push(`/company/freelancers/${freelancer.freelancerId}`);
-                                 }
+                                 router.push(`/freelancers/${freelancer.freelancerId}`);
                                }}
-                               className={`font-extrabold text-slate-850 text-base truncate ${
-                                 role === "COMPANY" ? "cursor-pointer hover:underline hover:text-[#002d59]" : ""
-                               }`}
-                             >
+                               className="font-extrabold text-slate-850 text-base truncate cursor-pointer hover:underline hover:text-[#002d59]"
+                            >
                                {freelancer.name}
                             </h3>
                             <p className="text-[11px] font-bold text-[#002d59] uppercase tracking-wide">Freelancer Professional</p>
@@ -2642,12 +2606,24 @@ export function WorkspaceView({
                       </div>
 
                       <div className="flex gap-4 items-start">
-                        <div className="h-16 w-16 rounded-full bg-[#002d59] border border-slate-200 flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0">
+                        <div
+                          onClick={() => {
+                            router.push(`/companies/${companyUser.companyId}`);
+                          }}
+                          className="h-16 w-16 rounded-full bg-[#002d59] border border-slate-200 flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                        >
                           {companyUser.image ? <img src={companyUser.image} className="h-full w-full object-cover" /> : "C"}
                         </div>
                         
                         <div className="space-y-1.5 min-w-0">
-                          <h3 className="font-extrabold text-slate-850 text-base truncate">{companyName}</h3>
+                          <h3
+                            onClick={() => {
+                              router.push(`/companies/${companyUser.companyId}`);
+                            }}
+                            className="font-extrabold text-slate-850 text-base truncate cursor-pointer hover:underline hover:text-[#002d59]"
+                          >
+                            {companyName}
+                          </h3>
                           <p className="text-[11px] font-bold text-[#002d59] uppercase tracking-wide">Client Organization</p>
                           
                           <div className="flex items-center gap-2 pt-1">

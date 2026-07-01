@@ -44,6 +44,7 @@ interface SidebarProps {
 export function Sidebar({ role, userName, notifications = [], className }: SidebarProps) {
   const pathname = usePathname();
   const [workspaces, setWorkspaces] = useState<{ id: string; label: string; href: string; applicationIds?: string[] }[]>([]);
+  const [profileHref, setProfileHref] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -57,7 +58,21 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         console.error("Failed to load workspaces:", error);
       }
     };
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.href) {
+            setProfileHref(data.href);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load profile info:", error);
+      }
+    };
     fetchWorkspaces();
+    fetchProfile();
   }, []);
 
   const getNavItems = () => {
@@ -180,15 +195,30 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
 
       {/* Profile summary & Logout */}
       <div className="border-t border-slate-200/80 pt-4 space-y-3">
-        <div className="flex items-center gap-3 px-2">
-          <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200">
-            {userName ? userName[0].toUpperCase() : "U"}
+        {profileHref ? (
+          <Link
+            href={profileHref}
+            className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-100/80 rounded-xl transition-colors cursor-pointer"
+          >
+            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0">
+              {userName ? userName[0].toUpperCase() : "U"}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
+              <p className="text-[10px] text-slate-500 capitalize truncate">{role.toLowerCase()}</p>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3 px-2 py-1.5">
+            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0">
+              {userName ? userName[0].toUpperCase() : "U"}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
+              <p className="text-[10px] text-slate-500 capitalize truncate">{role.toLowerCase()}</p>
+            </div>
           </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
-            <p className="text-[10px] text-slate-500 capitalize truncate">{role.toLowerCase()}</p>
-          </div>
-        </div>
+        )}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all cursor-pointer"

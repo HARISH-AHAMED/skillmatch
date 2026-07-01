@@ -81,17 +81,19 @@ interface FreelancerProfileDetailProps {
     applications: CompletedApplicationItem[];
   };
   initialSaved: boolean;
+  currentUserId?: string | null;
 }
 
 export function FreelancerProfileDetail({
   freelancer,
   initialSaved,
+  currentUserId,
 }: FreelancerProfileDetailProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
-  const isOwnProfile = session?.user?.id === freelancer.user.id;
+  const isOwnProfile = (currentUserId || session?.user?.id) === freelancer.user.id;
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleToggleSave = async () => {
