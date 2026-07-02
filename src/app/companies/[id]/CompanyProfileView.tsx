@@ -356,26 +356,29 @@ export function CompanyProfileView({
         </button>
       </div>
 
-      {/* 1. Header Banner with Overlapping Logo — LinkedIn-style */}
-      <Card className="overflow-hidden bg-white border border-slate-100 shadow-xl rounded-3xl">
-        {/* Banner image / gradient */}
-        <div className="h-44 md:h-52 w-full relative bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75] overflow-hidden">
-          {company.bannerUrl ? (
-            <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
-          ) : (
-            <>
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/30 via-[#0a4885] to-[#002d59]" />
-              <div className="absolute -right-8 -top-8 opacity-[0.07] pointer-events-none">
-                <Building2 className="h-72 w-72 text-white" />
-              </div>
-            </>
-          )}
+      {/* 1. Header Banner — LinkedIn-style */}
+      <Card className="bg-white border border-slate-100 shadow-xl rounded-3xl overflow-hidden">
+        {/* Relative wrapper — banner + logo live here, logo sticks out below banner */}
+        <div className="relative">
+          {/* Banner: overflow-hidden clips only its own content, NOT the logo sibling */}
+          <div className="h-40 md:h-52 w-full overflow-hidden bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75]">
+            {company.bannerUrl ? (
+              <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-400/25 via-[#0a4885] to-[#002d59]" />
+                <div className="absolute right-0 top-0 opacity-[0.06] pointer-events-none">
+                  <Building2 className="h-64 w-64 text-white" />
+                </div>
+              </>
+            )}
+          </div>
 
-          {/* Logo — absolutely positioned so it hangs off the bottom edge of the banner */}
+          {/* Logo — sibling to banner, translate-y-1/2 makes it straddle the banner edge */}
           <button
             type="button"
             onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-            className="absolute -bottom-10 left-6 md:left-8 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-white p-1.5 border-4 border-white shadow-2xl overflow-hidden group cursor-zoom-in z-10"
+            className="absolute bottom-0 left-5 md:left-8 translate-y-1/2 h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-white p-1.5 border-4 border-white shadow-xl overflow-hidden group cursor-zoom-in z-20"
             title="Click to view full logo"
           >
             <img
@@ -386,101 +389,91 @@ export function CompanyProfileView({
           </button>
         </div>
 
-        {/* Content below banner — top padding creates clearance for the hanging logo */}
-        <div className="px-6 pt-14 md:pt-12 pb-6 md:px-8 md:pb-7">
-          <div className="flex flex-col md:flex-row md:items-start gap-4 justify-between">
-            {/* Left: company name + meta (offset right of logo space on desktop) */}
-            <div className="pl-0 md:pl-36 space-y-2 text-center md:text-left">
+        {/* Content — pt accommodates logo overlap (half of logo height + gap) */}
+        <div className="px-5 md:px-8 pt-14 md:pt-16 pb-5 md:pb-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
+
+            {/* Left: name + meta — pl-24 on desktop to clear logo footprint */}
+            <div className="pl-0 md:pl-28 min-w-0">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59] leading-tight">{company.companyName}</h1>
-                <Badge className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/30 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5">
-                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff]" /> Verified Company
-                </Badge>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#002d59] leading-snug">{company.companyName}</h1>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#002d59] bg-[#3ac0ff]/10 border border-[#3ac0ff]/30 rounded-full px-2 py-0.5">
+                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff]" /> Verified
+                </span>
               </div>
 
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-3 gap-y-1 text-slate-500 text-xs font-medium">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-2 gap-y-0.5 text-slate-500 text-xs font-medium mt-1">
                 {company.industry && <span>{company.industry}</span>}
                 {company.companySize && <><span className="text-slate-300">·</span><span>{company.companySize}</span></>}
                 {company.location && (
                   <><span className="text-slate-300">·</span>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-0.5">
                     <MapPin className="h-3 w-3 text-[#3ac0ff]" />{company.location}
                   </span></>
                 )}
                 {company.foundedYear && <><span className="text-slate-300">·</span><span>Est. {company.foundedYear}</span></>}
               </div>
-
-              {/* Verification badges */}
-              <div className="flex flex-wrap gap-1 pt-0.5 justify-center md:justify-start">
-                {company.verificationBadges.map((badge, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-600 rounded-md py-0.5 px-2">
-                    ✓ {badge}
-                  </span>
-                ))}
-              </div>
             </div>
 
-            {/* Right: action buttons */}
-            <div className="flex flex-wrap justify-center md:justify-end items-center gap-2 shrink-0">
-              <Button
+            {/* Right: action buttons — compact on mobile (icon + short label), full on desktop */}
+            <div className="flex items-center justify-center md:justify-end gap-1.5 flex-wrap shrink-0">
+              <button
                 onClick={handleFollowToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold px-3 h-8 ${
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer ${
                   isFollowing
                     ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
-                    : "bg-[#002d59] hover:bg-[#001f3f] text-white border-0 shadow-sm"
+                    : "bg-[#002d59] hover:bg-[#001f3f] text-white shadow-sm"
                 }`}
               >
-                <Heart className={`h-3.5 w-3.5 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
-                {isFollowing ? "Following" : "Follow"} ({followerCount})
-              </Button>
+                <Heart className={`h-3.5 w-3.5 shrink-0 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
+                <span className="hidden sm:inline">{isFollowing ? "Following" : "Follow"}</span>
+                <span className="text-[10px] opacity-70">({followerCount})</span>
+              </button>
 
-              <Button
-                variant="outline"
+              <button
                 onClick={handleAlertToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""}`}
                 title="Job Alerts"
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""}`}
               >
-                <Bell className={`h-3.5 w-3.5 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
-                {isAlerted ? "Alerts On" : "Job Alerts"}
-              </Button>
+                <Bell className={`h-3.5 w-3.5 shrink-0 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                <span className="hidden sm:inline">{isAlerted ? "Alerts On" : "Job Alerts"}</span>
+              </button>
 
-              <Button
-                variant="outline"
+              <button
                 onClick={handleWatchlistToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""}`}
                 title="Watchlist"
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""}`}
               >
-                <Bookmark className={`h-3.5 w-3.5 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
-                {isWatchlisted ? "Watchlisted" : "Watchlist"}
-              </Button>
+                <Bookmark className={`h-3.5 w-3.5 shrink-0 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
+                <span className="hidden sm:inline">{isWatchlisted ? "Saved" : "Save"}</span>
+              </button>
 
-              <Button
-                variant="outline"
+              <button
                 onClick={handleCommunityToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""}`}
-                title="Talent Community"
+                title="Join Talent Community"
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""}`}
               >
-                <Users className={`h-3.5 w-3.5 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
-                {isCommunity ? "Joined" : "Join Talent"}
-              </Button>
+                <Users className={`h-3.5 w-3.5 shrink-0 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
+                <span className="hidden sm:inline">{isCommunity ? "Member" : "Join"}</span>
+              </button>
 
-              <Button
-                variant="outline"
+              <button
                 onClick={handleShare}
-                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                title="Share Profile"
+                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
               >
-                <Share2 className="h-3.5 w-3.5 text-slate-500" />
-                {copied ? "Copied!" : "Share"}
-              </Button>
+                <Share2 className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
+              </button>
 
               {isCompanyOwner && (
-                <Button
+                <button
                   onClick={() => router.push("/company/profile")}
-                  className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-sm"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-amber-400 hover:bg-amber-500 text-[#002d59] shadow-sm border-0"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit Profile
-                </Button>
+                  <Pencil className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </button>
               )}
             </div>
           </div>
