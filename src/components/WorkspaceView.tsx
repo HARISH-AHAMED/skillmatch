@@ -421,8 +421,8 @@ export function WorkspaceView({
 }: WorkspaceViewProps) {
   const router = useRouter();
 
-  // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "team"
-  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "team">("overview");
+  // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones"
+  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones">("overview");
 
   // Mobile menu drawer toggle state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1101,6 +1101,7 @@ export function WorkspaceView({
       <nav className="bg-white border-b border-slate-200 px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">
         {[
           { id: "overview", label: "Overview", icon: LayoutDashboard },
+          { id: "milestones", label: "Milestones", icon: Sparkles },
           { id: "tasks", label: "Tasks", icon: CheckSquare },
           { id: "deliverables", label: "Deliverables", icon: Archive },
           { id: "messages", label: "Chat", icon: MessageSquare },
@@ -1122,6 +1123,15 @@ export function WorkspaceView({
               tabBadge = (
                 <span className="bg-amber-50 text-amber-600 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-amber-200/50">
                   {pendingTasks}
+                </span>
+              );
+            }
+          } else if (item.id === "milestones") {
+            const pendingMilestones = updates.filter(u => u.status !== "COMPLETED").length;
+            if (pendingMilestones > 0) {
+              tabBadge = (
+                <span className="bg-purple-50 text-purple-600 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-purple-200/50">
+                  {pendingMilestones}
                 </span>
               );
             }
@@ -2706,6 +2716,167 @@ export function WorkspaceView({
 
                   </div>
 
+                </div>
+              )}
+
+              {/* milestones TAB */}
+              {activeView === "milestones" && (
+                <div className="space-y-6">
+                  {/* Header Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-base font-black text-slate-800">Project Milestones & Escrow</h2>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        Track progress, secure funds, and release payments for completed phases.
+                      </p>
+                    </div>
+                    {role === "COMPANY" && (
+                      <Button
+                        type="button"
+                        onClick={() => setShowAddMilestoneModal(true)}
+                        className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-xs h-9 px-4 cursor-pointer flex items-center gap-1.5 rounded-xl shadow-xs"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Milestone Phase</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Escrow Wallets Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Total Contract Budget</span>
+                      <span className="font-extrabold text-[#002d59] text-lg mt-1.5 block">${projectBudget.toLocaleString()}</span>
+                      <span className="text-[8px] text-slate-400 block mt-1 font-semibold">Allocated Project Cap</span>
+                    </Card>
+
+                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-sky-650">Secured in Escrow</span>
+                      <span className="font-extrabold text-sky-600 text-lg mt-1.5 block">${fundsEscrowed.toLocaleString()}</span>
+                      <span className="text-[8px] text-sky-400 block mt-1 font-semibold">Active Work In Progress</span>
+                    </Card>
+
+                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-emerald-650">Released to Freelancer</span>
+                      <span className="font-extrabold text-emerald-600 text-lg mt-1.5 block">${fundsPaid.toLocaleString()}</span>
+                      <span className="text-[8px] text-emerald-400 block mt-1 font-semibold">Disbursed for Finished Milestones</span>
+                    </Card>
+
+                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-amber-650">Remaining Budget Balance</span>
+                      <span className="font-extrabold text-amber-600 text-lg mt-1.5 block">
+                        ${Math.max(projectBudget - fundsPaid - fundsEscrowed, 0).toLocaleString()}
+                      </span>
+                      <span className="text-[8px] text-amber-400 block mt-1 font-semibold">Future Unfunded Deliverables</span>
+                    </Card>
+                  </div>
+
+                  {/* Milestones list card */}
+                  <div className="space-y-4">
+                    {updates.length === 0 ? (
+                      <Card className="p-12 text-center bg-white border border-slate-200/60 rounded-3xl space-y-3">
+                        <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                          <Sparkles className="h-6 w-6" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-700">No milestone phases created.</p>
+                        <p className="text-xs text-slate-400">
+                          {role === "COMPANY" 
+                            ? "Create milestone phases to distribute payments across deliverables."
+                            : "Awaiting client to create project milestones."}
+                        </p>
+                      </Card>
+                    ) : (
+                      [...updates].reverse().map((milestone, idx) => {
+                        const { amount, cleanTitle } = parseMilestoneAmount(milestone.title, milestone.description || "");
+                        return (
+                          <Card 
+                            key={milestone.id} 
+                            className={`border rounded-3xl p-5 bg-white shadow-xs relative overflow-hidden transition-all ${
+                              milestone.status === "COMPLETED" ? "border-emerald-100/60 shadow-emerald-500/5 bg-emerald-50/5" :
+                              milestone.status === "IN_PROGRESS" ? "border-sky-100/60 shadow-sky-500/5 bg-sky-50/5 animate-pulse-slow" : "border-slate-200/60"
+                            }`}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2.5 flex-wrap">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-md">
+                                    Phase #{updates.length - idx}
+                                  </span>
+                                  <h4 className="font-extrabold text-slate-800 text-sm">{cleanTitle}</h4>
+                                  <Badge 
+                                    variant={
+                                      milestone.status === "COMPLETED" ? "success" :
+                                      milestone.status === "IN_PROGRESS" ? "primary" : "neutral"
+                                    }
+                                  >
+                                    {milestone.status === "COMPLETED" ? "Released" : 
+                                     milestone.status === "IN_PROGRESS" ? "In Escrow" : "Pending Funding"}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-slate-550 leading-relaxed max-w-2xl">
+                                  {milestone.description || "No deliverable description specified."}
+                                </p>
+                              </div>
+                              <div className="text-left sm:text-right shrink-0">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Phase Value</span>
+                                <span className="text-base font-black text-[#002d59] mt-0.5 block">${amount.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            {/* Actions block */}
+                            <div className="mt-4 pt-3.5 border-t border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-450 uppercase">
+                                <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                <span>Created on {new Date(milestone.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {milestone.status === "PENDING" && (
+                                  role === "COMPANY" ? (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "IN_PROGRESS")}
+                                      size="sm"
+                                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 h-8 cursor-pointer rounded-xl border-none"
+                                    >
+                                      Fund & Start Phase
+                                    </Button>
+                                  ) : (
+                                    <span className="text-[9px] font-black text-slate-400 bg-slate-50 border border-slate-200/50 py-1 px-3 rounded-full uppercase tracking-wider">
+                                      Awaiting client funding to activate
+                                    </span>
+                                  )
+                                )}
+
+                                {milestone.status === "IN_PROGRESS" && (
+                                  role === "COMPANY" ? (
+                                    <Button
+                                      onClick={() => handleUpdateMilestoneStatus(milestone.id, "COMPLETED")}
+                                      size="sm"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 h-8 cursor-pointer rounded-xl border-none"
+                                    >
+                                      Approve & Release Payment
+                                    </Button>
+                                  ) : (
+                                    <span className="text-[9px] font-black text-sky-700 bg-sky-50 border border-sky-200 py-1 px-3 rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                      Funds secured in escrow (active phase)
+                                    </span>
+                                  )
+                                )}
+
+                                {milestone.status === "COMPLETED" && (
+                                  <span className="text-[9px] font-black text-emerald-750 bg-emerald-50 border border-emerald-250 py-1 px-3 rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                    Funds released to freelancer wallet
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
 
