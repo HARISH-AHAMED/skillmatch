@@ -873,41 +873,14 @@ export function CompanyProfileView({
                   </div>
                 )}
 
-                {/* Upload gallery photos/videos (only available for Company Owner!) */}
+                {/* Upload gallery photos (Company Owner only) */}
                 {isCompanyOwner && (
-                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-205 rounded-2xl mt-6 space-y-4 text-xs">
+                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl mt-6 space-y-4 text-xs">
                     <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                       <span className="font-bold text-[#002d59] flex items-center gap-1.5">
-                        <Upload className="h-4 w-4 text-[#3ac0ff]" /> Upload Media to Gallery
+                        <Upload className="h-4 w-4 text-[#3ac0ff]" /> Upload Photo to Gallery
                       </span>
-                      <div className="flex gap-2">
-                        <label className="flex items-center gap-1 font-semibold text-slate-650 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="media_type"
-                            checked={uploadType === "PHOTO"}
-                            onChange={() => {
-                              setUploadType("PHOTO");
-                              setMediaFile(null);
-                              setMediaPreview(null);
-                            }}
-                          />
-                          Photo
-                        </label>
-                        <label className="flex items-center gap-1 font-semibold text-slate-650 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="media_type"
-                            checked={uploadType === "VIDEO"}
-                            onChange={() => {
-                              setUploadType("VIDEO");
-                              setMediaFile(null);
-                              setMediaPreview(null);
-                            }}
-                          />
-                          Video
-                        </label>
-                      </div>
+                      <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Max 5MB · Images only</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -915,31 +888,29 @@ export function CompanyProfileView({
                         <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
                           <input
                             type="file"
-                            accept={uploadType === "PHOTO" ? "image/*" : "video/*"}
+                            accept="image/*"
                             onChange={handleMediaFileChange}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
                           <div className="text-center space-y-1">
                             <Plus className="h-5 w-5 text-slate-400 mx-auto group-hover:scale-110 transition-transform" />
-                            <p className="text-[10px] font-bold text-slate-650 uppercase">Select File</p>
-                            <p className="text-[9px] text-slate-405 font-semibold">
-                              Upload {uploadType.toLowerCase()} file (Max {uploadType === "VIDEO" ? "20MB" : "5MB"})
-                            </p>
+                            <p className="text-[10px] font-bold text-slate-600 uppercase">Select Photo</p>
+                            <p className="text-[9px] text-slate-400 font-semibold">PNG, JPG, WebP — max 5MB</p>
                           </div>
                         </div>
                       </div>
 
-                      {mediaPreview && uploadType === "PHOTO" && (
-                        <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white relative">
+                      {mediaPreview && (
+                        <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white">
                           <img src={mediaPreview} alt="preview" className="h-full w-full object-cover" />
                         </div>
                       )}
+                    </div>
 
-                      {mediaPreview && uploadType === "VIDEO" && (
-                        <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white relative flex items-center justify-center">
-                          <Video className="h-6 w-6 text-[#002d59]" />
-                        </div>
-                      )}
+                    {/* Coming soon: video */}
+                    <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="text-base">🎥</span>
+                      <p className="text-[9px] font-bold text-amber-700">Video upload coming soon — requires cloud storage setup.</p>
                     </div>
 
                     {mediaFile && (
@@ -948,22 +919,20 @@ export function CompanyProfileView({
                           variant="outline"
                           size="sm"
                           type="button"
-                          onClick={() => {
-                            setMediaFile(null);
-                            setMediaPreview(null);
-                          }}
+                          onClick={() => { setMediaFile(null); setMediaPreview(null); }}
                           disabled={uploadingMedia}
                         >
                           Cancel
                         </Button>
                         <Button type="submit" size="sm" disabled={uploadingMedia}>
-                          {uploadingMedia ? "Uploading..." : `Add ${uploadType === "PHOTO" ? "Photo" : "Video"}`}
+                          {uploadingMedia ? "Uploading..." : "Add Photo"}
                         </Button>
                       </div>
                     )}
                   </form>
                 )}
               </Card>
+
 
               {/* Team Showcase */}
               <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-5">
