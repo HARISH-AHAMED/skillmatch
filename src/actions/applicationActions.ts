@@ -233,3 +233,67 @@ export async function hireApplicant(applicationId: string) {
 
   return { success: true };
 }
+
+export async function removeFreelancer(applicationId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    throw new Error("Unauthorized");
+  }
+
+  const application = await db.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      project: true,
+      freelancer: {
+        include: {
+          user: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!application) {
+    throw new Error("Application not found");
+  }
+
+  const projectId = application.projectId;
+
+  // 1. Revert application status to REJECTED so they are no longer marked as hired
+  await db.application.update({
+    where: { id: applicationId },
+    data: { status: ApplicationStatus.REJECTED },
+  });
+
+  // 2. Count the number of currently hired freelancers for this project
+  const hiredCount = await db.application.count({
+    where: {
+      projectId,
+      status: ApplicationStatus.HIRED,
+    },
+  });
+
+  // 3. Re-open project to OPEN if hiring count falls below limit and status is IN_PROGRESS
+  if (hiredCount < application.project.freelancersLimit && application.project.status === ProjectStatus.IN_PROGRESS) {
+    await db.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.OPEN },
+    });
+  }
+
+  // 4. Notify freelancer
+  await db.notification.create({
+    data: {
+      userId: application.freelancer.user.id,
+      title: "Removed from Project",
+      message: `You have been released/removed from the project '${application.project.title}'.`,
+    },
+  });
+
+  revalidatePath("/company/applicants");
+  revalidatePath("/company/dashboard");
+  revalidatePath("/company/projects");
+  revalidatePath("/freelancer/applications");
+  revalidatePath("/freelancer/dashboard");
+
+  return { success: true };
+}

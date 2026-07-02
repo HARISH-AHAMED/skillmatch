@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { shortlistApplicant, rejectApplicant, hireApplicant } from "@/actions/applicationActions";
+import { shortlistApplicant, rejectApplicant, hireApplicant, removeFreelancer } from "@/actions/applicationActions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -98,7 +98,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  const handleAction = async (id: string, actionType: "shortlist" | "reject" | "hire") => {
+  const handleAction = async (id: string, actionType: "shortlist" | "reject" | "hire" | "remove") => {
     setLoadingId(`${id}-${actionType}`);
     try {
       if (actionType === "shortlist") {
@@ -106,9 +106,14 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       } else if (actionType === "reject") {
         await rejectApplicant(id);
       } else if (actionType === "hire") {
-        const confirmHiring = confirm("Are you sure you want to hire this freelancer? This will mark the project as IN PROGRESS and reject all other applicants.");
+        const confirmHiring = confirm("Are you sure you want to hire this freelancer? This will register them as active talent on this project.");
         if (confirmHiring) {
           await hireApplicant(id);
+        }
+      } else if (actionType === "remove") {
+        const confirmRemoval = confirm("Are you sure you want to remove/release this freelancer from the project? They will lose workspace access immediately.");
+        if (confirmRemoval) {
+          await removeFreelancer(id);
         }
       }
       router.refresh();
@@ -242,7 +247,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
         applicants.map((app) => {
           const isHired = app.status === ApplicationStatus.HIRED;
           const isRejected = app.status === ApplicationStatus.REJECTED;
-          const isProjectActive = app.project.status === "OPEN";
+          const isProjectActive = app.project.status === "OPEN" || app.project.status === "IN_PROGRESS";
 
           return (
             <Card key={app.id} className="p-6 border-slate-100 bg-white shadow-sm">
@@ -335,39 +340,56 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   <User className="h-3.5 w-3.5 text-[#002d59]" /> View Profile
                 </Button>
 
-                {isProjectActive && !isHired && !isRejected && (
+                {isProjectActive && (
                   <div className="flex flex-wrap gap-2.5 w-full sm:w-auto justify-end">
-                    {app.status !== ApplicationStatus.SHORTLISTED && (
+                    {/* Hired candidate removal */}
+                    {isHired && (
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleAction(app.id, "shortlist")}
+                        variant="ghost"
+                        onClick={() => handleAction(app.id, "remove")}
                         disabled={loadingId !== null}
-                        className="cursor-pointer text-xs"
+                        className="cursor-pointer text-xs text-rose-600 hover:text-rose-50 hover:bg-rose-50"
                       >
-                        {loadingId === `${app.id}-shortlist` ? "Processing..." : "Shortlist Applicant"}
+                        {loadingId === `${app.id}-remove` ? "Removing..." : "Remove Freelancer"}
                       </Button>
                     )}
 
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={() => handleAction(app.id, "hire")}
-                      disabled={loadingId !== null}
-                      className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 border-emerald-500/20"
-                    >
-                      {loadingId === `${app.id}-hire` ? "Hiring..." : "Hire Freelancer"}
-                    </Button>
+                    {!isHired && !isRejected && (
+                      <>
+                        {app.status !== ApplicationStatus.SHORTLISTED && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAction(app.id, "shortlist")}
+                            disabled={loadingId !== null}
+                            className="cursor-pointer text-xs"
+                          >
+                            {loadingId === `${app.id}-shortlist` ? "Processing..." : "Shortlist Applicant"}
+                          </Button>
+                        )}
 
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleAction(app.id, "reject")}
-                      disabled={loadingId !== null}
-                      className="cursor-pointer text-xs text-rose-600 hover:text-rose-500 hover:bg-rose-50"
-                    >
-                      {loadingId === `${app.id}-reject` ? "Rejecting..." : "Reject Candidate"}
-                    </Button>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handleAction(app.id, "hire")}
+                          disabled={loadingId !== null}
+                          className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 border-emerald-500/20 text-white font-semibold"
+                        >
+                          {loadingId === `${app.id}-hire` ? "Hiring..." : "Hire Freelancer"}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleAction(app.id, "reject")}
+                          disabled={loadingId !== null}
+                          className="cursor-pointer text-xs text-rose-600 hover:text-rose-50"
+                        >
+                          {loadingId === `${app.id}-reject` ? "Rejecting..." : "Reject Candidate"}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
