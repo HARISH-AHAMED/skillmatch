@@ -97,6 +97,20 @@ export async function updateCompanyProfile(formData: {
   industry: string;
   website: string;
   location: string;
+  bannerUrl?: string;
+  logoUrl?: string;
+  companySize?: string;
+  foundedYear?: number;
+  linkedin?: string;
+  email?: string;
+  phone?: string;
+  missionVision?: string;
+  workCulture?: string;
+  hiringPhilosophy?: string;
+  galleryPhotos?: string[];
+  benefits?: string[];
+  teamMembers?: any;
+  officeLocations?: string[];
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
@@ -117,6 +131,20 @@ export async function updateCompanyProfile(formData: {
       industry: formData.industry,
       website: formData.website,
       location: formData.location,
+      bannerUrl: formData.bannerUrl ?? "",
+      logoUrl: formData.logoUrl ?? "",
+      companySize: formData.companySize ?? "10-50 employees",
+      foundedYear: formData.foundedYear ? Number(formData.foundedYear) : 2020,
+      linkedin: formData.linkedin ?? "",
+      email: formData.email ?? "",
+      phone: formData.phone ?? "",
+      missionVision: formData.missionVision ?? "",
+      workCulture: formData.workCulture ?? "",
+      hiringPhilosophy: formData.hiringPhilosophy ?? "",
+      galleryPhotos: formData.galleryPhotos ?? [],
+      benefits: formData.benefits ?? [],
+      teamMembers: formData.teamMembers ?? [],
+      officeLocations: formData.officeLocations ?? [],
     },
     create: {
       userId,
@@ -125,9 +153,24 @@ export async function updateCompanyProfile(formData: {
       industry: formData.industry,
       website: formData.website,
       location: formData.location,
+      bannerUrl: formData.bannerUrl ?? "",
+      logoUrl: formData.logoUrl ?? "",
+      companySize: formData.companySize ?? "10-50 employees",
+      foundedYear: formData.foundedYear ? Number(formData.foundedYear) : 2020,
+      linkedin: formData.linkedin ?? "",
+      email: formData.email ?? "",
+      phone: formData.phone ?? "",
+      missionVision: formData.missionVision ?? "",
+      workCulture: formData.workCulture ?? "",
+      hiringPhilosophy: formData.hiringPhilosophy ?? "",
+      galleryPhotos: formData.galleryPhotos ?? [],
+      benefits: formData.benefits ?? [],
+      teamMembers: formData.teamMembers ?? [],
+      officeLocations: formData.officeLocations ?? [],
     },
   });
 
   revalidatePath("/company/dashboard");
+  revalidatePath(`/companies/${company.id}`);
   return { success: true, company };
 }

@@ -26,6 +26,8 @@ export async function updateCompanyDetailedProfile(formData: {
   galleryPhotos?: string[];
   galleryVideos?: string[];
   verificationBadges?: string[];
+  bannerUrl?: string;
+  officeLocations?: string[];
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
@@ -69,6 +71,8 @@ export async function updateCompanyDetailedProfile(formData: {
       galleryPhotos: formData.galleryPhotos ?? [],
       galleryVideos: formData.galleryVideos ?? [],
       verificationBadges: formData.verificationBadges ?? [],
+      bannerUrl: formData.bannerUrl ?? "",
+      officeLocations: formData.officeLocations ?? [],
     },
     create: {
       userId,
@@ -91,6 +95,8 @@ export async function updateCompanyDetailedProfile(formData: {
       galleryPhotos: formData.galleryPhotos ?? [],
       galleryVideos: formData.galleryVideos ?? [],
       verificationBadges: formData.verificationBadges ?? [],
+      bannerUrl: formData.bannerUrl ?? "",
+      officeLocations: formData.officeLocations ?? [],
     },
   });
 

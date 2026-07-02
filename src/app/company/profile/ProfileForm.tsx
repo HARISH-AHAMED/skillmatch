@@ -44,6 +44,8 @@ interface ProfileFormProps {
     galleryPhotos: string[];
     galleryVideos: string[];
     verificationBadges: string[];
+    bannerUrl: string | null;
+    officeLocations: string[];
   } | null;
 }
 
@@ -67,6 +69,16 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logoUrl || "");
 
+  // Banner file upload state
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(initialData?.bannerUrl || "");
+
+  // Office locations state
+  const [officeLocationsStr, setOfficeLocationsStr] = useState(initialData?.officeLocations?.join(", ") || "");
+
+  // Gallery Photos state
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(initialData?.galleryPhotos || []);
+
   // Company Values States
   const [missionVision, setMissionVision] = useState(initialData?.missionVision || "");
   const [workCulture, setWorkCulture] = useState(initialData?.workCulture || "");
@@ -79,6 +91,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("");
   const [newMemberPhoto, setNewMemberPhoto] = useState("");
+  const [newMemberLinkedin, setNewMemberLinkedin] = useState("");
+  const [newMemberBio, setNewMemberBio] = useState("");
+  const [newMemberSkills, setNewMemberSkills] = useState("");
 
   // Benefits & Perks States
   const [benefits, setBenefits] = useState<string[]>(initialData?.benefits || []);
@@ -108,17 +123,48 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     }
   };
 
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      setBannerPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAddGalleryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const base64 = await fileToBase64(file, 1.5);
+        setGalleryPhotos([...galleryPhotos, base64]);
+      } catch (err: any) {
+        console.error(err);
+        alert(err.message || "Failed to process gallery image.");
+      }
+    }
+  };
+
+  const handleRemoveGalleryPhoto = (index: number) => {
+    setGalleryPhotos(galleryPhotos.filter((_, idx) => idx !== index));
+  };
+
   const handleAddTeamMember = () => {
     if (!newMemberName.trim() || !newMemberRole.trim()) return;
     const newMember = {
       name: newMemberName.trim(),
       role: newMemberRole.trim(),
       photoUrl: newMemberPhoto.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newMemberName}`,
+      linkedinUrl: newMemberLinkedin.trim(),
+      bio: newMemberBio.trim(),
+      skills: newMemberSkills.split(",").map(s => s.trim()).filter(Boolean),
     };
     setTeamMembers([...teamMembers, newMember]);
     setNewMemberName("");
     setNewMemberRole("");
     setNewMemberPhoto("");
+    setNewMemberLinkedin("");
+    setNewMemberBio("");
+    setNewMemberSkills("");
   };
 
   const handleRemoveTeamMember = (index: number) => {
@@ -157,6 +203,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
     try {
       let finalLogoUrl = logoPreview;
+      let finalBannerUrl = bannerPreview;
 
       // Convert logo to Base64 if a new file is selected
       if (logoFile) {
@@ -164,6 +211,17 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           finalLogoUrl = await fileToBase64(logoFile, 1.5);
         } catch (uploadErr: any) {
           setMessage({ type: "error", text: uploadErr.message || "Failed to process logo image." });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Convert banner to Base64 if a new file is selected
+      if (bannerFile) {
+        try {
+          finalBannerUrl = await fileToBase64(bannerFile, 1.5);
+        } catch (uploadErr: any) {
+          setMessage({ type: "error", text: uploadErr.message || "Failed to process banner image." });
           setLoading(false);
           return;
         }
@@ -187,6 +245,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         benefits,
         teamMembers,
         verificationBadges: selectedBadges,
+        bannerUrl: finalBannerUrl || "",
+        officeLocations: officeLocationsStr.split(",").map((o) => o.trim()).filter(Boolean),
+        galleryPhotos,
       });
 
       setMessage({ type: "success", text: "Company profile updated successfully!" });
@@ -198,6 +259,42 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       setLoading(false);
     }
   };
+
+  // Dynamically calculate company detailed completion rate
+  let fieldsCount = 0;
+  let filledCount = 0;
+
+  const checkFilled = (val: any) => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === "string") return val.trim().length > 0;
+    if (typeof val === "number") return val > 0;
+    return !!val;
+  };
+
+  const fieldsToCheck = {
+    companyName,
+    description,
+    logoPreview,
+    bannerPreview,
+    industry,
+    website,
+    location,
+    linkedin,
+    supportEmail,
+    supportPhone,
+    missionVision,
+    teamMembers,
+    galleryPhotos,
+    officeLocationsStr
+  };
+
+  Object.values(fieldsToCheck).forEach((val) => {
+    fieldsCount++;
+    if (checkFilled(val)) filledCount++;
+  });
+
+  const completionPercent = Math.round((filledCount / fieldsCount) * 100);
 
   return (
     <Card className="p-8 w-full shadow-md border border-slate-100 rounded-3xl">
@@ -212,6 +309,20 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           {message.text}
         </div>
       )}
+
+      {/* Dynamic Completion Score */}
+      <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl mb-6 space-y-2">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-bold text-slate-705">Profile Completion Strength</span>
+          <span className="font-black text-[#002d59]">{completionPercent}% Complete</span>
+        </div>
+        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+          <div 
+            className="bg-gradient-to-r from-[#3ac0ff] to-[#002d59] h-full rounded-full transition-all duration-500" 
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex overflow-x-auto no-scrollbar border-b border-slate-200 gap-4 pb-2 mb-6 whitespace-nowrap scroll-smooth md:overflow-x-visible">
@@ -240,32 +351,63 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         {/* Tab 1: Basic details */}
         {activeFormTab === "basic" && (
           <div className="space-y-5">
-            {/* Logo Upload row */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-              <div className="h-16 w-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1.5 overflow-hidden shrink-0">
-                {logoPreview ? (
-                  <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-xl" />
-                ) : (
-                  <Building className="h-8 w-8 text-slate-350" />
-                )}
+            {/* Logo and Banner Upload Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Logo Upload */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1.5 overflow-hidden shrink-0">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-xl" />
+                  ) : (
+                    <Building className="h-7 w-7 text-slate-350" />
+                  )}
+                </div>
+                <div className="space-y-1.5 flex-grow">
+                  <span className="block text-[10px] font-black uppercase text-slate-400 tracking-wider">Company Logo</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                      id="logo-file-input"
+                    />
+                    <label
+                      htmlFor="logo-file-input"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer shadow-sm"
+                    >
+                      <Upload className="h-3.5 w-3.5" /> Choose Logo
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5 flex-grow">
-                <span className="block text-xs font-bold text-slate-700">Company Logo Banner</span>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                    id="logo-file-input"
-                  />
-                  <label
-                    htmlFor="logo-file-input"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer shadow-sm"
-                  >
-                    <Upload className="h-3.5 w-3.5" /> Choose Logo
-                  </label>
-                  {logoFile && <span className="text-[10px] text-slate-500 font-semibold">{logoFile.name}</span>}
+
+              {/* Banner Upload */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="h-14 w-24 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1.5 overflow-hidden shrink-0">
+                  {bannerPreview ? (
+                    <img src={bannerPreview} alt="Banner Preview" className="h-full w-full object-cover rounded-xl" />
+                  ) : (
+                    <Building className="h-7 w-7 text-slate-350" />
+                  )}
+                </div>
+                <div className="space-y-1.5 flex-grow">
+                  <span className="block text-[10px] font-black uppercase text-slate-400 tracking-wider">Cover Banner</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="hidden"
+                      id="banner-file-input"
+                    />
+                    <label
+                      htmlFor="banner-file-input"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer shadow-sm"
+                    >
+                      <Upload className="h-3.5 w-3.5" /> Choose Banner
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -368,6 +510,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 disabled={loading}
               />
             </div>
+
+            <Input
+              label="Office Locations (comma-separated list)"
+              placeholder="e.g. Austin HQ, Remote Team, London Office, India Development Center"
+              value={officeLocationsStr}
+              onChange={(e) => setOfficeLocationsStr(e.target.value)}
+              disabled={loading}
+            />
           </div>
         )}
 
@@ -415,71 +565,173 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {/* Team Showcase list */}
             <div className="space-y-4">
               <div className="border-b border-slate-200 pb-2">
-                <h3 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">Team Members List</h3>
-                <p className="text-[10px] text-slate-400">List contacts for freelancer workflows</p>
+                <h3 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">Team Showcase</h3>
+                <p className="text-[10px] text-slate-400 font-semibold">Build a professional showcase of your leadership team and core members</p>
               </div>
 
               {teamMembers.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {teamMembers.map((member, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-3"
+                      className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs relative flex flex-col justify-between"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 bg-sky-100 border border-sky-200 rounded-lg flex items-center justify-center font-bold text-xs overflow-hidden shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTeamMember(idx)}
+                        className="absolute top-3 right-3 p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete team member"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+
+                      <div className="flex gap-3">
+                        <div className="h-14 w-14 bg-sky-100 border border-sky-200 rounded-2xl flex items-center justify-center font-bold text-base overflow-hidden shrink-0">
                           {member.photoUrl ? (
                             <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
                           ) : (
                             member.name[0]
                           )}
                         </div>
-                        <div>
-                          <h4 className="text-xs font-black text-[#002d59]">{member.name}</h4>
-                          <span className="text-[10px] text-slate-550 font-semibold">{member.role}</span>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <h4 className="text-xs font-black text-[#002d59] truncate">{member.name}</h4>
+                          <p className="text-[10px] text-slate-550 font-black uppercase tracking-wider">{member.role}</p>
+                          {member.linkedinUrl && (
+                            <a 
+                              href={member.linkedinUrl} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-[10px] text-[#3ac0ff] font-bold hover:underline block"
+                            >
+                              LinkedIn Profile
+                            </a>
+                          )}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTeamMember(idx)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                      {member.bio && (
+                        <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 p-2.5 rounded-xl italic mt-3">
+                          &quot;{member.bio}&quot;
+                        </p>
+                      )}
+
+                      {member.skills && member.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {member.skills.map((s: string, sIdx: number) => (
+                            <Badge key={sIdx} variant="neutral" className="text-[8px] py-0.5 px-2">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Add member controls */}
-              <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
-                <Input
-                  label="Name"
-                  placeholder="John Doe"
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                />
-                <Input
-                  label="Role"
-                  placeholder="HR Manager"
-                  value={newMemberRole}
-                  onChange={(e) => setNewMemberRole(e.target.value)}
-                />
-                <div className="flex gap-2">
+              <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-4">
+                <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider">Add Team Showcase Card</span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Input
-                    label="Photo Avatar Seed"
-                    placeholder="John (Dicebear)"
+                    label="Full Name"
+                    placeholder="e.g. Sarah Jenkins"
+                    value={newMemberName}
+                    onChange={(e) => setNewMemberName(e.target.value)}
+                  />
+                  <Input
+                    label="Position / Role"
+                    placeholder="e.g. Chief Executive Officer (CEO)"
+                    value={newMemberRole}
+                    onChange={(e) => setNewMemberRole(e.target.value)}
+                  />
+                  <Input
+                    label="Avatar seed / Photo URL"
+                    placeholder="e.g. sarah (for Dicebear avatar)"
                     value={newMemberPhoto}
                     onChange={(e) => setNewMemberPhoto(e.target.value)}
                   />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="LinkedIn Profile URL"
+                    placeholder="e.g. https://linkedin.com/in/sarah"
+                    value={newMemberLinkedin}
+                    onChange={(e) => setNewMemberLinkedin(e.target.value)}
+                  />
+                  <Input
+                    label="Expertise Skills (comma separated)"
+                    placeholder="e.g. leadership, fintech, next.js"
+                    value={newMemberSkills}
+                    onChange={(e) => setNewMemberSkills(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-550 uppercase">Short Professional Bio</label>
+                  <textarea
+                    placeholder="Explain background, achievements, or vision..."
+                    value={newMemberBio}
+                    onChange={(e) => setNewMemberBio(e.target.value)}
+                    rows={2}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20 focus:border-[#002d59] text-xs text-slate-800 bg-white"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-1">
                   <Button
                     type="button"
                     onClick={handleAddTeamMember}
-                    className="h-10 px-4 shrink-0 flex items-center justify-center cursor-pointer"
+                    className="h-9 px-5 flex items-center justify-center cursor-pointer text-xs font-bold gap-1.5"
                   >
-                    <Plus className="h-4 w-4" /> Add
+                    <Plus className="h-4 w-4" /> Add Team Member
                   </Button>
                 </div>
+              </div>
+            </div>
+
+            {/* Office & Event Gallery Upload */}
+            <div className="space-y-4 border-t border-slate-150 pt-4">
+              <div className="border-b border-slate-200 pb-2">
+                <h3 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">Company Gallery</h3>
+                <p className="text-[10px] text-slate-400 font-semibold">Upload photos of your workspace, office, team events, and culture highlights</p>
+              </div>
+
+              {/* Gallery Photos Grid */}
+              {galleryPhotos.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {galleryPhotos.map((photo, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-100">
+                      <img src={photo} className="h-full w-full object-cover" alt="Gallery preview" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryPhoto(idx)}
+                        className="absolute top-2 right-2 p-1 bg-white/90 hover:bg-rose-50 text-rose-500 rounded-lg shadow-sm border border-slate-100 cursor-pointer"
+                        title="Delete photo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAddGalleryPhoto}
+                  className="hidden"
+                  id="gallery-file-input"
+                />
+                <label
+                  htmlFor="gallery-file-input"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#002d59] hover:bg-[#001f3f] text-white rounded-xl text-[10px] font-bold cursor-pointer shadow-sm transition-colors"
+                >
+                  <Upload className="h-3.5 w-3.5" /> Upload Office/Team Photo
+                </label>
               </div>
             </div>
 
@@ -517,7 +769,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <Button
                   type="button"
                   onClick={handleAddBenefit}
-                  className="px-6 cursor-pointer flex items-center gap-1 font-bold text-xs"
+                  className="px-6 cursor-pointer flex items-center gap-1 font-bold text-xs shrink-0"
                 >
                   <Plus className="h-4 w-4" /> Add Perk
                 </Button>

@@ -134,6 +134,8 @@ model Company {
   industry    String?
   website     String?
   location    String?
+  bannerUrl   String?   @default("")
+  officeLocations String[] @default([])
 
   // New fields for extended Company Profile page
   logoUrl            String?   @default("")

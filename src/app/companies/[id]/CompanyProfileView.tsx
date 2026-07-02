@@ -72,6 +72,8 @@ interface CompanyProfileViewProps {
     benefits: string[];
     teamMembers: any; // array of { name, role, photoUrl }
     verificationBadges: string[];
+    bannerUrl?: string | null;
+    officeLocations?: string[];
     trustScore: number;
     reputationScore: number;
     sentimentAnalysis: string | null;
@@ -309,6 +311,38 @@ export function CompanyProfileView({
 
   const teamList = Array.isArray(company.teamMembers) ? company.teamMembers : [];
 
+  // Calculate profile completion percent dynamically
+  let fieldsCount = 0;
+  let filledCount = 0;
+  const checkFilled = (val: any) => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === "string") return val.trim().length > 0;
+    if (typeof val === "number") return val > 0;
+    return !!val;
+  };
+  const fieldsToCheck = {
+    companyName: company.companyName,
+    description: company.description,
+    logoUrl: company.logoUrl,
+    bannerUrl: company.bannerUrl,
+    industry: company.industry,
+    website: company.website,
+    location: company.location,
+    linkedin: company.linkedin,
+    email: company.email,
+    phone: company.phone,
+    missionVision: company.missionVision,
+    teamMembers: company.teamMembers,
+    galleryPhotos: company.galleryPhotos,
+    officeLocations: company.officeLocations
+  };
+  Object.values(fieldsToCheck).forEach((val) => {
+    fieldsCount++;
+    if (checkFilled(val)) filledCount++;
+  });
+  const completionPercent = Math.round((filledCount / fieldsCount) * 100);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Back Button */}
@@ -322,18 +356,28 @@ export function CompanyProfileView({
         </button>
       </div>
 
-      {/* 1. Header Banner */}
-      <Card className="overflow-hidden bg-gradient-to-r from-[#002d59] to-[#0a4885] border-0 text-white relative shadow-xl rounded-3xl">
-        <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-20 -translate-y-10 scale-150">
-          <Building2 className="h-96 w-96 text-white" />
+      {/* 1. Header Banner with Overlapping Logo */}
+      <Card className="overflow-hidden bg-white border border-slate-100 shadow-xl rounded-3xl relative">
+        {/* Large Cover Banner */}
+        <div className="h-44 md:h-60 w-full relative bg-gradient-to-r from-[#002d59] to-[#0a4885] overflow-hidden">
+          {company.bannerUrl ? (
+            <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sky-400/20 via-[#0a4885] to-[#002d59]" />
+          )}
+          <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-20 -translate-y-10 scale-150">
+            <Building2 className="h-96 w-96 text-white" />
+          </div>
         </div>
-        <div className="p-8 md:p-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative z-10">
-          {/* Logo & Basic Info */}
-          <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6">
+
+        {/* Content Details Block */}
+        <div className="px-6 pb-6 md:px-10 md:pb-8 pt-0 relative flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+          {/* Logo & Basic Info overlapping Cover Banner */}
+          <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6 -mt-12 md:-mt-16">
             <button
               type="button"
               onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-              className="h-24 w-24 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-2 flex items-center justify-center shadow-2xl relative overflow-hidden group cursor-zoom-in hover:brightness-95 transition-all"
+              className="h-24 w-24 md:h-32 md:w-32 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0"
               title="Click to view full logo"
             >
               <img
@@ -342,21 +386,22 @@ export function CompanyProfileView({
                 className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
               />
             </button>
-            <div className="space-y-2">
+            
+            <div className="space-y-2 md:pt-14">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight">{company.companyName}</h1>
-                <Badge variant="accent" className="bg-sky-400/20 text-sky-200 border-sky-300/30 flex items-center gap-1 text-[10px]">
-                  <CheckCircle2 className="h-3 w-3 text-sky-300 fill-sky-300/10" /> Verified Company
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59]">{company.companyName}</h1>
+                <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/20 flex items-center gap-1 text-[10px] font-bold">
+                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff] fill-[#3ac0ff]/10" /> Verified Company
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-slate-200 text-xs font-medium">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-slate-500 text-xs font-semibold">
                 <span>{company.industry || "General Industry"}</span>
                 <span>•</span>
                 <span>{company.companySize || "10-50 Employees"}</span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 opacity-80" />
+                  <MapPin className="h-3.5 w-3.5 opacity-80 text-[#3ac0ff]" />
                   {company.location || "Remote"}
                 </span>
                 {company.foundedYear && (
@@ -372,7 +417,7 @@ export function CompanyProfileView({
                 {company.verificationBadges.map((badge, idx) => (
                   <Badge
                     key={idx}
-                    className="text-[9px] font-bold uppercase tracking-wider bg-white/5 border-white/10 text-slate-100 py-0.5 px-2"
+                    className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-650 py-0.5 px-2"
                   >
                     ✓ {badge}
                   </Badge>
@@ -382,7 +427,7 @@ export function CompanyProfileView({
           </div>
 
           {/* Action buttons (Follow, Watchlist, Alert, Community) */}
-          <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+          <div className="flex flex-wrap justify-center md:justify-end gap-2 max-w-sm md:pt-14">
             <Button
               variant={isFollowing ? "outline" : "primary"}
               onClick={handleFollowToggle}
@@ -546,6 +591,31 @@ export function CompanyProfileView({
                   </p>
                 </Card>
               </div>
+
+              {/* Office Locations */}
+              {company.officeLocations && company.officeLocations.length > 0 && (
+                <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-[#3ac0ff]" /> Global Office Locations
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Our physical office branches and active workspace hubs</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    {company.officeLocations.map((loc, idx) => (
+                      <div key={idx} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3">
+                        <div className="h-8 w-8 bg-[#3ac0ff]/10 rounded-xl flex items-center justify-center shrink-0">
+                          <MapPin className="h-4 w-4 text-[#002d59]" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-[#002d59] block">{loc}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Office</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               {/* Perks and benefits */}
               <Card className="p-8 bg-white border border-slate-100 shadow-sm space-y-4 rounded-3xl">
@@ -906,7 +976,7 @@ export function CompanyProfileView({
                 )}
               </Card>
 
-              {/* Team Members */}
+              {/* Team Showcase */}
               <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-5">
                 <div>
                   <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Meet the Team</h3>
@@ -918,24 +988,55 @@ export function CompanyProfileView({
                     No team members listed yet.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {teamList.map((member: any, idx: number) => (
-                      <div
+                      <Card
                         key={idx}
-                        className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3.5"
+                        className="p-5 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-3.5 hover:shadow-md transition-shadow relative overflow-hidden"
                       >
-                        <div className="h-11 w-11 rounded-xl bg-sky-100 flex items-center justify-center font-bold text-[#002d59] text-xs border border-sky-200 shrink-0 overflow-hidden">
-                          {member.photoUrl ? (
-                            <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
-                          ) : (
-                            member.name ? member.name[0].toUpperCase() : "T"
-                          )}
+                        {/* Member top details */}
+                        <div className="flex gap-4">
+                          <div className="h-16 w-16 rounded-2xl bg-sky-100 flex items-center justify-center font-bold text-[#002d59] text-base border border-sky-200 shrink-0 overflow-hidden shadow-sm">
+                            {member.photoUrl ? (
+                              <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
+                            ) : (
+                              member.name ? member.name[0].toUpperCase() : "T"
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <h4 className="text-sm font-black text-[#002d59] truncate">{member.name}</h4>
+                            <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider truncate">{member.role}</p>
+                            {member.linkedinUrl && (
+                              <a
+                                href={member.linkedinUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] text-[#3ac0ff] hover:underline font-bold"
+                              >
+                                <Share2 className="h-3 w-3" /> LinkedIn Profile
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-black text-[#002d59] truncate">{member.name}</h4>
-                          <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">{member.role}</p>
-                        </div>
-                      </div>
+
+                        {/* Member bio */}
+                        {member.bio && (
+                          <p className="text-xs text-slate-500 bg-white p-3 border border-slate-100 rounded-xl italic leading-relaxed">
+                            &quot;{member.bio}&quot;
+                          </p>
+                        )}
+
+                        {/* Member skills */}
+                        {member.skills && member.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {member.skills.map((skill: string, sIdx: number) => (
+                              <Badge key={sIdx} variant="neutral" className="text-[8px] py-0.5 px-2 bg-white/80 border-slate-200">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </Card>
                     ))}
                   </div>
                 )}
@@ -946,6 +1047,34 @@ export function CompanyProfileView({
 
         {/* Right Column (Sidebar containing stats, AI Insights, hiring activity and contacts) */}
         <div className="space-y-6">
+          {/* Profile Strength Score Card */}
+          <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-[#002d59]/5 rounded-xl">
+                <Building2 className="h-4.5 w-4.5 text-[#002d59]" />
+              </div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#002d59]">Profile Strength</h3>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-slate-500">LinkedIn Profile Score</span>
+                <span className="font-black text-[#002d59]">{completionPercent}%</span>
+              </div>
+              <div className="w-full bg-slate-150 h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-[#3ac0ff] to-[#002d59] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                {completionPercent < 80 
+                  ? "Complete missing sections (cover banner, office locations, showcase details) to maximize recruiter visibility index." 
+                  : "Excellent! Your company page profile has completed premium status metrics."}
+              </p>
+            </div>
+          </Card>
+
           {/* AI Company Insights (Premium capability) */}
           <Card className="p-6 bg-[#002d59] text-white border-0 shadow-lg space-y-4 rounded-3xl relative overflow-hidden">
             <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none transform translate-y-5 scale-125">
