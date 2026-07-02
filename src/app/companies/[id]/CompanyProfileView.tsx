@@ -268,7 +268,7 @@ export function CompanyProfileView({
 
     setUploadingMedia(true);
     try {
-      const limit = uploadType === "VIDEO" ? 3.0 : 1.5;
+      const limit = uploadType === "VIDEO" ? 20.0 : 5.0;
       const fileUrl = await fileToBase64(mediaFile, limit);
 
       // Update database profile gallery lists
@@ -371,129 +371,133 @@ export function CompanyProfileView({
         </div>
 
         {/* Content Details Block */}
-        <div className="px-6 pb-6 md:px-10 md:pb-8 pt-0 relative flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-          {/* Logo & Basic Info overlapping Cover Banner */}
-          <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6 -mt-12 md:-mt-16">
-            <button
-              type="button"
-              onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-              className="h-24 w-24 md:h-32 md:w-32 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0"
-              title="Click to view full logo"
-            >
-              <img
-                src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
-                alt={company.companyName}
-                className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
-              />
-            </button>
-            
-            <div className="space-y-2 md:pt-14">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59]">{company.companyName}</h1>
-                <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/20 flex items-center gap-1 text-[10px] font-bold">
-                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff] fill-[#3ac0ff]/10" /> Verified Company
-                </Badge>
-              </div>
-
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-slate-500 text-xs font-semibold">
-                <span>{company.industry || "General Industry"}</span>
-                <span>•</span>
-                <span>{company.companySize || "10-50 Employees"}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 opacity-80 text-[#3ac0ff]" />
-                  {company.location || "Remote"}
-                </span>
-                {company.foundedYear && (
-                  <>
-                    <span>•</span>
-                    <span>Founded {company.foundedYear}</span>
-                  </>
-                )}
-              </div>
-
-              {/* Badges Grid (Header) */}
-              <div className="flex flex-wrap gap-1 pt-1 justify-center md:justify-start">
-                {company.verificationBadges.map((badge, idx) => (
-                  <Badge
-                    key={idx}
-                    className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-650 py-0.5 px-2"
-                  >
-                    ✓ {badge}
+        <div className="px-6 pb-6 md:px-10 md:pb-8 relative flex flex-col gap-6">
+          {/* Logo & Basic Info container */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-16 md:-mt-20">
+            <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
+              <button
+                type="button"
+                onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
+                className="h-28 w-28 md:h-36 md:w-36 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0 z-10 animate-in zoom-in-50 duration-300"
+                title="Click to view full logo"
+              >
+                <img
+                  src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
+                  alt={company.companyName}
+                  className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
+                />
+              </button>
+              
+              <div className="space-y-2 pb-1 z-10">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59]">{company.companyName}</h1>
+                  <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/20 flex items-center gap-1 text-[10px] font-bold">
+                    <CheckCircle2 className="h-3 w-3 text-[#3ac0ff] fill-[#3ac0ff]/10" /> Verified Company
                   </Badge>
-                ))}
+                </div>
+
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-slate-500 text-xs font-semibold">
+                  <span>{company.industry || "General Industry"}</span>
+                  <span>•</span>
+                  <span>{company.companySize || "10-50 Employees"}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5 opacity-80 text-[#3ac0ff]" />
+                    {company.location || "Remote"}
+                  </span>
+                  {company.foundedYear && (
+                    <>
+                      <span>•</span>
+                      <span>Founded {company.foundedYear}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Badges Grid (Header) */}
+                <div className="flex flex-wrap gap-1 pt-1 justify-center md:justify-start">
+                  {company.verificationBadges.map((badge, idx) => (
+                    <Badge
+                      key={idx}
+                      className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-650 py-0.5 px-2"
+                    >
+                      ✓ {badge}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Action buttons (Follow, Watchlist, Alert, Community) */}
-          <div className="flex flex-wrap justify-center md:justify-end gap-2 max-w-sm md:pt-14">
-            <Button
-              variant={isFollowing ? "outline" : "primary"}
-              onClick={handleFollowToggle}
-              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold border-white/25 hover:border-white ${
-                isFollowing ? "bg-white/15 text-white hover:bg-white/20" : "bg-[#3ac0ff] hover:bg-[#3ac0ff]/90 text-white"
-              }`}
-            >
-              <Heart className={`h-4 w-4 ${isFollowing ? "fill-white text-white" : "text-white"}`} />
-              {isFollowing ? "Following" : "Follow"} ({followerCount})
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleAlertToggle}
-              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                isAlerted ? "bg-amber-400/20 text-amber-200 border-amber-400/30" : ""
-              }`}
-              title="Job Alerts"
-            >
-              <Bell className={`h-4 w-4 ${isAlerted ? "fill-amber-300" : ""}`} />
-              {isAlerted ? "Alerts On" : "Job Alerts"}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleWatchlistToggle}
-              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                isWatchlisted ? "bg-rose-400/20 text-rose-200 border-rose-400/30" : ""
-              }`}
-              title="Watchlist"
-            >
-              <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-300 text-rose-300" : ""}`} />
-              {isWatchlisted ? "Watchlisted" : "Watchlist"}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleCommunityToggle}
-              className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10 ${
-                isCommunity ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/30" : ""
-              }`}
-              title="Talent Community"
-            >
-              <Users className="h-4 w-4" />
-              {isCommunity ? "Community Joined" : "Join Talent"}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleShare}
-              className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white/5 border-white/20 text-white hover:bg-white/10"
-            >
-              <Share2 className="h-4 w-4" />
-              {copied ? "Link Copied!" : "Share Profile"}
-            </Button>
-
-            {/* Edit Profile — only visible to company owner */}
-            {isCompanyOwner && (
+            {/* Action buttons (Follow, Watchlist, Alert, Community) */}
+            <div className="flex flex-wrap justify-center md:justify-end gap-2 max-w-sm z-10">
               <Button
-                onClick={() => router.push("/company/profile")}
-                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-md"
+                variant={isFollowing ? "outline" : "primary"}
+                onClick={handleFollowToggle}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold border-slate-200 hover:border-slate-300 ${
+                  isFollowing 
+                    ? "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-250" 
+                    : "bg-[#002d59] hover:bg-[#001f3f] text-white border-0 shadow-sm"
+                }`}
               >
-                <Pencil className="h-4 w-4" />
-                Edit Profile
+                <Heart className={`h-4 w-4 ${isFollowing ? "fill-rose-500 text-rose-500 border-0" : "text-white"}`} />
+                {isFollowing ? "Following" : "Follow"} ({followerCount})
               </Button>
-            )}
+
+              <Button
+                variant="outline"
+                onClick={handleAlertToggle}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
+                  isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""
+                }`}
+                title="Job Alerts"
+              >
+                <Bell className={`h-4 w-4 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                {isAlerted ? "Alerts On" : "Job Alerts"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleWatchlistToggle}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
+                  isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""
+                }`}
+                title="Watchlist"
+              >
+                <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-550 text-rose-550" : "text-slate-550"}`} />
+                {isWatchlisted ? "Watchlisted" : "Watchlist"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleCommunityToggle}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
+                  isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""
+                }`}
+                title="Talent Community"
+              >
+                <Users className={`h-4 w-4 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
+                {isCommunity ? "Community Joined" : "Join Talent"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+              >
+                <Share2 className="h-4 w-4 text-slate-500" />
+                {copied ? "Link Copied!" : "Share Profile"}
+              </Button>
+
+              {/* Edit Profile — only visible to company owner */}
+              {isCompanyOwner && (
+                <Button
+                  onClick={() => router.push("/company/profile")}
+                  className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-md"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit Profile
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -894,13 +898,13 @@ export function CompanyProfileView({
 
                 {/* Upload gallery photos/videos (only available for Company Owner!) */}
                 {isCompanyOwner && (
-                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl mt-6 space-y-4 text-xs">
+                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-205 rounded-2xl mt-6 space-y-4 text-xs">
                     <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                       <span className="font-bold text-[#002d59] flex items-center gap-1.5">
-                        <Upload className="h-4 w-4 text-sky-500" /> Upload Media to Gallery
+                        <Upload className="h-4 w-4 text-[#3ac0ff]" /> Upload Media to Gallery
                       </span>
                       <div className="flex gap-2">
-                        <label className="flex items-center gap-1 font-semibold text-slate-600 cursor-pointer">
+                        <label className="flex items-center gap-1 font-semibold text-slate-650 cursor-pointer">
                           <input
                             type="radio"
                             name="media_type"
@@ -913,7 +917,7 @@ export function CompanyProfileView({
                           />
                           Photo
                         </label>
-                        <label className="flex items-center gap-1 font-semibold text-slate-600 cursor-pointer">
+                        <label className="flex items-center gap-1 font-semibold text-slate-650 cursor-pointer">
                           <input
                             type="radio"
                             name="media_type"
@@ -927,7 +931,9 @@ export function CompanyProfileView({
                           Video
                         </label>
                       </div>
-                                        <div className="flex flex-col md:flex-row items-center gap-4">
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="flex-grow w-full">
                         <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
                           <input
@@ -938,17 +944,23 @@ export function CompanyProfileView({
                           />
                           <div className="text-center space-y-1">
                             <Plus className="h-5 w-5 text-slate-400 mx-auto group-hover:scale-110 transition-transform" />
-                            <p className="text-[10px] font-bold text-slate-600 uppercase">Select File</p>
-                            <p className="text-[9px] text-slate-400 font-medium">
+                            <p className="text-[10px] font-bold text-slate-650 uppercase">Select File</p>
+                            <p className="text-[9px] text-slate-405 font-semibold">
                               Upload {uploadType.toLowerCase()} file (Max {uploadType === "VIDEO" ? "20MB" : "5MB"})
                             </p>
                           </div>
                         </div>
-                      </div>  </div>
+                      </div>
 
                       {mediaPreview && uploadType === "PHOTO" && (
                         <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white relative">
                           <img src={mediaPreview} alt="preview" className="h-full w-full object-cover" />
+                        </div>
+                      )}
+
+                      {mediaPreview && uploadType === "VIDEO" && (
+                        <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white relative flex items-center justify-center">
+                          <Video className="h-6 w-6 text-[#002d59]" />
                         </div>
                       )}
                     </div>
