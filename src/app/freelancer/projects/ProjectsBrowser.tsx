@@ -91,6 +91,8 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
           setMessage("");
           router.refresh();
         }, 1200);
+      } else {
+        setMessage(res.error || "Failed to submit application.");
       }
     } catch (err: any) {
       console.error(err);

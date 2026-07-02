@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 export async function applyToProject(projectId: string, coverLetter: string) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
-    throw new Error("Unauthorized: Only freelancers can apply to projects.");
+    return { success: false, error: "Unauthorized: Only freelancers can apply to projects." };
   }
 
   const freelancer = await db.freelancer.findUnique({
@@ -17,7 +17,7 @@ export async function applyToProject(projectId: string, coverLetter: string) {
   });
 
   if (!freelancer) {
-    throw new Error("Please complete your freelancer profile before applying.");
+    return { success: false, error: "Please complete your freelancer profile before applying." };
   }
 
   const project = await db.project.findUnique({
@@ -33,8 +33,24 @@ export async function applyToProject(projectId: string, coverLetter: string) {
     },
   });
 
-  if (!project || project.status !== "OPEN") {
-    throw new Error("This project is no longer accepting applications.");
+  if (!project) {
+    return { success: false, error: "Project not found." };
+  }
+
+  if (project.status !== "OPEN" && project.status !== "IN_PROGRESS") {
+    return { success: false, error: "This project is no longer accepting applications." };
+  }
+
+  // Count the number of currently hired freelancers for this project
+  const hiredCount = await db.application.count({
+    where: {
+      projectId,
+      status: ApplicationStatus.HIRED,
+    },
+  });
+
+  if (hiredCount >= project.freelancersLimit) {
+    return { success: false, error: "This project has already reached its hiring limit." };
   }
 
   // Calculate matching score
