@@ -138,11 +138,10 @@ export function CompanyProfileView({
   const [applying, setApplying] = useState(false);
   const [applyMessage, setApplyMessage] = useState("");
 
-  // Gallery Upload (only visible to owner)
+  // Gallery Upload (only photos — video upload coming soon)
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>(company.galleryPhotos || []);
-  const [galleryVideos, setGalleryVideos] = useState<string[]>(company.galleryVideos || []);
+  const [galleryVideos] = useState<string[]>(company.galleryVideos || []);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [uploadType, setUploadType] = useState<"PHOTO" | "VIDEO">("PHOTO");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
 
@@ -268,7 +267,7 @@ export function CompanyProfileView({
 
     setUploadingMedia(true);
     try {
-      // Upload via /api/upload (stores to disk, returns a URL — avoids base64 DB crash)
+      // Photos only — upload via /api/upload (stores to disk, returns a URL)
       const formData = new FormData();
       formData.append("file", mediaFile);
       const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
@@ -278,22 +277,15 @@ export function CompanyProfileView({
       }
       const { url: fileUrl } = await uploadRes.json();
 
-      // Update database with the returned URL
-      const updatedPhotos = uploadType === "PHOTO" ? [...galleryPhotos, fileUrl] : galleryPhotos;
-      const updatedVideos = uploadType === "VIDEO" ? [...galleryVideos, fileUrl] : galleryVideos;
-
-      const saveRes = await updateCompanyGallery(company.id, updatedPhotos, updatedVideos);
+      // Only update photos (video upload is disabled)
+      const updatedPhotos = [...galleryPhotos, fileUrl];
+      const saveRes = await updateCompanyGallery(company.id, updatedPhotos, galleryVideos);
       if (!saveRes.success) {
         throw new Error("Failed to save gallery update in database.");
       }
+      setGalleryPhotos(updatedPhotos);
 
-      if (uploadType === "PHOTO") {
-        setGalleryPhotos(updatedPhotos);
-      } else {
-        setGalleryVideos(updatedVideos);
-      }
-
-      alert("Media added to gallery successfully!");
+      alert("Photo added to gallery!");
       setMediaFile(null);
       setMediaPreview(null);
     } catch (e: any) {
@@ -367,8 +359,8 @@ export function CompanyProfileView({
       <Card className="bg-white border border-slate-100 shadow-xl rounded-3xl overflow-hidden">
         {/* Relative wrapper — banner + logo live here, logo sticks out below banner */}
         <div className="relative">
-          {/* Banner: overflow-hidden clips only its own content, NOT the logo sibling */}
-          <div className="h-40 md:h-52 w-full overflow-hidden bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75]">
+          {/* Banner: rounded top corners, overflow-hidden clips its own content but NOT the logo sibling */}
+          <div className="h-40 md:h-52 w-full overflow-hidden rounded-t-3xl bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75]">
             {company.bannerUrl ? (
               <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
             ) : (
@@ -1350,7 +1342,7 @@ export function CompanyProfileView({
                 </div>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
                   <span className="text-[10px] text-slate-400 font-bold block uppercase">Gallery Size</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{galleryPhotos.length + galleryVideos.length}</span>
+                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{galleryPhotos.length}</span>
                 </div>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
                   <div>
