@@ -768,7 +768,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 </div>
               </div>
             </div>
-            </div>
+
 
             {/* Benefits list */}
             <div className="space-y-4 border-t border-slate-150 pt-4">
