@@ -193,6 +193,7 @@ model Project {
   experienceRequired Int             @default(0)
   status             ProjectStatus   @default(OPEN)
   freelancersLimit   Int             @default(1)
+  isVisible          Boolean         @default(true)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 

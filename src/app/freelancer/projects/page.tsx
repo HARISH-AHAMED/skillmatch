@@ -30,7 +30,8 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
     }),
     db.project.findMany({
       where: {
-        status: "OPEN",
+        status: { in: ["OPEN", "IN_PROGRESS"] },
+        isVisible: true,
         budget: { gte: minBudget },
         experienceRequired: { lte: maxExperience },
         ...(priority && priority !== "ALL" && { priority: priority as any }),
@@ -53,6 +54,10 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         recommendations: {
           where: { freelancer: { userId } },
           select: { score: true },
+        },
+        applications: {
+          where: { status: "HIRED" },
+          select: { id: true },
         },
       },
       orderBy: {
@@ -84,6 +89,9 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
     );
   }
 
+  // Filter in-memory to only show projects where the hiring limit is not reached
+  const activeProjects = projects.filter((p) => p.applications.length < p.freelancersLimit);
+
   const appliedProjectIds = applications.map((app) => app.projectId);
   const savedProjectIds = savedProjects.map((sp) => sp.projectId);
 
@@ -99,7 +107,7 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
       </div>
 
       <ProjectsBrowser
-        projects={projects as any}
+        projects={activeProjects as any}
         appliedProjectIds={appliedProjectIds}
         savedProjectIds={savedProjectIds}
       />

@@ -47,6 +47,7 @@ export default async function EditProjectPage({ params }: PageProps) {
     requiredSkills: project.requiredSkills,
     experienceRequired: project.experienceRequired,
     freelancersLimit: project.freelancersLimit,
+    isVisible: project.isVisible,
   };
 
   return (

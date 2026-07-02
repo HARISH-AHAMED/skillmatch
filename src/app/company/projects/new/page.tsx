@@ -18,6 +18,7 @@ export default function NewProjectPage() {
   const [skillsStr, setSkillsStr] = useState("");
   const [experienceRequired, setExperienceRequired] = useState(2);
   const [freelancersLimit, setFreelancersLimit] = useState(1);
+  const [isVisible, setIsVisible] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +47,7 @@ export default function NewProjectPage() {
         requiredSkills,
         experienceRequired: Number(experienceRequired),
         freelancersLimit: Number(freelancersLimit),
+        isVisible,
       });
 
       if (res.success) {
@@ -149,6 +151,18 @@ export default function NewProjectPage() {
                 disabled={loading}
               />
             </div>
+
+            {/* Visibility Toggle Field */}
+            <Select
+              label="Listing Visibility"
+              options={[
+                { value: "true", label: "Public (Show in Gig Directory)" },
+                { value: "false", label: "Private (Hide Listing)" },
+              ]}
+              value={isVisible ? "true" : "false"}
+              onChange={(e) => setIsVisible(e.target.value === "true")}
+              disabled={loading}
+            />
 
             <div className="flex gap-4 pt-3">
               <Button

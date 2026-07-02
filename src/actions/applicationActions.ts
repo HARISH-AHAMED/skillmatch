@@ -192,46 +192,12 @@ export async function hireApplicant(applicationId: string) {
   const freelancersLimit = application.project.freelancersLimit;
   const isFilled = hiredCount >= freelancersLimit;
 
-  if (isFilled) {
-    // Update project status to IN_PROGRESS and reject other candidates
-    await db.$transaction([
-      db.project.update({
-        where: { id: projectId },
-        data: { status: ProjectStatus.IN_PROGRESS },
-      }),
-      db.application.updateMany({
-        where: {
-          projectId,
-          status: { notIn: [ApplicationStatus.HIRED, ApplicationStatus.REJECTED] },
-        },
-        data: { status: ApplicationStatus.REJECTED },
-      }),
-    ]);
-
-    // Send notifications to rejected applicants
-    const rejectedApps = await db.application.findMany({
-      where: {
-        projectId,
-        status: ApplicationStatus.REJECTED,
-      },
-      include: {
-        freelancer: {
-          include: {
-            user: { select: { id: true } },
-          },
-        },
-      },
+  if (isFilled && application.project.status === ProjectStatus.OPEN) {
+    // Update project status to IN_PROGRESS when filled, but do not auto-reject others
+    await db.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.IN_PROGRESS },
     });
-
-    for (const app of rejectedApps) {
-      await db.notification.create({
-        data: {
-          userId: app.freelancer.user.id,
-          title: "Project Filled",
-          message: `The project '${application.project.title}' has been filled by other candidates.`,
-        },
-      });
-    }
   }
 
   // 3. Notify newly hired freelancer

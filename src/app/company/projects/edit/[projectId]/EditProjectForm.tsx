@@ -19,6 +19,7 @@ interface EditProjectFormProps {
     requiredSkills: string[];
     experienceRequired: number;
     freelancersLimit: number;
+    isVisible: boolean;
   };
 }
 
@@ -31,6 +32,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
   const [skillsStr, setSkillsStr] = useState(project.requiredSkills.join(", "));
   const [experienceRequired, setExperienceRequired] = useState(project.experienceRequired);
   const [freelancersLimit, setFreelancersLimit] = useState(project.freelancersLimit);
+  const [isVisible, setIsVisible] = useState(project.isVisible);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,6 +61,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         requiredSkills,
         experienceRequired: Number(experienceRequired),
         freelancersLimit: Number(freelancersLimit),
+        isVisible,
       });
 
       if (res.success) {
@@ -151,6 +154,18 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             disabled={loading}
           />
         </div>
+
+        {/* Visibility Toggle Field */}
+        <Select
+          label="Listing Visibility"
+          options={[
+            { value: "true", label: "Public (Show in Gig Directory)" },
+            { value: "false", label: "Private (Hide Listing)" },
+          ]}
+          value={isVisible ? "true" : "false"}
+          onChange={(e) => setIsVisible(e.target.value === "true")}
+          disabled={loading}
+        />
 
         <div className="flex gap-4 pt-3">
           <Button

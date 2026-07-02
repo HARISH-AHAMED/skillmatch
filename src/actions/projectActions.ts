@@ -14,6 +14,7 @@ export async function createProject(formData: {
   requiredSkills: string[];
   experienceRequired: number;
   freelancersLimit?: number;
+  isVisible?: boolean;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
@@ -42,6 +43,7 @@ export async function createProject(formData: {
       experienceRequired: formData.experienceRequired,
       status: ProjectStatus.OPEN,
       freelancersLimit: formData.freelancersLimit ?? 1,
+      isVisible: formData.isVisible ?? true,
     },
   });
 
@@ -90,6 +92,7 @@ export async function editProject(
     requiredSkills: string[];
     experienceRequired: number;
     freelancersLimit?: number;
+    isVisible?: boolean;
   }
 ) {
   const session = await auth();
@@ -121,6 +124,7 @@ export async function editProject(
       requiredSkills: skillsCleaned,
       experienceRequired: formData.experienceRequired,
       freelancersLimit: formData.freelancersLimit ?? 1,
+      isVisible: formData.isVisible ?? true,
     },
   });
 
@@ -131,6 +135,35 @@ export async function editProject(
   revalidatePath("/freelancer/projects");
 
   return { success: true, project };
+}
+
+export async function toggleProjectVisibility(projectId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    throw new Error("Unauthorized");
+  }
+
+  const company = await db.company.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project || !company || project.companyId !== company.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const updatedProject = await db.project.update({
+    where: { id: projectId },
+    data: { isVisible: !project.isVisible },
+  });
+
+  revalidatePath("/company/projects");
+  revalidatePath("/freelancer/projects");
+
+  return { success: true, isVisible: updatedProject.isVisible };
 }
 
 export async function closeProject(projectId: string) {

@@ -2,11 +2,11 @@ import React from "react";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { closeProject } from "@/actions/projectActions";
+import { closeProject, toggleProjectVisibility } from "@/actions/projectActions";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Calendar, DollarSign, Users, Award, ShieldAlert } from "lucide-react";
+import { Calendar, DollarSign, Users, Award, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { ProjectStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -61,6 +61,16 @@ export default async function CompanyProjectsPage() {
     }
   };
 
+  // Server Action inline executor for toggling project visibility
+  const triggerToggleVisibility = async (formData: FormData) => {
+    "use server";
+    const id = formData.get("projectId") as string;
+    if (id) {
+      await toggleProjectVisibility(id);
+      revalidatePath("/company/projects");
+    }
+  };
+
   const getStatusBadge = (status: ProjectStatus) => {
     switch (status) {
       case ProjectStatus.OPEN:
@@ -104,6 +114,11 @@ export default async function CompanyProjectsPage() {
                   <div className="flex items-center gap-2.5">
                     <h3 className="text-sm font-bold text-[#002d59]">{project.title}</h3>
                     {getStatusBadge(project.status)}
+                    {project.isVisible ? (
+                      <Badge variant="success" className="bg-sky-50 text-sky-700 border-sky-200">Public</Badge>
+                    ) : (
+                      <Badge variant="neutral" className="bg-slate-100 text-slate-500 border-slate-200">Private / Hidden</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500">
                     Posted: {new Date(project.createdAt).toLocaleDateString()}
@@ -111,6 +126,30 @@ export default async function CompanyProjectsPage() {
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  {/* Visibility Toggle Button */}
+                  <form action={triggerToggleVisibility}>
+                    <input type="hidden" name="projectId" value={project.id} />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      className="cursor-pointer flex items-center gap-1.5"
+                      title={project.isVisible ? "Make Private" : "Make Public"}
+                    >
+                      {project.isVisible ? (
+                        <>
+                          <EyeOff className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Hide Gig</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Show Gig</span>
+                        </>
+                      )}
+                    </Button>
+                  </form>
+
                   <Link href={`/company/projects/edit/${project.id}`}>
                     <Button size="sm" variant="outline" className="cursor-pointer">
                       Edit Gig
