@@ -356,147 +356,129 @@ export function CompanyProfileView({
         </button>
       </div>
 
-      {/* 1. Header Banner with Overlapping Logo */}
-      <Card className="overflow-hidden bg-white border border-slate-100 shadow-xl rounded-3xl relative">
-        {/* Large Cover Banner */}
-        <div className="h-44 md:h-60 w-full relative bg-gradient-to-r from-[#002d59] to-[#0a4885] overflow-hidden">
+      {/* 1. Header Banner with Overlapping Logo — LinkedIn-style */}
+      <Card className="overflow-hidden bg-white border border-slate-100 shadow-xl rounded-3xl">
+        {/* Banner image / gradient */}
+        <div className="h-44 md:h-52 w-full relative bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75] overflow-hidden">
           {company.bannerUrl ? (
             <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sky-400/20 via-[#0a4885] to-[#002d59]" />
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/30 via-[#0a4885] to-[#002d59]" />
+              <div className="absolute -right-8 -top-8 opacity-[0.07] pointer-events-none">
+                <Building2 className="h-72 w-72 text-white" />
+              </div>
+            </>
           )}
-          <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-20 -translate-y-10 scale-150">
-            <Building2 className="h-96 w-96 text-white" />
-          </div>
+
+          {/* Logo — absolutely positioned so it hangs off the bottom edge of the banner */}
+          <button
+            type="button"
+            onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
+            className="absolute -bottom-10 left-6 md:left-8 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-white p-1.5 border-4 border-white shadow-2xl overflow-hidden group cursor-zoom-in z-10"
+            title="Click to view full logo"
+          >
+            <img
+              src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
+              alt={company.companyName}
+              className="h-full w-full object-contain rounded-xl group-hover:scale-105 transition-transform duration-200"
+            />
+          </button>
         </div>
 
-        {/* Content Details Block */}
-        <div className="px-6 pb-6 md:px-10 md:pb-8 relative flex flex-col gap-4">
-          {/* Logo row — only logo overlaps the banner via -mt */}
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            {/* Left: Logo + Name stacked */}
-            <div className="flex flex-col md:flex-row items-center md:items-end gap-4 text-center md:text-left">
-              {/* Logo button — the ONLY element with negative margin to overlap banner */}
-              <button
-                type="button"
-                onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-                className="h-28 w-28 md:h-32 md:w-32 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0 z-10 -mt-16 md:-mt-20"
-                title="Click to view full logo"
-              >
-                <img
-                  src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
-                  alt={company.companyName}
-                  className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
-                />
-              </button>
+        {/* Content below banner — top padding creates clearance for the hanging logo */}
+        <div className="px-6 pt-14 md:pt-12 pb-6 md:px-8 md:pb-7">
+          <div className="flex flex-col md:flex-row md:items-start gap-4 justify-between">
+            {/* Left: company name + meta (offset right of logo space on desktop) */}
+            <div className="pl-0 md:pl-36 space-y-2 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59] leading-tight">{company.companyName}</h1>
+                <Badge className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/30 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5">
+                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff]" /> Verified Company
+                </Badge>
+              </div>
 
-              {/* Company name & meta — sits BELOW the banner, no overlap */}
-              <div className="space-y-2 pt-3 md:pt-2">
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59]">{company.companyName}</h1>
-                  <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/20 flex items-center gap-1 text-[10px] font-bold">
-                    <CheckCircle2 className="h-3 w-3 text-[#3ac0ff] fill-[#3ac0ff]/10" /> Verified Company
-                  </Badge>
-                </div>
-
-                <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-slate-500 text-xs font-semibold">
-                  <span>{company.industry || "General Industry"}</span>
-                  <span>•</span>
-                  <span>{company.companySize || "10-50 Employees"}</span>
-                  <span>•</span>
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-3 gap-y-1 text-slate-500 text-xs font-medium">
+                {company.industry && <span>{company.industry}</span>}
+                {company.companySize && <><span className="text-slate-300">·</span><span>{company.companySize}</span></>}
+                {company.location && (
+                  <><span className="text-slate-300">·</span>
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 opacity-80 text-[#3ac0ff]" />
-                    {company.location || "Remote"}
-                  </span>
-                  {company.foundedYear && (
-                    <>
-                      <span>•</span>
-                      <span>Founded {company.foundedYear}</span>
-                    </>
-                  )}
-                </div>
+                    <MapPin className="h-3 w-3 text-[#3ac0ff]" />{company.location}
+                  </span></>
+                )}
+                {company.foundedYear && <><span className="text-slate-300">·</span><span>Est. {company.foundedYear}</span></>}
+              </div>
 
-                {/* Verification Badges */}
-                <div className="flex flex-wrap gap-1 pt-1 justify-center md:justify-start">
-                  {company.verificationBadges.map((badge, idx) => (
-                    <Badge
-                      key={idx}
-                      className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-600 py-0.5 px-2"
-                    >
-                      ✓ {badge}
-                    </Badge>
-                  ))}
-                </div>
+              {/* Verification badges */}
+              <div className="flex flex-wrap gap-1 pt-0.5 justify-center md:justify-start">
+                {company.verificationBadges.map((badge, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-600 rounded-md py-0.5 px-2">
+                    ✓ {badge}
+                  </span>
+                ))}
               </div>
             </div>
 
-            {/* Right: Action buttons — sit below banner, no overlap */}
-            <div className="flex flex-wrap justify-center md:justify-end gap-2 pt-3 md:pt-4 shrink-0">
+            {/* Right: action buttons */}
+            <div className="flex flex-wrap justify-center md:justify-end items-center gap-2 shrink-0">
               <Button
-                variant={isFollowing ? "outline" : "primary"}
                 onClick={handleFollowToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold ${
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold px-3 h-8 ${
                   isFollowing
-                    ? "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200"
+                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
                     : "bg-[#002d59] hover:bg-[#001f3f] text-white border-0 shadow-sm"
                 }`}
               >
-                <Heart className={`h-4 w-4 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
+                <Heart className={`h-3.5 w-3.5 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
                 {isFollowing ? "Following" : "Follow"} ({followerCount})
               </Button>
 
               <Button
                 variant="outline"
                 onClick={handleAlertToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
-                  isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""
-                }`}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""}`}
                 title="Job Alerts"
               >
-                <Bell className={`h-4 w-4 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                <Bell className={`h-3.5 w-3.5 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
                 {isAlerted ? "Alerts On" : "Job Alerts"}
               </Button>
 
               <Button
                 variant="outline"
                 onClick={handleWatchlistToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
-                  isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""
-                }`}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""}`}
                 title="Watchlist"
               >
-                <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
+                <Bookmark className={`h-3.5 w-3.5 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
                 {isWatchlisted ? "Watchlisted" : "Watchlist"}
               </Button>
 
               <Button
                 variant="outline"
                 onClick={handleCommunityToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 ${
-                  isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""
-                }`}
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 ${isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""}`}
                 title="Talent Community"
               >
-                <Users className={`h-4 w-4 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
-                {isCommunity ? "Community Joined" : "Join Talent"}
+                <Users className={`h-3.5 w-3.5 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
+                {isCommunity ? "Joined" : "Join Talent"}
               </Button>
 
               <Button
                 variant="outline"
                 onClick={handleShare}
-                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
               >
-                <Share2 className="h-4 w-4 text-slate-500" />
-                {copied ? "Link Copied!" : "Share Profile"}
+                <Share2 className="h-3.5 w-3.5 text-slate-500" />
+                {copied ? "Copied!" : "Share"}
               </Button>
 
-              {/* Edit Profile — only visible to company owner */}
               {isCompanyOwner && (
                 <Button
                   onClick={() => router.push("/company/profile")}
-                  className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-md"
+                  className="text-xs gap-1.5 cursor-pointer rounded-xl font-bold h-8 px-3 bg-amber-400 hover:bg-amber-500 text-[#002d59] border-0 shadow-sm"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                   Edit Profile
                 </Button>
               )}
