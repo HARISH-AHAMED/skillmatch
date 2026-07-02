@@ -371,14 +371,16 @@ export function CompanyProfileView({
         </div>
 
         {/* Content Details Block */}
-        <div className="px-6 pb-6 md:px-10 md:pb-8 relative flex flex-col gap-6">
-          {/* Logo & Basic Info container */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-16 md:-mt-20">
-            <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
+        <div className="px-6 pb-6 md:px-10 md:pb-8 relative flex flex-col gap-4">
+          {/* Logo row — only logo overlaps the banner via -mt */}
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            {/* Left: Logo + Name stacked */}
+            <div className="flex flex-col md:flex-row items-center md:items-end gap-4 text-center md:text-left">
+              {/* Logo button — the ONLY element with negative margin to overlap banner */}
               <button
                 type="button"
                 onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-                className="h-28 w-28 md:h-36 md:w-36 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0 z-10 animate-in zoom-in-50 duration-300"
+                className="h-28 w-28 md:h-32 md:w-32 rounded-3xl bg-white p-2 border-4 border-white shadow-2xl relative overflow-hidden group cursor-zoom-in shrink-0 z-10 -mt-16 md:-mt-20"
                 title="Click to view full logo"
               >
                 <img
@@ -387,8 +389,9 @@ export function CompanyProfileView({
                   className="h-full w-full object-contain rounded-2xl group-hover:scale-105 transition-transform"
                 />
               </button>
-              
-              <div className="space-y-2 pb-1 z-10">
+
+              {/* Company name & meta — sits BELOW the banner, no overlap */}
+              <div className="space-y-2 pt-3 md:pt-2">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                   <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#002d59]">{company.companyName}</h1>
                   <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border-[#3ac0ff]/20 flex items-center gap-1 text-[10px] font-bold">
@@ -413,12 +416,12 @@ export function CompanyProfileView({
                   )}
                 </div>
 
-                {/* Badges Grid (Header) */}
+                {/* Verification Badges */}
                 <div className="flex flex-wrap gap-1 pt-1 justify-center md:justify-start">
                   {company.verificationBadges.map((badge, idx) => (
                     <Badge
                       key={idx}
-                      className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-650 py-0.5 px-2"
+                      className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border-slate-200 text-slate-600 py-0.5 px-2"
                     >
                       ✓ {badge}
                     </Badge>
@@ -427,18 +430,18 @@ export function CompanyProfileView({
               </div>
             </div>
 
-            {/* Action buttons (Follow, Watchlist, Alert, Community) */}
-            <div className="flex flex-wrap justify-center md:justify-end gap-2 max-w-sm z-10">
+            {/* Right: Action buttons — sit below banner, no overlap */}
+            <div className="flex flex-wrap justify-center md:justify-end gap-2 pt-3 md:pt-4 shrink-0">
               <Button
                 variant={isFollowing ? "outline" : "primary"}
                 onClick={handleFollowToggle}
-                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold border-slate-200 hover:border-slate-300 ${
-                  isFollowing 
-                    ? "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-250" 
+                className={`text-xs gap-1.5 cursor-pointer rounded-xl font-bold ${
+                  isFollowing
+                    ? "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200"
                     : "bg-[#002d59] hover:bg-[#001f3f] text-white border-0 shadow-sm"
                 }`}
               >
-                <Heart className={`h-4 w-4 ${isFollowing ? "fill-rose-500 text-rose-500 border-0" : "text-white"}`} />
+                <Heart className={`h-4 w-4 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
                 {isFollowing ? "Following" : "Follow"} ({followerCount})
               </Button>
 
@@ -462,7 +465,7 @@ export function CompanyProfileView({
                 }`}
                 title="Watchlist"
               >
-                <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-550 text-rose-550" : "text-slate-550"}`} />
+                <Bookmark className={`h-4 w-4 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
                 {isWatchlisted ? "Watchlisted" : "Watchlist"}
               </Button>
 
