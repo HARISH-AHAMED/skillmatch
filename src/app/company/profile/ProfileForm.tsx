@@ -76,8 +76,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   // Office locations state
   const [officeLocationsStr, setOfficeLocationsStr] = useState(initialData?.officeLocations?.join(", ") || "");
 
-  // Gallery Photos state
+  // Gallery state
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>(initialData?.galleryPhotos || []);
+  const [galleryVideos, setGalleryVideos] = useState<string[]>(initialData?.galleryVideos || []);
+  const [galleryTab, setGalleryTab] = useState<"PHOTO" | "VIDEO">("PHOTO");
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
   // Company Values States
   const [missionVision, setMissionVision] = useState(initialData?.missionVision || "");
@@ -131,21 +134,45 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     }
   };
 
-  const handleAddGalleryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      try {
-        const base64 = await fileToBase64(file, 1.5);
-        setGalleryPhotos([...galleryPhotos, base64]);
-      } catch (err: any) {
-        console.error(err);
-        alert(err.message || "Failed to process gallery image.");
+  const uploadGalleryFile = async (file: File, type: "PHOTO" | "VIDEO") => {
+    setGalleryUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed (${res.status})`);
       }
+      const { url } = await res.json();
+      if (type === "PHOTO") {
+        setGalleryPhotos((prev) => [...prev, url]);
+      } else {
+        setGalleryVideos((prev) => [...prev, url]);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to upload file.");
+    } finally {
+      setGalleryUploading(false);
     }
+  };
+
+  const handleAddGalleryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) await uploadGalleryFile(e.target.files[0], "PHOTO");
+    e.target.value = "";
+  };
+
+  const handleAddGalleryVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) await uploadGalleryFile(e.target.files[0], "VIDEO");
+    e.target.value = "";
   };
 
   const handleRemoveGalleryPhoto = (index: number) => {
     setGalleryPhotos(galleryPhotos.filter((_, idx) => idx !== index));
+  };
+
+  const handleRemoveGalleryVideo = (index: number) => {
+    setGalleryVideos(galleryVideos.filter((_, idx) => idx !== index));
   };
 
   const handleAddTeamMember = () => {
@@ -248,6 +275,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         bannerUrl: finalBannerUrl || "",
         officeLocations: officeLocationsStr.split(",").map((o) => o.trim()).filter(Boolean),
         galleryPhotos,
+        galleryVideos,
       });
 
       setMessage({ type: "success", text: "Company profile updated successfully!" });
@@ -696,43 +724,101 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="space-y-4 border-t border-slate-150 pt-4">
               <div className="border-b border-slate-200 pb-2">
                 <h3 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">Company Gallery</h3>
-                <p className="text-[10px] text-slate-400 font-semibold">Upload photos of your workspace, office, team events, and culture highlights</p>
+                <p className="text-[10px] text-slate-400 font-semibold">Upload photos and videos of your workspace, office, team events, and culture</p>
               </div>
 
-              {/* Gallery Photos Grid */}
-              {galleryPhotos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {galleryPhotos.map((photo, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-100">
-                      <img src={photo} className="h-full w-full object-cover" alt="Gallery preview" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryPhoto(idx)}
-                        className="absolute top-2 right-2 p-1 bg-white/90 hover:bg-rose-50 text-rose-500 rounded-lg shadow-sm border border-slate-100 cursor-pointer"
-                        title="Delete photo"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+              {/* Photo / Video Tabs */}
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setGalleryTab("PHOTO")}
+                  className={`text-[10px] font-bold px-4 py-1.5 rounded-lg cursor-pointer transition-all ${
+                    galleryTab === "PHOTO" ? "bg-white text-[#002d59] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  📸 Photos ({galleryPhotos.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGalleryTab("VIDEO")}
+                  className={`text-[10px] font-bold px-4 py-1.5 rounded-lg cursor-pointer transition-all ${
+                    galleryTab === "VIDEO" ? "bg-white text-[#002d59] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  🎥 Videos ({galleryVideos.length})
+                </button>
+              </div>
+
+              {/* Photos tab */}
+              {galleryTab === "PHOTO" && (
+                <>
+                  {galleryPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {galleryPhotos.map((photo, idx) => (
+                        <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-100">
+                          <img src={photo} className="h-full w-full object-cover" alt="Gallery photo" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryPhoto(idx)}
+                            className="absolute top-2 right-2 p-1 bg-white/90 hover:bg-rose-50 text-rose-500 rounded-lg shadow-sm border border-slate-100 cursor-pointer"
+                            title="Remove"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <input type="file" accept="image/*" onChange={handleAddGalleryPhoto} className="hidden" id="gallery-photo-input" disabled={galleryUploading} />
+                    <label
+                      htmlFor="gallery-photo-input"
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-bold cursor-pointer shadow-sm transition-colors ${
+                        galleryUploading ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-[#002d59] hover:bg-[#001f3f] text-white"
+                      }`}
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {galleryUploading ? "Uploading…" : "Upload Photo (max 5MB)"}
+                    </label>
+                  </div>
+                </>
               )}
 
-              <div className="flex items-center gap-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAddGalleryPhoto}
-                  className="hidden"
-                  id="gallery-file-input"
-                />
-                <label
-                  htmlFor="gallery-file-input"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#002d59] hover:bg-[#001f3f] text-white rounded-xl text-[10px] font-bold cursor-pointer shadow-sm transition-colors"
-                >
-                  <Upload className="h-3.5 w-3.5" /> Upload Office/Team Photo
-                </label>
-              </div>
+              {/* Videos tab */}
+              {galleryTab === "VIDEO" && (
+                <>
+                  {galleryVideos.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {galleryVideos.map((video, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 group">
+                          <video src={video} controls className="w-full h-40 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryVideo(idx)}
+                            className="absolute top-2 right-2 p-1 bg-white/90 hover:bg-rose-50 text-rose-500 rounded-lg shadow-sm border border-slate-100 cursor-pointer"
+                            title="Remove"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <input type="file" accept="video/mp4,video/webm,video/mov,video/*" onChange={handleAddGalleryVideo} className="hidden" id="gallery-video-input" disabled={galleryUploading} />
+                    <label
+                      htmlFor="gallery-video-input"
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-bold cursor-pointer shadow-sm transition-colors ${
+                        galleryUploading ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-[#002d59] hover:bg-[#001f3f] text-white"
+                      }`}
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {galleryUploading ? "Uploading…" : "Upload Video (max 20MB)"}
+                    </label>
+                    <p className="text-[10px] text-slate-400">MP4, WebM, MOV supported</p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Benefits list */}

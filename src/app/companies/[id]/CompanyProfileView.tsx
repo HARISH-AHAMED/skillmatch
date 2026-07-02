@@ -268,10 +268,17 @@ export function CompanyProfileView({
 
     setUploadingMedia(true);
     try {
-      const limit = uploadType === "VIDEO" ? 20.0 : 5.0;
-      const fileUrl = await fileToBase64(mediaFile, limit);
+      // Upload via /api/upload (stores to disk, returns a URL — avoids base64 DB crash)
+      const formData = new FormData();
+      formData.append("file", mediaFile);
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) {
+        const errJson = await uploadRes.json().catch(() => ({}));
+        throw new Error(errJson.error || `Upload failed (${uploadRes.status})`);
+      }
+      const { url: fileUrl } = await uploadRes.json();
 
-      // Update database profile gallery lists
+      // Update database with the returned URL
       const updatedPhotos = uploadType === "PHOTO" ? [...galleryPhotos, fileUrl] : galleryPhotos;
       const updatedVideos = uploadType === "VIDEO" ? [...galleryVideos, fileUrl] : galleryVideos;
 
