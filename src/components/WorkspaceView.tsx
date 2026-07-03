@@ -646,7 +646,9 @@ export function WorkspaceView({
   const [newMessage, setNewMessage] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingChatFile, setIsUploadingChatFile] = useState(false);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const deliverableFileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice recording simulation
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -804,10 +806,6 @@ export function WorkspaceView({
       if (result.error) {
         alert(result.error);
         setFiles((prev) => prev.filter(f => f.id !== tempId));
-      } else {
-        // Automatically send the file in the chat stream!
-        const fileMsgContent = `[FILE:${fileName}|${realUrl}|${bytesFormatted}]`;
-        await handleSendMessage(null as any, fileMsgContent);
       }
     } catch (err: any) {
       alert("Failed to share file deliverable.");
@@ -815,7 +813,27 @@ export function WorkspaceView({
     } finally {
       setIsUploadingFile(false);
       setDeliverableVersionTargetId(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (deliverableFileInputRef.current) deliverableFileInputRef.current.value = "";
+    }
+  };
+
+  const handleChatFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileObj = e.target.files?.[0];
+    if (!fileObj || isUploadingChatFile) return;
+
+    setIsUploadingChatFile(true);
+    const fileName = fileObj.name;
+    const bytesFormatted = formatBytes(fileObj.size);
+
+    try {
+      const realUrl = await fileToBase64(fileObj, 3.0);
+      const fileMsgContent = `[FILE:${fileName}|${realUrl}|${bytesFormatted}]`;
+      await handleSendMessage(null as any, fileMsgContent);
+    } catch (err: any) {
+      alert("Failed to attach file to chat.");
+    } finally {
+      setIsUploadingChatFile(false);
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
     }
   };
 
@@ -1248,7 +1266,7 @@ export function WorkspaceView({
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowQuickActions(false); fileInputRef.current?.click(); }}
+                    onClick={() => { setShowQuickActions(false); deliverableFileInputRef.current?.click(); }}
                     className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:text-[#002d59] hover:bg-slate-50 font-semibold transition-all flex items-center gap-2.5 cursor-pointer"
                   >
                     <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
@@ -2164,14 +2182,14 @@ export function WorkspaceView({
                     <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0">
                       <input
                         type="file"
-                        ref={fileInputRef}
-                        onChange={(e) => handleFileUpload(e)}
+                        ref={chatFileInputRef}
+                        onChange={(e) => handleChatFileAttach(e)}
                         className="hidden"
                       />
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingFile}
+                        onClick={() => chatFileInputRef.current?.click()}
+                        disabled={isUploadingChatFile}
                         className="p-2.5 bg-white hover:bg-slate-100 text-slate-500 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
                         title="Upload file attachment"
                       >
@@ -2281,12 +2299,12 @@ export function WorkspaceView({
                       <div>
                         <input
                           type="file"
-                          ref={fileInputRef}
+                          ref={deliverableFileInputRef}
                           onChange={(e) => handleFileUpload(e, deliverableVersionTargetId || undefined)}
                           className="hidden"
                         />
                         <Button
-                          onClick={() => { setDeliverableVersionTargetId(null); fileInputRef.current?.click(); }}
+                          onClick={() => { setDeliverableVersionTargetId(null); deliverableFileInputRef.current?.click(); }}
                           disabled={isUploadingFile}
                           className="bg-[#002d59] hover:bg-[#001f3f] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
                         >
@@ -2390,7 +2408,7 @@ export function WorkspaceView({
                                   <Button
                                     onClick={() => {
                                       setDeliverableVersionTargetId(file.id);
-                                      fileInputRef.current?.click();
+                                      deliverableFileInputRef.current?.click();
                                     }}
                                     size="xs"
                                     variant="secondary"
