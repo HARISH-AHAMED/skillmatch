@@ -907,11 +907,6 @@ export function CompanyProfileView({
                       )}
                     </div>
 
-                    {/* Coming soon: video */}
-                    <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
-                      <span className="text-base">🎥</span>
-                      <p className="text-[9px] font-bold text-amber-700">Video upload coming soon — requires cloud storage setup.</p>
-                    </div>
 
                     {mediaFile && (
                       <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
