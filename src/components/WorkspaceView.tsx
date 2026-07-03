@@ -586,9 +586,8 @@ export function WorkspaceView({
         if (!active) return;
 
         setMessages((curr) => {
-          const hasNew = curr.length !== data.messages.length || 
-            (curr.length > 0 && data.messages.length > 0 && curr[curr.length - 1].id !== data.messages[data.messages.length - 1].id);
-          return hasNew ? data.messages : curr;
+          const serialize = (list: MessageItem[]) => list.map(m => `${m.id}-${m.seen}`).join("|");
+          return serialize(data.messages) !== serialize(curr) ? data.messages : curr;
         });
 
         setTasks((curr) => {
