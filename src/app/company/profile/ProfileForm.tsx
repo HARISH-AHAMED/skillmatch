@@ -94,6 +94,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("");
   const [newMemberPhoto, setNewMemberPhoto] = useState("");
+  const [memberPhotoUploading, setMemberPhotoUploading] = useState(false);
   const [newMemberLinkedin, setNewMemberLinkedin] = useState("");
   const [newMemberBio, setNewMemberBio] = useState("");
   const [newMemberSkills, setNewMemberSkills] = useState("");
@@ -173,6 +174,29 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
   const handleRemoveGalleryVideo = (index: number) => {
     setGalleryVideos(galleryVideos.filter((_, idx) => idx !== index));
+  };
+
+  const handleUploadMemberPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setMemberPhotoUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Upload failed (${res.status})`);
+        }
+        const { url } = await res.json();
+        setNewMemberPhoto(url);
+      } catch (err: any) {
+        console.error(err);
+        alert(err.message || "Failed to upload member photo.");
+      } finally {
+        setMemberPhotoUploading(false);
+      }
+    }
   };
 
   const handleAddTeamMember = () => {
@@ -674,12 +698,35 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     value={newMemberRole}
                     onChange={(e) => setNewMemberRole(e.target.value)}
                   />
-                  <Input
-                    label="Avatar seed / Photo URL"
-                    placeholder="e.g. sarah (for Dicebear avatar)"
-                    value={newMemberPhoto}
-                    onChange={(e) => setNewMemberPhoto(e.target.value)}
-                  />
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                    <label className="block text-[10px] font-bold text-slate-550 uppercase">Profile Photo</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="new-member-photo-upload"
+                        className="hidden"
+                        onChange={handleUploadMemberPhoto}
+                        disabled={memberPhotoUploading}
+                      />
+                      <label
+                        htmlFor="new-member-photo-upload"
+                        className={`inline-flex items-center gap-1.5 px-4.5 py-2.5 border rounded-xl text-[10px] font-bold cursor-pointer transition-colors ${
+                          memberPhotoUploading 
+                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" 
+                            : "bg-white text-[#002d59] border-slate-250 hover:bg-slate-50 shadow-xs"
+                        }`}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        {memberPhotoUploading ? "Uploading..." : "Upload Photo (max 5MB)"}
+                      </label>
+                      {newMemberPhoto && (
+                        <div className="h-10 w-10 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                          <img src={newMemberPhoto} alt="preview" className="h-full w-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
