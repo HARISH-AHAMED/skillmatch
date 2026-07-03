@@ -574,7 +574,11 @@ export function WorkspaceView({
         });
 
         setFiles((curr) => (curr.length !== data.files.length ? data.files : curr));
-        setUpdates((curr) => (curr.length !== data.updates.length ? data.updates : curr));
+        
+        setUpdates((curr) => {
+          const serialize = (list: ProjectUpdateItem[]) => list.map(u => `${u.id}-${u.status}`).join("|");
+          return serialize(data.updates) !== serialize(curr) ? data.updates : curr;
+        });
       } catch (err) {
         console.error("Workspace sync error:", err);
       }
@@ -826,9 +830,16 @@ export function WorkspaceView({
   };
 
   const handleUpdateMilestoneStatus = async (updateId: string, newStatus: string) => {
+    // Snappy optimistic local state update
+    setUpdates((prev) => prev.map((u) => u.id === updateId ? { ...u, status: newStatus, updatedAt: new Date().toISOString() } : u));
+    
     const result = await updateProjectUpdateStatus(projectId, updateId, newStatus);
     if (result.error) {
       alert(result.error);
+      // Revert if error
+      getProjectReviewStatus(projectId).then(() => {
+        router.refresh();
+      });
     }
   };
 
@@ -1198,7 +1209,7 @@ export function WorkspaceView({
       {/* ── PROJECT COMPLETION BANNERS ─────────────────────────────────── */}
 
       {/* All milestones done → Company can mark project complete */}
-      {role === "COMPANY" && projectStatus === "IN_PROGRESS" && allMilestoneDone && (
+      {role === "COMPANY" && (projectStatus === "IN_PROGRESS" || projectStatus === "OPEN") && allMilestoneDone && (
         <div className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 flex items-center justify-between gap-4 z-20">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-white/20 rounded-lg border border-white/30">
