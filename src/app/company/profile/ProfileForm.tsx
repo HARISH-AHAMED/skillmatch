@@ -141,18 +141,34 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Upload failed (${res.status})`);
-      }
-      const { url } = await res.json();
-      if (type === "PHOTO") {
-        setGalleryPhotos((prev) => [...prev, url]);
+      if (res.ok) {
+        const { url } = await res.json();
+        if (type === "PHOTO") {
+          setGalleryPhotos((prev) => [...prev, url]);
+        } else {
+          setGalleryVideos((prev) => [...prev, url]);
+        }
       } else {
-        setGalleryVideos((prev) => [...prev, url]);
+        // Fallback to base64 for Vercel
+        const base64 = await fileToBase64(file, 5.0);
+        if (type === "PHOTO") {
+          setGalleryPhotos((prev) => [...prev, base64]);
+        } else {
+          setGalleryVideos((prev) => [...prev, base64]);
+        }
       }
     } catch (err: any) {
-      alert(err.message || "Failed to upload file.");
+      console.warn("API Upload failed, using Base64 fallback:", err);
+      try {
+        const base64 = await fileToBase64(file, 5.0);
+        if (type === "PHOTO") {
+          setGalleryPhotos((prev) => [...prev, base64]);
+        } else {
+          setGalleryVideos((prev) => [...prev, base64]);
+        }
+      } catch (fallbackErr: any) {
+        alert(fallbackErr.message || "Failed to process image file.");
+      }
     } finally {
       setGalleryUploading(false);
     }
@@ -184,15 +200,22 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Upload failed (${res.status})`);
+        if (res.ok) {
+          const { url } = await res.json();
+          setNewMemberPhoto(url);
+        } else {
+          // Fallback to base64 for Vercel
+          const base64 = await fileToBase64(file, 3.0);
+          setNewMemberPhoto(base64);
         }
-        const { url } = await res.json();
-        setNewMemberPhoto(url);
       } catch (err: any) {
-        console.error(err);
-        alert(err.message || "Failed to upload member photo.");
+        console.warn("API Upload failed, using Base64 fallback:", err);
+        try {
+          const base64 = await fileToBase64(file, 3.0);
+          setNewMemberPhoto(base64);
+        } catch (fallbackErr: any) {
+          alert(fallbackErr.message || "Failed to process profile photo.");
+        }
       } finally {
         setMemberPhotoUploading(false);
       }

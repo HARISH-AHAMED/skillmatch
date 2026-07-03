@@ -267,18 +267,25 @@ export function CompanyProfileView({
 
     setUploadingMedia(true);
     try {
-      // Photos only — upload via /api/upload (stores to disk, returns a URL)
-      const formData = new FormData();
-      formData.append("file", mediaFile);
-      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const errJson = await uploadRes.json().catch(() => ({}));
-        throw new Error(errJson.error || `Upload failed (${uploadRes.status})`);
+      let finalUrl = "";
+      try {
+        const formData = new FormData();
+        formData.append("file", mediaFile);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        if (uploadRes.ok) {
+          const { url } = await uploadRes.json();
+          finalUrl = url;
+        } else {
+          // Fallback to base64
+          finalUrl = await fileToBase64(mediaFile, 5.0);
+        }
+      } catch (uploadErr) {
+        console.warn("API Upload failed, using Base64 fallback:", uploadErr);
+        finalUrl = await fileToBase64(mediaFile, 5.0);
       }
-      const { url: fileUrl } = await uploadRes.json();
 
       // Only update photos (video upload is disabled)
-      const updatedPhotos = [...galleryPhotos, fileUrl];
+      const updatedPhotos = [...galleryPhotos, finalUrl];
       const saveRes = await updateCompanyGallery(company.id, updatedPhotos, galleryVideos);
       if (!saveRes.success) {
         throw new Error("Failed to save gallery update in database.");
@@ -288,9 +295,9 @@ export function CompanyProfileView({
       alert("Photo added to gallery!");
       setMediaFile(null);
       setMediaPreview(null);
-    } catch (e: any) {
-      console.error(e);
-      alert(e.message || "Failed to upload file.");
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to process and upload image.");
     } finally {
       setUploadingMedia(false);
     }
