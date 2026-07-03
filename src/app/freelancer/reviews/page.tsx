@@ -5,29 +5,60 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Star, MessageSquareQuote } from "lucide-react";
 
+import Link from "next/link";
+import { ArrowRight, HelpCircle } from "lucide-react";
+
 export default async function FreelancerReviewsPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const reviews = await db.review.findMany({
-    where: { revieweeId: userId },
-    include: {
-      project: {
-        include: {
-          company: true,
+  // Find completed projects where this freelancer was hired, but hasn't reviewed the company
+  const [reviews, pendingProjects] = await Promise.all([
+    db.review.findMany({
+      where: { revieweeId: userId },
+      include: {
+        project: {
+          include: {
+            company: true,
+          },
+        },
+        reviewer: {
+          select: {
+            name: true,
+            image: true,
+          },
         },
       },
-      reviewer: {
-        select: {
-          name: true,
-          image: true,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    db.project.findMany({
+      where: {
+        status: "COMPLETED",
+        applications: {
+          some: {
+            freelancer: { userId },
+            status: "HIRED",
+          },
+        },
+        reviews: {
+          none: {
+            reviewerId: userId,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      include: {
+        company: true,
+        applications: {
+          where: {
+            freelancer: { userId },
+            status: "HIRED",
+          },
+        },
+      },
+    }),
+  ]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
@@ -42,16 +73,55 @@ export default async function FreelancerReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
-          Client Feedback & Reviews
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Review comments and ratings submitted by companies after project completion
-        </p>
+      <div className="flex justify-between items-start flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+            Client Feedback & Reviews
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Review comments and ratings submitted by companies after project completion
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      {/* Pending Reviews Section */}
+      {pendingProjects.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">
+            ⚠️ Pending Reviews ({pendingProjects.length})
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {pendingProjects.map((proj) => {
+              const app = proj.applications[0];
+              if (!app) return null;
+              return (
+                <Card key={proj.id} className="p-4 bg-amber-50/40 border-amber-200/80 shadow-sm flex flex-col justify-between gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-[#002d59]">{proj.title}</h3>
+                    <p className="text-[10px] text-slate-550 mt-1">
+                      Client: <strong className="text-slate-700">{proj.company.companyName}</strong>
+                    </p>
+                    <p className="text-[9px] text-amber-700 font-semibold mt-1">
+                      Please leave a review for the company to close out the workspace.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/workspace/${app.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#002d59] hover:bg-[#001f3f] text-white text-[10px] font-black rounded-lg w-fit transition-colors"
+                  >
+                    Go to Workspace & Review <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-bold text-[#002d59] uppercase tracking-wider">
+          Feedback History
+        </h2>
         {reviews.length === 0 ? (
           <Card className="p-8 text-center text-xs text-slate-500">
             No feedback reviews received yet. Completed contracts will populate reviews here.

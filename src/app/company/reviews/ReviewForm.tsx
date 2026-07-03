@@ -30,6 +30,7 @@ interface ReviewFormProps {
 export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps) {
   const router = useRouter();
   const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId);
+  const [selectedFreelancerUserId, setSelectedFreelancerUserId] = useState("");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   
@@ -37,11 +38,20 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
   const [message, setMessage] = useState("");
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-  const hiredFreelancer = selectedProject?.applications[0]?.freelancer;
+  const hiredFreelancers = selectedProject?.applications.map((app) => app.freelancer) || [];
+
+  // Reset selected freelancer when project changes
+  React.useEffect(() => {
+    if (hiredFreelancers.length > 0) {
+      setSelectedFreelancerUserId(hiredFreelancers[0].user.id);
+    } else {
+      setSelectedFreelancerUserId("");
+    }
+  }, [selectedProjectId, selectedProject]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProjectId || !hiredFreelancer || !comment) {
+    if (!selectedProjectId || !selectedFreelancerUserId || !comment) {
       setMessage("Please fill in all fields.");
       return;
     }
@@ -52,16 +62,21 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
     try {
       const res = await submitReview(
         selectedProjectId,
-        hiredFreelancer.user.id,
+        selectedFreelancerUserId,
         rating,
         comment
       );
 
       if (res.success) {
-        setMessage("Review submitted successfully! Contract closed.");
-        setComment("");
-        setSelectedProjectId("");
-        router.refresh();
+        if (res.duplicate) {
+          setMessage("You have already reviewed this freelancer for this project.");
+        } else {
+          setMessage("Review submitted successfully!");
+          setComment("");
+          // Clear project if there was only one freelancer or all are reviewed
+          setSelectedProjectId("");
+          router.refresh();
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -75,9 +90,14 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
     { value: "", label: "-- Choose a project contract to review --" },
     ...projects.map((p) => ({
       value: p.id,
-      label: `${p.title} (${p.applications[0]?.freelancer.user.name || "Unknown Freelancer"})`,
+      label: `${p.title} (${p.applications.map(a => a.freelancer.user.name).join(", ") || "No hired freelancers"})`,
     })),
   ];
+
+  const freelancerOptions = hiredFreelancers.map((f) => ({
+    value: f.user.id,
+    label: f.user.name || "Unknown Freelancer",
+  }));
 
   return (
     <Card className="p-8 max-w-xl bg-white border border-slate-100 shadow-sm">
@@ -105,12 +125,20 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
             disabled={loading}
           />
 
-          {hiredFreelancer && (
+          {hiredFreelancers.length > 1 ? (
+            <Select
+              label="Select Freelancer to Review"
+              options={freelancerOptions}
+              value={selectedFreelancerUserId}
+              onChange={(e) => setSelectedFreelancerUserId(e.target.value)}
+              disabled={loading}
+            />
+          ) : hiredFreelancers.length === 1 ? (
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
               <span className="text-[10px] text-slate-500 block">Freelancer details</span>
-              <strong className="text-[#002d59] font-semibold">{hiredFreelancer.user.name}</strong>
+              <strong className="text-[#002d59] font-semibold">{hiredFreelancers[0].user.name}</strong>
             </div>
-          )}
+          ) : null}
 
           {/* Star Rating select */}
           <div className="space-y-1.5">

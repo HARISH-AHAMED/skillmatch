@@ -35,6 +35,8 @@ import {
   Eye,
   Sparkles,
   LayoutGrid,
+  Star,
+  Award,
 } from "lucide-react";
 import {
   sendMessage,
@@ -49,6 +51,8 @@ import {
   updateDeliverableStatus,
   uploadDeliverableVersion,
 } from "@/actions/collaborationActions";
+import { completeProject, getProjectReviewStatus } from "@/actions/reviewActions";
+import { ProjectCompletionModal } from "@/components/ProjectCompletionModal";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -127,6 +131,7 @@ interface WorkspaceViewProps {
   projectId: string;
   projectTitle: string;
   projectBudget: number;
+  projectStatus: string;
   companyName: string;
   hiredFreelancers: {
     id: string;
@@ -411,6 +416,7 @@ export function WorkspaceView({
   projectId,
   projectTitle,
   projectBudget,
+  projectStatus: initialProjectStatus,
   companyName,
   hiredFreelancers,
   companyUser,
@@ -419,6 +425,7 @@ export function WorkspaceView({
   initialUpdates,
   initialTasks,
 }: WorkspaceViewProps) {
+
   const router = useRouter();
 
   // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones"
@@ -457,6 +464,76 @@ export function WorkspaceView({
   const [files, setFiles] = useState<SharedFileItem[]>(initialFiles);
   const [updates, setUpdates] = useState<ProjectUpdateItem[]>(initialUpdates);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
+
+  // ── Project Completion State ──────────────────────────────────────────────
+  const [projectStatus, setProjectStatus] = useState(initialProjectStatus);
+  const [isCompletingProject, setIsCompletingProject] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<{
+    reviewedByCompany: string[];
+    reviewedByFreelancer: Record<string, boolean>;
+    allReviewsDone: boolean;
+    companyId: string;
+    currentUserReviewedCompany: boolean;
+    hiredFreelancers: { userId: string; name: string | null; image: string | null; freelancerId: string }[];
+  } | null>(null);
+
+  // Fetch review status when project is COMPLETED
+  useEffect(() => {
+    if (projectStatus === "COMPLETED") {
+      getProjectReviewStatus(projectId).then((s) => {
+        setReviewStatus({
+          reviewedByCompany: s.reviewedByCompany,
+          reviewedByFreelancer: s.reviewedByFreelancer,
+          allReviewsDone: s.allReviewsDone,
+          companyId: s.companyId,
+          currentUserReviewedCompany: s.currentUserReviewedCompany,
+          hiredFreelancers: s.hiredFreelancers,
+        });
+      }).catch(() => {});
+    }
+  }, [projectId, projectStatus]);
+
+  const handleCompleteProject = async () => {
+    if (isCompletingProject) return;
+    setIsCompletingProject(true);
+    try {
+      await completeProject(projectId);
+      setProjectStatus("COMPLETED");
+      const s = await getProjectReviewStatus(projectId);
+      setReviewStatus({
+        reviewedByCompany: s.reviewedByCompany,
+        reviewedByFreelancer: s.reviewedByFreelancer,
+        allReviewsDone: s.allReviewsDone,
+        companyId: s.companyId,
+        currentUserReviewedCompany: s.currentUserReviewedCompany,
+        hiredFreelancers: s.hiredFreelancers,
+      });
+      setShowReviewModal(true);
+    } catch (e: any) {
+      alert(e.message || "Failed to complete project.");
+    } finally {
+      setIsCompletingProject(false);
+    }
+  };
+
+  const handleReviewDone = async () => {
+    setShowReviewModal(false);
+    const s = await getProjectReviewStatus(projectId);
+    setReviewStatus({
+      reviewedByCompany: s.reviewedByCompany,
+      reviewedByFreelancer: s.reviewedByFreelancer,
+      allReviewsDone: s.allReviewsDone,
+      companyId: s.companyId,
+      currentUserReviewedCompany: s.currentUserReviewedCompany,
+      hiredFreelancers: s.hiredFreelancers,
+    });
+  };
+
+  // Detect all milestones completed (for company completion CTA)
+  const milestonesFromUpdates = updates.filter((u) => !u.title.startsWith("[") === false || u.title.includes("[Value"));
+  const allMilestoneDone =
+    updates.length > 0 && updates.every((u) => u.status === "COMPLETED");
   const [taskViewMode, setTaskViewMode] = useState<"board" | "timeline">("board");
 
   // Sync background polling every 3s
@@ -943,6 +1020,22 @@ export function WorkspaceView({
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#f4f8ff] text-slate-850 font-sans overflow-hidden">
+
+      {/* ── COMPLETION REVIEW MODAL ── */}
+      {showReviewModal && reviewStatus && (
+        <ProjectCompletionModal
+          projectId={projectId}
+          projectTitle={projectTitle}
+          role={role}
+          hiredFreelancers={reviewStatus.hiredFreelancers}
+          alreadyReviewedIds={reviewStatus.reviewedByCompany}
+          companyId={reviewStatus.companyId}
+          companyName={companyName}
+          alreadyReviewedCompany={reviewStatus.currentUserReviewedCompany}
+          onClose={() => setShowReviewModal(false)}
+          onDone={handleReviewDone}
+        />
+      )}
       
       {/* Workspace Top Header — professional single-bar layout */}
       <header className="bg-white border-b border-slate-200/80 px-4 md:px-6 h-16 flex items-center justify-between gap-4 shrink-0 shadow-sm z-30">
@@ -959,10 +1052,16 @@ export function WorkspaceView({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-sm font-black text-[#002d59] tracking-tight leading-snug">{projectTitle}</h1>
-              <span className="hidden sm:flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full shrink-0">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live
-              </span>
+              {projectStatus === "COMPLETED" ? (
+                <span className="hidden sm:flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full shrink-0">
+                  <CheckCircle2 className="h-3 w-3" /> Completed
+                </span>
+              ) : (
+                <span className="hidden sm:flex items-center gap-1 bg-sky-50 border border-sky-200 text-sky-700 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full shrink-0">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
+                  Live
+                </span>
+              )}
             </div>
             <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest hidden sm:block mt-0.5">{companyName} · Workspace</p>
           </div>
@@ -1096,6 +1195,79 @@ export function WorkspaceView({
         </div>
       </header>
 
+      {/* ── PROJECT COMPLETION BANNERS ─────────────────────────────────── */}
+
+      {/* All milestones done → Company can mark project complete */}
+      {role === "COMPANY" && projectStatus === "IN_PROGRESS" && allMilestoneDone && (
+        <div className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 flex items-center justify-between gap-4 z-20">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-white/20 rounded-lg border border-white/30">
+              <CheckCircle2 className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white">All Milestones Completed!</p>
+              <p className="text-[10px] text-white/80">Ready to close the contract and exchange reviews.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleCompleteProject}
+            disabled={isCompletingProject}
+            className="shrink-0 px-5 py-2 bg-white text-emerald-700 text-xs font-black rounded-xl hover:bg-emerald-50 transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed shadow-md"
+          >
+            {isCompletingProject ? "Completing..." : "Mark Project Complete →"}
+          </button>
+        </div>
+      )}
+
+      {/* Project is COMPLETED → review CTAs */}
+      {projectStatus === "COMPLETED" && reviewStatus && !reviewStatus.allReviewsDone && (
+        <div className="shrink-0 bg-gradient-to-r from-[#002d59] to-[#0a4885] px-6 py-3 flex items-center justify-between gap-4 z-20">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-white/20 rounded-lg border border-white/30">
+              <Star className="h-4 w-4 text-amber-300 fill-amber-300" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white">Project Completed — Leave a Review</p>
+              <p className="text-[10px] text-white/70">
+                {role === "COMPANY"
+                  ? `${reviewStatus.reviewedByCompany.length}/${reviewStatus.hiredFreelancers.length} freelancers reviewed`
+                  : reviewStatus.currentUserReviewedCompany
+                  ? "You've already reviewed this company ✓"
+                  : "Your feedback helps build trust on the platform."}
+              </p>
+            </div>
+          </div>
+          {role === "COMPANY" && reviewStatus.reviewedByCompany.length < reviewStatus.hiredFreelancers.length && (
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="shrink-0 px-5 py-2 bg-amber-400 text-[#002d59] text-xs font-black rounded-xl hover:bg-amber-300 transition-colors cursor-pointer shadow-md"
+            >
+              Review Freelancers →
+            </button>
+          )}
+          {role === "FREELANCER" && !reviewStatus.currentUserReviewedCompany && (
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="shrink-0 px-5 py-2 bg-amber-400 text-[#002d59] text-xs font-black rounded-xl hover:bg-amber-300 transition-colors cursor-pointer shadow-md"
+            >
+              Review Company →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* All reviews done → Project Sealed */}
+      {projectStatus === "COMPLETED" && reviewStatus?.allReviewsDone && (
+        <div className="shrink-0 bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-3 flex items-center gap-3 z-20">
+          <div className="p-1.5 bg-white/20 rounded-lg border border-white/30">
+            <Award className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-white">🎉 Contract Sealed — All Reviews Complete</p>
+            <p className="text-[10px] text-white/70">All parties have reviewed. The project is fully closed.</p>
+          </div>
+        </div>
+      )}
 
       {/* Top Navigation Tabs */}
       <nav className="bg-white border-b border-slate-200 px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">

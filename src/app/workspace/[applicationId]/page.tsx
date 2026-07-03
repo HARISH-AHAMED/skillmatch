@@ -184,6 +184,7 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
       projectId={project.id}
       projectTitle={project.title}
       projectBudget={project.budget}
+      projectStatus={project.status}
       companyName={project.company.companyName}
       hiredFreelancers={hiredFreelancers}
       companyUser={companyUser}

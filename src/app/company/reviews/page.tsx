@@ -25,7 +25,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
     db.project.findMany({
       where: {
         company: { userId },
-        status: "IN_PROGRESS",
+        status: { in: ["IN_PROGRESS", "COMPLETED"] },
       },
       include: {
         applications: {
