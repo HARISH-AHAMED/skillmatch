@@ -804,6 +804,10 @@ export function WorkspaceView({
       if (result.error) {
         alert(result.error);
         setFiles((prev) => prev.filter(f => f.id !== tempId));
+      } else {
+        // Automatically send the file in the chat stream!
+        const fileMsgContent = `[FILE:${fileName}|${realUrl}|${bytesFormatted}]`;
+        await handleSendMessage(null as any, fileMsgContent);
       }
     } catch (err: any) {
       alert("Failed to share file deliverable.");
@@ -1988,12 +1992,22 @@ export function WorkspaceView({
                         messages.filter((m) => m.channel === activeChannel).map((msg) => {
                           const isMe = msg.senderId === currentUserId;
                           const isVoice = msg.content.startsWith("[VOICE:");
+                          const isFile = msg.content.startsWith("[FILE:");
 
                           // Extract voice metadata
                           let voiceDur = "0:00";
                           if (isVoice) {
                             const durMatch = msg.content.match(/duration:([^\]]+)/);
                             if (durMatch) voiceDur = durMatch[1];
+                          }
+                          
+                          // Extract file metadata
+                          let fileDetails = { name: "", url: "", size: "" };
+                          if (isFile) {
+                            const match = msg.content.match(/^\[FILE:(.+)\|(.+)\|(.+)\]$/);
+                            if (match) {
+                              fileDetails = { name: match[1], url: match[2], size: match[3] };
+                            }
                           }
                           const freelancerInfo = hiredFreelancers.find(f => f.id === msg.senderId);
                           const isFreelancerSender = !!freelancerInfo;
@@ -2039,6 +2053,36 @@ export function WorkspaceView({
                                 }`}>
                                   {isVoice ? (
                                     <VoiceMessagePlayer content={msg.content} isMe={isMe} />
+                                  ) : isFile ? (
+                                    <div className="flex flex-col gap-2 p-1 max-w-sm">
+                                      <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 text-white shrink-0">
+                                          <Archive className="h-5 w-5" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="font-bold text-xs truncate" title={fileDetails.name}>
+                                            {fileDetails.name}
+                                          </p>
+                                          <p className="text-[10px] opacity-75 font-semibold mt-0.5">
+                                            {fileDetails.size}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <a
+                                        href={fileDetails.url}
+                                        download={fileDetails.name}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 mt-1.5 rounded-xl text-[10px] font-black uppercase transition-all shadow-xs cursor-pointer ${
+                                          isMe 
+                                            ? "bg-white text-[#002d59] hover:bg-slate-50" 
+                                            : "bg-[#002d59] text-white hover:bg-[#001f3f]"
+                                        }`}
+                                      >
+                                        <Download className="h-3 w-3" />
+                                        Download File
+                                      </a>
+                                    </div>
                                   ) : (
                                     msg.content
                                   )}
