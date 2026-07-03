@@ -37,6 +37,7 @@ import {
   LayoutGrid,
   Star,
   Award,
+  User,
 } from "lucide-react";
 import {
   sendMessage,
@@ -2548,14 +2549,28 @@ export function WorkspaceView({
                                         )}
                                       </div>
 
-                                      {/* Avatar */}
-                                      <div className="h-5.5 w-5.5 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-bold text-[8px] overflow-hidden shrink-0">
-                                        {task.assignedTo?.image ? (
-                                          <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
-                                        ) : (
-                                          task.assignedTo?.name ? task.assignedTo.name[0].toUpperCase() : "U"
-                                        )}
-                                      </div>
+                                      {/* Assignee info */}
+                                      {task.assignedTo ? (
+                                        <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 border border-slate-100/60 rounded-full py-0.5 pl-0.5 pr-2">
+                                          <div className="h-5 w-5 rounded-full bg-[#002d59] border border-slate-200 flex items-center justify-center font-bold text-[8px] overflow-hidden text-white shrink-0">
+                                            {task.assignedTo.image ? (
+                                              <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
+                                            ) : (
+                                              task.assignedTo.name ? task.assignedTo.name[0].toUpperCase() : "U"
+                                            )}
+                                          </div>
+                                          <span className="text-[8px] font-black text-slate-600 truncate max-w-[70px]">
+                                            {task.assignedTo.name?.split(" ")[0] || "User"}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-400 uppercase tracking-wider">
+                                          <div className="h-5 w-5 rounded-full border border-dashed border-slate-200 flex items-center justify-center shrink-0 bg-white">
+                                            <User className="h-2.5 w-2.5 text-slate-300" />
+                                          </div>
+                                          <span>Unassigned</span>
+                                        </div>
+                                      )}
 
                                     </div>
 
@@ -2719,17 +2734,31 @@ export function WorkspaceView({
 
                                     <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-[10px]">
                                       <div className="flex items-center gap-2">
-                                        <div className="h-6.5 w-6.5 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
-                                          {task.assignedTo?.image ? (
-                                            <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
-                                          ) : (
-                                            task.assignedTo?.name ? task.assignedTo.name[0].toUpperCase() : "U"
-                                          )}
-                                        </div>
-                                        <div className="min-w-0">
-                                          <p className="font-extrabold text-slate-700 truncate leading-tight">{task.assignedTo?.name || "Unassigned"}</p>
-                                          <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Completed By</p>
-                                        </div>
+                                        {task.assignedTo ? (
+                                          <>
+                                            <div className="h-6.5 w-6.5 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
+                                              {task.assignedTo.image ? (
+                                                <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
+                                              ) : (
+                                                task.assignedTo.name ? task.assignedTo.name[0].toUpperCase() : "U"
+                                              )}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="font-extrabold text-slate-700 truncate leading-tight">{task.assignedTo.name || "User"}</p>
+                                              <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Completed By</p>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="h-6.5 w-6.5 rounded-full border border-dashed border-slate-200 flex items-center justify-center bg-white shrink-0">
+                                              <User className="h-3.5 w-3.5 text-slate-300" />
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="font-extrabold text-slate-500 truncate leading-tight">Unassigned Task</p>
+                                              <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Completed</p>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
 
                                       <div className="text-right text-slate-400">
