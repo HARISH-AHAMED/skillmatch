@@ -42,7 +42,10 @@ export default async function FreelancerApplicationsPage() {
     );
   }
 
-  const getStatusBadge = (status: ApplicationStatus) => {
+  const getStatusBadge = (status: ApplicationStatus, projectStatus: string) => {
+    if (status === ApplicationStatus.HIRED && projectStatus === "COMPLETED") {
+      return <Badge variant="success" className="bg-emerald-100 text-emerald-800 border-emerald-200">Completed Project</Badge>;
+    }
     switch (status) {
       case ApplicationStatus.HIRED:
         return <Badge variant="success">Hired / Contract Active</Badge>;
@@ -83,7 +86,7 @@ export default async function FreelancerApplicationsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {getStatusBadge(app.status)}
+                  {getStatusBadge(app.status, app.project.status)}
                   {app.status === ApplicationStatus.HIRED && (
                     <Link href={`/workspace/${app.id}`} target="_blank" rel="noopener noreferrer">
                       <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white font-bold text-[10px] py-1 px-3 h-auto">
