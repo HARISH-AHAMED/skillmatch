@@ -312,6 +312,7 @@ model Message {
   senderId      String
   content       String   @db.Text
   channel       String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
+  seen          Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)

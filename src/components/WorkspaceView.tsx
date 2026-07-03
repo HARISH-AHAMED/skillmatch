@@ -51,6 +51,8 @@ import {
   deleteFile,
   updateDeliverableStatus,
   uploadDeliverableVersion,
+  deleteMessage,
+  markMessagesAsRead,
 } from "@/actions/collaborationActions";
 import { completeProject, getProjectReviewStatus } from "@/actions/reviewActions";
 import { updateProjectDueDate } from "@/actions/projectActions";
@@ -64,6 +66,7 @@ interface MessageItem {
   createdAt: Date | string;
   senderId: string;
   channel: string;
+  seen?: boolean;
   sender: {
     id: string;
     name: string | null;
@@ -610,6 +613,35 @@ export function WorkspaceView({
       clearInterval(interval);
     };
   }, [projectId]);
+
+  // Read indicator and delete message logic
+  const handleMarkChannelAsRead = async (channelName: string) => {
+    try {
+      await markMessagesAsRead(projectId, channelName);
+    } catch (e) {
+      console.error("Failed to mark messages as read:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === "messages") {
+      handleMarkChannelAsRead(activeChannel);
+    }
+  }, [activeChannel, messages.length, activeView, projectId]);
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setMessages((curr) => curr.filter((m) => m.id !== messageId));
+    try {
+      const res = await deleteMessage(projectId, messageId);
+      if (res.error) {
+        alert(res.error);
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert("Failed to delete message: " + err.message);
+      router.refresh();
+    }
+  };
 
   // UI state variables
   const [newMessage, setNewMessage] = useState("");
@@ -2013,9 +2045,38 @@ export function WorkspaceView({
                                   )}
                                 </div>
 
-                                <div className={`text-[8px] text-slate-405 flex items-center gap-1.5 mt-1 ${isMe ? "justify-end" : ""}`}>
-                                  <Clock className="h-2.5 w-2.5" />
+                                <div className={`text-[8px] text-slate-400 flex items-center gap-1.5 mt-1 ${isMe ? "justify-end" : ""}`}>
+                                  <Clock className="h-2.5 w-2.5 text-slate-400" />
                                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                  {isMe && (
+                                    <>
+                                      <span>·</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteMessage(msg.id)}
+                                        className="text-rose-500 hover:text-rose-700 underline font-bold cursor-pointer transition-colors border-none bg-transparent p-0"
+                                      >
+                                        Delete
+                                      </button>
+                                      <span className="ml-1 flex items-center">
+                                        {msg.seen ? (
+                                          <div className="flex animate-fade-in" title="Seen by recipient">
+                                            <svg className="h-3 w-3 text-[#3ac0ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <svg className="h-3 w-3 text-[#3ac0ff] -ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          </div>
+                                        ) : (
+                                          <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                            <title>Sent</title>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
 
                               </div>

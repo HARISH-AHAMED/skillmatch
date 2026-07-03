@@ -672,3 +672,73 @@ export async function uploadDeliverableVersion(
     return { error: err.message || "Failed to upload new version" };
   }
 }
+
+export async function deleteMessage(projectId: string, messageId: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Unauthorized" };
+  }
+
+  const userId = session.user.id;
+  const access = await verifyProjectWorkspaceAccess(projectId, userId);
+  if (access.error || !access.project || !access.role) {
+    return { error: access.error || "Access denied" };
+  }
+
+  try {
+    const message = await db.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      return { error: "Message not found" };
+    }
+
+    if (message.senderId !== userId) {
+      return { error: "You can only delete your own messages" };
+    }
+
+    await db.message.delete({
+      where: { id: messageId },
+    });
+
+    revalidatePath("/company/workspace/[applicationId]", "layout");
+    revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting message:", error);
+    return { error: error.message || "Failed to delete message" };
+  }
+}
+
+export async function markMessagesAsRead(projectId: string, channel: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Unauthorized" };
+  }
+
+  const userId = session.user.id;
+
+  try {
+    await db.message.updateMany({
+      where: {
+        projectId,
+        channel,
+        senderId: { not: userId },
+        seen: false,
+      },
+      data: {
+        seen: true,
+      },
+    });
+
+    revalidatePath("/company/workspace/[applicationId]", "layout");
+    revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error marking messages as read:", error);
+    return { error: error.message || "Failed to mark messages as read" };
+  }
+}
