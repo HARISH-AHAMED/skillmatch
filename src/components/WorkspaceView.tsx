@@ -53,6 +53,7 @@ import {
   uploadDeliverableVersion,
 } from "@/actions/collaborationActions";
 import { completeProject, getProjectReviewStatus } from "@/actions/reviewActions";
+import { updateProjectDueDate } from "@/actions/projectActions";
 import { ProjectCompletionModal } from "@/components/ProjectCompletionModal";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -133,6 +134,7 @@ interface WorkspaceViewProps {
   projectTitle: string;
   projectBudget: number;
   projectStatus: string;
+  projectDueDate: Date | string | null;
   companyName: string;
   hiredFreelancers: {
     id: string;
@@ -418,6 +420,7 @@ export function WorkspaceView({
   projectTitle,
   projectBudget,
   projectStatus: initialProjectStatus,
+  projectDueDate: initialProjectDueDate,
   companyName,
   hiredFreelancers,
   companyUser,
@@ -468,6 +471,7 @@ export function WorkspaceView({
 
   // ── Project Completion State ──────────────────────────────────────────────
   const [projectStatus, setProjectStatus] = useState(initialProjectStatus);
+  const [projectDueDate, setProjectDueDate] = useState<any>(initialProjectDueDate);
   const [isCompletingProject, setIsCompletingProject] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<{
@@ -478,6 +482,21 @@ export function WorkspaceView({
     currentUserReviewedCompany: boolean;
     hiredFreelancers: { userId: string; name: string | null; image: string | null; freelancerId: string }[];
   } | null>(null);
+
+  // Sync projectDueDate prop updates
+  useEffect(() => {
+    setProjectDueDate(initialProjectDueDate);
+  }, [initialProjectDueDate]);
+
+  const handleUpdateProjectDueDate = async (newDateString: string) => {
+    setProjectDueDate(newDateString || null);
+    try {
+      await updateProjectDueDate(projectId, newDateString || null);
+    } catch (err: any) {
+      alert("Failed to update project due date: " + err.message);
+      setProjectDueDate(initialProjectDueDate);
+    }
+  };
 
   // Fetch review status when project is COMPLETED
   useEffect(() => {
@@ -1117,10 +1136,24 @@ export function WorkspaceView({
           </div>
 
           {/* Deadline chip */}
-          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/60 rounded-lg px-2.5 py-1">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due</span>
-            <span className="text-[11px] font-extrabold text-amber-600">Dec 28, 2026</span>
-          </div>
+          {role === "COMPANY" ? (
+            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/60 rounded-lg px-2.5 py-1 relative group">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due</span>
+              <input
+                type="date"
+                value={projectDueDate ? new Date(projectDueDate).toISOString().split("T")[0] : ""}
+                onChange={(e) => handleUpdateProjectDueDate(e.target.value)}
+                className="bg-transparent border-none outline-none text-[11px] font-extrabold text-amber-600 cursor-pointer focus:ring-0 w-24 p-0"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/60 rounded-lg px-2.5 py-1">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due</span>
+              <span className="text-[11px] font-extrabold text-amber-600">
+                {projectDueDate ? new Date(projectDueDate).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "No Due Date"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* DIVIDER */}

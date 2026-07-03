@@ -192,3 +192,34 @@ export async function closeProject(projectId: string) {
   revalidatePath("/company/projects");
   return { success: true };
 }
+
+export async function updateProjectDueDate(projectId: string, dueDateString: string | null) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    throw new Error("Unauthorized");
+  }
+
+  const company = await db.company.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project || !company || project.companyId !== company.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const updatedProject = await db.project.update({
+    where: { id: projectId },
+    data: {
+      dueDate: dueDateString ? new Date(dueDateString) : null,
+    },
+  });
+
+  revalidatePath("/company/projects");
+  revalidatePath("/freelancer/projects");
+
+  return { success: true, dueDate: updatedProject.dueDate };
+}
