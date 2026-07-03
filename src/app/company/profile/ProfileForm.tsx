@@ -758,15 +758,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   {galleryUploading ? "Uploading…" : "Upload Photo (max 5MB)"}
                 </label>
               </div>
-
-              {/* Coming soon notice for video */}
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <span className="text-lg">🎥</span>
-                <div>
-                  <p className="text-[10px] font-bold text-amber-700">Video Upload — Coming Soon</p>
-                  <p className="text-[9px] text-amber-600">Office tour videos will be available once cloud storage is configured.</p>
-                </div>
-              </div>
             </div>
 
 
