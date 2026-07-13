@@ -226,13 +226,8 @@ export function ProjectDetailsView({ project, hasApplied, aiScore }: ProjectDeta
                         <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{r.description}</p>
                         
                         {isScreeningRound && qCount > 0 && (
-                          <div className="mt-2 space-y-1.5 border-l-2 border-[#3ac0ff]/40 pl-3">
-                            <span className="text-[9px] font-extrabold text-slate-500 uppercase block tracking-wider mb-1">Round Questions:</span>
-                            {r.questions.map((q: any, qIdx: number) => (
-                              <p key={q.id || qIdx} className="text-[9.5px] text-slate-600 font-semibold leading-relaxed">
-                                Q{qIdx + 1}: &quot;{q.question}&quot; <span className="text-slate-400 italic">({q.type.toLowerCase().replace("_", " ")})</span>
-                              </p>
-                            ))}
+                          <div className="mt-2 text-[10px] text-slate-400 font-medium italic border-l-2 border-slate-200 pl-2">
+                            Questions will be revealed during the application.
                           </div>
                         )}
                       </div>
