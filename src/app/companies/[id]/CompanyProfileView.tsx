@@ -49,6 +49,7 @@ import {
   ShieldAlert,
   Pencil,
 } from "lucide-react";
+import { getProjectDescriptionText, getCompanyDescriptionText, getProjectMetadataDirect } from "@/lib/workflowHelpers";
 
 interface CompanyProfileViewProps {
   company: {
@@ -329,7 +330,7 @@ export function CompanyProfileView({
   };
   const fieldsToCheck = {
     companyName: company.companyName,
-    description: company.description,
+    description: getCompanyDescriptionText(company.description),
     logoUrl: company.logoUrl,
     bannerUrl: company.bannerUrl,
     industry: company.industry,
@@ -524,7 +525,7 @@ export function CompanyProfileView({
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold text-[#002d59]">About {company.companyName}</h3>
                   <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                    {company.description || "No description provided yet."}
+                    {getCompanyDescriptionText(company.description) || "No description provided yet."}
                   </p>
                 </div>
 
@@ -683,7 +684,7 @@ export function CompanyProfileView({
                       </div>
 
                       <p className="text-xs text-slate-600 leading-relaxed font-medium line-clamp-3">
-                        {project.description}
+                        {getProjectDescriptionText(project.description)}
                       </p>
 
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
@@ -1606,13 +1607,47 @@ export function CompanyProfileView({
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
+               {/* Description */}
+              <div className="space-y-2 text-left">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Description</h4>
-                <p className="text-sm text-slate-650 leading-relaxed whitespace-pre-wrap font-medium">
-                  {viewingProject.description}
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                  {getProjectDescriptionText(viewingProject.description)}
                 </p>
               </div>
+
+              {/* Extra Details if JSON metadata exists */}
+              {(() => {
+                const meta = getProjectMetadataDirect(viewingProject.description);
+                const hasObjectives = meta.objectives && meta.objectives.length > 0;
+                const hasDeliverables = meta.deliverables && meta.deliverables.length > 0;
+                
+                if (!hasObjectives && !hasDeliverables) return null;
+                
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 text-left">
+                    {hasObjectives && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Key Objectives</h4>
+                        <ul className="list-disc pl-4 text-xs text-slate-600 space-y-1">
+                          {meta.objectives.map((obj, i) => (
+                            <li key={i}>{obj}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {hasDeliverables && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expected Deliverables</h4>
+                        <ul className="list-disc pl-4 text-xs text-slate-600 space-y-1">
+                          {meta.deliverables.map((del, i) => (
+                            <li key={i}>{del}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Required Skills */}
               <div className="space-y-2">

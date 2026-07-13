@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { updateCompanyDetailedProfile } from "@/actions/companyActions";
+import { getCompanyDescriptionText, parseCompanyMetadata, serializeCompanyMetadata } from "@/lib/workflowHelpers";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -55,7 +56,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
   // Basic Details States
   const [companyName, setCompanyName] = useState(initialData?.companyName || "");
-  const [description, setDescription] = useState(initialData?.description || "");
+  const [description, setDescription] = useState(getCompanyDescriptionText(initialData?.description));
   const [industry, setIndustry] = useState(initialData?.industry || "");
   const [website, setWebsite] = useState(initialData?.website || "");
   const [location, setLocation] = useState(initialData?.location || "");
@@ -301,9 +302,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         }
       }
 
+      const existingMeta = parseCompanyMetadata(initialData?.description);
+      const fullDescription = serializeCompanyMetadata(description, existingMeta);
+
       await updateCompanyDetailedProfile({
         companyName,
-        description,
+        description: fullDescription,
         industry,
         website,
         location,

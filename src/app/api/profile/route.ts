@@ -23,7 +23,7 @@ export async function GET() {
     if (role === Role.FREELANCER) {
       const freelancer = await db.freelancer.findUnique({
         where: { userId },
-        select: { id: true },
+        select: { id: true, verificationBadges: true },
       });
       if (freelancer) {
         return NextResponse.json({
@@ -31,12 +31,13 @@ export async function GET() {
           profileId: freelancer.id,
           href: `/freelancers/${freelancer.id}`,
           image,
+          verificationBadges: freelancer.verificationBadges,
         });
       }
     } else if (role === Role.COMPANY) {
       const company = await db.company.findUnique({
         where: { userId },
-        select: { id: true },
+        select: { id: true, verificationBadges: true },
       });
       if (company) {
         return NextResponse.json({
@@ -44,6 +45,7 @@ export async function GET() {
           profileId: company.id,
           href: `/companies/${company.id}`,
           image,
+          verificationBadges: company.verificationBadges,
         });
       }
     }
@@ -53,6 +55,7 @@ export async function GET() {
       profileId: null,
       href: null,
       image,
+      verificationBadges: [],
     });
   } catch (error) {
     console.error("Failed to fetch profile info:", error);

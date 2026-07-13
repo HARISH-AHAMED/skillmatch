@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   Pencil,
 } from "lucide-react";
+import { getFreelancerBioText } from "@/lib/workflowHelpers";
 
 interface ReviewReceivedItem {
   id: string;
@@ -322,7 +323,7 @@ export function FreelancerProfileDetail({
           <Card className="p-6 border-slate-200/60 shadow-xs bg-white space-y-3">
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Professional Biography</h3>
             <p className="text-xs text-slate-700 leading-relaxed italic bg-slate-50 p-4 border border-slate-200 rounded-2xl font-medium">
-              &quot;{freelancer.bio || "No professional biography has been provided yet."}&quot;
+              &quot;{getFreelancerBioText(freelancer.bio) || "No professional biography has been provided yet."}&quot;
             </p>
           </Card>
 

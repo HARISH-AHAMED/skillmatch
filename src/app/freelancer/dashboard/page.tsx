@@ -18,6 +18,7 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { ApplicationStatus, ProjectStatus } from "@prisma/client";
+import { getProjectDescriptionText } from "@/lib/workflowHelpers";
 
 export default async function FreelancerDashboard() {
   const session = await auth();
@@ -35,16 +36,27 @@ export default async function FreelancerDashboard() {
     }),
   ]);
 
-  if (!freelancer) {
+  if (!freelancer || !freelancer.verificationBadges.includes("ONBOARDING_COMPLETED")) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">Freelancer Dashboard</h1>
-        <Card className="p-8 text-center space-y-4 bg-white border border-slate-200">
-          <p className="text-slate-500 text-sm">Please complete your freelancer profile to unlock AI recommendations and search listings.</p>
-          <Link href="/freelancer/profile">
-            <Button variant="primary">Complete Profile</Button>
-          </Link>
-        </Card>
+      <div className="space-y-6 max-w-2xl mx-auto text-center py-10">
+        <div className="p-10 bg-white border border-slate-200/80 shadow-md rounded-3xl space-y-6">
+          <div className="h-14 w-14 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto text-amber-500">
+            <Sparkles className="h-7 w-7 fill-amber-50" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-[#002d59]">Complete Your Profile Onboarding</h2>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto font-semibold">
+              To unlock full platform privileges—including AI match recommendations, the project search directory, slot booking calendar, and client workspace applications—you must save your profile settings.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link href="/freelancer/profile">
+              <Button className="px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md bg-[#002d59] text-white hover:bg-[#001f3f] cursor-pointer">
+                Go to Profile Settings →
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -101,7 +113,7 @@ export default async function FreelancerDashboard() {
   const topRec = recommendations[0];
   const topMatchScore = topRec ? topRec.score : 95;
   const topMatchTitle = topRec ? topRec.project.title : "Cloud Architect";
-  const topMatchDesc = topRec ? topRec.project.description : "AWS, Terraform, Kubernetes, Helm Charts, CI/CD Pipelines";
+  const topMatchDesc = topRec ? getProjectDescriptionText(topRec.project.description) : "AWS, Terraform, Kubernetes, Helm Charts, CI/CD Pipelines";
   const topMatchProjectLink = topRec ? `/freelancer/projects` : "#";
 
   return (

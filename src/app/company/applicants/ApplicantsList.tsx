@@ -1,12 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { shortlistApplicant, rejectApplicant, hireApplicant, removeFreelancer } from "@/actions/applicationActions";
+import { transitionApplicationStage, bulkTransitionApplicants, releaseMilestonePayment } from "@/actions/workflowActions";
+import { parseApplicationMetadata, getApplicationCoverLetterText, getProjectMetadataDirect } from "@/lib/workflowHelpers";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { User, Mail, Award, BrainCircuit, Star, Flame, ClipboardList, X, ExternalLink, ChevronRight, Briefcase, CheckCircle, FileText } from "lucide-react";
+import { User, Mail, Award, BrainCircuit, Star, Flame, ClipboardList, X, ExternalLink, ChevronRight, Briefcase, CheckCircle, FileText, Calendar, Clock, Send, ShieldAlert, History, LayoutGrid, Table } from "lucide-react";
 import { ApplicationStatus } from "@prisma/client";
 
 interface ReviewReceivedItem {
@@ -45,6 +50,7 @@ interface ApplicantItem {
   project: {
     title: string;
     status: string;
+    description: string;
   };
   freelancer: {
     id: string;
@@ -95,8 +101,17 @@ interface ApplicantsListProps {
 
 export function ApplicantsList({ applicants, projects, selectedProjectId }: ApplicantsListProps) {
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  
+  // Pipeline details states
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
+  const [stageNotes, setStageNotes] = useState<Record<string, string>>({});
+  const [schedulingApp, setSchedulingApp] = useState<ApplicantItem | null>(null);
+  const [interviewDate, setInterviewDate] = useState("2026-07-10");
+  const [interviewTime, setInterviewTime] = useState("14:00");
+  const [meetLink, setMeetLink] = useState("https://meet.google.com/xyz-pdq-abc");
 
   const handleAction = async (id: string, actionType: "shortlist" | "reject" | "hire" | "remove") => {
     setLoadingId(`${id}-${actionType}`);
@@ -120,6 +135,65 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
     } catch (err) {
       console.error(err);
       alert("Action failed to execute. Please try again.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleTransitionStage = async (applicationId: string, targetStage: string) => {
+    const notes = stageNotes[applicationId] || `Moved to ${targetStage}`;
+    setLoadingId(`${applicationId}-transition`);
+    try {
+      const res = await transitionApplicationStage(applicationId, targetStage, notes);
+      if (res.success) {
+        setStageNotes(prev => ({ ...prev, [applicationId]: "" }));
+        router.refresh();
+      } else {
+        alert(res.error || "Failed to transition stage.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to transition stage.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleBulkTransition = async (targetStage: string) => {
+    if (selectedAppIds.length === 0) return;
+    setLoadingId(`bulk-${targetStage}`);
+    try {
+      const res = await bulkTransitionApplicants(selectedAppIds, targetStage, `Bulk moved to ${targetStage}`);
+      if (res.success) {
+        setSelectedAppIds([]);
+        router.refresh();
+      } else {
+        alert(res.error || "Failed bulk transition.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed bulk transition.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleScheduleInterview = async () => {
+    if (!schedulingApp) return;
+    setLoadingId(`${schedulingApp.id}-sched`);
+    try {
+      const notes = `Interview scheduled on ${interviewDate} at ${interviewTime}. Link: ${meetLink}`;
+      const combinedDateTime = `${interviewDate}T${interviewTime}`;
+      const res = await transitionApplicationStage(schedulingApp.id, "Interview", notes, {
+        date: combinedDateTime,
+        meetingLink: meetLink
+      });
+      if (res.success) {
+        setSchedulingApp(null);
+        router.refresh();
+      } else {
+        alert(res.error || "Failed to schedule interview.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to schedule interview.");
     } finally {
       setLoadingId(null);
     }
@@ -215,7 +289,35 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+          {/* View Mode Toggle Switch */}
+          <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 self-center">
+            <button
+              type="button"
+              onClick={() => setViewMode("card")}
+              className={cn(
+                "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
+                viewMode === "card"
+                  ? "bg-white text-[#002d59] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutGrid className="h-3 w-3" /> Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
+                viewMode === "table"
+                  ? "bg-white text-[#002d59] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Table className="h-3 w-3" /> Table
+            </button>
+          </div>
+
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center hidden sm:inline">Switch Project:</label>
           <select
             value={selectedProjectId}
@@ -226,7 +328,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 router.push(`/company/applicants?projectId=${e.target.value}`);
               }
             }}
-            className="px-4 py-2 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer min-w-[200px]"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer min-w-[200px]"
           >
             <option value="all">-- Select Project --</option>
             {projects.map((p) => (
@@ -238,10 +340,256 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
         </div>
       </div>
 
+      {/* Bulk actions toolbar */}
+      {applicants.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-wrap justify-between items-center gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="selectAllApps"
+              checked={selectedAppIds.length === applicants.length}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedAppIds(applicants.map(a => a.id));
+                } else {
+                  setSelectedAppIds([]);
+                }
+              }}
+              className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+            />
+            <label htmlFor="selectAllApps" className="font-bold text-[#002d59] cursor-pointer">
+              Select All Candidates ({selectedAppIds.length} chosen)
+            </label>
+          </div>
+
+          {selectedAppIds.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold uppercase text-[10px]">Transition Selection To:</span>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleBulkTransition(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className="px-3 py-1.5 border border-slate-200 bg-white text-xs rounded-xl focus:outline-none cursor-pointer"
+              >
+                <option value="">-- Choose Stage --</option>
+                <option value="Profile Reviewed">Profile Reviewed</option>
+                <option value="Shortlisted">Shortlisted</option>
+                <option value="Assessment">Assessment</option>
+                <option value="Interview">Interview</option>
+                <option value="Negotiation">Negotiation</option>
+                <option value="Selected">Selected</option>
+                <option value="Contract Sent">Contract Sent</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Project Started">Project Started</option>
+                <option value="Milestone Review">Milestone Review</option>
+                <option value="Completed">Completed</option>
+                <option value="REJECTED">Reject Selection</option>
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-4">
       {applicants.length === 0 ? (
         <Card className="p-8 text-center text-xs text-slate-500">
           No proposals submitted for this project yet.
+        </Card>
+      ) : viewMode === "table" ? (
+        <Card className="border-slate-100 bg-white shadow-sm overflow-hidden rounded-2xl">
+          <div className="overflow-x-auto p-5">
+            <table className="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[950px]">
+            <thead>
+              <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                <th className="pb-3.5 pl-2 pt-1 w-10">Select</th>
+                <th className="pb-3.5 pt-1">Candidate Profile</th>
+                <th className="pb-3.5 pt-1">Applied Project</th>
+                <th className="pb-3.5 pt-1 text-center">Match Score</th>
+                <th className="pb-3.5 pt-1">Pipeline Stage</th>
+                <th className="pb-3.5 pt-1 text-center">Specs</th>
+                <th className="pb-3.5 pt-1 text-right pr-2">Workspace & Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {applicants.map((app) => {
+                const isSelected = selectedAppIds.includes(app.id);
+                const isHired = app.status === ApplicationStatus.HIRED;
+                const isRejected = app.status === ApplicationStatus.REJECTED;
+
+                // Parse current stage from cover letter metadata
+                const appMeta = parseApplicationMetadata(app.coverLetter);
+                const currentStage = appMeta.pipelineHistory && appMeta.pipelineHistory.length > 0
+                  ? appMeta.pipelineHistory[appMeta.pipelineHistory.length - 1].stage
+                  : "Applied";
+
+                return (
+                  <tr key={app.id} className={cn("hover:bg-slate-50/50 transition-colors", isSelected && "bg-sky-50/10")}>
+                    {/* Checkbox */}
+                    <td className="py-4 pl-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAppIds([...selectedAppIds, app.id]);
+                          } else {
+                            setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
+                          }
+                        }}
+                        className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+                      />
+                    </td>
+
+                    {/* Candidate Profile Details */}
+                    <td className="py-4 pr-3 text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-[10px] border border-slate-200 shrink-0 overflow-hidden">
+                          {app.freelancer.user.image ? (
+                            <img src={app.freelancer.user.image} className="h-full w-full object-cover" />
+                          ) : (
+                            app.freelancer.user.name ? app.freelancer.user.name[0].toUpperCase() : "U"
+                          )}
+                        </div>
+                        <div className="overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
+                            className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                          >
+                            {app.freelancer.user.name}
+                          </button>
+                          <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                            {app.freelancer.professionalHeadline || "Software Engineer"}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Applied Project */}
+                    <td className="py-4 pr-3 text-left">
+                      <p className="font-bold text-slate-700 truncate max-w-[180px]" title={app.project.title}>
+                        {app.project.title}
+                      </p>
+                      <span className="text-[9px] text-slate-450 block font-semibold">Submitted {new Date(app.createdAt).toLocaleDateString()}</span>
+                    </td>
+
+                    {/* Match Score */}
+                    <td className="py-4 text-center">
+                      <Badge variant="accent" className="font-extrabold text-[10px] py-1 px-2.5">
+                        <BrainCircuit className="h-3 w-3 mr-0.5" /> {app.aiScore}%
+                      </Badge>
+                    </td>
+
+                    {/* Status Badge & Actions dropdown */}
+                    <td className="py-4 pr-3 text-left">
+                      <div className="space-y-1.5">
+                        {getStatusBadge(app.status)}
+                        
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={isRejected ? "REJECTED" : isHired ? "Hired" : currentStage}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "Interview") {
+                                setSchedulingApp(app);
+                              } else if (val === "REJECTED") {
+                                handleAction(app.id, "reject");
+                              } else if (val) {
+                                handleTransitionStage(app.id, val);
+                              }
+                            }}
+                            className="px-2 py-1 border border-slate-200 bg-white text-[10px] rounded-lg focus:outline-none cursor-pointer text-slate-600 font-bold"
+                          >
+                            <option value="Applied">Applied</option>
+                            <option value="Profile Reviewed">Profile Reviewed</option>
+                            <option value="Shortlisted">Shortlisted</option>
+                            <option value="Assessment">Assessment</option>
+                            <option value="Interview">Interview</option>
+                            <option value="Negotiation">Negotiation</option>
+                            <option value="Selected">Selected</option>
+                            <option value="Contract Sent">Contract Sent</option>
+                            <option value="Accepted">Accepted</option>
+                            <option value="Project Started">Project Started</option>
+                            <option value="Milestone Review">Milestone Review</option>
+                            <option value="Completed">Completed</option>
+                            <option value="REJECTED">Rejected</option>
+                          </select>
+                          
+                          {app.status === "PENDING" && (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(app.id, "shortlist")}
+                              className="text-[10px] text-emerald-600 hover:text-emerald-700 font-bold underline cursor-pointer"
+                            >
+                              Shortlist
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Specs Details */}
+                    <td className="py-4 text-center">
+                      <div className="space-y-0.5 text-[10px] text-slate-500 font-bold">
+                        <p><strong className="text-slate-700">{app.freelancer.experienceYears}y</strong> exp</p>
+                        <p><strong className="text-[#002d59]">{app.freelancer.rating}★</strong> rating</p>
+                        <p><strong className="text-emerald-700">{app.freelancer.completionRate}%</strong> done</p>
+                      </div>
+                    </td>
+
+                    {/* Actions and Workspace Links */}
+                    <td className="py-4 text-right pr-2">
+                      <div className="flex flex-col items-end gap-1.5">
+                        {isHired ? (
+                          <Link href={`/workspace/${app.id}`} target="_blank">
+                            <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
+                              Open Workspace
+                            </Button>
+                          </Link>
+                        ) : isRejected ? (
+                          <span className="text-[10px] text-slate-400 font-bold">Closed</span>
+                        ) : (
+                          <>
+                            {currentStage === "Interview" && (
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                onClick={() => setSchedulingApp(app)}
+                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#3ac0ff]/10 text-[#002d59] font-bold"
+                              >
+                                Schedule Meet
+                              </Button>
+                            )}
+                            {currentStage === "Selected" && (
+                              <Button
+                                size="xs"
+                                onClick={() => handleAction(app.id, "hire")}
+                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                              >
+                                Sign & Hire
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        <Link href={`/company/applicants/${app.id}`}>
+                          <button
+                            type="button"
+                            className="text-[10px] text-sky-600 hover:text-sky-500 font-bold hover:underline flex items-center gap-0.5 justify-end cursor-pointer"
+                          >
+                            View Details <ChevronRight className="h-2.5 w-2.5" />
+                          </button>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          </div>
         </Card>
       ) : (
         applicants.map((app) => {
@@ -249,10 +597,28 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
           const isRejected = app.status === ApplicationStatus.REJECTED;
           const isProjectActive = app.project.status === "OPEN" || app.project.status === "IN_PROGRESS";
 
+          // Parse current stage from cover letter metadata
+          const appMeta = parseApplicationMetadata(app.coverLetter);
+          const currentStage = appMeta.pipelineHistory && appMeta.pipelineHistory.length > 0
+            ? appMeta.pipelineHistory[appMeta.pipelineHistory.length - 1].stage
+            : "Applied";
+
           return (
             <Card key={app.id} className="p-6 border-slate-100 bg-white shadow-sm">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-3 border-b border-slate-200 mb-4">
                 <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedAppIds.includes(app.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedAppIds([...selectedAppIds, app.id]);
+                      } else {
+                        setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
+                      }
+                    }}
+                    className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer mr-1 shrink-0"
+                  />
                   <button
                     type="button"
                     onClick={() => app.freelancer.user.image && setLightboxImage(app.freelancer.user.image)}
@@ -312,14 +678,6 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 </div>
               </div>
 
-              {/* Proposal Cover Letter */}
-              <div className="space-y-1 mb-4">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Cover Letter Proposal</span>
-                <p className="text-xs text-slate-700 bg-slate-50 p-4 border border-slate-100 rounded-xl italic">
-                  &quot;{app.coverLetter}&quot;
-                </p>
-              </div>
-
               {/* Freelancer Skills */}
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {app.freelancer.skills.map((skill) => (
@@ -330,74 +688,115 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               </div>
 
               {/* Action Handles */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t border-slate-200">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                  className="cursor-pointer text-xs gap-1.5"
-                >
-                  <User className="h-3.5 w-3.5 text-[#002d59]" /> View Profile
-                </Button>
-
-                {isProjectActive && (
-                  <div className="flex flex-wrap gap-2.5 w-full sm:w-auto justify-end">
-                    {/* Hired candidate removal */}
-                    {isHired && (
+              <div className="space-y-3.5 pt-3 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Link href={`/company/applicants/${app.id}`}>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => handleAction(app.id, "remove")}
-                        disabled={loadingId !== null}
-                        className="cursor-pointer text-xs text-rose-600 hover:text-rose-50 hover:bg-rose-50"
+                        className="cursor-pointer text-xs gap-1.5 font-bold"
                       >
-                        {loadingId === `${app.id}-remove` ? "Removing..." : "Remove Freelancer"}
+                        <FileText className="h-3.5 w-3.5" /> View Details
                       </Button>
-                    )}
-
-                    {!isHired && !isRejected && (
-                      <>
-                        {app.status !== ApplicationStatus.SHORTLISTED && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAction(app.id, "shortlist")}
-                            disabled={loadingId !== null}
-                            className="cursor-pointer text-xs"
-                          >
-                            {loadingId === `${app.id}-shortlist` ? "Processing..." : "Shortlist Applicant"}
-                          </Button>
-                        )}
-
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => handleAction(app.id, "hire")}
-                          disabled={loadingId !== null}
-                          className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 border-emerald-500/20 text-white font-semibold"
-                        >
-                          {loadingId === `${app.id}-hire` ? "Hiring..." : "Hire Freelancer"}
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleAction(app.id, "reject")}
-                          disabled={loadingId !== null}
-                          className="cursor-pointer text-xs text-rose-600 hover:text-rose-50"
-                        >
-                          {loadingId === `${app.id}-reject` ? "Rejecting..." : "Reject Candidate"}
-                        </Button>
-                      </>
-                    )}
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
+                      className="cursor-pointer text-xs gap-1.5 font-bold"
+                    >
+                      <User className="h-3.5 w-3.5 text-[#002d59]" /> View Profile
+                    </Button>
                   </div>
-                )}
+
+                  <div className="flex items-center gap-2">
+                    {isHired && <Badge variant="success">Hired</Badge>}
+                    {isRejected && <Badge variant="danger">Rejected</Badge>}
+                    {!isHired && !isRejected && <Badge variant="neutral">{currentStage}</Badge>}
+                  </div>
+                </div>
               </div>
             </Card>
           );
         })
       )}
       </div>
+
+      {/* Interview Scheduler Modal Overlay */}
+      {schedulingApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-pointer"
+            onClick={() => setSchedulingApp(null)}
+          />
+          <Card className="relative w-full max-w-md p-6 z-10 border-slate-100 bg-white shadow-2xl space-y-4 rounded-3xl">
+            <button
+              onClick={() => setSchedulingApp(null)}
+              className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-50 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="space-y-1.5 text-left border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-black text-[#002d59]">Schedule Video Interview</h3>
+              <p className="text-[10px] text-slate-500 font-medium font-semibold">Candidate: <span className="text-[#002d59]">{schedulingApp.freelancer.user.name}</span></p>
+            </div>
+
+            <div className="space-y-3 text-left">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase">Interview Date</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                    value={interviewDate}
+                    onChange={(e) => setInterviewDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase">Interview Time</label>
+                  <input
+                    type="time"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                    value={interviewTime}
+                    onChange={(e) => setInterviewTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase">Google Meet / Video Link</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                  value={meetLink}
+                  onChange={(e) => setMeetLink(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSchedulingApp(null)}
+                disabled={loadingId !== null}
+                className="cursor-pointer text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleScheduleInterview}
+                disabled={loadingId !== null}
+                className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+              >
+                {loadingId === `${schedulingApp.id}-sched` ? "Scheduling..." : "Schedule Round"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Lightbox Zoom-In Modal Overlay */}
       {lightboxImage && (

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { updateFreelancerProfile } from "@/actions/profileActions";
+import { updateFreelancerCalendarAndProfile } from "@/actions/workflowActions";
+import { parseFreelancerMetadata, getFreelancerBioText, serializeFreelancerMetadata } from "@/lib/workflowHelpers";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +43,7 @@ interface ProfileFormProps {
     portfolioItems?: any; // JSON
     responseTime?: string | null;
     availabilityStatus?: string | null;
+    gender?: string | null;
     verificationBadges?: string[];
     user?: {
       name: string | null;
@@ -78,27 +81,58 @@ interface PortfolioItem {
 }
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
-  // Tabs: info, skills, experience, certifications, portfolio
-  const [activeTab, setActiveTab] = useState<"info" | "skills" | "experience" | "certifications" | "portfolio">("info");
+  // Parse serialized freelancer metadata from bio
+  const meta = parseFreelancerMetadata(initialData?.bio);
+  const initialBioText = getFreelancerBioText(initialData?.bio);
+
+  // Extract expected rates, preferences, social URLs from experience Json column if it's an object, else empty
+  const expObj = initialData?.experience && !Array.isArray(initialData.experience)
+    ? (initialData.experience as any)
+    : {};
+
+  // Tabs: info, skills, experience, certifications, portfolio, calendar
+  const [activeTab, setActiveTab] = useState<"info" | "skills" | "experience" | "certifications" | "portfolio" | "calendar">("info");
 
   // Basic Profile Info state
   const [name, setName] = useState(initialData?.user?.name || "");
   const [image, setImage] = useState(initialData?.user?.image || "");
   const [professionalHeadline, setProfessionalHeadline] = useState(initialData?.professionalHeadline || "");
-  const [bio, setBio] = useState(initialData?.bio || "");
+  const [bio, setBio] = useState(initialBioText);
   const [responseTime, setResponseTime] = useState(initialData?.responseTime || "Within 24 hours");
   const [availabilityStatus, setAvailabilityStatus] = useState(initialData?.availabilityStatus || "AVAILABLE");
+  const [gender, setGender] = useState(initialData?.gender || "ANY");
   const [verificationBadges, setVerificationBadges] = useState<string[]>(initialData?.verificationBadges || ["Identity Verified"]);
 
   // Skills & Resume
-  const [skillsStr, setSkillsStr] = useState(initialData?.skills.join(", ") || "");
+  const [skills, setSkills] = useState<string[]>(initialData?.skills || []);
+  const [newSkill, setNewSkill] = useState("");
   const [experienceYears, setExperienceYears] = useState(initialData?.experienceYears || 0);
   const [resumeUrl, setResumeUrl] = useState(initialData?.resumeUrl || "");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
-  // Dynamic Lists state
+  // Unstop and Calendar States
+  const [purpose, setPurpose] = useState<any>(meta.purpose || "To find a job");
+  const [hourlyRate, setHourlyRate] = useState(expObj.hourlyRate || "50");
+  const [expectedBudget, setExpectedBudget] = useState(expObj.expectedBudget || "5000");
+  const [remotePreference, setRemotePreference] = useState(expObj.remotePreference || "Remote");
+  const [timezone, setTimezone] = useState(expObj.timezone || "GMT+5:30");
+  const [githubUrl, setGithubUrl] = useState(expObj.github || "");
+  const [linkedinUrl, setLinkedinUrl] = useState(expObj.linkedin || "");
+  const [websiteUrl, setWebsiteUrl] = useState(expObj.website || "");
+  const [languagesStr, setLanguagesStr] = useState(meta.languages?.join(", ") || "English, Spanish");
+  const [calendarSlots, setCalendarSlots] = useState<{ dayOfWeek: string; slots: string[] }[]>(
+    meta.availabilityCalendar || [
+      { dayOfWeek: "Monday", slots: ["09:00 - 12:00"] },
+      { dayOfWeek: "Tuesday", slots: ["09:00 - 12:00"] },
+      { dayOfWeek: "Wednesday", slots: [] },
+      { dayOfWeek: "Thursday", slots: [] },
+      { dayOfWeek: "Friday", slots: [] },
+    ]
+  );
+
+  // Dynamic Lists state (Career history timeline list)
   const [experience, setExperience] = useState<ExperienceItem[]>(
-    (initialData?.experience as ExperienceItem[]) || []
+    (initialData?.experience && Array.isArray(initialData.experience) ? initialData.experience : []) as ExperienceItem[]
   );
 
   const [certifications, setCertifications] = useState<CertificationItem[]>(
@@ -317,11 +351,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     setLoading(true);
     setMessage(null);
 
-    const skills = skillsStr
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
     try {
       let finalResumeUrl = resumeUrl;
 
@@ -346,9 +375,32 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         responseTime,
         availabilityStatus,
         verificationBadges,
+        gender,
       });
 
-      setMessage({ type: "success", text: "Freelancer Profile saved successfully! Rankings updated." });
+      await updateFreelancerCalendarAndProfile({
+        purpose,
+        languages: languagesStr.split(",").map(l => l.trim()).filter(Boolean),
+        education: [],
+        availabilityCalendar: calendarSlots,
+        bioText: bio,
+        professionalHeadline,
+        experienceYears: Number(experienceYears),
+        portfolioUrl: portfolioItems[0]?.url || "",
+        resumeUrl: finalResumeUrl,
+        skills,
+        hourlyRate,
+        expectedBudget,
+        remotePreference,
+        timezone,
+        githubUrl,
+        linkedinUrl,
+        websiteUrl,
+        completeOnboarding: true,
+        gender,
+      });
+
+      setMessage({ type: "success", text: "Freelancer Profile and Availability Calendar saved successfully! Unstop Rankings updated." });
     } catch (error: any) {
       console.error(error);
       setMessage({ type: "error", text: error.message || "Failed to save profile. Please check parameters." });
@@ -398,7 +450,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
       {/* Tabs Selector Navigation */}
       <div className="flex flex-nowrap overflow-x-auto no-scrollbar border-b border-slate-100 pb-2 mb-2 gap-2 whitespace-nowrap scroll-smooth md:flex-wrap md:overflow-x-visible md:pb-1.5 md:mb-0">
-        {(["info", "skills", "experience", "certifications", "portfolio"] as const).map((tab) => (
+        {(["info", "skills", "experience", "certifications", "portfolio", "calendar"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -414,6 +466,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {tab === "experience" && "Work Experience"}
             {tab === "certifications" && "Certifications"}
             {tab === "portfolio" && "Portfolio Gallery"}
+            {tab === "calendar" && "Availability & Calendar"}
           </button>
         ))}
       </div>
@@ -509,6 +562,19 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               </div>
             </div>
 
+            <div className="space-y-1.5 pt-1">
+              <label className="block text-xs font-semibold text-slate-600">My Gender</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+              >
+                <option value="ANY">Prefer Not to Say / Other</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </select>
+            </div>
+
             <div className="space-y-2.5 pt-1.5">
               <label className="block text-xs font-semibold text-slate-600">Verification Badges (Showcase)</label>
               <div className="flex flex-wrap gap-2.5">
@@ -537,14 +603,62 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
         {/* TAB 2: Skills & Resume */}
         {activeTab === "skills" && (
-          <div className="space-y-5">
-            <Input
-              label="Professional Skills (comma separated list)"
-              placeholder="typescript, react, next.js, tailwind, node.js"
-              value={skillsStr}
-              onChange={(e) => setSkillsStr(e.target.value)}
-              disabled={loading}
-            />
+          <div className="space-y-5 text-left">
+            <div className="space-y-2.5">
+              <label className="block text-xs font-bold text-slate-650 font-bold">Professional Skills *</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type skill and press Add (e.g. react, typescript)"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = e.currentTarget.value;
+                      const skillsToAdd = val.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !skills.includes(s));
+                      if (skillsToAdd.length > 0) setSkills([...skills, ...skillsToAdd]);
+                      setNewSkill("");
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const skillsToAdd = newSkill.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !skills.includes(s));
+                    if (skillsToAdd.length > 0) setSkills([...skills, ...skillsToAdd]);
+                    setNewSkill("");
+                  }}
+                  disabled={loading}
+                  className="cursor-pointer h-[42px] mt-1 shrink-0 bg-slate-50"
+                >
+                  Add
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1.5">
+                {skills.length === 0 ? (
+                  <span className="text-[10px] text-slate-400 italic">No skills added yet.</span>
+                ) : (
+                  skills.map((s) => (
+                    <Badge
+                      key={s}
+                      variant="primary"
+                      className="bg-[#3ac0ff]/10 text-[#002d59] border border-[#3ac0ff]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                    >
+                      {s}
+                      <button
+                        type="button"
+                        onClick={() => setSkills(skills.filter((x) => x !== s))}
+                        className="hover:text-rose-600 font-extrabold cursor-pointer border-none bg-transparent p-0"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))
+                )}
+              </div>
+            </div>
 
             <Input
               label="Years of Experience"
@@ -1030,6 +1144,174 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 6: Availability & Calendar */}
+        {activeTab === "calendar" && (
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+              Unstop-style Profile Rankings & Availability Calendar
+            </h2>
+
+            {/* Unstop mock stats cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Global Platform Rank</span>
+                <p className="text-xl font-black text-[#002d59]"># 1,832,289</p>
+                <p className="text-[10px] text-slate-500 font-medium">Based on active workspace completions</p>
+              </Card>
+
+              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Unstop-style Points</span>
+                <p className="text-xl font-black text-[#002d59]">20 Points</p>
+                <p className="text-[10px] text-slate-500 font-medium">Earned through quality ratings</p>
+              </Card>
+
+              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Streaks Activity (Recent Weeks)</span>
+                <div className="flex gap-1 pt-1.5 overflow-x-auto">
+                  {[2, 0, 4, 1, 3, 2, 0, 4, 3, 2, 4, 1, 0].map((v, i) => (
+                    <div
+                      key={i}
+                      className={`h-4 w-4 rounded shrink-0 border transition-all ${
+                        v === 4 ? "bg-emerald-700 border-emerald-800" :
+                        v === 3 ? "bg-emerald-500 border-emerald-600" :
+                        v === 2 ? "bg-[#3ac0ff] border-sky-400" :
+                        v === 1 ? "bg-sky-100 border-sky-200" :
+                        "bg-slate-100 border-slate-200"
+                      }`}
+                      title={`Activity level: ${v}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[9px] text-slate-500 font-semibold mt-1">Current streak: 3 Days</p>
+              </Card>
+            </div>
+
+            {/* Purpose Option */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-600">What's your primary purpose? *</label>
+              <select
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value as any)}
+              >
+                <option value="To find a job">To find a Job</option>
+                <option value="Compete & Upskill">Compete & Upskill</option>
+                <option value="To Host an Event">To Host an Event</option>
+                <option value="To be a Mentor">To be a Mentor</option>
+              </select>
+            </div>
+
+            {/* Rates & Availability preferences */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <Input
+                label="Expected Hourly Rate ($/hr)"
+                type="number"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+              />
+              <Input
+                label="Expected Budget Minimum ($)"
+                type="number"
+                value={expectedBudget}
+                onChange={(e) => setExpectedBudget(e.target.value)}
+              />
+              <Select
+                label="Remote Preference"
+                options={[
+                  { value: "Remote", label: "Remote Only" },
+                  { value: "Hybrid", label: "Hybrid" },
+                  { value: "Onsite", label: "Onsite (Office)" },
+                ]}
+                value={remotePreference}
+                onChange={(e) => setRemotePreference(e.target.value)}
+              />
+              <Input
+                label="Primary Timezone"
+                placeholder="e.g. GMT+5:30"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+              />
+            </div>
+
+            {/* Social Links */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="GitHub Profile URL"
+                placeholder="https://github.com/username"
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value)}
+              />
+              <Input
+                label="LinkedIn Profile URL"
+                placeholder="https://linkedin.com/in/username"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+              />
+              <Input
+                label="Website Portfolio Link"
+                placeholder="https://mywebsite.com"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+              />
+            </div>
+
+            <Input
+              label="Languages (comma separated)"
+              placeholder="English, Spanish, Hindi"
+              value={languagesStr}
+              onChange={(e) => setLanguagesStr(e.target.value)}
+            />
+
+            {/* Weekly Availability Slots Setup */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Weekly Available Hours</h3>
+              <div className="border border-slate-200/80 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day, idx) => {
+                  const dayEntry = calendarSlots.find(c => c.dayOfWeek === day);
+                  const isChecked = dayEntry && dayEntry.slots.length > 0;
+
+                  return (
+                    <div key={day} className="flex justify-between items-center p-3.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`day-${day}`}
+                          checked={!!isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: ["09:00 - 17:00"] } : c));
+                            } else {
+                              setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: [] } : c));
+                            }
+                          }}
+                          className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+                        />
+                        <label htmlFor={`day-${day}`} className="font-bold text-[#002d59] cursor-pointer">
+                          {day}
+                        </label>
+                      </div>
+                      <div>
+                        {isChecked ? (
+                          <input
+                            type="text"
+                            value={dayEntry.slots[0] || "09:00 - 17:00"}
+                            onChange={(e) => {
+                              setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: [e.target.value] } : c));
+                            }}
+                            className="px-3 py-1.5 border border-slate-200 bg-slate-50 text-xs rounded-xl focus:outline-none"
+                          />
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">Not Available</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 

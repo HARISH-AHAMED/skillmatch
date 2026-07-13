@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import { recalculateRecommendationsForFreelancer } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
+import { parseFreelancerMetadata, serializeFreelancerMetadata } from "@/lib/workflowHelpers";
 
 export async function updateFreelancerProfile(formData: {
   name?: string;
@@ -21,6 +22,7 @@ export async function updateFreelancerProfile(formData: {
   responseTime?: string;
   availabilityStatus?: string;
   verificationBadges?: string[];
+  gender?: string;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
@@ -45,11 +47,16 @@ export async function updateFreelancerProfile(formData: {
     });
   }
 
+  // Retrieve existing metadata to avoid overwriting Streaks/Ranks
+  const existingFreelancer = await db.freelancer.findUnique({ where: { userId } });
+  const existingMeta = parseFreelancerMetadata(existingFreelancer?.bio);
+  const fullBio = serializeFreelancerMetadata(formData.bio, existingMeta);
+
   // Update or create freelancer record
   const freelancer = await db.freelancer.upsert({
     where: { userId },
     update: {
-      bio: formData.bio,
+      bio: fullBio,
       skills: skillsCleaned,
       experienceYears: formData.experienceYears,
       portfolioUrl: formData.portfolioUrl || "",
@@ -61,10 +68,11 @@ export async function updateFreelancerProfile(formData: {
       responseTime: formData.responseTime || "Within 24 hours",
       availabilityStatus: formData.availabilityStatus || "AVAILABLE",
       verificationBadges: formData.verificationBadges || [],
+      gender: formData.gender || "ANY",
     },
     create: {
       userId,
-      bio: formData.bio,
+      bio: fullBio,
       skills: skillsCleaned,
       experienceYears: formData.experienceYears,
       portfolioUrl: formData.portfolioUrl || "",
@@ -76,6 +84,7 @@ export async function updateFreelancerProfile(formData: {
       responseTime: formData.responseTime || "Within 24 hours",
       availabilityStatus: formData.availabilityStatus || "AVAILABLE",
       verificationBadges: formData.verificationBadges || [],
+      gender: formData.gender || "ANY",
       rating: 5.0,
       completedProjects: 0,
       completionRate: 100.0,

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Briefcase, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { ProjectStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getProjectDescriptionText } from "@/lib/workflowHelpers";
 
 export default async function AdminProjectsPage() {
   const projects = await db.project.findMany({
@@ -87,7 +88,7 @@ export default async function AdminProjectsPage() {
               </div>
 
               <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                {project.description}
+                {getProjectDescriptionText(project.description)}
               </p>
 
               <div className="grid grid-cols-3 gap-2.5 text-[10px] text-slate-600 border-t border-slate-200 pt-3.5">

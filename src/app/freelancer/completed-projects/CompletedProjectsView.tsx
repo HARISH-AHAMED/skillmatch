@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Pencil
 } from "lucide-react";
+import { getProjectDescriptionText } from "@/lib/workflowHelpers";
 
 interface CompletedProjectsViewProps {
   freelancer: {
@@ -422,7 +423,10 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   </div>
 
                   <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                    {project.description.length > 250 ? `${project.description.slice(0, 250)}...` : project.description}
+                    {(() => {
+                      const cleanDesc = getProjectDescriptionText(project.description);
+                      return cleanDesc.length > 250 ? `${cleanDesc.slice(0, 250)}...` : cleanDesc;
+                    })()}
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

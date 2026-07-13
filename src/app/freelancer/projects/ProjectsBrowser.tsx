@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { applyToProject } from "@/actions/applicationActions";
 import { toggleSaveProject } from "@/actions/companyActions";
+import { submitDiscussionQuestion } from "@/actions/workflowActions";
+import { getProjectDescriptionText, getProjectMetadataDirect, serializeProjectMetadata } from "@/lib/workflowHelpers";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Search, SlidersHorizontal, ArrowRight, X, Compass, DollarSign, BrainCircuit, Bookmark } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowRight, X, Compass, DollarSign, BrainCircuit, Bookmark, Calendar, List, MessageSquare, HelpCircle, User, MessageCircle, Send } from "lucide-react";
 
 interface ProjectItem {
   id: string;
@@ -49,11 +51,14 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
   // Apply dialog state
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState("");
 
   // Details dialog state
   const [viewingProject, setViewingProject] = useState<ProjectItem | null>(null);
+  const [discQuestion, setDiscQuestion] = useState("");
+  const [submittingDisc, setSubmittingDisc] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,10 +87,11 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
     setMessage("");
 
     try {
-      const res = await applyToProject(selectedProject.id, coverLetter);
+      const res = await applyToProject(selectedProject.id, coverLetter, answers);
       if (res.success) {
         setMessage("Application submitted successfully!");
         setCoverLetter("");
+        setAnswers({});
         setTimeout(() => {
           setSelectedProject(null);
           setMessage("");
@@ -99,6 +105,39 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
       setMessage(err.message || "Failed to submit application.");
     } finally {
       setApplying(false);
+    }
+  };
+
+  const handlePostDiscussion = async () => {
+    if (!discQuestion || !viewingProject) return;
+    setSubmittingDisc(true);
+    try {
+      const res = await submitDiscussionQuestion(viewingProject.id, discQuestion);
+      if (res.success) {
+        setDiscQuestion("");
+        alert("Your question was posted successfully to the discussions board!");
+        
+        // Update local detail view with the new question in FAQ
+        const currentMeta = getProjectMetadataDirect(viewingProject.description);
+        const updatedFaq = [
+          ...(currentMeta.faq || []),
+          { question: `[Discussion Question]: ${discQuestion}`, answer: "" }
+        ];
+        
+        const updatedMeta = {
+          ...currentMeta,
+          faq: updatedFaq
+        };
+        
+        setViewingProject({
+          ...viewingProject,
+          description: serializeProjectMetadata(getProjectDescriptionText(viewingProject.description), updatedMeta)
+        });
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to post question.");
+    } finally {
+      setSubmittingDisc(false);
     }
   };
 
@@ -203,7 +242,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
-                  {project.description}
+                  {getProjectDescriptionText(project.description)}
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-slate-200">
@@ -237,14 +276,15 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                     >
                       <Bookmark className={`h-4 w-4 ${savedProjectIds.includes(project.id) ? "fill-amber-600" : ""}`} />
                     </button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setViewingProject(project)}
-                      className="cursor-pointer"
-                    >
-                      View Details
-                    </Button>
+                    <Link href={`/freelancer/projects/${project.id}`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="cursor-pointer"
+                      >
+                        View Details
+                      </Button>
+                    </Link>
                     {hasApplied ? (
                       <Badge variant="success" className="px-4.5 py-1.5 rounded-xl">
                         Applied
@@ -299,13 +339,13 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
               </div>
             )}
 
-            <form onSubmit={handleApplySubmit} className="space-y-4">
-              <div className="space-y-1.5">
+            <form onSubmit={handleApplySubmit} className="space-y-5">
+              <div className="space-y-1.5 text-left">
                 <label className="block text-xs font-semibold text-slate-600">
                   Cover Letter / Proposal
                 </label>
                 <textarea
-                  className="w-full min-h-[140px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                  className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
                   placeholder="Explain why you are the perfect fit for this project. Highlight relevant skills and past projects..."
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
@@ -314,7 +354,99 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-2">
+              {/* Screening Questions Questionnaire */}
+              {(() => {
+                const meta = getProjectMetadataDirect(selectedProject.description);
+                if (!meta.screeningQuestions || meta.screeningQuestions.length === 0) return null;
+                
+                return (
+                  <div className="space-y-4 border-t border-slate-100 pt-4 text-left">
+                    <span className="text-[10px] font-bold text-[#002d59] uppercase tracking-wider block">
+                      Screening Questionnaire
+                    </span>
+                    <p className="text-[9px] text-slate-400">The client requires candidates to answer the following questions to complete this round.</p>
+                    
+                    {meta.screeningQuestions.map((q) => {
+                      const ansVal = answers[q.id] || "";
+                      const setAnswer = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }));
+                      
+                      return (
+                        <div key={q.id} className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-slate-700">
+                            {q.question} {q.required && <span className="text-rose-500 font-bold">*</span>}
+                          </label>
+                          
+                          {q.type === "YES_NO" && (
+                            <div className="flex gap-4">
+                              {["Yes", "No"].map(opt => (
+                                <label key={opt} className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer font-medium">
+                                  <input
+                                    type="radio"
+                                    name={q.id}
+                                    value={opt}
+                                    checked={ansVal === opt}
+                                    onChange={() => setAnswer(opt)}
+                                    required={q.required}
+                                    disabled={applying}
+                                    className="accent-[#002d59]"
+                                  />
+                                  {opt}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {q.type === "MULTIPLE_CHOICE" && q.options && (
+                            <select
+                              value={ansVal}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              required={q.required}
+                              disabled={applying}
+                              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#002d59]/20 focus:border-[#002d59]"
+                            >
+                              <option value="">Select an option...</option>
+                              {q.options.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          )}
+                          
+                          {q.type === "PARAGRAPH" && (
+                            <textarea
+                              rows={3}
+                              value={ansVal}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              placeholder="Write your answer details here..."
+                              required={q.required}
+                              disabled={applying}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#002d59]/20 focus:border-[#002d59]"
+                            />
+                          )}
+                          
+                          {(q.type === "PORTFOLIO" || q.type === "VIDEO_INTRO" || q.type === "CODING_ASSESSMENT" || q.type === "ASSIGNMENT") && (
+                            <input
+                              type="text"
+                              value={ansVal}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              placeholder={
+                                q.type === "PORTFOLIO" ? "Link to project / design file (e.g. Figma, Behance)" :
+                                q.type === "VIDEO_INTRO" ? "Link to video introduction / Loom URL" :
+                                q.type === "CODING_ASSESSMENT" ? "Link to code file (e.g. GitHub, CodePen)" :
+                                "Link to assignment file / Google Drive URL"
+                              }
+                              required={q.required}
+                              disabled={applying}
+                              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#002d59]/20 focus:border-[#002d59]"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div className="flex gap-3 justify-end pt-3 border-t border-slate-100">
                 <Button
                   variant="outline"
                   onClick={() => setSelectedProject(null)}
@@ -328,112 +460,6 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                 </Button>
               </div>
             </form>
-          </Card>
-        </div>
-      )}
-
-      {/* View Project Details Modal */}
-      {viewingProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-            onClick={() => setViewingProject(null)}
-          />
-
-          <Card className="relative w-full max-w-2xl p-8 z-10 border-slate-100 bg-white shadow-2xl overflow-y-auto max-h-[90vh]">
-            <button
-              onClick={() => setViewingProject(null)}
-              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  {viewingProject.recommendations[0]?.score !== undefined && (
-                    <Badge variant="accent">
-                      <BrainCircuit className="h-3 w-3 mr-1" />
-                      AI Match: {viewingProject.recommendations[0].score}%
-                    </Badge>
-                  )}
-                  {viewingProject.priority === "HIGH" && <Badge variant="danger">High Priority</Badge>}
-                  {viewingProject.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
-                  {viewingProject.priority === "LOW" && <Badge variant="neutral">Low Priority</Badge>}
-                </div>
-                <h3 className="text-2xl font-black text-[#002d59] leading-tight">{viewingProject.title}</h3>
-                <p className="text-sm text-slate-500 flex items-center gap-1.5 font-medium">
-                  <Link href={`/companies/${viewingProject.company.id}`} className="text-[#002d59] font-bold hover:text-[#3ac0ff] hover:underline transition-all">
-                    {viewingProject.company.companyName}
-                  </Link>
-                  <span>•</span>
-                  <span>{viewingProject.company.location || "Remote"}</span>
-                </p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4.5 bg-slate-50 rounded-2xl border border-slate-100">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Budget</span>
-                  <span className="text-lg font-black text-[#002d59]">${viewingProject.budget}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Required Experience</span>
-                  <span className="text-base font-bold text-slate-800">{viewingProject.experienceRequired} years</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Urgency Priority</span>
-                  <span className="text-base font-bold text-slate-800 capitalize">{viewingProject.priority.toLowerCase()}</span>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Description</h4>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {viewingProject.description}
-                </p>
-              </div>
-
-              {/* Required Skills */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Required Skills</h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewingProject.requiredSkills.map((skill) => (
-                    <Badge key={skill} variant="neutral" className="text-xs py-1 px-3">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <Button
-                  variant="outline"
-                  onClick={() => setViewingProject(null)}
-                  className="cursor-pointer"
-                >
-                  Close
-                </Button>
-                {appliedProjectIds.includes(viewingProject.id) ? (
-                  <Badge variant="success" className="px-6 py-2.5 rounded-xl text-xs font-semibold">
-                    Applied
-                  </Badge>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      setSelectedProject(viewingProject);
-                      setViewingProject(null);
-                    }}
-                    className="cursor-pointer gap-1.5"
-                  >
-                    Apply Now <ArrowRight className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
           </Card>
         </div>
       )}

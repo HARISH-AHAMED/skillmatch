@@ -16,6 +16,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { ProjectStatus, ApplicationStatus } from "@prisma/client";
+import { CompanyOnboardingWizard } from "@/components/CompanyOnboardingWizard";
 
 export default async function CompanyDashboard() {
   const session = await auth();
@@ -33,19 +34,27 @@ export default async function CompanyDashboard() {
     }),
   ]);
 
-  if (!company) {
+  if (!company || !company.verificationBadges.includes("ONBOARDING_COMPLETED")) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">Company Dashboard</h1>
-        <Card className="p-8 text-center space-y-4 bg-white border border-slate-200">
-          <p className="text-slate-500 text-sm">
-            Please complete your company profile details to unlock project postings and applicant scoring features.
-          </p>
-          <Link href="/company/dashboard">
-            <Button variant="primary">Configure Settings</Button>
-          </Link>
-        </Card>
-      </div>
+      <CompanyOnboardingWizard
+        company={
+          company || {
+            id: "",
+            companyName: session?.user?.name || "Company",
+            description: null,
+            industry: null,
+            website: null,
+            location: null,
+            verificationBadges: [],
+            companySize: null,
+            foundedYear: null,
+            missionVision: null,
+            workCulture: null,
+            hiringPhilosophy: null,
+            benefits: [],
+          }
+        }
+      />
     );
   }
 

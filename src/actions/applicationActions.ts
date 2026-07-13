@@ -5,8 +5,13 @@ import { auth } from "@/auth";
 import { Role, ApplicationStatus, ProjectStatus } from "@prisma/client";
 import { computeRecommendationScore } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
+import { serializeApplicationMetadata, ApplicationWorkflowData } from "@/lib/workflowHelpers";
 
-export async function applyToProject(projectId: string, coverLetter: string) {
+export async function applyToProject(
+  projectId: string,
+  coverLetter: string,
+  screeningAnswers?: Record<string, string>
+) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
     return { success: false, error: "Unauthorized: Only freelancers can apply to projects." };
@@ -56,11 +61,24 @@ export async function applyToProject(projectId: string, coverLetter: string) {
   // Calculate matching score
   const aiScore = computeRecommendationScore(freelancer, project);
 
+  const meta: ApplicationWorkflowData = {
+    pipelineHistory: [
+      {
+        stage: "Applied",
+        timestamp: new Date().toISOString(),
+        notes: "Freelancer submitted proposal and answered screening questionnaire.",
+        recruiterName: "System",
+      }
+    ],
+    screeningAnswers: screeningAnswers || {},
+  };
+  const serializedCoverLetter = serializeApplicationMetadata(coverLetter, meta);
+
   const application = await db.application.create({
     data: {
       projectId,
       freelancerId: freelancer.id,
-      coverLetter,
+      coverLetter: serializedCoverLetter,
       aiScore,
       status: ApplicationStatus.PENDING,
     },

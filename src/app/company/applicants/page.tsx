@@ -44,6 +44,7 @@ export default async function CompanyApplicantsPage({ searchParams }: PageProps)
           select: {
             title: true,
             status: true,
+            description: true,
           },
         },
         freelancer: {

@@ -22,6 +22,7 @@ import {
   Building,
   FolderCheck,
   UserSearch,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -46,6 +47,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
   const [workspaces, setWorkspaces] = useState<{ id: string; label: string; href: string; applicationIds?: string[] }[]>([]);
   const [profileHref, setProfileHref] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -66,6 +68,10 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
           const data = await res.json();
           if (data.href) setProfileHref(data.href);
           if (data.image) setProfileImage(data.image);
+          if (data.role) {
+            const hasBadge = data.role === "ADMIN" || (data.verificationBadges && data.verificationBadges.includes("ONBOARDING_COMPLETED"));
+            setIsOnboarded(!!hasBadge);
+          }
         }
       } catch (error) {
         console.error("Failed to load profile info:", error);
@@ -140,9 +146,27 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.exact
+            const isLocked = !isOnboarded && item.name !== "Dashboard" && item.name !== "My Profile";
+            const isActive = !isLocked && (item.exact
               ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+              : pathname === item.href || pathname.startsWith(item.href + "/"));
+            
+            if (isLocked) {
+              return (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl opacity-50 cursor-not-allowed text-slate-400 border border-transparent"
+                  title="Complete onboarding to unlock this section"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="h-4.5 w-4.5 shrink-0 text-slate-400" />
+                    <span>{item.name}</span>
+                  </div>
+                  <Lock className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.name}
@@ -162,7 +186,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         </nav>
 
         {/* Active Workspaces Section */}
-        {workspaces.length > 0 && (
+        {workspaces.length > 0 && isOnboarded && (
           <div className="mt-6 pt-4 border-t border-slate-200/80">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block px-4 mb-2">
               Active Workspaces

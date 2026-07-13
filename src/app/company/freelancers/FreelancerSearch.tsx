@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -28,8 +29,12 @@ import {
   FileCode,
   Video,
   Heart,
+  LayoutGrid,
+  Table,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toggleSaveFreelancer } from "@/actions/savedFreelancerActions";
+import { getFreelancerBioText } from "@/lib/workflowHelpers";
 
 interface ReviewItem {
   id: string;
@@ -176,6 +181,7 @@ export function FreelancerSearch({
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"search" | "saved">("search");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   // Local state for optimistic bookmarks
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set(savedFreelancerIds));
@@ -557,9 +563,37 @@ export function FreelancerSearch({
                 <div className="h-4 w-4 rounded-full border-2 border-[#3ac0ff] border-t-transparent animate-spin" />
               )}
             </div>
+
+            {/* View Mode Toggle Switch */}
+            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 self-center">
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
+                  viewMode === "card"
+                    ? "bg-white text-[#002d59] shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <LayoutGrid className="h-3 w-3" /> Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
+                  viewMode === "table"
+                    ? "bg-white text-[#002d59] shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <Table className="h-3 w-3" /> Table
+              </button>
+            </div>
           </div>
 
-          {/* Freelancer Cards Grid */}
+          {/* Freelancer Cards Grid / Table Grid */}
           {freelancers.length === 0 ? (
             <Card className="p-12 text-center bg-white border border-slate-100 rounded-2xl space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
@@ -573,6 +607,123 @@ export function FreelancerSearch({
               >
                 Clear all filters →
               </button>
+            </Card>
+          ) : viewMode === "table" ? (
+            <Card className="overflow-x-auto border-slate-100 bg-white shadow-sm p-5 rounded-2xl">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                    <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
+                    <th className="pb-3.5 pt-1 text-center">Availability</th>
+                    <th className="pb-3.5 pt-1">Skills</th>
+                    <th className="pb-3.5 pt-1 text-center">Rating</th>
+                    <th className="pb-3.5 pt-1 text-center">Exp</th>
+                    <th className="pb-3.5 pt-1 text-center">Completed</th>
+                    <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {freelancers.map((f) => {
+                    const avail = getAvailabilityConfig(f.availabilityStatus);
+                    const isSaved = savedIds.has(f.id);
+                    return (
+                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 pl-2 text-left pr-3">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => f.user.image && setLightboxImage(f.user.image)}
+                              disabled={!f.user.image}
+                              className={cn(
+                                "h-8 w-8 rounded-lg border bg-slate-55 flex items-center justify-center font-bold text-[#002d59] text-[10px] shrink-0 overflow-hidden relative",
+                                f.user.image ? "cursor-zoom-in" : ""
+                              )}
+                            >
+                              {f.user.image ? (
+                                <img src={f.user.image} className="h-full w-full object-cover" />
+                              ) : (
+                                f.user.name ? f.user.name[0].toUpperCase() : "U"
+                              )}
+                            </button>
+                            <div className="overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/freelancers/${f.id}`)}
+                                className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                              >
+                                {f.user.name}
+                              </button>
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                                {f.professionalHeadline || "Elite Specialist"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center">
+                          <Badge variant="neutral" className={cn("text-[9px] py-0.5 px-2", avail.badge)}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full mr-1 inline-block animate-pulse", avail.dot)} />
+                            {avail.label}
+                          </Badge>
+                        </td>
+
+                        <td className="py-4 pr-3 text-left">
+                          <div className="flex flex-wrap gap-1 max-w-[240px]">
+                            {f.skills.slice(0, 3).map((s) => (
+                              <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
+                            ))}
+                            {f.skills.length > 3 && (
+                              <span className="text-[8px] font-black text-slate-450 self-center">+{f.skills.length - 3}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center">
+                          <div className="inline-flex items-center gap-0.5 font-bold text-slate-700">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span>{f.rating.toFixed(1)}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center font-bold text-slate-605">
+                          {f.experienceYears}y
+                        </td>
+
+                        <td className="py-4 text-center font-bold text-[#002d59]">
+                          {f.completedProjects} Jobs
+                        </td>
+
+                        <td className="py-4 text-right pr-2">
+                          <div className="flex items-center justify-end gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSave(f)}
+                              className="p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer"
+                              title={isSaved ? "Remove bookmark" : "Bookmark"}
+                            >
+                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-350 hover:text-rose-500")} />
+                            </button>
+
+                            <Link href={`/freelancers/${f.id}`}>
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-[#002d59]/20 text-[#002d59]">
+                                Profile
+                              </Button>
+                            </Link>
+
+                            {f.resumeUrl && (
+                              <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
+                                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                </Button>
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
@@ -597,6 +748,34 @@ export function FreelancerSearch({
               <span className="text-sm font-black text-[#002d59]">{savedList.length}</span>
               <span className="text-xs font-semibold text-slate-500">bookmarked talent profiles</span>
             </div>
+
+            {/* View Mode Toggle Switch */}
+            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 self-center">
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
+                  viewMode === "card"
+                    ? "bg-white text-[#002d59] shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <LayoutGrid className="h-3 w-3" /> Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
+                  viewMode === "table"
+                    ? "bg-white text-[#002d59] shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <Table className="h-3 w-3" /> Table
+              </button>
+            </div>
           </div>
 
           {savedList.length === 0 ? (
@@ -612,6 +791,123 @@ export function FreelancerSearch({
               >
                 Find Freelancers →
               </button>
+            </Card>
+          ) : viewMode === "table" ? (
+            <Card className="overflow-x-auto border-slate-100 bg-white shadow-sm p-5 rounded-2xl">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                    <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
+                    <th className="pb-3.5 pt-1 text-center">Availability</th>
+                    <th className="pb-3.5 pt-1">Skills</th>
+                    <th className="pb-3.5 pt-1 text-center">Rating</th>
+                    <th className="pb-3.5 pt-1 text-center">Exp</th>
+                    <th className="pb-3.5 pt-1 text-center">Completed</th>
+                    <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {savedList.map((f) => {
+                    const avail = getAvailabilityConfig(f.availabilityStatus);
+                    const isSaved = savedIds.has(f.id);
+                    return (
+                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 pl-2 text-left pr-3">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => f.user.image && setLightboxImage(f.user.image)}
+                              disabled={!f.user.image}
+                              className={cn(
+                                "h-8 w-8 rounded-lg border bg-slate-55 flex items-center justify-center font-bold text-[#002d59] text-[10px] shrink-0 overflow-hidden relative",
+                                f.user.image ? "cursor-zoom-in" : ""
+                              )}
+                            >
+                              {f.user.image ? (
+                                <img src={f.user.image} className="h-full w-full object-cover" />
+                              ) : (
+                                f.user.name ? f.user.name[0].toUpperCase() : "U"
+                              )}
+                            </button>
+                            <div className="overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/freelancers/${f.id}`)}
+                                className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                              >
+                                {f.user.name}
+                              </button>
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                                {f.professionalHeadline || "Elite Specialist"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center">
+                          <Badge variant="neutral" className={cn("text-[9px] py-0.5 px-2", avail.badge)}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full mr-1 inline-block animate-pulse", avail.dot)} />
+                            {avail.label}
+                          </Badge>
+                        </td>
+
+                        <td className="py-4 pr-3 text-left">
+                          <div className="flex flex-wrap gap-1 max-w-[240px]">
+                            {f.skills.slice(0, 3).map((s) => (
+                              <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
+                            ))}
+                            {f.skills.length > 3 && (
+                              <span className="text-[8px] font-black text-slate-455 self-center">+{f.skills.length - 3}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center">
+                          <div className="inline-flex items-center gap-0.5 font-bold text-slate-700">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span>{f.rating.toFixed(1)}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 text-center font-bold text-slate-605">
+                          {f.experienceYears}y
+                        </td>
+
+                        <td className="py-4 text-center font-bold text-[#002d59]">
+                          {f.completedProjects} Jobs
+                        </td>
+
+                        <td className="py-4 text-right pr-2">
+                          <div className="flex items-center justify-end gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSave(f)}
+                              className="p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer"
+                              title={isSaved ? "Remove bookmark" : "Bookmark"}
+                            >
+                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-350 hover:text-rose-500")} />
+                            </button>
+
+                            <Link href={`/freelancers/${f.id}`}>
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-[#002d59]/20 text-[#002d59]">
+                                Profile
+                              </Button>
+                            </Link>
+
+                            {f.resumeUrl && (
+                              <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
+                                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                </Button>
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
@@ -690,6 +986,7 @@ function FreelancerCard({
         {/* Avatar + Name + Headline */}
         <div className="flex items-start gap-4">
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
             disabled={!freelancer.user.image}
@@ -719,6 +1016,7 @@ function FreelancerCard({
               </h3>
               {/* Bookmark Button */}
               <button
+                suppressHydrationWarning
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -775,9 +1073,9 @@ function FreelancerCard({
         </div>
 
         {/* Bio snippet */}
-        {freelancer.bio && (
+        {getFreelancerBioText(freelancer.bio) && (
           <p className="text-[10px] text-slate-550 leading-relaxed font-medium line-clamp-2 italic">
-            &quot;{freelancer.bio}&quot;
+            &quot;{getFreelancerBioText(freelancer.bio)}&quot;
           </p>
         )}
 
@@ -817,6 +1115,7 @@ function FreelancerCard({
 
           <div className="flex gap-2">
             <button
+              suppressHydrationWarning
               onClick={onViewProfile}
               className="flex-1 py-2.5 text-xs font-bold bg-[#002d59] hover:bg-[#001f3f] text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
             >

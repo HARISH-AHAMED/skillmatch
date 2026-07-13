@@ -107,14 +107,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       } else {
         const userId = (token.id || token.sub) as string;
         if (userId) {
-          const dbUser = await db.user.findUnique({
-            where: { id: userId },
-            select: { role: true, name: true, image: true },
-          });
-          if (dbUser) {
-            token.role = dbUser.role;
-            token.name = dbUser.name;
-            token.picture = dbUser.image && dbUser.image.startsWith("data:") ? null : dbUser.image;
+          try {
+            const dbUser = await db.user.findUnique({
+              where: { id: userId },
+              select: { role: true, name: true, image: true },
+            });
+            if (dbUser) {
+              token.role = dbUser.role;
+              token.name = dbUser.name;
+              token.picture = dbUser.image && dbUser.image.startsWith("data:") ? null : dbUser.image;
+            }
+          } catch (dbErr) {
+            console.warn("Temporary database lookup failure in Auth JWT callback (using cached token values):", dbErr);
           }
         }
       }

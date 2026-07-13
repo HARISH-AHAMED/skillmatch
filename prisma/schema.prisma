@@ -117,6 +117,7 @@ model Freelancer {
   portfolioItems       Json?     // Array of PortfolioItem objects: { id, title, description, type, url, fileUrl }
   responseTime         String?   @default("Within 24 hours")
   availabilityStatus   String?   @default("AVAILABLE") // AVAILABLE, BUSY, UNAVAILABLE
+  gender               String?   @default("ANY")
   verificationBadges   String[]  @default([])
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -196,6 +197,7 @@ model Project {
   status             ProjectStatus   @default(OPEN)
   freelancersLimit   Int             @default(1)
   isVisible          Boolean         @default(true)
+  preferredGender    String?         @default("ANY")
   dueDate            DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
