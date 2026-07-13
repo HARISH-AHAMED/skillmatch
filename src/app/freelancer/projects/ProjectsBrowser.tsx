@@ -22,6 +22,7 @@ interface ProjectItem {
   priority: string;
   requiredSkills: string[];
   experienceRequired: number;
+  preferredGender?: string | null;
   company: {
     id: string;
     companyName: string;
@@ -36,9 +37,10 @@ interface ProjectsBrowserProps {
   projects: ProjectItem[];
   appliedProjectIds: string[];
   savedProjectIds: string[];
+  freelancer?: any;
 }
 
-export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }: ProjectsBrowserProps) {
+export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, freelancer }: ProjectsBrowserProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -46,6 +48,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
   const [query, setQuery] = useState(searchParams.get("query") || "");
   const [budget, setBudget] = useState(searchParams.get("budget") || "");
   const [priority, setPriority] = useState(searchParams.get("priority") || "ALL");
+  const [domain, setDomain] = useState(searchParams.get("domain") || "ALL");
   const [experience, setExperience] = useState(searchParams.get("experience") || "");
 
   // Apply dialog state
@@ -66,6 +69,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
     if (query) params.set("query", query);
     if (budget) params.set("budget", budget);
     if (priority !== "ALL") params.set("priority", priority);
+    if (domain !== "ALL") params.set("domain", domain);
     if (experience) params.set("experience", experience);
     
     router.push(`/freelancer/projects?${params.toString()}`);
@@ -75,6 +79,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
     setQuery("");
     setBudget("");
     setPriority("ALL");
+    setDomain("ALL");
     setExperience("");
     router.push("/freelancer/projects");
   };
@@ -167,7 +172,26 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-200 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 border-t border-slate-200 pt-4">
+            <Select
+              label="Domain"
+              options={[
+                { value: "ALL", label: "All Domains" },
+                { value: "Software Engineering", label: "Software Engineering" },
+                { value: "Data & AI", label: "Data & AI" },
+                { value: "Design & UX", label: "Design & UX" },
+                { value: "Marketing & Sales", label: "Marketing & Sales" },
+                { value: "Product & Project Management", label: "Product & Project Management" },
+                { value: "Writing & Translation", label: "Writing & Translation" },
+                { value: "Admin & Support", label: "Admin & Support" },
+                { value: "Finance & Accounting", label: "Finance & Accounting" },
+                { value: "Legal", label: "Legal" },
+                { value: "Other", label: "Other" },
+              ]}
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+            />
+
             <Input
               label="Min Budget ($)"
               type="number"
@@ -289,13 +313,21 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds }
                       <Badge variant="success" className="px-4.5 py-1.5 rounded-xl">
                         Applied
                       </Badge>
-                    ) : (
+                    ) : (!project.preferredGender || project.preferredGender === "ANY" || project.preferredGender === freelancer?.gender) ? (
                       <Button
                         size="sm"
                         onClick={() => setSelectedProject(project)}
                         className="cursor-pointer gap-1"
                       >
                         Apply <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled
+                        className="opacity-60 cursor-not-allowed bg-slate-100 border border-slate-250 text-slate-400 font-semibold"
+                      >
+                        Specification not met
                       </Button>
                     )}
                   </div>

@@ -48,6 +48,11 @@ export default async function ProjectApplyPage({ params }: PageProps) {
     notFound();
   }
 
+  const isGenderMatched = !project.preferredGender || project.preferredGender === "ANY" || project.preferredGender === freelancer.gender;
+  if (!isGenderMatched) {
+    redirect(`/freelancer/projects/${project.id}`);
+  }
+
   const hasApplied = project.applications.length > 0;
   if (hasApplied) {
     redirect(`/freelancer/projects/${project.id}`);

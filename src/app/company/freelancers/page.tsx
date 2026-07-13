@@ -12,6 +12,7 @@ interface SearchParams {
   minRating?: string;
   minCompleted?: string;
   availability?: string;
+  domain?: string;
   sortBy?: string;
   q?: string;
 }
@@ -43,6 +44,7 @@ export default async function CompanyFreelancersPage({
   const minRating = params.minRating ? parseFloat(params.minRating) : undefined;
   const minCompleted = params.minCompleted ? parseInt(params.minCompleted) : undefined;
   const availability = params.availability || "";
+  const domain = params.domain || "ALL";
 
   const sortBy = params.sortBy || "rating";
 
@@ -71,6 +73,8 @@ export default async function CompanyFreelancersPage({
         ...(minCompleted !== undefined && { completedProjects: { gte: minCompleted } }),
         // Availability status
         ...(availability && availability !== "ALL" && { availabilityStatus: availability }),
+        // Domain filter
+        ...(domain && domain !== "ALL" && { domain }),
         // Name/keyword search via user name
         ...(params.q && {
           OR: [
@@ -208,6 +212,7 @@ export default async function CompanyFreelancersPage({
         avgAiScore,
         compositeScore,
         availabilityStatus: f.availabilityStatus,
+        domain: f.domain,
       };
     })
     .sort((a, b) => b.compositeScore - a.compositeScore)
@@ -254,6 +259,7 @@ export default async function CompanyFreelancersPage({
           minRating: params.minRating || "",
           minCompleted: params.minCompleted || "",
           availability: params.availability || "ALL",
+          domain: params.domain || "ALL",
           sortBy: params.sortBy || "rating",
         }}
       />

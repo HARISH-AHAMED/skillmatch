@@ -111,6 +111,7 @@ model Freelancer {
   completionRate    Float    @default(100.0) // Percentage (0-100)
 
   // New fields for freelancer profile options
+  domain               String?   @default("Other")
   professionalHeadline String?
   experience           Json?     // Array of Experience objects: { id, title, company, startDate, endDate, current, description }
   certifications       Json?     // Array of Certification objects: { id, name, issuer, year }
@@ -197,6 +198,7 @@ model Project {
   status             ProjectStatus   @default(OPEN)
   freelancersLimit   Int             @default(1)
   isVisible          Boolean         @default(true)
+  domain             String?         @default("Other")
   preferredGender    String?         @default("ANY")
   dueDate            DateTime?
   createdAt          DateTime        @default(now())

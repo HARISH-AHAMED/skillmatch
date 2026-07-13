@@ -44,6 +44,7 @@ interface ProfileFormProps {
     responseTime?: string | null;
     availabilityStatus?: string | null;
     gender?: string | null;
+    domain?: string | null;
     verificationBadges?: string[];
     user?: {
       name: string | null;
@@ -101,6 +102,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [responseTime, setResponseTime] = useState(initialData?.responseTime || "Within 24 hours");
   const [availabilityStatus, setAvailabilityStatus] = useState(initialData?.availabilityStatus || "AVAILABLE");
   const [gender, setGender] = useState(initialData?.gender || "ANY");
+  const [domain, setDomain] = useState(initialData?.domain || "Software Engineering");
   const [verificationBadges, setVerificationBadges] = useState<string[]>(initialData?.verificationBadges || ["Identity Verified"]);
 
   // Skills & Resume
@@ -376,6 +378,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         availabilityStatus,
         verificationBadges,
         gender,
+        domain,
       });
 
       await updateFreelancerCalendarAndProfile({
@@ -562,17 +565,39 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               </div>
             </div>
 
-            <div className="space-y-1.5 pt-1">
-              <label className="block text-xs font-semibold text-slate-600">My Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
-              >
-                <option value="ANY">Prefer Not to Say / Other</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-600">My Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                >
+                  <option value="ANY">Prefer Not to Say / Other</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-600">Primary Domain</label>
+                <select
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                >
+                  <option value="Software Engineering">Software Engineering</option>
+                  <option value="Data & AI">Data & AI</option>
+                  <option value="Design & UX">Design & UX</option>
+                  <option value="Marketing & Sales">Marketing & Sales</option>
+                  <option value="Product & Project Management">Product & Project Management</option>
+                  <option value="Writing & Translation">Writing & Translation</option>
+                  <option value="Admin & Support">Admin & Support</option>
+                  <option value="Finance & Accounting">Finance & Accounting</option>
+                  <option value="Legal">Legal</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2.5 pt-1.5">

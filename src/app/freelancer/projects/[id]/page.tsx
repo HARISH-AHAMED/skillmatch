@@ -53,6 +53,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         project={project}
         hasApplied={hasApplied}
         aiScore={aiScore}
+        freelancer={freelancer}
       />
     </div>
   );

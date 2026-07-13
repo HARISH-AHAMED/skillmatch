@@ -46,6 +46,7 @@ interface EditProjectFormProps {
     freelancersLimit: number;
     isVisible: boolean;
     preferredGender: string | null;
+    domain: string | null;
   };
 }
 
@@ -58,6 +59,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
 
   // Tab 1: Core Details States
   const [title, setTitle] = useState(project.title);
+  const [domain, setDomain] = useState(project.domain || "Software Engineering");
   const [category, setCategory] = useState(meta.category || "Software Development");
   const [subcategory, setSubcategory] = useState(meta.subcategory || "Full Stack Development");
   const [duration, setDuration] = useState(meta.duration || "3 Months");
@@ -294,6 +296,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         freelancersLimit: Number(freelancersLimit),
         isVisible,
         preferredGender,
+        domain,
       });
 
       if (res.success) {
@@ -357,6 +360,24 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Opportunity Domain"
+                options={[
+                  { value: "Software Engineering", label: "Software Engineering" },
+                  { value: "Data & AI", label: "Data & AI" },
+                  { value: "Design & UX", label: "Design & UX" },
+                  { value: "Marketing & Sales", label: "Marketing & Sales" },
+                  { value: "Product & Project Management", label: "Product & Project Management" },
+                  { value: "Writing & Translation", label: "Writing & Translation" },
+                  { value: "Admin & Support", label: "Admin & Support" },
+                  { value: "Finance & Accounting", label: "Finance & Accounting" },
+                  { value: "Legal", label: "Legal" },
+                  { value: "Other", label: "Other" },
+                ]}
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                disabled={loading}
+              />
               <Select
                 label="Opportunity Category"
                 options={[

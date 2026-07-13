@@ -17,6 +17,7 @@ export interface TopFreelancerItem {
   avgAiScore: number;
   compositeScore: number;
   availabilityStatus: string | null;
+  domain: string | null;
 }
 
 interface TopFreelancersProps {
@@ -68,14 +69,37 @@ function getAvailabilityDot(status: string | null) {
   }
 }
 
+const DOMAIN_TABS = [
+  { value: "ALL", label: "🏆 Overall Ranking" },
+  { value: "Software Engineering", label: "💻 Software Engineering" },
+  { value: "Data & AI", label: "🤖 Data & AI" },
+  { value: "Design & UX", label: "🎨 Design & UX" },
+  { value: "Marketing & Sales", label: "📈 Marketing & Sales" },
+  { value: "Product & Project Management", label: "💼 Product & Management" },
+  { value: "Writing & Translation", label: "✍️ Writing & Translation" },
+  { value: "Admin & Support", label: "🛠️ Admin & Support" },
+  { value: "Finance & Accounting", label: "💵 Finance & Accounting" },
+  { value: "Legal", label: "⚖️ Legal" },
+  { value: "Other", label: "🧩 Other" },
+];
+
 export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [activeDomain, setActiveDomain] = useState<string>("ALL");
 
   if (topFreelancers.length === 0) return null;
 
-  const rest = topFreelancers.slice(0, expanded ? 10 : 7);
+  const filtered = activeDomain === "ALL" 
+    ? topFreelancers 
+    : topFreelancers.filter(f => (f.domain || "Other") === activeDomain);
+
+  const reranked = filtered
+    .sort((a, b) => b.compositeScore - a.compositeScore)
+    .map((f, idx) => ({ ...f, rank: idx + 1 }));
+
+  const rest = reranked.slice(0, expanded ? 10 : 7);
 
   return (
     <div className="space-y-6">
@@ -94,142 +118,182 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
           </div>
         </div>
         <div className="text-[10px] font-black text-[#002d59] uppercase tracking-wider bg-[#3ac0ff]/10 border border-[#3ac0ff]/20 rounded-full px-3 py-1 w-fit">
-          {topFreelancers.length} Specialists Ranked
+          {reranked.length} Specialists Ranked
         </div>
+      </div>
+
+      {/* Domain tabs selector */}
+      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-slate-200/60 scrollbar-track-transparent">
+        {DOMAIN_TABS.map(tab => {
+          const count = tab.value === "ALL" 
+            ? topFreelancers.length 
+            : topFreelancers.filter(f => (f.domain || "Other") === tab.value).length;
+            
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveDomain(tab.value)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-black transition-all border shrink-0 flex items-center gap-1.5",
+                activeDomain === tab.value
+                  ? "bg-[#002d59] text-white border-[#002d59] shadow-md"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-350 hover:bg-slate-50 cursor-pointer"
+              )}
+            >
+              <span>{tab.label}</span>
+              <span className={cn(
+                "px-1.5 py-0.5 rounded-md text-[9px] font-black",
+                activeDomain === tab.value 
+                  ? "bg-[#3ac0ff]/25 text-[#3ac0ff]" 
+                  : "bg-slate-100 text-slate-500"
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Aligned unified ranking list */}
       <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs">
-        <div className="divide-y divide-slate-100/80">
-          {rest.map((f) => {
-            const isRank1 = f.rank === 1;
-            const isRank2 = f.rank === 2;
-            const isRank3 = f.rank === 3;
-            const isTop3 = isRank1 || isRank2 || isRank3;
+        {rest.length === 0 ? (
+          <div className="p-10 text-center bg-white space-y-2">
+            <p className="text-sm font-bold text-slate-700">No Specialists Ranked Yet</p>
+            <p className="text-xs text-slate-400">There are currently no active freelancers in this domain with milestones completed.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100/80">
+            {rest.map((f) => {
+              const isRank1 = f.rank === 1;
+              const isRank2 = f.rank === 2;
+              const isRank3 = f.rank === 3;
+              const isTop3 = isRank1 || isRank2 || isRank3;
 
-            const highlightClass = isRank1
-              ? "bg-amber-500/5 hover:bg-amber-500/10 border-l-4 border-l-amber-400"
-              : isRank2
-              ? "bg-slate-400/5 hover:bg-slate-400/10 border-l-4 border-l-slate-400"
-              : isRank3
-              ? "bg-orange-500/5 hover:bg-orange-500/10 border-l-4 border-l-orange-400"
-              : "hover:bg-slate-50/50 border-l-4 border-l-transparent";
+              const highlightClass = isRank1
+                ? "bg-amber-500/5 hover:bg-amber-500/10 border-l-4 border-l-amber-400"
+                : isRank2
+                ? "bg-slate-400/5 hover:bg-slate-400/10 border-l-4 border-l-slate-400"
+                : isRank3
+                ? "bg-orange-500/5 hover:bg-orange-500/10 border-l-4 border-l-orange-400"
+                : "hover:bg-slate-50/50 border-l-4 border-l-transparent";
 
-            return (
-              <div
-                key={f.id}
-                className={cn(
-                  "flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 transition-all duration-200 group",
-                  highlightClass
-                )}
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  {/* Rank Badge */}
-                  <div className="w-12 shrink-0 flex items-center gap-1 text-left">
-                    <span className={cn(
-                      "text-xs font-black",
-                      isRank1 ? "text-amber-600" : isRank2 ? "text-slate-600" : isRank3 ? "text-orange-600" : "text-slate-400"
-                    )}>
-                      #{f.rank}
-                    </span>
-                    {getMedalIcon(f.rank)}
-                  </div>
-
-                  {/* Avatar */}
-                  <button
-                    type="button"
-                    onClick={() => f.image && setLightboxImage(f.image)}
-                    disabled={!f.image}
-                    className={cn(
-                      "h-10 w-10 rounded-xl shrink-0 overflow-hidden bg-slate-50 border p-0 text-left relative shadow-2xs",
-                      isRank1 ? "border-amber-300 ring-2 ring-amber-400/20" : isRank2 ? "border-slate-300 ring-2 ring-slate-300/10" : isRank3 ? "border-orange-350 ring-2 ring-orange-350/10" : "border-slate-200",
-                      f.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
-                    )}
-                    title={f.image ? "Click to view full image" : undefined}
-                  >
-                    {f.image ? (
-                      <img src={f.image} alt={f.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                    ) : (
-                      <div className={cn(
-                        "h-full w-full flex items-center justify-center text-sm font-black text-white",
-                        isRank1 ? "bg-amber-400" : isRank2 ? "bg-slate-400" : isRank3 ? "bg-orange-400" : "bg-slate-300"
+              return (
+                <div
+                  key={f.id}
+                  className={cn(
+                    "flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 transition-all duration-200 group",
+                    highlightClass
+                  )}
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    {/* Rank Badge */}
+                    <div className="w-12 shrink-0 flex items-center gap-1 text-left">
+                      <span className={cn(
+                        "text-xs font-black",
+                        isRank1 ? "text-amber-600" : isRank2 ? "text-slate-600" : isRank3 ? "text-orange-600" : "text-slate-400"
                       )}>
-                        {f.name[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    {getAvailabilityDot(f.availabilityStatus)}
-                  </button>
+                        #{f.rank}
+                      </span>
+                      {getMedalIcon(f.rank)}
+                    </div>
 
-                  {/* Name + Title */}
-                  <div className="min-w-0 text-left">
-                    <p
-                      onClick={() => router.push(`/freelancers/${f.id}`)}
-                      className="text-xs font-black text-[#002d59] truncate cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
-                    >
-                      {f.name}
-                    </p>
-                    <p
-                      onClick={() => router.push(`/freelancers/${f.id}`)}
-                      className="text-[9px] font-semibold text-slate-400 truncate mt-0.5 cursor-pointer hover:text-[#3ac0ff] transition-colors"
-                    >
-                      {f.headline || "Elite Specialist"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right columns: metrics + composite score */}
-                <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
-                  {/* Stats chips */}
-                  <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                      {f.rating.toFixed(1)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="h-3.5 w-3.5 text-emerald-500" />
-                      {f.completedProjects}
-                    </span>
-                    <span className="flex items-center gap-1 text-[#3ac0ff]">
-                      <Zap className="h-3.5 w-3.5" />
-                      {f.avgAiScore.toFixed(0)}%
-                    </span>
-                  </div>
-
-                  {/* Composite badge */}
-                  <div className="flex items-center gap-3">
-                    <span className={cn(
-                      "text-[10px] font-black border rounded-xl px-2.5 py-1",
-                      isRank1
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : isRank2
-                        ? "bg-slate-50 text-slate-700 border-slate-200"
-                        : isRank3
-                        ? "bg-orange-50 text-orange-700 border-orange-200"
-                        : "bg-slate-50 text-[#002d59] border-slate-200"
-                    )}>
-                      {f.compositeScore.toFixed(1)}
-                    </span>
+                    {/* Avatar */}
                     <button
-                      onClick={() => router.push(`/freelancers/${f.id}`)}
-                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#002d59] transition-all cursor-pointer border border-transparent hover:border-slate-200/50"
-                      title="View Profile"
+                      type="button"
+                      onClick={() => f.image && setLightboxImage(f.image)}
+                      disabled={!f.image}
+                      className={cn(
+                        "h-10 w-10 rounded-xl shrink-0 overflow-hidden bg-slate-50 border p-0 text-left relative shadow-2xs",
+                        isRank1 ? "border-amber-300 ring-2 ring-amber-400/20" : isRank2 ? "border-slate-300 ring-2 ring-slate-300/10" : isRank3 ? "border-orange-350 ring-2 ring-orange-350/10" : "border-slate-200",
+                        f.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
+                      )}
+                      title={f.image ? "Click to view full image" : undefined}
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      {f.image ? (
+                        <img src={f.image} alt={f.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      ) : (
+                        <div className={cn(
+                          "h-full w-full flex items-center justify-center text-sm font-black text-white",
+                          isRank1 ? "bg-amber-400" : isRank2 ? "bg-slate-400" : isRank3 ? "bg-orange-400" : "bg-slate-300"
+                        )}>
+                          {f.name[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      {getAvailabilityDot(f.availabilityStatus)}
                     </button>
+
+                    {/* Name + Title */}
+                    <div className="min-w-0 text-left">
+                      <p
+                        onClick={() => router.push(`/freelancers/${f.id}`)}
+                        className="text-xs font-black text-[#002d59] truncate cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
+                      >
+                        {f.name}
+                      </p>
+                      <p
+                        onClick={() => router.push(`/freelancers/${f.id}`)}
+                        className="text-[9px] font-semibold text-slate-400 truncate mt-0.5 cursor-pointer hover:text-[#3ac0ff] transition-colors"
+                      >
+                        {f.headline || "Elite Specialist"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right columns: metrics + composite score */}
+                  <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                    {/* Stats chips */}
+                    <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                        {f.rating.toFixed(1)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Briefcase className="h-3.5 w-3.5 text-emerald-500" />
+                        {f.completedProjects}
+                      </span>
+                      <span className="flex items-center gap-1 text-[#3ac0ff]">
+                        <Zap className="h-3.5 w-3.5" />
+                        {f.avgAiScore.toFixed(0)}%
+                      </span>
+                    </div>
+
+                    {/* Composite badge */}
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "text-[10px] font-black border rounded-xl px-2.5 py-1",
+                        isRank1
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : isRank2
+                          ? "bg-slate-50 text-slate-700 border-slate-200"
+                          : isRank3
+                          ? "bg-orange-50 text-orange-700 border-orange-200"
+                          : "bg-slate-50 text-[#002d59] border-slate-200"
+                      )}>
+                        {f.compositeScore.toFixed(1)}
+                      </span>
+                      <button
+                        onClick={() => router.push(`/freelancers/${f.id}`)}
+                        className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#002d59] transition-all cursor-pointer border border-transparent hover:border-slate-200/50"
+                        title="View Profile"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Expanded list toggler */}
-        {topFreelancers.length > 7 && (
+        {reranked.length > 7 && (
           <button
             onClick={() => setExpanded((p) => !p)}
             className="w-full flex items-center justify-center gap-1.5 py-3.5 text-[10px] font-black uppercase tracking-wider text-[#3ac0ff] hover:text-[#002d59] border-t border-slate-100 transition-colors cursor-pointer bg-slate-50/20"
           >
-            {expanded ? "Show less" : `Show ${topFreelancers.length - 7} more`}
+            {expanded ? "Show less" : `Show ${reranked.length - 7} more`}
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200", expanded ? "rotate-90" : "rotate-0")} />
           </button>
         )}

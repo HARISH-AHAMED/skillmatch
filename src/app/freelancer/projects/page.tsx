@@ -8,6 +8,7 @@ interface PageProps {
     query?: string;
     budget?: string;
     priority?: string;
+    domain?: string;
     experience?: string;
   }>;
 }
@@ -21,6 +22,7 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
   const query = params.query || "";
   const minBudget = params.budget ? Number(params.budget) : 0;
   const priority = params.priority || "";
+  const domain = params.domain || "";
   const maxExperience = params.experience ? Number(params.experience) : 99;
 
   // Run database queries in parallel
@@ -35,6 +37,7 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         budget: { gte: minBudget },
         experienceRequired: { lte: maxExperience },
         ...(priority && priority !== "ALL" && { priority: priority as any }),
+        ...(domain && domain !== "ALL" && { domain }),
         ...(query && {
           OR: [
             { title: { contains: query, mode: "insensitive" } },
@@ -110,6 +113,7 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         projects={activeProjects as any}
         appliedProjectIds={appliedProjectIds}
         savedProjectIds={savedProjectIds}
+        freelancer={freelancer}
       />
     </div>
   );

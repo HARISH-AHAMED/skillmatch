@@ -90,6 +90,7 @@ interface InitialParams {
   minRating: string;
   minCompleted: string;
   availability: string;
+  domain: string;
   sortBy: string;
 }
 
@@ -136,6 +137,20 @@ const COMPLETED_OPTIONS = [
   { value: "10", label: "10+ projects" },
   { value: "20", label: "20+ projects" },
   { value: "50", label: "50+ projects" },
+];
+
+const DOMAIN_OPTIONS = [
+  { value: "ALL", label: "All Domains" },
+  { value: "Software Engineering", label: "Software Engineering" },
+  { value: "Data & AI", label: "Data & AI" },
+  { value: "Design & UX", label: "Design & UX" },
+  { value: "Marketing & Sales", label: "Marketing & Sales" },
+  { value: "Product & Project Management", label: "Product & Project Management" },
+  { value: "Writing & Translation", label: "Writing & Translation" },
+  { value: "Admin & Support", label: "Admin & Support" },
+  { value: "Finance & Accounting", label: "Finance & Accounting" },
+  { value: "Legal", label: "Legal" },
+  { value: "Other", label: "Other" },
 ];
 
 function getAvailabilityConfig(status: string | null) {
@@ -202,6 +217,7 @@ export function FreelancerSearch({
   const [minRating, setMinRating] = useState(initialParams.minRating);
   const [minCompleted, setMinCompleted] = useState(initialParams.minCompleted);
   const [availability, setAvailability] = useState(initialParams.availability || "ALL");
+  const [domain, setDomain] = useState(initialParams.domain || "ALL");
   const [sortBy, setSortBy] = useState(initialParams.sortBy || "rating");
   const [expRange, setExpRange] = useState(() => {
     const min = initialParams.minExperience;
@@ -222,6 +238,7 @@ export function FreelancerSearch({
         minRating,
         minCompleted,
         availability,
+        domain,
         sortBy,
         expRange,
         ...overrides,
@@ -237,11 +254,12 @@ export function FreelancerSearch({
       if (state.minRating) params.set("minRating", state.minRating);
       if (state.minCompleted) params.set("minCompleted", state.minCompleted);
       if (state.availability && state.availability !== "ALL") params.set("availability", state.availability);
+      if (state.domain && state.domain !== "ALL") params.set("domain", state.domain);
       if (state.sortBy && state.sortBy !== "rating") params.set("sortBy", state.sortBy);
 
       return params.toString();
     },
-    [q, skills, minRating, minCompleted, availability, sortBy, expRange]
+    [q, skills, minRating, minCompleted, availability, domain, sortBy, expRange]
   );
 
   const commitSearch = (overrides?: Partial<Record<string, string>>) => {
@@ -257,6 +275,7 @@ export function FreelancerSearch({
     setMinRating("");
     setMinCompleted("");
     setAvailability("ALL");
+    setDomain("ALL");
     setSortBy("rating");
     setExpRange("");
     startTransition(() => {
@@ -302,6 +321,7 @@ export function FreelancerSearch({
     minRating,
     minCompleted,
     availability !== "ALL" ? availability : "",
+    domain !== "ALL" ? domain : "",
     sortBy !== "rating" ? sortBy : "",
     expRange,
   ].filter(Boolean).length;
@@ -429,7 +449,27 @@ export function FreelancerSearch({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {/* Domain Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Domain
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <select
+                      value={domain}
+                      onChange={(e) => { setDomain(e.target.value); commitSearch({ domain: e.target.value }); }}
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                    >
+                      {DOMAIN_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
                 {/* Skills Filter */}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">

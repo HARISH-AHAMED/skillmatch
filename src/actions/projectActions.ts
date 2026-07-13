@@ -16,6 +16,7 @@ export async function createProject(formData: {
   freelancersLimit?: number;
   isVisible?: boolean;
   preferredGender?: string;
+  domain?: string;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
@@ -46,6 +47,7 @@ export async function createProject(formData: {
       freelancersLimit: formData.freelancersLimit ?? 1,
       isVisible: formData.isVisible ?? true,
       preferredGender: formData.preferredGender ?? "ANY",
+      domain: formData.domain ?? "Other",
     },
   });
 
@@ -96,6 +98,7 @@ export async function editProject(
     freelancersLimit?: number;
     isVisible?: boolean;
     preferredGender?: string;
+    domain?: string;
   }
 ) {
   const session = await auth();
@@ -129,6 +132,7 @@ export async function editProject(
       freelancersLimit: formData.freelancersLimit ?? 1,
       isVisible: formData.isVisible ?? true,
       preferredGender: formData.preferredGender ?? "ANY",
+      domain: formData.domain ?? "Other",
     },
   });
 

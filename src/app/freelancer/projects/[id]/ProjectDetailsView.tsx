@@ -37,9 +37,10 @@ interface ProjectDetailsViewProps {
   project: any;
   hasApplied: boolean;
   aiScore?: number;
+  freelancer?: any;
 }
 
-export function ProjectDetailsView({ project, hasApplied, aiScore }: ProjectDetailsViewProps) {
+export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }: ProjectDetailsViewProps) {
   const router = useRouter();
   const meta = getProjectMetadataDirect(project.description);
   const descriptionText = getProjectDescriptionText(project.description);
@@ -58,44 +59,32 @@ export function ProjectDetailsView({ project, hasApplied, aiScore }: ProjectDeta
         router.refresh();
       }
     } catch (err: any) {
-      alert(err.message || "Failed to post question.");
+      alert(err.message || "Failed to submit discussion query.");
     } finally {
       setSubmittingDisc(false);
     }
   };
 
+  const isGenderMatched = !project.preferredGender || project.preferredGender === "ANY" || project.preferredGender === freelancer?.gender;
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-250">
-      {/* Back button */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="text-xs font-bold text-slate-500 hover:text-[#002d59] transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          ← Back to projects list
-        </button>
-        {aiScore !== undefined && (
-          <Badge variant="accent" className="font-extrabold flex items-center gap-1">
-            <BrainCircuit className="h-3.5 w-3.5" />
-            AI Match Score: {aiScore}%
-          </Badge>
-        )}
-      </div>
-
-      {/* Hero Header Banner */}
-      <Card className="p-8 border-slate-200/60 bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-        {/* Left Glow Accent */}
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#002d59] to-[#3ac0ff]" />
-
-        <div className="space-y-3.5 flex-1 pl-2">
+    <div className="space-y-6">
+      {/* Hero Banner header card */}
+      <Card className="p-6 md:p-8 border-slate-200/60 bg-gradient-to-r from-slate-50 via-white to-sky-50/20 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm">
+        <div className="space-y-2.5 text-left">
           <div className="flex flex-wrap items-center gap-2">
-            {project.priority === "HIGH" && <Badge variant="danger">High Priority</Badge>}
-            {project.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
-            {project.priority === "LOW" && <Badge variant="neutral">Low Priority</Badge>}
-            <Badge variant="primary" className="bg-[#d0efff] text-[#002d59] border-sky-200/40">Free Platform Opportunity</Badge>
+            {aiScore !== undefined && (
+              <Badge variant="accent" className="bg-[#3ac0ff]/15 text-[#002d59] border border-[#3ac0ff]/20 font-black">
+                <BrainCircuit className="h-3.5 w-3.5 mr-1 text-[#3ac0ff]" />
+                AI Match Score: {aiScore}%
+              </Badge>
+            )}
+            <Badge variant={project.priority === "HIGH" ? "danger" : "secondary"}>
+              {project.priority === "HIGH" ? "High Priority Urgency" : project.priority === "MEDIUM" ? "Medium Priority" : "Low Priority"}
+            </Badge>
           </div>
-          <h2 className="text-2xl font-black text-[#002d59] leading-tight tracking-tight">{project.title}</h2>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
+          <h1 className="text-xl md:text-2xl font-black text-[#002d59] tracking-tight">{project.title}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500 font-semibold">
             <Link
               href={`/companies/${project.company.id}`}
               className="text-[#002d59] font-extrabold hover:text-[#3ac0ff] hover:underline transition-all flex items-center gap-1"
@@ -117,6 +106,14 @@ export function ProjectDetailsView({ project, hasApplied, aiScore }: ProjectDeta
             <Badge variant="success" className="px-6 py-2.5 rounded-xl text-xs font-semibold shadow-xs">
               Applied
             </Badge>
+          ) : !isGenderMatched ? (
+            <Button
+              size="lg"
+              disabled
+              className="gap-2 font-bold px-7.5 opacity-60 cursor-not-allowed bg-slate-100 border border-slate-200 text-slate-400"
+            >
+              Specification not met (Gender Preference)
+            </Button>
           ) : (
             <Link href={`/freelancer/projects/${project.id}/apply`}>
               <Button

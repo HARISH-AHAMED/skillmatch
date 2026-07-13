@@ -22,6 +22,7 @@ export default function NewProjectPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Software Development");
   const [subcategory, setSubcategory] = useState("Full Stack Development");
+  const [domain, setDomain] = useState("Software Engineering");
   const [experienceRequired, setExperienceRequired] = useState(2);
   const [duration, setDuration] = useState("3 Months");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE" | "INVITE_ONLY">("PUBLIC");
@@ -242,6 +243,7 @@ export default function NewProjectPage() {
         freelancersLimit: 1,
         isVisible: visibility !== "PRIVATE",
         preferredGender: preferredGender,
+        domain: domain,
       });
 
       if (res.success) {
@@ -315,9 +317,26 @@ export default function NewProjectPage() {
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
+              <Select
+                label="Opportunity Domain"
+                options={[
+                  { value: "Software Engineering", label: "Software Engineering" },
+                  { value: "Data & AI", label: "Data & AI" },
+                  { value: "Design & UX", label: "Design & UX" },
+                  { value: "Marketing & Sales", label: "Marketing & Sales" },
+                  { value: "Product & Project Management", label: "Product & Project Management" },
+                  { value: "Writing & Translation", label: "Writing & Translation" },
+                  { value: "Admin & Support", label: "Admin & Support" },
+                  { value: "Finance & Accounting", label: "Finance & Accounting" },
+                  { value: "Legal", label: "Legal" },
+                  { value: "Other", label: "Other" },
+                ]}
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+              />
               <Input
                 label="Opportunity Category"
-                placeholder="Software Engineering, Marketing, etc."
+                placeholder="Software Development, Marketing, etc."
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               />

@@ -23,6 +23,7 @@ export async function updateFreelancerProfile(formData: {
   availabilityStatus?: string;
   verificationBadges?: string[];
   gender?: string;
+  domain?: string;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
@@ -69,6 +70,7 @@ export async function updateFreelancerProfile(formData: {
       availabilityStatus: formData.availabilityStatus || "AVAILABLE",
       verificationBadges: formData.verificationBadges || [],
       gender: formData.gender || "ANY",
+      domain: formData.domain || "Other",
     },
     create: {
       userId,
@@ -85,6 +87,7 @@ export async function updateFreelancerProfile(formData: {
       availabilityStatus: formData.availabilityStatus || "AVAILABLE",
       verificationBadges: formData.verificationBadges || [],
       gender: formData.gender || "ANY",
+      domain: formData.domain || "Other",
       rating: 5.0,
       completedProjects: 0,
       completionRate: 100.0,
