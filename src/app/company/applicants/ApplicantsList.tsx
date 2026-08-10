@@ -300,7 +300,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
           </h2>
           <button
             onClick={() => router.push("/company/applicants")}
-            className="text-[10px] font-semibold text-[#1b61c9] hover:text-[#181d26] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+            className="text-[10px] font-semibold text-[#181d26] hover:text-[#181d26] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
           >
             ← Back to all projects
           </button>
@@ -475,7 +475,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   : "Applied";
 
                 return (
-                  <tr key={app.id} className={cn("hover:bg-slate-50/50 transition-colors", isSelected && "bg-sky-50/10")}>
+                  <tr key={app.id} className={cn("hover:bg-slate-50/50 transition-colors", isSelected && "bg-[#f8fafc]")}>
                     {/* Checkbox */}
                     <td className="py-4 pl-2">
                       <input
@@ -506,7 +506,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                           <button
                             type="button"
                             onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                            className="font-bold text-[#181d26] hover:text-[#1b61c9] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                            className="font-bold text-[#181d26] hover:text-[#41454d] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
                           >
                             {app.freelancer.user.name}
                           </button>
@@ -594,7 +594,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                       <div className="flex flex-col items-end gap-1.5">
                         {isHired ? (
                           <Link href={`/workspace/${app.id}`} target="_blank">
-                            <Button size="xs" className="cursor-pointer bg-[#1b61c9] hover:bg-[#29aaeb] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
+                            <Button size="xs" className="cursor-pointer bg-[#181d26] hover:bg-[#333840] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
                               Open Workspace
                             </Button>
                           </Link>
@@ -607,7 +607,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                                 size="xs"
                                 variant="secondary"
                                 onClick={() => setSchedulingApp(app)}
-                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#1b61c9]/10 text-[#181d26] font-bold"
+                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#f8fafc] border border-[#dddddd] text-[#181d26] font-bold"
                               >
                                 Schedule Meet
                               </Button>
@@ -626,7 +626,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                         <Link href={`/company/applicants/${app.id}`}>
                           <button
                             type="button"
-                            className="text-[10px] text-sky-600 hover:text-sky-500 font-bold hover:underline flex items-center gap-0.5 justify-end cursor-pointer"
+                            className="text-[10px] text-[#181d26] hover:text-[#41454d] font-bold hover:underline flex items-center gap-0.5 justify-end cursor-pointer"
                           >
                             View Details <ChevronRight className="h-2.5 w-2.5" />
                           </button>
@@ -686,7 +686,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   <div>
                     <h3
                       onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                      className="text-sm font-bold text-[#181d26] hover:text-[#1b61c9] cursor-pointer transition-colors"
+                      className="text-sm font-bold text-[#181d26] hover:text-[#41454d] cursor-pointer transition-colors"
                     >
                       {app.freelancer.user.name}
                     </h3>

@@ -172,7 +172,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                       {/* Title & Date */}
                       <td className="py-4 align-middle pl-2 text-left pr-3">
                         <Link href={`/company/projects/${project.id}`}>
-                          <button className="font-bold text-[#181d26] hover:text-[#1b61c9] hover:underline cursor-pointer block text-left truncate max-w-[200px]">
+                          <button className="font-bold text-[#181d26] hover:text-[#41454d] hover:underline cursor-pointer block text-left truncate max-w-[200px]">
                             {project.title}
                           </button>
                         </Link>
@@ -188,16 +188,16 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                       <td className="py-4 align-middle text-center">
                         <div className="flex flex-col items-center gap-1">
                           {project.isVisible ? (
-                            <Badge variant="success" className="bg-sky-50 text-sky-700 border-sky-200 py-0 px-2 text-[9px]">Public</Badge>
+                            <Badge variant="neutral" className="bg-[#181d26] text-white border-[#181d26] py-0 px-2 text-[9px]">Public</Badge>
                           ) : (
                             <Badge variant="neutral" className="bg-slate-100 text-slate-500 border-slate-200 py-0 px-2 text-[9px]">Private</Badge>
                           )}
                           <button
                             disabled={loadingId !== null}
                             onClick={() => handleToggleVisibility(project.id)}
-                            className="text-[9px] font-bold text-slate-500 hover:text-[#181d26] underline cursor-pointer"
+                            className="cursor-pointer rounded-[6px] bg-[#181d26] px-2.5 py-1 text-[9px] font-bold text-white transition-colors hover:bg-[#333840] disabled:opacity-50"
                           >
-                            {isVisLoading ? "Updating..." : "Toggle"}
+                            {isVisLoading ? "Updating..." : project.isVisible ? "Hide" : "Show"}
                           </button>
                         </div>
                       </td>
@@ -283,7 +283,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                   {/* Body */}
                   <div className="flex flex-1 flex-col gap-3 p-5 text-left">
                     <div>
-                      <h3 className="truncate text-sm font-semibold text-[#181d26] group-hover:text-[#1b61c9]">
+                      <h3 className="truncate text-sm font-semibold text-[#181d26] group-hover:text-[#41454d]">
                         {project.title}
                       </h3>
                       <p className="mt-0.5 text-[10px] font-medium text-[#41454d]">
