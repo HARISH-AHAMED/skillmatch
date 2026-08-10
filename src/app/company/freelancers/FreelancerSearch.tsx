@@ -386,9 +386,9 @@ export function FreelancerSearch({
       </div>
 
       {activeTab === "search" && (
-        <div className="space-y-4 animate-in fade-in duration-200">
+        <div className="space-y-4">
           {/* Sticky search header — results scroll underneath, never behind it */}
-          <div className="sticky top-0 z-40 -mx-1 space-y-3 bg-[#f8fafc]/95 px-1 pb-3 pt-2 backdrop-blur supports-[backdrop-filter]:bg-[#f8fafc]/80">
+          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#dddddd] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
           {/* Search Bar + Sort + Filter toggle row */}
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-[12px] border border-[#181d26]/25 shadow-xs">
             {/* Keyword search */}
@@ -617,7 +617,7 @@ export function FreelancerSearch({
           )}
 
           {/* Domain quick filters — one click narrows results to a discipline */}
-          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-0.5 scrollbar-thin">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto whitespace-nowrap">
             {DOMAIN_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
