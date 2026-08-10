@@ -53,6 +53,14 @@ export default async function CompletedProjectsPage() {
     }),
   ]);
 
+  // Every certificate the freelancer has earned, for the My Certificates tab.
+  const certificates = freelancer
+    ? await db.certificate.findMany({
+        where: { freelancerId: freelancer.id, revokedAt: null },
+        orderBy: { issuedAt: "desc" },
+      })
+    : [];
+
   if (!freelancer) {
     return (
       <div className="space-y-6">
@@ -79,6 +87,7 @@ export default async function CompletedProjectsPage() {
       <CompletedProjectsView
         freelancer={freelancer as any}
         completedProjects={completedProjects as any}
+        certificates={certificates as any}
       />
     </div>
   );

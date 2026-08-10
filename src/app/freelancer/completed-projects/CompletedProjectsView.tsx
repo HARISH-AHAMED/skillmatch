@@ -48,6 +48,7 @@ interface CompletedProjectsViewProps {
     verificationBadges?: string[];
   };
   completedProjects: any[];
+  certificates?: any[];
 }
 
 interface PortfolioItem {
@@ -61,8 +62,8 @@ interface PortfolioItem {
   liveLink?: string | null;
 }
 
-export function CompletedProjectsView({ freelancer, completedProjects }: CompletedProjectsViewProps) {
-  const [activeTab, setActiveTab] = useState<"platform" | "portfolio">("platform");
+export function CompletedProjectsView({ freelancer, completedProjects, certificates = [] }: CompletedProjectsViewProps) {
+  const [activeTab, setActiveTab] = useState<"platform" | "portfolio" | "certificates">("platform");
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>(
     (freelancer.portfolioItems as PortfolioItem[]) || []
   );
@@ -401,7 +402,71 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
         >
           Portfolio Gallery Projects ({portfolioItems.length})
         </button>
+        <button
+          onClick={() => setActiveTab("certificates")}
+          className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
+            activeTab === "certificates"
+              ? "border-[#181d26] text-[#181d26]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          My Certificates ({certificates.length})
+        </button>
       </div>
+
+      {/* Certificates earned across every completed contract */}
+      {activeTab === "certificates" && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {certificates.length === 0 ? (
+            <Card className="p-10 text-center text-xs text-slate-400 bg-white border border-[#dddddd] rounded-[12px] lg:col-span-2">
+              <Award className="h-8 w-8 text-slate-300 mx-auto mb-3" />
+              No certificates yet. They appear here once a company completes a project you worked on.
+            </Card>
+          ) : (
+            certificates.map((cert: any) => (
+              <Card
+                key={cert.id}
+                className="overflow-hidden border border-[#dddddd] bg-white p-0 rounded-[12px] shadow-xs transition-all hover:shadow-md"
+              >
+                {/* Certificate artwork preview */}
+                <div className="relative bg-[#f8fafc] p-5">
+                  <div className="mx-auto aspect-[16/11] w-full rounded-[10px] border-2 border-[#181d26]/15 bg-white p-5 text-center shadow-inner">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#41454d]">
+                      Certificate of Completion
+                    </p>
+                    <div className="mx-auto my-2 h-px w-16 bg-[#181d26]/20" />
+                    <p className="truncate text-sm font-black tracking-tight text-[#181d26]">
+                      {cert.recipientName}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[10px] font-medium text-[#41454d]">
+                      {cert.roleTitle} — {cert.projectTitle}
+                    </p>
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <Award className="h-6 w-6 text-[#181d26]" />
+                    </div>
+                    <p className="mt-2 text-[9px] font-semibold uppercase tracking-wider text-[#41454d]">
+                      {cert.issuerName} • {new Date(cert.issuedAt).getFullYear()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-[#dddddd] p-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-[#181d26]">{cert.projectTitle}</p>
+                    <p className="truncate text-[10px] text-slate-500">ID {cert.publicId}</p>
+                  </div>
+                  <a
+                    href={`/freelancer/certificates/${cert.publicId}`}
+                    className="shrink-0 rounded-[8px] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#333840]"
+                  >
+                    View Certificate
+                  </a>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Platform Gigs Content */}
       {activeTab === "platform" && (
@@ -434,12 +499,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                       <span className="flex items-center gap-2 text-xs font-bold text-amber-800">
                         <Award className="h-4 w-4" /> Certificate of Completion issued
                       </span>
-                      <a
-                        href={`/freelancer/certificates/${project.certificates[0].publicId}`}
-                        className="px-3.5 py-1.5 text-[11px] font-bold text-white bg-[#1b61c9] rounded-xl hover:bg-[#154e9f] inline-flex items-center gap-1.5"
-                      >
-                        View / Download Certificate <ExternalLink className="h-3 w-3" />
-                      </a>
+                      <a href={`/freelancer/certificates/${project.certificates[0].publicId}`} className="rounded-[8px] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#333840]">View Certificate</a>
                     </div>
                   )}
 

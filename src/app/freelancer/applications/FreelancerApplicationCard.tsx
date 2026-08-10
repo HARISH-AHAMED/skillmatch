@@ -445,7 +445,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   disabled={offerLoading !== null || !!pendingNegotiation}
                   title={pendingNegotiation ? "Waiting for the company to respond to your counter-offer" : undefined}
                   onClick={() => handleOfferResponse("ACCEPT")}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
+                  className="flex-1 bg-[#f8fafc]0 hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {offerLoading === "ACCEPT" ? "Accepting..." : "Accept Offer & Start Project"}
@@ -477,15 +477,15 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Offer accepted ribbon */}
       {hasOffer && offerAccepted && (
-        <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-200 flex items-center gap-3">
-          <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+        <div className="px-6 py-3 bg-[#f8fafc] border-b border-[#dddddd] flex items-center gap-3">
+          <CheckCircle className="h-4 w-4 text-[#181d26] shrink-0" />
           <div className="text-left flex-1">
-            <p className="text-xs font-black text-emerald-800">Offer Accepted — Project In Progress</p>
-            <p className="text-[10px] text-emerald-600">Stipend {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
+            <p className="text-xs font-black text-[#181d26]">Offer Accepted — Project In Progress</p>
+            <p className="text-[10px] text-[#181d26]">Stipend {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
           </div>
           {app.status === "HIRED" && (
             <Link href={`/workspace/${app.id}`} target="_blank">
-              <Button size="xs" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer">Open Workspace</Button>
+              <Button size="xs" className="bg-[#181d26] hover:bg-[#333840] text-white font-bold cursor-pointer">Open Workspace</Button>
             </Link>
           )}
         </div>
@@ -526,9 +526,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Confirmed marker, so the state is visible after the fact too */}
       {app.status === "HIRED" && app.roleId && app.teamConfirmedAt && (
-        <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2">
-          <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-          <p className="text-[11px] font-semibold text-emerald-800">
+        <div className="px-6 py-2.5 bg-[#f8fafc] border-b border-[#dddddd] flex items-center gap-2">
+          <CheckCircle className="h-3.5 w-3.5 text-[#181d26] shrink-0" />
+          <p className="text-[11px] font-semibold text-[#181d26]">
             Team confirmed — you&apos;re on the roster.
           </p>
         </div>
@@ -553,22 +553,24 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
               {app.project.company.companyName} • {app.project.company.location || "Remote"}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
             <Badge variant="primary" className="text-[10px] px-2 py-0.5 capitalize">
               {activeStage}
             </Badge>
+            <div className="flex flex-wrap items-center gap-2">
             <Link href={`/freelancer/applications/${app.id}`}>
-              <Button size="sm" className="bg-[#181d26] text-white hover:bg-[#333840] font-medium text-[10px] py-1 px-3 h-8 rounded-[8px] cursor-pointer">
+              <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-[8px] bg-[#181d26] px-3 text-[10px] font-medium text-white hover:bg-[#333840] cursor-pointer">
                 Track Application Details →
               </Button>
             </Link>
             {app.status === "HIRED" && (
               <Link href={`/workspace/${app.id}`}>
-                <Button size="sm" className="text-[10px] py-1 px-3 h-8 rounded-[8px] cursor-pointer bg-[#181d26] text-white hover:bg-[#333840] font-medium">
+                <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-[8px] bg-[#181d26] px-3 text-[10px] font-medium text-white hover:bg-[#333840] cursor-pointer">
                   Open Workspace
                 </Button>
               </Link>
             )}
+            </div>
           </div>
         </div>
 
@@ -608,7 +610,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   const isCurrent = idx === currentPipelineIdx;
                   return (
                     <div key={stage} className="flex flex-col items-center shrink-0 min-w-[80px]">
-                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#1b61c9]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"}`} />
+                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#41454d]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"}`} />
                       <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-sky-500" : "text-slate-400"}`}>
                         {stage}
                       </span>
@@ -637,13 +639,13 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             {/* ═══ INTERVIEW SECTION ═══ */}
             {/* Conducted — no join button, show completed badge */}
             {interviewConducted && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+              <div className="p-4 bg-[#f8fafc] border border-[#dddddd] rounded-2xl flex items-center gap-3">
+                <div className="p-2 bg-white rounded-xl">
+                  <CheckCircle className="h-5 w-5 text-[#181d26]" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs font-black text-emerald-800">Interview Completed</p>
-                  <p className="text-[10px] text-emerald-600">Your interview has been conducted. Awaiting recruiter evaluation and decision.</p>
+                  <p className="text-xs font-black text-[#181d26]">Interview Completed</p>
+                  <p className="text-[10px] text-[#181d26]">Your interview has been conducted. Awaiting recruiter evaluation and decision.</p>
                 </div>
               </div>
             )}
@@ -720,9 +722,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
             {/* Signed contract tracker */}
             {isSigned && appMeta.digitalContract && (
-              <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-left space-y-3">
-                <h4 className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" /> Signed Contract Active
+              <div className="p-5 bg-[#f8fafc] border border-[#dddddd] rounded-2xl text-left space-y-3">
+                <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-[#181d26]" /> Signed Contract Active
                 </h4>
                 <div className="border border-slate-200/80 rounded-xl divide-y divide-slate-100 bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (

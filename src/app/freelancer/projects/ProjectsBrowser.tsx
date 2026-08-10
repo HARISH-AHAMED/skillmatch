@@ -42,6 +42,8 @@ interface ProjectsBrowserProps {
   freelancer?: any;
 }
 
+const DOMAIN_CHIPS = ["ALL","Software Engineering","Data & AI","Design & UX","Marketing & Sales","Product & Project Management","Writing & Translation","Admin & Support","Finance & Accounting","Legal","Other"];
+
 export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, freelancer }: ProjectsBrowserProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,6 +52,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
   const [query, setQuery] = useState(searchParams.get("query") || "");
   const [budget, setBudget] = useState(searchParams.get("budget") || "");
   const [priority, setPriority] = useState(searchParams.get("priority") || "ALL");
+  const [listTab, setListTab] = useState<"all" | "saved">("all");
   const [domain, setDomain] = useState(searchParams.get("domain") || "ALL");
   const [experience, setExperience] = useState(searchParams.get("experience") || "");
   const [reward, setReward] = useState(searchParams.get("reward") || "ALL");
@@ -116,10 +119,13 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
     }
   };
 
+  const visibleProjects =
+    listTab === "saved" ? projects.filter((p) => savedProjectIds.includes(p.id)) : projects;
+
   return (
     <div className="space-y-6">
       {/* Search & Filters form */}
-      <Card className="p-4 sm:p-6 bg-white border border-slate-100 shadow-md sticky top-0 z-20">
+      <Card className="p-4 sm:p-6 bg-white border border-[#dddddd] shadow-md sticky top-0 z-40">
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow relative">
@@ -152,25 +158,26 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
             </div>
           </div>
 
+
+          {/* Domain quick filters — horizontally scrollable, no dropdown */}
+          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
+            {DOMAIN_CHIPS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDomain(d)}
+                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
+                  domain === d
+                    ? "bg-[#181d26] text-white border-[#181d26]"
+                    : "bg-white text-[#41454d] border-[#dddddd] hover:border-[#181d26]/40 hover:text-[#181d26]"
+                }`}
+              >
+                {d === "ALL" ? "All Domains" : d}
+              </button>
+            ))}
+          </div>
           <div className={`${showFilters ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 border-t border-slate-200 pt-4`}>
-            <Select
-              label="Domain"
-              options={[
-                { value: "ALL", label: "All Domains" },
-                { value: "Software Engineering", label: "Software Engineering" },
-                { value: "Data & AI", label: "Data & AI" },
-                { value: "Design & UX", label: "Design & UX" },
-                { value: "Marketing & Sales", label: "Marketing & Sales" },
-                { value: "Product & Project Management", label: "Product & Project Management" },
-                { value: "Writing & Translation", label: "Writing & Translation" },
-                { value: "Admin & Support", label: "Admin & Support" },
-                { value: "Finance & Accounting", label: "Finance & Accounting" },
-                { value: "Legal", label: "Legal" },
-                { value: "Other", label: "Other" },
-              ]}
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-            />
+            {/* Domain chips live above, outside the filter grid */}
 
             <Input
               label="Min Budget (amount)"
@@ -215,14 +222,32 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
         </form>
       </Card>
 
+      {/* All vs Saved */}
+      <div className="flex w-fit gap-1 rounded-[12px] border border-[#dddddd] bg-white p-1">
+        {(["all", "saved"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setListTab(t)}
+            className={
+              listTab === t
+                ? "cursor-pointer rounded-[8px] bg-[#181d26] px-4 py-1.5 text-[11px] font-semibold text-white"
+                : "cursor-pointer rounded-[8px] px-4 py-1.5 text-[11px] font-semibold text-[#41454d] hover:text-[#181d26]"
+            }
+          >
+            {t === "all" ? `All Projects (${projects.length})` : `Saved (${savedProjectIds.length})`}
+          </button>
+        ))}
+      </div>
+
       {/* Projects list */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {projects.length === 0 ? (
+        {visibleProjects.length === 0 ? (
           <Card className="p-10 text-center text-xs text-slate-500 lg:col-span-2">
-            No projects matched your criteria. Try adjusting your filters.
+            {listTab === "saved" ? "No saved projects yet. Use the bookmark icon to save projects." : "No projects matched your criteria. Try adjusting your filters."}
           </Card>
         ) : (
-          projects.map((project) => {
+          visibleProjects.map((project) => {
             const hasApplied = appliedProjectIds.includes(project.id);
             const score = project.recommendations[0]?.score;
 

@@ -80,7 +80,15 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
   return (
     <div className="space-y-6">
       {/* Hero Banner header card */}
-      <Card className="p-6 md:p-8 border border-[#dddddd] bg-white rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
+      <Card className="overflow-hidden border border-[#dddddd] bg-white rounded-[12px] p-0 shadow-xs">
+        {/* Project banner */}
+        {project.bannerUrl ? (
+          <img src={project.bannerUrl} alt={project.title} className="h-44 w-full object-cover sm:h-56" />
+        ) : (
+          <div className="h-24 w-full bg-gradient-to-r from-[#181d26] via-[#333840] to-[#181d26]" />
+        )}
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 p-6 md:p-8">
         <div className="space-y-2.5 text-left">
           <div className="flex flex-wrap items-center gap-2">
             {aiScore !== undefined && (
@@ -134,6 +142,7 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
               </Button>
             </Link>
           )}
+        </div>
         </div>
       </Card>
 
