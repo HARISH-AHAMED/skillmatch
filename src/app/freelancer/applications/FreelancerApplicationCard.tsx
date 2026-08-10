@@ -611,7 +611,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   return (
                     <div key={stage} className="flex flex-col items-center shrink-0 min-w-[80px]">
                       <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#41454d]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"}`} />
-                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-sky-500" : "text-slate-400"}`}>
+                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-[#41454d]" : "text-slate-400"}`}>
                         {stage}
                       </span>
                     </div>

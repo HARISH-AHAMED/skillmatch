@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   Pencil
 } from "lucide-react";
-import { getProjectDescriptionText, formatProjectBudget } from "@/lib/workflowHelpers";
+import { getProjectDescriptionText, formatProjectBudget, getProjectMetadataDirect, defaultCertificateConfig } from "@/lib/workflowHelpers";
+import { CertificatePreview } from "@/components/CertificateConfigurator";
 
 interface CompletedProjectsViewProps {
   freelancer: {
@@ -355,12 +356,6 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
   return (
     <div className="space-y-6">
-      <a
-        href="/freelancer/certificates"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1b61c9] hover:underline"
-      >
-        View my certificates →
-      </a>
       {message && (
         <div
           className={`p-4 rounded-xl text-xs font-semibold border ${
@@ -429,24 +424,21 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                 className="overflow-hidden border border-[#dddddd] bg-white p-0 rounded-[12px] shadow-xs transition-all hover:shadow-md"
               >
                 {/* Certificate artwork preview */}
-                <div className="relative bg-[#f8fafc] p-5">
-                  <div className="mx-auto aspect-[16/11] w-full rounded-[10px] border-2 border-[#181d26]/15 bg-white p-5 text-center shadow-inner">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#41454d]">
-                      Certificate of Completion
-                    </p>
-                    <div className="mx-auto my-2 h-px w-16 bg-[#181d26]/20" />
-                    <p className="truncate text-sm font-black tracking-tight text-[#181d26]">
-                      {cert.recipientName}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-[10px] font-medium text-[#41454d]">
-                      {cert.roleTitle} — {cert.projectTitle}
-                    </p>
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      <Award className="h-6 w-6 text-[#181d26]" />
-                    </div>
-                    <p className="mt-2 text-[9px] font-semibold uppercase tracking-wider text-[#41454d]">
-                      {cert.issuerName} • {new Date(cert.issuedAt).getFullYear()}
-                    </p>
+                {/* The real issued certificate, rendered small */}
+                <div className="relative h-[210px] overflow-hidden bg-[#f8fafc]">
+                  <div className="pointer-events-none absolute left-0 top-0 w-[1000px] origin-top-left scale-[0.42]">
+                    <CertificatePreview
+                      config={getProjectMetadataDirect(cert.project?.description).certificate ?? defaultCertificateConfig()}
+                      data={{
+                        freelancerName: cert.recipientName,
+                        projectName: cert.projectTitle,
+                        role: cert.roleTitle,
+                        skills: (cert.skills || []).slice(0, 6),
+                        completionDate: new Date(cert.issuedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+                        certificateId: cert.publicId,
+                        companyName: cert.issuerName,
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -495,10 +487,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                   {/* Certificate earned on this contract — easy to spot and act on */}
                   {project.certificates?.length > 0 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-amber-50/70 border border-amber-100 rounded-2xl">
-                      <span className="flex items-center gap-2 text-xs font-bold text-amber-800">
-                        <Award className="h-4 w-4" /> Certificate of Completion issued
-                      </span>
+                    <div className="flex">
                       <a href={`/freelancer/certificates/${project.certificates[0].publicId}`} className="rounded-[8px] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#333840]">View Certificate</a>
                     </div>
                   )}

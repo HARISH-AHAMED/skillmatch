@@ -58,6 +58,7 @@ export default async function CompletedProjectsPage() {
     ? await db.certificate.findMany({
         where: { freelancerId: freelancer.id, revokedAt: null },
         orderBy: { issuedAt: "desc" },
+        include: { project: { select: { description: true } } },
       })
     : [];
 
