@@ -7,9 +7,6 @@ import { Role } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db) as any,
-  // Vercel serves the app behind a proxy; without this Auth.js rejects the
-  // forwarded host and every /api/auth call fails with a configuration error.
-  trustHost: true,
   session: { strategy: "jwt" },
   providers: [
     Google({
