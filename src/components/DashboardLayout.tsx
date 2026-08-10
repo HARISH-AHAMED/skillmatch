@@ -24,22 +24,22 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
 
 
   return (
-    <div className="flex h-screen bg-[#f4f8ff] text-slate-800 overflow-hidden relative">
+    <div className="flex h-screen bg-[#ffffff] text-[#181d26] overflow-hidden relative">
       
       {/* Mobile Top Navigation Header */}
-      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white/90 backdrop-blur-md border-b border-slate-200/50 px-4 py-3 flex items-center justify-between z-30">
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-[#dddddd] px-4 py-3 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-center shrink-0"
+            className="p-1.5 text-[#333840] hover:text-[#181d26] rounded-md hover:bg-[#f8fafc] cursor-pointer flex items-center justify-center shrink-0"
             title="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-sm">
+          <div className="h-7 w-7 rounded-md bg-[#181d26] flex items-center justify-center shadow-xs">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <span className="font-extrabold text-sm text-[#002d59] tracking-tight">Talentra</span>
+          <span className="font-medium text-sm text-[#181d26] tracking-tight">Talentra</span>
         </div>
       </div>
 
@@ -52,14 +52,14 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-35 md:hidden"
+              className="fixed inset-0 bg-[#181d26]/40 backdrop-blur-xs z-35 md:hidden"
             />
             {/* Mobile close button positioned outside the sidebar drawer */}
             <div className="fixed left-[272px] top-4 z-50 md:hidden animate-in fade-in duration-200">
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-white bg-slate-900/60 hover:bg-slate-900/80 border border-slate-800 rounded-xl cursor-pointer flex items-center justify-center shadow-lg"
+                className="p-2 text-white bg-[#181d26] border border-[#dddddd] rounded-md cursor-pointer flex items-center justify-center shadow-lg"
                 title="Close navigation menu"
               >
                 <X className="h-5 w-5" />
@@ -72,7 +72,7 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
       {/* Responsive Sidebar container */}
       <div
         className={`
-          fixed inset-y-0 left-0 w-64 bg-[#f8faff] z-40 transform transition-transform duration-300 md:static md:translate-x-0 md:h-screen shrink-0
+          fixed inset-y-0 left-0 w-64 bg-white z-40 transform transition-transform duration-300 md:static md:translate-x-0 md:h-screen shrink-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -90,3 +90,4 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
     </div>
   );
 }
+

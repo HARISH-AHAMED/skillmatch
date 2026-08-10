@@ -139,75 +139,75 @@ export default async function CompanyDashboard() {
       {/* Welcome header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-transparent">
         <div>
-          <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">
+          <span className="text-[10px] font-medium text-[#41454d] tracking-wider uppercase">
             Company Portal
           </span>
-          <h1 className="text-3xl font-black text-[#002d59] tracking-tight mt-0.5">
+          <h1 className="text-3xl font-normal text-[#181d26] tracking-tight mt-0.5">
             {company.companyName} Dashboard
           </h1>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
+          <p className="text-xs text-[#333840] font-normal mt-1">
             Manage your project requests and evaluate AI recommendation profiles
           </p>
         </div>
         <Link href="/company/projects/new">
-          <Button variant="primary" className="gap-2 cursor-pointer rounded-xl">
+          <Button variant="primary" className="gap-2 cursor-pointer rounded-[12px]">
             <PlusCircle className="h-4 w-4" />
             Post New Job
           </Button>
         </Link>
       </div>
 
-      {/* Grid summary metrics with light background cards */}
+      {/* Grid summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <FolderOpen className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <FolderOpen className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100/50">Open</span>
+            <span className="text-[10px] font-medium text-[#1b61c9] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#dddddd]">Open</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{activeProjectsCount}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Active Jobs</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{activeProjectsCount}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Active Jobs</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <Users className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <Users className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+12%</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+12%</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{totalApplicantsCount}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Total Applicants</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{totalApplicantsCount}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Total Applicants</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <FileCheck className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <FileCheck className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+3</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+3</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{hiredCount}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Freelancers Hired</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{hiredCount}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Freelancers Hired</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <TrendingUp className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+1</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+1</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{completedProjectsCount}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Completed contracts</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{completedProjectsCount}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Completed contracts</p>
           </div>
         </Card>
       </div>
@@ -217,40 +217,40 @@ export default async function CompanyDashboard() {
         {/* Active projects list */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-black text-[#002d59] tracking-tight">Active Postings</h2>
-            <Link href="/company/projects" className="text-xs text-sky-600 hover:text-sky-700 font-bold">
+            <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Active Postings</h2>
+            <Link href="/company/projects" className="text-xs text-[#1b61c9] hover:underline font-medium">
               View all
             </Link>
           </div>
 
           <div className="space-y-4">
             {recentProjects.length === 0 ? (
-              <Card className="p-8 text-center text-xs text-slate-500 bg-white border border-slate-200">
+              <Card className="p-8 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
                 You haven&apos;t posted any projects yet.
               </Card>
             ) : (
               recentProjects.map((p) => (
-                <Card key={p.id} className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <Card key={p.id} className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[#002d59]">{p.title}</span>
+                      <span className="text-sm font-semibold text-[#181d26]">{p.title}</span>
                       {p.status === ProjectStatus.OPEN ? (
-                        <Badge variant="success">Open</Badge>
+                        <Badge variant="mint">Open</Badge>
                       ) : p.status === ProjectStatus.IN_PROGRESS ? (
                         <Badge variant="primary">In Progress</Badge>
                       ) : (
                         <Badge variant="neutral">Completed</Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-550 max-w-sm line-clamp-1">
+                    <p className="text-xs text-[#333840] max-w-sm line-clamp-1">
                       {p.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
+                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#dddddd] pt-3 sm:pt-0">
                     <div className="text-center sm:text-right pr-2">
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Applicants</span>
-                      <span className="text-sm font-black text-[#002d59]">{p._count.applications}</span>
+                      <span className="text-[10px] text-[#41454d] block uppercase font-medium tracking-wider">Applicants</span>
+                      <span className="text-sm font-semibold text-[#181d26]">{p._count.applications}</span>
                     </div>
                     <Link href={`/company/applicants?projectId=${p.id}`}>
                       <Button size="sm" variant="outline">
@@ -268,35 +268,35 @@ export default async function CompanyDashboard() {
         <div className="space-y-6">
           <DashboardNotifications initialNotifications={notifications} />
           
-          <h2 className="text-lg font-black text-[#002d59] tracking-tight">Hiring Trends</h2>
+          <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Hiring Trends</h2>
           <AnalyticsChart title="Applicant Flow" subtitle="Successful contracts month over month" data={hiringAnalytics} type="bar" />
 
           {/* AI recommendations panel */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#002d59] flex items-center gap-1.5">
-                <Zap className="h-4.5 w-4.5 text-sky-500" />
+              <h3 className="text-sm font-semibold text-[#181d26] flex items-center gap-1.5">
+                <Zap className="h-4.5 w-4.5 text-[#181d26]" />
                 AI Top Recommendations
               </h3>
             </div>
             
             {topAIRecommendations.length === 0 ? (
-              <Card className="p-5 text-center text-xs text-slate-500 bg-white border border-slate-200">
+              <Card className="p-5 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
                 Post an open project to view calculated recommendations.
               </Card>
             ) : (
               <div className="space-y-3">
-                <p className="text-[10px] text-slate-500 font-semibold mb-1">
-                  Matching for project: <strong className="text-[#002d59]">{latestActiveProject!.title}</strong>
+                <p className="text-[10px] text-[#41454d] font-medium mb-1">
+                  Matching for project: <strong className="text-[#181d26]">{latestActiveProject!.title}</strong>
                 </p>
                 {topAIRecommendations.map((rec) => (
-                  <Card key={rec.id} className="p-3.5 border-slate-200 bg-sky-50/20 hover:bg-[#3ac0ff]/5 transition-all flex justify-between items-center gap-3">
+                  <Card key={rec.id} className="p-3.5 border-[#dddddd] bg-[#f8fafc] hover:bg-white transition-all flex justify-between items-center gap-3 rounded-[10px]">
                     <div className="overflow-hidden space-y-0.5">
-                      <p className="text-xs font-bold text-[#002d59] truncate">{rec.freelancer.user.name}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Exp: {rec.freelancer.experienceYears} Years • Rating: {rec.freelancer.rating}★</p>
+                      <p className="text-xs font-semibold text-[#181d26] truncate">{rec.freelancer.user.name}</p>
+                      <p className="text-[10px] text-[#41454d] font-normal">Exp: {rec.freelancer.experienceYears} Years • Rating: {rec.freelancer.rating}/5</p>
                     </div>
                     <div className="text-right">
-                      <Badge variant="accent" className="text-[9px]">Match {rec.score}%</Badge>
+                      <Badge variant="cream" className="text-[9px]">Match {rec.score}%</Badge>
                     </div>
                   </Card>
                 ))}
@@ -308,3 +308,4 @@ export default async function CompanyDashboard() {
     </div>
   );
 }
+

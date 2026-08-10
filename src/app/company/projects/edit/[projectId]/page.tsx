@@ -21,6 +21,7 @@ export default async function EditProjectPage({ params }: PageProps) {
     db.project.findUnique({
       where: { id: projectId },
       include: {
+        roles: { orderBy: { sortOrder: "asc" } },
         company: true,
       },
     }),
@@ -47,15 +48,25 @@ export default async function EditProjectPage({ params }: PageProps) {
     requiredSkills: project.requiredSkills,
     experienceRequired: project.experienceRequired,
     freelancersLimit: project.freelancersLimit,
+    // Existing role slots, passed through so the editor opens pre-populated.
+    // IDs are preserved so saving updates these rows rather than recreating them.
+    roles: project.roles.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      slots: r.slots,
+      allowApprentice: r.allowApprentice,
+    })),
     isVisible: project.isVisible,
     preferredGender: project.preferredGender,
     domain: project.domain,
+    bannerUrl: project.bannerUrl,
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Edit Project Gig
         </h1>
         <p className="text-xs text-slate-500 mt-1">

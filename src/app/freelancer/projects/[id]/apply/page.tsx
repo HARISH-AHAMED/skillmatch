@@ -38,6 +38,10 @@ export default async function ProjectApplyPage({ params }: PageProps) {
     where: { id: projectId },
     include: {
       company: true,
+      roles: {
+        orderBy: { sortOrder: "asc" },
+        include: { applications: { where: { status: "HIRED", isApprentice: false }, select: { id: true } } },
+      },
       applications: {
         where: { freelancerId: freelancer.id },
       },
@@ -48,7 +52,10 @@ export default async function ProjectApplyPage({ params }: PageProps) {
     notFound();
   }
 
-  const isGenderMatched = !project.preferredGender || project.preferredGender === "ANY" || project.preferredGender === freelancer.gender;
+  // Gender preference is recorded on the listing but no longer gates applications —
+  // filtering candidates by gender is unlawful employment discrimination in many
+  // jurisdictions. The stored field is retained so no existing data is lost.
+  const isGenderMatched = true;
   if (!isGenderMatched) {
     redirect(`/freelancer/projects/${project.id}`);
   }

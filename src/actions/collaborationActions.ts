@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { DELIVERABLE_REVISION_CAP } from "@/lib/workflowHelpers";
 
 // Helper to verify if the user belongs to the project workspace
 async function verifyProjectWorkspaceAccess(projectId: string, userId: string) {
@@ -88,7 +89,7 @@ export async function sendMessage(projectId: string, content: string, channel: s
       await db.notification.create({
         data: {
           userId: otherUserId,
-          title: "💬 New Direct Message",
+          title: "New Direct Message",
           message: `${senderName} sent you a direct message in "${project.title}": "${content.length > 50 ? content.slice(0, 50) + "…" : content}"`,
         },
       });
@@ -101,7 +102,7 @@ export async function sendMessage(projectId: string, content: string, channel: s
         await db.notification.create({
           data: {
             userId: fUserId,
-            title: "💬 Freelancers Chat Update",
+            title: "Freelancers Chat Update",
             message: `${senderName} posted in the freelancers-only channel of "${project.title}".`,
           },
         });
@@ -117,7 +118,7 @@ export async function sendMessage(projectId: string, content: string, channel: s
         await db.notification.create({
           data: {
             userId: mUserId,
-            title: "💬 Group Chat Update",
+            title: "Group Chat Update",
             message: `${senderName} posted in the "${project.title}" workspace: "${content.length > 50 ? content.slice(0, 50) + "…" : content}"`,
           },
         });
@@ -193,7 +194,7 @@ export async function shareFile(
       await db.notification.create({
         data: {
           userId: mUserId,
-          title: "📎 File Shared",
+          title: "File Shared",
           message: `${senderName} shared a file "${fileName}" in the "${project.title}" workspace.`,
         },
       });
@@ -249,16 +250,16 @@ export async function createProjectUpdate(
 
     const statusLabel =
       status === "COMPLETED"
-        ? "✅ Completed"
+        ? "Completed"
         : status === "IN_PROGRESS"
-        ? "🔵 In Progress"
-        : "🔴 Pending";
+        ? "In Progress"
+        : "Pending";
 
     for (const mUserId of otherMembers) {
       await db.notification.create({
         data: {
           userId: mUserId,
-          title: "📋 New Milestone",
+          title: "New Milestone",
           message: `${senderName} created milestone "${title}" [${statusLabel}] in "${project.title}".`,
         },
       });
@@ -301,10 +302,10 @@ export async function updateProjectUpdateStatus(
     const senderName = session.user.name || (role === "COMPANY" ? "Company" : "Freelancer");
     const statusLabel =
       status === "COMPLETED"
-        ? "✅ Completed"
+        ? "Completed"
         : status === "IN_PROGRESS"
-        ? "🔵 In Progress"
-        : "🔴 Pending";
+        ? "In Progress"
+        : "Pending";
 
     // Notify other members
     const otherMembers = [
@@ -316,7 +317,7 @@ export async function updateProjectUpdateStatus(
       await db.notification.create({
         data: {
           userId: mUserId,
-          title: "🔄 Milestone Updated",
+          title: "Milestone Updated",
           message: `${senderName} updated milestone "${update.title}" to [${statusLabel}] in "${project.title}".`,
         },
       });
@@ -370,7 +371,7 @@ export async function createTask(
       await db.notification.create({
         data: {
           userId: assignedToId,
-          title: "📋 New Task Assigned",
+          title: "New Task Assigned",
           message: `${session.user.name || "Manager"} assigned a task to you: "${title}" in "${access.project.title}".`,
         },
       });
@@ -564,10 +565,34 @@ export async function updateDeliverableStatus(
     const file = await db.sharedFile.findUnique({ where: { id: fileId } });
     if (!file) return { error: "Deliverable not found" };
 
-    let meta = { size: "Unknown size", status: "PENDING", version: 1, feedback: "" };
+    let meta = {
+      size: "Unknown size",
+      status: "PENDING",
+      version: 1,
+      feedback: "",
+      revisionCount: 0,
+      revisionCap: DELIVERABLE_REVISION_CAP,
+    };
     try {
       meta = { ...meta, ...JSON.parse(file.fileSize || "{}") };
     } catch (e) {}
+
+    // Each revision request consumes one of the agreed rounds. Both sides can then
+    // see how many remain, so the cap is never a surprise at the moment it bites.
+    const cap = meta.revisionCap ?? DELIVERABLE_REVISION_CAP;
+    if (status === "REVISION_REQUESTED") {
+      if ((meta.revisionCount ?? 0) >= cap) {
+        return {
+          error:
+            "Revision limit reached (" +
+            cap +
+            " of " +
+            cap +
+            " used). Approve the deliverable or agree new terms with the freelancer.",
+        };
+      }
+      meta.revisionCount = (meta.revisionCount ?? 0) + 1;
+    }
 
     meta.status = status;
     meta.feedback = feedback;
@@ -584,14 +609,14 @@ export async function updateDeliverableStatus(
       ...access.project.applications.map((app) => app.freelancer.userId),
     ].filter((id) => id !== userId);
 
-    const label = status === "APPROVED" ? "✅ Approved" : "⚠️ Revision Requested";
+    const label = status === "APPROVED" ? "Approved" : "Revision Requested";
     const senderName = session.user.name || "Client";
 
     for (const mUserId of otherMembers) {
       await db.notification.create({
         data: {
           userId: mUserId,
-          title: `📎 Deliverable Update: ${label}`,
+          title: `Deliverable Update: ${label}`,
           message: `${senderName} updated deliverable "${file.fileName}" status to ${label}.`,
         },
       });
@@ -658,7 +683,7 @@ export async function uploadDeliverableVersion(
       await db.notification.create({
         data: {
           userId: mUserId,
-          title: "📎 New Deliverable Version",
+          title: "New Deliverable Version",
           message: `${session.user.name || "Freelancer"} uploaded version v${newVersion} of "${fileName}".`,
         },
       });

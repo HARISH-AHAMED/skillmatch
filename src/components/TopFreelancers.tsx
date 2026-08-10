@@ -26,35 +26,35 @@ interface TopFreelancersProps {
 
 const rankStyles = [
   {
-    bg: "from-amber-450 via-yellow-400 to-amber-550",
+    bg: "from-[#181d26] via-[#333840] to-[#181d26]",
     text: "text-amber-600",
-    glow: "shadow-amber-400/25 border-amber-300/60 ring-2 ring-amber-400/20",
-    badge: "bg-amber-50 text-amber-700 border-amber-200",
+    glow: "shadow-sm border-[#181d26]/25 ring-1 ring-[#181d26]/10",
+    badge: "bg-[#181d26] text-white border-[#181d26]",
     icon: "text-amber-500",
-    titleColor: "text-amber-800",
+    titleColor: "text-[#181d26]",
   },
   {
-    bg: "from-slate-400 via-slate-350 to-slate-500",
-    text: "text-slate-600",
-    glow: "shadow-slate-300/20 border-slate-200/80 ring-2 ring-slate-300/10",
-    badge: "bg-slate-50 text-slate-700 border-slate-200",
-    icon: "text-slate-450",
-    titleColor: "text-slate-800",
+    bg: "from-[#1b61c9] via-[#29aaeb] to-[#1b61c9]",
+    text: "text-slate-500",
+    glow: "shadow-sm border-slate-200 ring-1 ring-slate-200/60",
+    badge: "bg-[#1b61c9]/10 text-[#181d26] border-[#1b61c9]/25",
+    icon: "text-slate-400",
+    titleColor: "text-[#181d26]",
   },
   {
-    bg: "from-orange-400 via-orange-350 to-amber-600",
-    text: "text-orange-650",
-    glow: "shadow-orange-200/25 border-orange-200/65 ring-2 ring-orange-300/10",
-    badge: "bg-orange-50 text-orange-700 border-orange-200",
-    icon: "text-orange-500",
-    titleColor: "text-orange-850",
+    bg: "from-[#29aaeb] via-[#7cc9f2] to-[#29aaeb]",
+    text: "text-[#a1662f]",
+    glow: "shadow-sm border-[#a1662f]/25 ring-1 ring-[#a1662f]/10",
+    badge: "bg-[#29aaeb]/10 text-[#181d26] border-[#29aaeb]/30",
+    icon: "text-[#a1662f]",
+    titleColor: "text-[#181d26]",
   },
 ];
 
 function getMedalIcon(rank: number) {
-  if (rank === 1) return <Trophy className="h-4 w-4 text-amber-500 animate-bounce" style={{ animationDuration: "3s" }} />;
+  if (rank === 1) return <Trophy className="h-4 w-4 text-amber-500" />;
   if (rank === 2) return <Medal className="h-4 w-4 text-slate-400" />;
-  if (rank === 3) return <Medal className="h-4 w-4 text-orange-400" />;
+  if (rank === 3) return <Medal className="h-4 w-4 text-[#a1662f]" />;
   return null;
 }
 
@@ -70,17 +70,17 @@ function getAvailabilityDot(status: string | null) {
 }
 
 const DOMAIN_TABS = [
-  { value: "ALL", label: "🏆 Overall Ranking" },
-  { value: "Software Engineering", label: "💻 Software Engineering" },
-  { value: "Data & AI", label: "🤖 Data & AI" },
-  { value: "Design & UX", label: "🎨 Design & UX" },
-  { value: "Marketing & Sales", label: "📈 Marketing & Sales" },
-  { value: "Product & Project Management", label: "💼 Product & Management" },
-  { value: "Writing & Translation", label: "✍️ Writing & Translation" },
-  { value: "Admin & Support", label: "🛠️ Admin & Support" },
-  { value: "Finance & Accounting", label: "💵 Finance & Accounting" },
-  { value: "Legal", label: "⚖️ Legal" },
-  { value: "Other", label: "🧩 Other" },
+  { value: "ALL", label: "Overall Ranking" },
+  { value: "Software Engineering", label: "Software Engineering" },
+  { value: "Data & AI", label: "Data & AI" },
+  { value: "Design & UX", label: "Design & UX" },
+  { value: "Marketing & Sales", label: "Marketing & Sales" },
+  { value: "Product & Project Management", label: "Product & Management" },
+  { value: "Writing & Translation", label: "Writing & Translation" },
+  { value: "Admin & Support", label: "Admin & Support" },
+  { value: "Finance & Accounting", label: "Finance & Accounting" },
+  { value: "Legal", label: "Legal" },
+  { value: "Other", label: "Other" },
 ];
 
 export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
@@ -104,26 +104,26 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#dddddd] pb-4 text-left">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-md">
+          <div className="p-2.5 rounded-[12px] bg-[#181d26] flex items-center justify-center shrink-0">
             <Trophy className="h-5 w-5 text-white" />
           </div>
           <div className="text-left">
-            <h2 className="text-base font-black text-[#002d59] tracking-tight flex items-center gap-1.5">
+            <h2 className="text-base font-semibold text-[#181d26] tracking-tight flex items-center gap-1.5">
               Top Talent Leaderboard
-              <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500 animate-pulse" />
+              <Sparkles className="h-3.5 w-3.5 text-[#181d26]" />
             </h2>
-            <p className="text-[10px] text-slate-500 font-semibold tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
+            <p className="text-[10px] text-[#41454d] font-normal tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
           </div>
         </div>
-        <div className="text-[10px] font-black text-[#002d59] uppercase tracking-wider bg-[#3ac0ff]/10 border border-[#3ac0ff]/20 rounded-full px-3 py-1 w-fit">
+        <div className="text-[10px] font-medium text-[#181d26] uppercase tracking-wider bg-[#f8fafc] border border-[#dddddd] rounded-full px-3 py-1 w-fit">
           {reranked.length} Specialists Ranked
         </div>
       </div>
 
       {/* Domain tabs selector */}
-      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-slate-200/60 scrollbar-track-transparent">
+      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-[#dddddd] scrollbar-track-transparent">
         {DOMAIN_TABS.map(tab => {
           const count = tab.value === "ALL" 
             ? topFreelancers.length 
@@ -135,18 +135,18 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               type="button"
               onClick={() => setActiveDomain(tab.value)}
               className={cn(
-                "px-4 py-2 rounded-xl text-xs font-black transition-all border shrink-0 flex items-center gap-1.5",
+                "px-4 py-2 rounded-[12px] text-xs font-medium transition-all border shrink-0 flex items-center gap-1.5",
                 activeDomain === tab.value
-                  ? "bg-[#002d59] text-white border-[#002d59] shadow-md"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-350 hover:bg-slate-50 cursor-pointer"
+                  ? "bg-[#181d26] text-white border-[#181d26]"
+                  : "bg-white text-[#41454d] border-[#dddddd] hover:bg-[#f8fafc] hover:text-[#181d26] cursor-pointer"
               )}
             >
               <span>{tab.label}</span>
               <span className={cn(
-                "px-1.5 py-0.5 rounded-md text-[9px] font-black",
+                "px-1.5 py-0.5 rounded-[6px] text-[9px] font-medium",
                 activeDomain === tab.value 
-                  ? "bg-[#3ac0ff]/25 text-[#3ac0ff]" 
-                  : "bg-slate-100 text-slate-500"
+                  ? "bg-white/20 text-white" 
+                  : "bg-[#f8fafc] text-[#41454d]"
               )}>
                 {count}
               </span>
@@ -156,7 +156,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
       </div>
 
       {/* Aligned unified ranking list */}
-      <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs">
+      <div className="bg-white border border-[#dddddd] rounded-[12px] overflow-hidden shadow-xs">
         {rest.length === 0 ? (
           <div className="p-10 text-center bg-white space-y-2">
             <p className="text-sm font-bold text-slate-700">No Specialists Ranked Yet</p>
@@ -205,7 +205,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       disabled={!f.image}
                       className={cn(
                         "h-10 w-10 rounded-xl shrink-0 overflow-hidden bg-slate-50 border p-0 text-left relative shadow-2xs",
-                        isRank1 ? "border-amber-300 ring-2 ring-amber-400/20" : isRank2 ? "border-slate-300 ring-2 ring-slate-300/10" : isRank3 ? "border-orange-350 ring-2 ring-orange-350/10" : "border-slate-200",
+                        isRank1 ? "border-amber-300 ring-2 ring-amber-400/20" : isRank2 ? "border-slate-300 ring-2 ring-slate-300/10" : isRank3 ? "border-orange-300 ring-2 ring-orange-300/10" : "border-slate-200",
                         f.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
                       )}
                       title={f.image ? "Click to view full image" : undefined}
@@ -227,13 +227,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     <div className="min-w-0 text-left">
                       <p
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="text-xs font-black text-[#002d59] truncate cursor-pointer hover:text-[#3ac0ff] hover:underline transition-colors"
+                        className="text-xs font-black text-[#181d26] truncate cursor-pointer hover:text-[#181d26] hover:underline transition-colors"
                       >
                         {f.name}
                       </p>
                       <p
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="text-[9px] font-semibold text-slate-400 truncate mt-0.5 cursor-pointer hover:text-[#3ac0ff] transition-colors"
+                        className="text-[9px] font-semibold text-slate-400 truncate mt-0.5 cursor-pointer hover:text-[#181d26] transition-colors"
                       >
                         {f.headline || "Elite Specialist"}
                       </p>
@@ -249,10 +249,10 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                         {f.rating.toFixed(1)}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Briefcase className="h-3.5 w-3.5 text-emerald-500" />
+                        <Briefcase className="h-3.5 w-3.5 text-[#181d26]" />
                         {f.completedProjects}
                       </span>
-                      <span className="flex items-center gap-1 text-[#3ac0ff]">
+                      <span className="flex items-center gap-1 text-[#181d26]">
                         <Zap className="h-3.5 w-3.5" />
                         {f.avgAiScore.toFixed(0)}%
                       </span>
@@ -268,13 +268,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                           ? "bg-slate-50 text-slate-700 border-slate-200"
                           : isRank3
                           ? "bg-orange-50 text-orange-700 border-orange-200"
-                          : "bg-slate-50 text-[#002d59] border-slate-200"
+                          : "bg-slate-50 text-[#181d26] border-slate-200"
                       )}>
                         {f.compositeScore.toFixed(1)}
                       </span>
                       <button
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#002d59] transition-all cursor-pointer border border-transparent hover:border-slate-200/50"
+                        className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#181d26] transition-all cursor-pointer border border-transparent hover:border-slate-200/50"
                         title="View Profile"
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -291,7 +291,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
         {reranked.length > 7 && (
           <button
             onClick={() => setExpanded((p) => !p)}
-            className="w-full flex items-center justify-center gap-1.5 py-3.5 text-[10px] font-black uppercase tracking-wider text-[#3ac0ff] hover:text-[#002d59] border-t border-slate-100 transition-colors cursor-pointer bg-slate-50/20"
+            className="w-full flex items-center justify-center gap-1.5 py-3.5 text-[10px] font-black uppercase tracking-wider text-[#181d26] hover:text-[#181d26] border-t border-slate-100 transition-colors cursor-pointer bg-slate-50/20"
           >
             {expanded ? "Show less" : `Show ${reranked.length - 7} more`}
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200", expanded ? "rotate-90" : "rotate-0")} />
@@ -303,12 +303,12 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-zoom-out"
             onClick={() => setLightboxImage(null)}
           />
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#181d26]/70 hover:bg-[#181d26] transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />

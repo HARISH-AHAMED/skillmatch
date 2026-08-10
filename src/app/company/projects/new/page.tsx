@@ -3,13 +3,18 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProject } from "@/actions/projectActions";
+import { ProjectBannerUpload } from "@/components/ProjectBannerUpload";
+import { saveProjectRoles, type RoleInput } from "@/actions/roleActions";
+import { RoleSlotsEditor } from "@/components/RoleSlotsEditor";
 import { ProjectPriority } from "@prisma/client";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { serializeProjectMetadata, ProjectWizardData, RecruitmentRound } from "@/lib/workflowHelpers";
+import { serializeProjectMetadata, ProjectWizardData, RecruitmentRound, PAYMENT_CATEGORIES, PaymentCategory, CURRENCIES, DEFAULT_CURRENCY, getCurrencySymbol, NON_MONETARY_BENEFITS, NonMonetaryBenefit, isNonMonetary, supportsBenefits, COMPENSATION_TYPES, CompensationType, STIPEND_FREQUENCIES, StipendFrequency, estimatedHourlyTotal } from "@/lib/workflowHelpers";
+import { ROUND_TYPE_CATALOG } from "@/lib/workflowHelpers";
+import { RoundConfigPanel } from "@/components/RoundConfigPanel";
 import { FileText, DollarSign, Calendar, HelpCircle, Eye, ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Move } from "lucide-react";
 
 export default function NewProjectPage() {
@@ -27,6 +32,9 @@ export default function NewProjectPage() {
   const [duration, setDuration] = useState("3 Months");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE" | "INVITE_ONLY">("PUBLIC");
   const [preferredGender, setPreferredGender] = useState("ANY");
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  // Optional team roles. Empty means a classic single-hire listing.
+  const [roles, setRoles] = useState<RoleInput[]>([]);
 
   // Step 2: Description & Responsibilities
   const [description, setDescription] = useState("");
@@ -50,6 +58,19 @@ export default function NewProjectPage() {
   const [stipendType, setStipendType] = useState<"Unpaid" | "Paid" | "Stipend">("Paid");
   const [budget, setBudget] = useState(1000);
   const [stipendDetails, setStipendDetails] = useState("1000 - 1500 Total");
+  const [paymentCategory, setPaymentCategory] = useState<PaymentCategory>("FIXED");
+  const [paymentRate, setPaymentRate] = useState(1000);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [compensationType, setCompensationType] = useState<CompensationType>("FIXED");
+  const [estimatedHours, setEstimatedHours] = useState<number>(0);
+  const [stipendFrequency, setStipendFrequency] = useState<StipendFrequency>("MONTHLY");
+  const [budgetNegotiable, setBudgetNegotiable] = useState<boolean>(false);
+  const [certificateIncluded, setCertificateIncluded] = useState<boolean>(false);
+  const [nonMonetaryBenefits, setNonMonetaryBenefits] = useState<NonMonetaryBenefit[]>([]);
+  const [nonMonetaryDetails, setNonMonetaryDetails] = useState("");
+
+  const toggleBenefit = (b: NonMonetaryBenefit) =>
+    setNonMonetaryBenefits((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
   const [workingDays, setWorkingDays] = useState("5 Days/Week");
   const [timingType, setTimingType] = useState("Full Time");
   const [priority, setPriority] = useState<ProjectPriority>(ProjectPriority.MEDIUM);
@@ -217,8 +238,30 @@ export default function NewProjectPage() {
         projectStart: projectStart,
         expectedCompletion: expectedCompletion,
       },
-      stipendType,
+      stipendType: (compensationType === "UNPAID"
+        ? "Unpaid"
+        : compensationType === "STIPEND"
+        ? "Stipend"
+        : "Paid") as "Unpaid" | "Paid" | "Stipend",
       stipendDetails,
+      paymentCategory: (compensationType === "HOURLY"
+        ? "HOURLY"
+        : compensationType === "MILESTONE"
+        ? "MILESTONE"
+        : compensationType === "STIPEND"
+        ? "MONTHLY"
+        : compensationType === "UNPAID"
+        ? "NON_MONETARY"
+        : "FIXED") as PaymentCategory,
+      paymentRate,
+      compensationType,
+      estimatedHours,
+      stipendFrequency,
+      budgetNegotiable,
+      certificateIncluded,
+      currency,
+      nonMonetaryBenefits,
+      nonMonetaryDetails,
       workingDays,
       timingType,
       screeningQuestions: allQuestions,
@@ -240,13 +283,25 @@ export default function NewProjectPage() {
         priority,
         requiredSkills,
         experienceRequired: Number(experienceRequired),
-        freelancersLimit: 1,
+        // With roles, capacity is the sum of their slots; without, the original single hire.
+        freelancersLimit:
+          roles.length > 0 ? roles.reduce((n, r) => n + (Number(r.slots) || 0), 0) : 1,
         isVisible: visibility !== "PRIVATE",
         preferredGender: preferredGender,
         domain: domain,
+        bannerUrl,
       });
 
       if (res.success) {
+        // Roles are saved after creation because they need the new project id.
+        if (roles.length > 0 && res.project?.id) {
+          const roleRes = await saveProjectRoles(res.project.id, roles);
+          if (!roleRes.success) {
+            setError(roleRes.error || "Project created, but roles could not be saved.");
+            setLoading(false);
+            return;
+          }
+        }
         router.push("/company/projects");
         router.refresh();
       }
@@ -263,10 +318,10 @@ export default function NewProjectPage() {
       <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-black text-[#002d59]">Opportunity Creation Wizard</h1>
+            <h1 className="text-2xl font-black text-[#181d26]">Opportunity Creation Wizard</h1>
             <p className="text-xs text-slate-500 mt-0.5">Define your project requirements, screening stages, and milestones</p>
           </div>
-          <Badge variant="primary" className="px-3.5 py-1.5 rounded-xl bg-sky-50 text-[#002d59] border border-sky-100">
+          <Badge variant="primary" className="px-3.5 py-1.5 rounded-xl bg-sky-50 text-[#181d26] border border-sky-100">
             Step {step} of 5
           </Badge>
         </div>
@@ -285,7 +340,7 @@ export default function NewProjectPage() {
             return (
               <div key={s.id} className="space-y-1">
                 <div className={`h-1.5 rounded-full ${
-                  isPassed ? "bg-[#3ac0ff]" : isCurrent ? "bg-[#002d59]" : "bg-slate-100"
+                  isPassed ? "bg-[#1b61c9]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"
                 }`} />
                 <span className="hidden md:inline-block text-[10px] font-bold text-slate-500 mt-1">{s.label}</span>
               </div>
@@ -304,9 +359,11 @@ export default function NewProjectPage() {
         {/* Step 1: Basic Details */}
         {step === 1 && (
           <div className="space-y-5">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-155/60 pb-2">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-[#dddddd]/60 pb-2">
               Step 1: Core Opportunity Details
             </h2>
+
+            <ProjectBannerUpload value={bannerUrl} onChange={setBannerUrl} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -397,14 +454,14 @@ export default function NewProjectPage() {
         {/* Step 2: Description & Skills */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
               Step 2: Opportunity Scope & Skill Sets
             </h2>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-600 font-bold">Scope Summary / Overview *</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                 placeholder="Outline the overall goals, client details, and software systems..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -451,7 +508,7 @@ export default function NewProjectPage() {
                       <Badge
                         key={s}
                         variant="primary"
-                        className="bg-[#3ac0ff]/10 text-[#002d59] border border-[#3ac0ff]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#1b61c9]/10 text-[#181d26] border border-[#1b61c9]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
                       >
                         {s}
                         <button
@@ -526,7 +583,7 @@ export default function NewProjectPage() {
             {/* List Builders for Objectives, Deliverables */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Project Objectives</span>
+                <span className="block text-xs font-bold text-slate-600">Project Objectives</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Integrate Neon Cloud database"
@@ -559,7 +616,7 @@ export default function NewProjectPage() {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Key Deliverables</span>
+                <span className="block text-xs font-bold text-slate-600">Key Deliverables</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Deployed vercel testing environment"
@@ -592,6 +649,8 @@ export default function NewProjectPage() {
               </div>
             </div>
 
+            <RoleSlotsEditor roles={roles} onChange={setRoles} disabled={loading} />
+
             <div className="flex gap-4 justify-between pt-4 border-t border-slate-100">
               <Button variant="outline" onClick={() => setStep(1)} className="cursor-pointer">
                 <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
@@ -599,6 +658,10 @@ export default function NewProjectPage() {
               <Button onClick={() => {
                 if (!description || requiredSkills.length === 0) {
                   setError("Please fill in description and add at least one required primary skill.");
+                  return;
+                }
+                if (roles.length > 0 && roles.some((r) => !r.name.trim())) {
+                  setError("Every team role needs a name, or remove the empty ones.");
                   return;
                 }
                 setStep(3);
@@ -612,33 +675,158 @@ export default function NewProjectPage() {
         {/* Step 3: Budget & Timelines */}
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
               Step 3: Compensation, Working Days & Timelines
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {compensationType !== "UNPAID" && (
+                <Select
+                  label="Currency"
+                  options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} (${c.symbol})` }))}
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                />
+              )}
               <Select
                 label="Compensation Type"
-                options={[
-                  { value: "Paid", label: "Paid (Fixed Project Budget)" },
-                  { value: "Stipend", label: "Monthly Stipend" },
-                  { value: "Unpaid", label: "Unpaid / Volunteer engagement" },
-                ]}
-                value={stipendType}
-                onChange={(e) => setStipendType(e.target.value as any)}
+                options={COMPENSATION_TYPES.map((c) => ({ value: c.value, label: c.label }))}
+                value={compensationType}
+                onChange={(e) => setCompensationType(e.target.value as CompensationType)}
               />
-              <Input
-                label="Estimated Opportunity Budget ($)"
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-              />
-              <Input
-                label="Stipend / Payment Details Description"
-                placeholder="e.g. $1000 - $1500 per month"
-                value={stipendDetails}
-                onChange={(e) => setStipendDetails(e.target.value)}
-              />
+              {compensationType === "HOURLY" && (
+                <>
+                  <Input
+                    label={`Hourly Rate (${getCurrencySymbol(currency)} per hour)`}
+                    type="number"
+                    min={0}
+                    value={paymentRate}
+                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                  />
+                  <Input
+                    label="Estimated Hours"
+                    type="number"
+                    min={0}
+                    value={estimatedHours}
+                    onChange={(e) => setEstimatedHours(Number(e.target.value))}
+                  />
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    Estimated Total:{" "}
+                    <strong className="text-[#181d26]">
+                      {getCurrencySymbol(currency)}
+                      {estimatedHourlyTotal(paymentRate, estimatedHours).toLocaleString()}
+                    </strong>
+                  </div>
+                </>
+              )}
+              {compensationType === "STIPEND" && (
+                <>
+                  <Input
+                    label={`Stipend Amount (${getCurrencySymbol(currency)})`}
+                    type="number"
+                    min={0}
+                    value={paymentRate}
+                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                  />
+                  <Select
+                    label="Stipend Frequency"
+                    options={STIPEND_FREQUENCIES.map((f) => ({ value: f.value, label: f.label }))}
+                    value={stipendFrequency}
+                    onChange={(e) => setStipendFrequency(e.target.value as StipendFrequency)}
+                  />
+                </>
+              )}
+              {compensationType === "FIXED" && (
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={budgetNegotiable}
+                    onChange={(e) => setBudgetNegotiable(e.target.checked)}
+                    className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                  />
+                  Budget is negotiable
+                </label>
+              )}
+              {compensationType === "MILESTONE" && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  Total is derived from the milestone values defined for this project.
+                </div>
+              )}
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={certificateIncluded}
+                  onChange={(e) => setCertificateIncluded(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                />
+                Certificate Included
+              </label>
+              {certificateIncluded && (
+                <div className="sm:col-span-2 rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-600">
+                  Your certificate can be customized after creating the project.
+                </div>
+              )}
+              {compensationType !== "UNPAID" && (
+                <>
+                  <Input
+                    label={`Estimated Opportunity Budget (${getCurrencySymbol(currency)})`}
+                    type="number"
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                  />
+                  <Input
+                    label="Stipend / Payment Details Description"
+                    placeholder={`e.g. ${getCurrencySymbol(currency)}1000 - ${getCurrencySymbol(currency)}1500 per month`}
+                    value={stipendDetails}
+                    onChange={(e) => setStipendDetails(e.target.value)}
+                  />
+                </>
+              )}
+              {supportsBenefits(paymentCategory) && (
+                <div className="sm:col-span-2 space-y-3 p-4 rounded-[12px] border border-hairline bg-surface-soft">
+                  <div>
+                    <span className="text-xs font-semibold text-ink block">
+                      Non-Monetary Compensation
+                    </span>
+                    <span className="text-[11px] text-muted">
+                      Select everything this opportunity actually provides. Freelancers filter on these,
+                      so only tick what you will genuinely deliver.
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {NON_MONETARY_BENEFITS.map((b) => (
+                      <label
+                        key={b.value}
+                        className="flex items-start gap-2 text-xs text-body cursor-pointer"
+                        title={b.hint}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={nonMonetaryBenefits.includes(b.value)}
+                          onChange={() => toggleBenefit(b.value)}
+                          className="mt-0.5 accent-ink cursor-pointer"
+                        />
+                        <span>
+                          {b.label}
+                          <span className="block text-[10px] text-border-strong">{b.hint}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <Input
+                    label="Additional details (equity %, prize pool, certificate issuer, etc.)"
+                    placeholder="e.g. 0.5% equity vesting over 2 years; certificate issued by Quantum Labs AI"
+                    value={nonMonetaryDetails}
+                    onChange={(e) => setNonMonetaryDetails(e.target.value)}
+                  />
+                  {nonMonetaryBenefits.length === 0 && (
+                    <p className="text-[11px] text-warning">
+                      Select at least one benefit — otherwise this opportunity offers no compensation at all.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <Select
                 label="Required Working Structure"
                 options={[
@@ -706,7 +894,7 @@ export default function NewProjectPage() {
         {/* Step 4: Recruitment Rounds Builder */}
         {step === 4 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2 text-left">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2 text-left">
               Step 4: Recruitment Rounds & Screening Assessments
             </h2>
 
@@ -732,20 +920,20 @@ export default function NewProjectPage() {
                       onDrop={(e) => handleDrop(e, index)}
                       className={`p-4 bg-white border rounded-2xl flex items-center justify-between gap-4 transition-all duration-200 ${
                         isSelected
-                          ? "border-[#3ac0ff] shadow-md ring-1 ring-[#3ac0ff]/20 bg-slate-50/10"
-                          : "border-slate-200 hover:border-slate-350 shadow-sm"
+                          ? "border-[#1b61c9] shadow-md ring-1 ring-[#1b61c9]/20 bg-slate-50/10"
+                          : "border-slate-200 hover:border-slate-300 shadow-sm"
                       } cursor-grab active:cursor-grabbing`}
                     >
                       <div className="flex items-center gap-3.5 flex-1 min-w-0">
                         <div className="text-slate-400 shrink-0">
                           <GripVertical className="h-5 w-5" />
                         </div>
-                        <div className="h-8 w-8 rounded-full bg-[#002d59]/5 text-[#002d59] flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-[#181d26]/5 text-[#181d26] flex items-center justify-center font-bold text-xs shrink-0">
                           {index + 1}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-xs text-[#002d59] truncate">{round.name}</span>
+                            <span className="font-extrabold text-xs text-[#181d26] truncate">{round.name}</span>
                             <Badge variant={isScreening ? "primary" : "neutral"} className="text-[9px] font-bold py-0.5">
                               {round.type.replace("_", " ")}
                             </Badge>
@@ -753,7 +941,7 @@ export default function NewProjectPage() {
                               <span className="text-[10px] text-slate-500 font-semibold">({questionCount} Questions)</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-450 truncate mt-0.5">{round.description}</p>
+                          <p className="text-[10px] text-slate-400 truncate mt-0.5">{round.description}</p>
                         </div>
                       </div>
 
@@ -792,8 +980,8 @@ export default function NewProjectPage() {
 
             {/* Form to add a new round */}
             <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-left">
-              <h4 className="text-xs font-black text-[#002d59] flex items-center gap-1.5 font-bold">
-                <Plus className="h-4 w-4 text-[#3ac0ff]" /> Add Custom Recruitment Round Step
+              <h4 className="text-xs font-black text-[#181d26] flex items-center gap-1.5 font-bold">
+                <Plus className="h-4 w-4 text-[#1b61c9]" /> Add Custom Recruitment Round Step
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -804,13 +992,7 @@ export default function NewProjectPage() {
                 />
                 <Select
                   label="Round Evaluation Type"
-                  options={[
-                    { value: "SCREENING_QUESTIONS", label: "Screening Questionnaire (Custom Questions)" },
-                    { value: "CV_PITCH", label: "CV Screening / Profile Review" },
-                    { value: "INTERVIEW", label: "Recruiter Panel Interview" },
-                    { value: "COGNITIVE_TEST", label: "Cognitive Skill Assessment" },
-                    { value: "TECHNICAL_ASSESSMENT", label: "Technical Coding Assessment" },
-                  ]}
+                  options={ROUND_TYPE_CATALOG.map((t) => ({ value: t.value, label: t.label + " — " + t.description }))}
                   value={newRoundType}
                   onChange={(e) => setNewRoundType(e.target.value as any)}
                 />
@@ -826,12 +1008,25 @@ export default function NewProjectPage() {
                   type="button"
                   onClick={handleAddRound}
                   disabled={!newRoundName.trim()}
-                  className="cursor-pointer text-xs font-bold bg-[#002d59] hover:bg-[#001f3f] text-white"
+                  className="cursor-pointer text-xs font-bold bg-[#181d26] hover:bg-[#001f3f] text-white"
                 >
                   Create Round Step
                 </Button>
               </div>
             </div>
+
+            {selectedRoundId && (() => {
+              const r = rounds.find((x) => x.id === selectedRoundId);
+              if (!r) return null;
+              return (
+                <RoundConfigPanel
+                  round={r}
+                  onChange={(config) =>
+                    setRounds(rounds.map((x) => (x.id === r.id ? { ...x, config } : x)))
+                  }
+                />
+              );
+            })()}
 
             {/* Screening questionnaire builder (Active ONLY for selected SCREENING_QUESTIONS round) */}
             {selectedRoundId && (
@@ -842,7 +1037,7 @@ export default function NewProjectPage() {
                 return (
                   <div className="space-y-5 border-t border-slate-100 pt-5 text-left">
                     <div className="space-y-1">
-                      <h3 className="text-xs font-black text-[#002d59] uppercase tracking-wider">
+                      <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">
                         Configure Questions for round: &quot;{activeRound.name}&quot;
                       </h3>
                       <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
@@ -853,15 +1048,15 @@ export default function NewProjectPage() {
                     {/* Questions inside active round */}
                     <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
                       {(!activeRound.questions || activeRound.questions.length === 0) ? (
-                        <p className="text-xs text-slate-450 italic p-4 text-center">No questions added yet. Add screening questions below.</p>
+                        <p className="text-xs text-slate-400 italic p-4 text-center">No questions added yet. Add screening questions below.</p>
                       ) : (
                         activeRound.questions.map((q, idx) => (
                           <div key={q.id} className="flex justify-between items-center p-3.5 text-xs bg-white">
                             <div>
-                              <p className="font-bold text-[#002d59]">Q{idx + 1}: {q.question}</p>
-                              <p className="text-[10px] text-slate-550 mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
+                              <p className="font-bold text-[#181d26]">Q{idx + 1}: {q.question}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
                               {q.options && q.options.length > 0 && (
-                                <p className="text-[9px] text-[#3ac0ff] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
+                                <p className="text-[9px] text-[#1b61c9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
                               )}
                             </div>
                             <button
@@ -878,7 +1073,7 @@ export default function NewProjectPage() {
 
                     {/* Question Builder */}
                     <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl">
-                      <h4 className="text-xs font-bold text-[#002d59]">Add Question to &quot;{activeRound.name}&quot;</h4>
+                      <h4 className="text-xs font-bold text-[#181d26]">Add Question to &quot;{activeRound.name}&quot;</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                           label="Question Prompt text *"
@@ -939,7 +1134,7 @@ export default function NewProjectPage() {
                           type="button"
                           onClick={handleAddQuestionToRound}
                           disabled={!newQuestionText.trim()}
-                          className="cursor-pointer text-xs font-bold bg-white text-[#002d59] border border-[#002d59]/25 hover:bg-slate-50"
+                          className="cursor-pointer text-xs font-bold bg-white text-[#181d26] border border-[#181d26]/25 hover:bg-slate-50"
                         >
                           Add Question
                         </Button>
@@ -964,7 +1159,7 @@ export default function NewProjectPage() {
         {/* Step 5: Review & Preview */}
         {step === 5 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
               Step 5: Live Freelancer Page Preview
             </h2>
 
@@ -978,12 +1173,12 @@ export default function NewProjectPage() {
                 <div className="flex justify-between items-start flex-wrap gap-2">
                   <div className="space-y-1">
                     <Badge variant="accent">AI Match Ready</Badge>
-                    <h3 className="text-xl font-black text-[#002d59] leading-tight">{title || "Opportunity Title"}</h3>
+                    <h3 className="text-xl font-black text-[#181d26] leading-tight">{title || "Opportunity Title"}</h3>
                     <p className="text-xs text-slate-500 font-medium">Category: {category} • {subcategory}</p>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-slate-500 font-bold uppercase block">Budget / Stipend</span>
-                    <span className="text-base font-black text-[#002d59]">${budget} Total</span>
+                    <span className="text-base font-black text-[#181d26]">${budget} Total</span>
                   </div>
                 </div>
               </div>
@@ -992,15 +1187,15 @@ export default function NewProjectPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white border border-slate-200/50 rounded-2xl text-xs">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Duration</span>
-                  <span className="font-bold text-[#002d59]">{duration}</span>
+                  <span className="font-bold text-[#181d26]">{duration}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Working Structure</span>
-                  <span className="font-bold text-[#002d59]">{workingDays}</span>
+                  <span className="font-bold text-[#181d26]">{workingDays}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Timing type</span>
-                  <span className="font-bold text-[#002d59]">{timingType}</span>
+                  <span className="font-bold text-[#181d26]">{timingType}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Deadline</span>
@@ -1011,7 +1206,7 @@ export default function NewProjectPage() {
               {/* Description */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Opportunity Overview</h4>
-                <p className="text-xs text-slate-650 leading-relaxed whitespace-pre-wrap">{description}</p>
+                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{description}</p>
               </div>
 
               {/* Recruitment rounds list */}
@@ -1022,7 +1217,7 @@ export default function NewProjectPage() {
                     {rounds.map((r, idx) => (
                       <div key={r.id} className="p-3 bg-white border border-slate-200/60 rounded-xl text-xs flex justify-between items-start">
                         <div>
-                          <span className="font-extrabold text-[#002d59]">Round {idx + 1}: {r.name}</span>
+                          <span className="font-extrabold text-[#181d26]">Round {idx + 1}: {r.name}</span>
                           <p className="text-[10px] text-slate-500 mt-0.5">{r.description}</p>
                         </div>
                         <Badge variant="neutral" className="text-[9px] capitalize py-0.5 shrink-0">{r.type.toLowerCase().replace("_", " ")}</Badge>
@@ -1040,7 +1235,7 @@ export default function NewProjectPage() {
               <Button
                 onClick={handlePublish}
                 disabled={loading}
-                className="cursor-pointer bg-[#002d59] text-white hover:bg-[#083a6b] font-bold px-8"
+                className="cursor-pointer bg-[#181d26] text-white hover:bg-[#083a6b] font-bold px-8"
               >
                 {loading ? "Publishing Opportunity..." : "Publish Opportunity"}
               </Button>

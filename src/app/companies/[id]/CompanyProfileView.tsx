@@ -49,7 +49,7 @@ import {
   ShieldAlert,
   Pencil,
 } from "lucide-react";
-import { getProjectDescriptionText, getCompanyDescriptionText, getProjectMetadataDirect } from "@/lib/workflowHelpers";
+import { getProjectDescriptionText, getCompanyDescriptionText, getProjectMetadataDirect, formatProjectBudget } from "@/lib/workflowHelpers";
 
 interface CompanyProfileViewProps {
   company: {
@@ -356,24 +356,24 @@ export function CompanyProfileView({
       <div className="flex items-center">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-[#002d59] bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all duration-200 shadow-sm cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-body hover:text-ink bg-white border border-hairline hover:border-border-strong rounded-xl transition-all duration-200 shadow-sm cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4 text-slate-500" />
+          <ArrowLeft className="h-4 w-4 text-muted" />
           <span>Back</span>
         </button>
       </div>
 
       {/* 1. Header Banner — LinkedIn-style */}
-      <Card className="bg-white border border-slate-100 shadow-xl rounded-3xl overflow-hidden">
+ <Card className="overflow-hidden">
         {/* Relative wrapper — banner + logo live here, logo sticks out below banner */}
         <div className="relative">
           {/* Banner: rounded top corners, overflow-hidden clips its own content but NOT the logo sibling */}
-          <div className="h-40 md:h-52 w-full overflow-hidden rounded-t-3xl bg-gradient-to-br from-[#002d59] via-[#0a4885] to-[#003d75]">
+          <div className="h-40 md:h-52 w-full overflow-hidden rounded-t-[12px] bg-gradient-to-br from-ink via-link-active to-link-active">
             {company.bannerUrl ? (
               <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
             ) : (
               <>
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-400/25 via-[#0a4885] to-[#002d59]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-link/25 via-link-active to-ink" />
                 <div className="absolute right-0 top-0 opacity-[0.06] pointer-events-none">
                   <Building2 className="h-64 w-64 text-white" />
                 </div>
@@ -403,22 +403,22 @@ export function CompanyProfileView({
             {/* Left: name + meta — pl-24 on desktop to clear logo footprint */}
             <div className="pl-0 md:pl-28 min-w-0">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#002d59] leading-snug">{company.companyName}</h1>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#002d59] bg-[#3ac0ff]/10 border border-[#3ac0ff]/30 rounded-full px-2 py-0.5">
-                  <CheckCircle2 className="h-3 w-3 text-[#3ac0ff]" /> Verified
+                <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-ink leading-snug">{company.companyName}</h1>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-ink bg-link/10 border border-link/30 rounded-full px-2 py-0.5">
+                  <CheckCircle2 className="h-3 w-3 text-link" /> Verified
                 </span>
               </div>
 
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-2 gap-y-0.5 text-slate-500 text-xs font-medium mt-1">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-2 gap-y-0.5 text-muted text-xs font-medium mt-1">
                 {company.industry && <span>{company.industry}</span>}
-                {company.companySize && <><span className="text-slate-300">·</span><span>{company.companySize}</span></>}
+                {company.companySize && <><span className="text-border-strong">·</span><span>{company.companySize}</span></>}
                 {company.location && (
-                  <><span className="text-slate-300">·</span>
+                  <><span className="text-border-strong">·</span>
                   <span className="flex items-center gap-0.5">
-                    <MapPin className="h-3 w-3 text-[#3ac0ff]" />{company.location}
+                    <MapPin className="h-3 w-3 text-link" />{company.location}
                   </span></>
                 )}
-                {company.foundedYear && <><span className="text-slate-300">·</span><span>Est. {company.foundedYear}</span></>}
+                {company.foundedYear && <><span className="text-border-strong">·</span><span>Est. {company.foundedYear}</span></>}
               </div>
             </div>
 
@@ -428,11 +428,11 @@ export function CompanyProfileView({
                 onClick={handleFollowToggle}
                 className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer ${
                   isFollowing
-                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
-                    : "bg-[#002d59] hover:bg-[#001f3f] text-white shadow-sm"
+                    ? "bg-surface-strong text-body hover:bg-surface-strong border border-hairline"
+                    : "bg-ink hover:bg-primary-active text-white shadow-sm"
                 }`}
               >
-                <Heart className={`h-3.5 w-3.5 shrink-0 ${isFollowing ? "fill-rose-500 text-rose-500" : "text-white"}`} />
+                <Heart className={`h-3.5 w-3.5 shrink-0 ${isFollowing ? "fill-danger text-danger" : "text-white"}`} />
                 <span className="hidden sm:inline">{isFollowing ? "Following" : "Follow"}</span>
                 <span className="text-[10px] opacity-70">({followerCount})</span>
               </button>
@@ -440,43 +440,43 @@ export function CompanyProfileView({
               <button
                 onClick={handleAlertToggle}
                 title="Job Alerts"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isAlerted ? "bg-amber-50 text-amber-700 border-amber-300" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isAlerted ? "bg-warning-surface text-warning border-warning-border" : ""}`}
               >
-                <Bell className={`h-3.5 w-3.5 shrink-0 ${isAlerted ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                <Bell className={`h-3.5 w-3.5 shrink-0 ${isAlerted ? "fill-star text-star" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isAlerted ? "Alerts On" : "Job Alerts"}</span>
               </button>
 
               <button
                 onClick={handleWatchlistToggle}
                 title="Watchlist"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isWatchlisted ? "bg-rose-50 text-rose-700 border-rose-300" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isWatchlisted ? "bg-danger-surface text-danger border-danger-border" : ""}`}
               >
-                <Bookmark className={`h-3.5 w-3.5 shrink-0 ${isWatchlisted ? "fill-rose-500 text-rose-500" : "text-slate-500"}`} />
+                <Bookmark className={`h-3.5 w-3.5 shrink-0 ${isWatchlisted ? "fill-danger text-danger" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isWatchlisted ? "Saved" : "Save"}</span>
               </button>
 
               <button
                 onClick={handleCommunityToggle}
                 title="Join Talent Community"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 ${isCommunity ? "bg-emerald-50 text-emerald-700 border-emerald-300" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isCommunity ? "bg-success-surface text-success border-success-border" : ""}`}
               >
-                <Users className={`h-3.5 w-3.5 shrink-0 ${isCommunity ? "text-emerald-500" : "text-slate-500"}`} />
+                <Users className={`h-3.5 w-3.5 shrink-0 ${isCommunity ? "text-success" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isCommunity ? "Member" : "Join"}</span>
               </button>
 
               <button
                 onClick={handleShare}
                 title="Share Profile"
-                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft"
               >
-                <Share2 className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <Share2 className="h-3.5 w-3.5 shrink-0 text-muted" />
                 <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
               </button>
 
               {isCompanyOwner && (
                 <button
                   onClick={() => router.push("/company/profile")}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-amber-400 hover:bg-amber-500 text-[#002d59] shadow-sm border-0"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-star hover:bg-star text-ink shadow-sm border-0"
                 >
                   <Pencil className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden sm:inline">Edit Profile</span>
@@ -488,7 +488,7 @@ export function CompanyProfileView({
       </Card>
 
       {/* 2. Content Tabs */}
-      <div className="flex border-b border-slate-200 gap-6 pb-2.5 overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="flex border-b border-hairline gap-6 pb-2.5 overflow-x-auto scrollbar-none whitespace-nowrap">
         {[
           { id: "overview", label: "Overview", count: null },
           { id: "projects", label: "Open Gigs", count: projects.length },
@@ -500,13 +500,13 @@ export function CompanyProfileView({
             onClick={() => setActiveTab(tab.id as any)}
             className={`text-sm font-extrabold pb-2 transition-all cursor-pointer border-b-2 px-1 flex items-center gap-1.5 uppercase tracking-wide shrink-0 ${
               activeTab === tab.id
-                ? "border-[#002d59] text-[#002d59] font-black"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                ? "border-ink text-ink font-semibold"
+                : "border-transparent text-muted hover:text-ink hover:border-border-strong"
             }`}
           >
             {tab.label}
             {tab.count !== null && (
-              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? "bg-[#002d59] text-white" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? "bg-ink text-white" : "bg-surface-strong text-muted"}`}>
                 {tab.count}
               </span>
             )}
@@ -521,31 +521,31 @@ export function CompanyProfileView({
           {activeTab === "overview" && (
             <div className="space-y-6">
               {/* About section */}
-              <Card className="p-8 bg-white border border-slate-100 shadow-sm space-y-5 rounded-3xl">
+ <Card className="p-8 space-y-5">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-[#002d59]">About {company.companyName}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  <h3 className="text-lg font-bold text-ink">About {company.companyName}</h3>
+                  <p className="text-sm text-body leading-relaxed whitespace-pre-wrap">
                     {getCompanyDescriptionText(company.description) || "No description provided yet."}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 border-t border-slate-100 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 border-t border-hairline text-xs">
                   {company.foundedYear && (
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Founded</span>
-                      <strong className="text-slate-800 text-sm mt-0.5 block">{company.foundedYear}</strong>
+                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Founded</span>
+                      <strong className="text-ink text-sm mt-0.5 block">{company.foundedYear}</strong>
                     </div>
                   )}
                   {company.companySize && (
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Company Size</span>
-                      <strong className="text-slate-800 text-sm mt-0.5 block">{company.companySize}</strong>
+                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Company Size</span>
+                      <strong className="text-ink text-sm mt-0.5 block">{company.companySize}</strong>
                     </div>
                   )}
                   {company.industry && (
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Industry</span>
-                      <strong className="text-slate-800 text-sm mt-0.5 block">{company.industry}</strong>
+                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Industry</span>
+                      <strong className="text-ink text-sm mt-0.5 block">{company.industry}</strong>
                     </div>
                   )}
                 </div>
@@ -553,29 +553,29 @@ export function CompanyProfileView({
 
               {/* Core Philosophy sections */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="p-6 bg-white border border-slate-100 shadow-sm space-y-2.5 rounded-2xl">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-sky-500" /> Mission & Vision
+ <Card className="p-6 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-link" /> Mission & Vision
                   </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  <p className="text-[11px] text-muted leading-relaxed font-medium">
                     {company.missionVision || "To deliver absolute quality code and build next-generation scalable payment systems."}
                   </p>
                 </Card>
  
-                <Card className="p-6 bg-white border border-slate-100 shadow-sm space-y-2.5 rounded-2xl">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
-                    <Users className="h-4 w-4 text-emerald-500" /> Work Culture
+ <Card className="p-6 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-1.5">
+                    <Users className="h-4 w-4 text-success" /> Work Culture
                   </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  <p className="text-[11px] text-muted leading-relaxed font-medium">
                     {company.workCulture || "High ownership, asynchronous speed, extreme simplicity, and focus on craft and developer tools."}
                   </p>
                 </Card>
  
-                <Card className="p-6 bg-white border border-slate-100 shadow-sm space-y-2.5 rounded-2xl">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#002d59] flex items-center gap-1.5">
-                    <Award className="h-4 w-4 text-indigo-500" /> Hiring Strategy
+ <Card className="p-6 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-1.5">
+                    <Award className="h-4 w-4 text-link" /> Hiring Strategy
                   </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  <p className="text-[11px] text-muted leading-relaxed font-medium">
                     {company.hiringPhilosophy || "We hire proactive builders who take pride in writing robust code libraries and designing clean user experiences."}
                   </p>
                 </Card>
@@ -583,22 +583,22 @@ export function CompanyProfileView({
 
               {/* Office Locations */}
               {company.officeLocations && company.officeLocations.length > 0 && (
-                <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-8 space-y-4">
                   <div>
-                    <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-[#3ac0ff]" /> Global Office Locations
+                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-link" /> Global Office Locations
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Our physical office branches and active workspace hubs</p>
+                    <p className="text-xs text-muted mt-0.5">Our physical office branches and active workspace hubs</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
                     {company.officeLocations.map((loc, idx) => (
-                      <div key={idx} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3">
-                        <div className="h-8 w-8 bg-[#3ac0ff]/10 rounded-xl flex items-center justify-center shrink-0">
-                          <MapPin className="h-4 w-4 text-[#002d59]" />
+                      <div key={idx} className="p-4 bg-surface-soft border border-hairline rounded-2xl flex items-center gap-3">
+                        <div className="h-8 w-8 bg-link/10 rounded-xl flex items-center justify-center shrink-0">
+                          <MapPin className="h-4 w-4 text-ink" />
                         </div>
                         <div>
-                          <span className="text-xs font-black text-[#002d59] block">{loc}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Office</span>
+                          <span className="text-xs font-semibold text-ink block">{loc}</span>
+                          <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider">Active Office</span>
                         </div>
                       </div>
                     ))}
@@ -607,10 +607,10 @@ export function CompanyProfileView({
               )}
 
               {/* Perks and benefits */}
-              <Card className="p-8 bg-white border border-slate-100 shadow-sm space-y-4 rounded-3xl">
+ <Card className="p-8 space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Benefits & Perks</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">What we offer to our teams and freelancers</p>
+                  <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Benefits & Perks</h3>
+                  <p className="text-xs text-muted mt-0.5">What we offer to our teams and freelancers</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
                   {(company.benefits.length ? company.benefits : [
@@ -622,9 +622,9 @@ export function CompanyProfileView({
                   ]).map((perk, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 hover:bg-sky-50/20 hover:border-sky-200 transition-colors flex items-center gap-2"
+                      className="p-3.5 bg-surface-soft border border-hairline rounded-2xl text-xs font-bold text-body hover:bg-white/5 hover:border-link/20 transition-colors flex items-center gap-2"
                     >
-                      <CheckCircle2 className="h-4 w-4 text-sky-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-link shrink-0" />
                       <span>{perk}</span>
                     </div>
                   ))}
@@ -637,14 +637,14 @@ export function CompanyProfileView({
             <div className="space-y-4 animate-in slide-in-from-bottom-3 duration-250">
               <div className="flex justify-between items-center mb-1">
                 <div>
-                  <h3 className="text-base font-bold text-[#002d59]">Open Gigs & Contracts</h3>
-                  <p className="text-xs text-slate-500">Apply to project slots listed by the company engineering team</p>
+                  <h3 className="text-base font-bold text-ink">Open Gigs & Contracts</h3>
+                  <p className="text-xs text-muted">Apply to project slots listed by the company engineering team</p>
                 </div>
               </div>
 
               {projects.length === 0 ? (
-                <Card className="p-10 text-center text-xs text-slate-400 bg-white border border-slate-100 rounded-3xl flex flex-col items-center gap-2">
-                  <Briefcase className="h-10 w-10 text-slate-400" />
+ <Card className="p-10 text-center text-xs text-border-strong flex flex-col items-center gap-2">
+                  <Briefcase className="h-10 w-10 text-border-strong" />
                   No open gigs found. Toggle notification alerts to know when the company posts.
                 </Card>
               ) : (
@@ -653,9 +653,9 @@ export function CompanyProfileView({
                   const isSaved = savedProjectIds.includes(project.id);
 
                   return (
-                    <Card
+ <Card
                       key={project.id}
-                      className="p-6 bg-white border border-slate-100/90 shadow-sm hover:shadow-md transition-all rounded-3xl space-y-4 group"
+                      className="p-6 bg-white border border-hairline/90 shadow-sm hover:shadow-md transition-all rounded-3xl space-y-4 group"
                     >
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-1">
@@ -665,29 +665,29 @@ export function CompanyProfileView({
                             </Badge>
                             {project.priority === "HIGH" && <Badge variant="danger">High Priority</Badge>}
                             {project.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
-                            <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                            <span className="text-[10px] font-semibold text-border-strong flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5" />
                               Posted {new Date(project.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <h4 className="text-base font-extrabold text-[#002d59] group-hover:text-[#3ac0ff] transition-colors">
+                          <h4 className="text-base font-extrabold text-ink group-hover:text-link transition-colors">
                             {project.title}
                           </h4>
-                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">
+                          <span className="text-[10px] text-border-strong font-semibold uppercase block">
                             Required Experience: {project.experienceRequired} years
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Gig Budget</span>
-                          <span className="text-lg font-black text-[#002d59]">${project.budget}</span>
+                          <span className="text-[10px] text-border-strong uppercase font-bold block">Gig Budget</span>
+                          <span className="text-lg font-semibold text-ink">{formatProjectBudget(project)}</span>
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-600 leading-relaxed font-medium line-clamp-3">
+                      <p className="text-xs text-body leading-relaxed font-medium line-clamp-3">
                         {getProjectDescriptionText(project.description)}
                       </p>
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-hairline">
                         <div className="flex flex-wrap gap-1">
                           {project.requiredSkills.map((skill: string) => (
                             <Badge key={skill} variant="neutral" className="text-[9px] lowercase font-bold py-0.5">
@@ -702,12 +702,12 @@ export function CompanyProfileView({
                             onClick={() => handleSaveProjectToggle(project.id)}
                             className={`p-2 rounded-xl border cursor-pointer transition-all ${
                               isSaved
-                                ? "bg-amber-50 text-amber-600 border-amber-200"
-                                : "bg-white text-slate-400 hover:text-slate-600 border-slate-200 hover:border-slate-400"
+                                ? "bg-warning-surface text-warning border-warning-border"
+                                : "bg-white text-border-strong hover:text-body border-hairline hover:border-border-strong"
                             }`}
                             title={isSaved ? "Unsave Project" : "Save Project"}
                           >
-                            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-amber-600" : ""}`} />
+                            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-star" : ""}`} />
                           </button>
 
                           <Button
@@ -754,30 +754,30 @@ export function CompanyProfileView({
           {activeTab === "reviews" && (
             <div className="space-y-6 animate-in slide-in-from-bottom-3 duration-250">
               {/* Rating metrics summary */}
-              <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Freelancer Ratings Overview</h3>
-                    <p className="text-xs text-slate-500">Averages based on projects completed with clients</p>
+                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Freelancer Ratings Overview</h3>
+                    <p className="text-xs text-muted">Averages based on projects completed with clients</p>
                   </div>
-                  <div className="text-center bg-[#002d59] text-white px-5 py-3 rounded-2xl shadow-md">
-                    <span className="text-2xl font-black">{company.reputationScore ? (company.reputationScore / 20).toFixed(1) : "5.0"}</span>
-                    <span className="text-[10px] text-sky-200 block font-bold">Out of 5.0</span>
+                  <div className="text-center bg-ink text-white px-5 py-3 rounded-2xl shadow-md">
+                    <span className="text-2xl font-semibold">{company.reputationScore ? (company.reputationScore / 20).toFixed(1) : "5.0"}</span>
+                    <span className="text-[10px] text-white/70 block font-bold">Out of 5.0</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-100 text-center text-xs">
+                <div className="grid grid-cols-3 gap-4 pt-3 border-t border-hairline text-center text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Communication</span>
-                    <strong className="text-slate-800 text-sm mt-0.5 block">{avgCommunication.toFixed(1)} / 5.0</strong>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Communication</span>
+                    <strong className="text-ink text-sm mt-0.5 block">{avgCommunication.toFixed(1)} / 5.0</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Payment reliability</span>
-                    <strong className="text-slate-800 text-sm mt-0.5 block">{avgPayment.toFixed(1)} / 5.0</strong>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Payment reliability</span>
+                    <strong className="text-ink text-sm mt-0.5 block">{avgPayment.toFixed(1)} / 5.0</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Project Clarity</span>
-                    <strong className="text-slate-800 text-sm mt-0.5 block">{avgClarity.toFixed(1)} / 5.0</strong>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Project Clarity</span>
+                    <strong className="text-ink text-sm mt-0.5 block">{avgClarity.toFixed(1)} / 5.0</strong>
                   </div>
                 </div>
               </Card>
@@ -785,38 +785,38 @@ export function CompanyProfileView({
               {/* Review cards */}
               <div className="space-y-4">
                 {reviews.length === 0 ? (
-                  <Card className="p-10 text-center text-xs text-slate-400 bg-white border border-slate-100 rounded-3xl flex flex-col items-center gap-2">
-                    <MessageSquare className="h-9 w-9 text-slate-300" />
+ <Card className="p-10 text-center text-xs text-border-strong flex flex-col items-center gap-2">
+                    <MessageSquare className="h-9 w-9 text-border-strong" />
                     No freelancer reviews received yet.
                   </Card>
                 ) : (
                   reviews.map((rev) => (
-                    <Card key={rev.id} className="p-6 bg-white border border-slate-200/60 shadow-sm rounded-3xl space-y-4 hover:shadow-md transition-all">
-                      <div className="flex justify-between items-center pb-3.5 border-b border-slate-100">
+ <Card key={rev.id} className="p-6 space-y-4 hover:shadow-md transition-all">
+                      <div className="flex justify-between items-center pb-3.5 border-b border-hairline">
                         <div>
-                          <h4 className="text-xs font-black text-[#002d59]">{rev.project.title}</h4>
-                          <span className="text-[9px] text-slate-400 font-semibold block mt-0.5">
+                          <h4 className="text-xs font-semibold text-ink">{rev.project.title}</h4>
+                          <span className="text-[9px] text-border-strong font-semibold block mt-0.5">
                             Reviewed by {rev.reviewer.name} on {new Date(rev.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex gap-0.5 text-amber-500">
+                        <div className="flex gap-0.5 text-star">
                           {Array.from({ length: 5 }).map((_, idx) => (
                             <Star
                               key={idx}
-                              className={`h-4 w-4 ${idx < rev.rating ? "fill-amber-500 text-amber-500" : "text-slate-200"}`}
+                              className={`h-4 w-4 ${idx < rev.rating ? "fill-star text-star" : "text-border-strong"}`}
                             />
                           ))}
                         </div>
                       </div>
 
                       <div className="flex gap-2.5 items-start">
-                        <MessageSquareQuote className="h-5 w-5 text-sky-500/70 shrink-0 mt-0.5" />
-                        <p className="text-xs text-slate-600 font-medium italic leading-relaxed">
+                        <MessageSquareQuote className="h-5 w-5 text-link shrink-0 mt-0.5" />
+                        <p className="text-xs text-body font-medium italic leading-relaxed">
                           &quot;{rev.comment}&quot;
                         </p>
                       </div>
  
-                      <div className="flex justify-start gap-6 pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-bold">
+                      <div className="flex justify-start gap-6 pt-3 border-t border-hairline text-[10px] text-border-strong font-bold">
                         <span>Communication: {rev.communicationScore || 5}/5</span>
                         <span>Payment Speed: {rev.paymentReliabilityScore || 5}/5</span>
                         <span>Project Clarity: {rev.projectClarityScore || 5}/5</span>
@@ -831,18 +831,18 @@ export function CompanyProfileView({
           {activeTab === "gallery_team" && (
             <div className="space-y-6 animate-in slide-in-from-bottom-3 duration-250">
               {/* Gallery Photos & Videos */}
-              <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-8 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Office & Workspace Gallery</h3>
-                    <p className="text-xs text-slate-500">Glimpse of our work culture, events, and workspaces</p>
+                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Office & Workspace Gallery</h3>
+                    <p className="text-xs text-muted">Glimpse of our work culture, events, and workspaces</p>
                   </div>
                 </div>
 
                 {/* Grid layout of photos */}
                 {galleryPhotos.length === 0 && galleryVideos.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl py-12 flex flex-col items-center gap-2">
-                    <ImageIcon className="h-8 w-8 text-slate-400" />
+                  <div className="p-8 text-center text-xs text-border-strong border border-dashed border-hairline rounded-2xl py-12 flex flex-col items-center gap-2">
+                    <ImageIcon className="h-8 w-8 text-border-strong" />
                     No gallery photos or workspace images uploaded.
                   </div>
                 ) : (
@@ -853,25 +853,25 @@ export function CompanyProfileView({
                           <div
                             key={idx}
                             onClick={() => setZoomedImage(url)}
-                            className="aspect-video bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden cursor-zoom-in hover:border-sky-300 transition-all relative group shadow-sm"
+                            className="aspect-video bg-surface-soft border border-hairline rounded-2xl overflow-hidden cursor-zoom-in hover:border-link/20 transition-all relative group shadow-sm"
                           >
                             <img
                               src={url}
                               alt={`Workspace snapshot ${idx + 1}`}
                               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-ink/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         ))}
                       </div>
                     )}
 
                     {galleryVideos.length > 0 && (
-                      <div className="space-y-3 pt-3 border-t border-slate-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Company Video Showcase</span>
+                      <div className="space-y-3 pt-3 border-t border-hairline">
+                        <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Company Video Showcase</span>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {galleryVideos.map((url, idx) => (
-                            <div key={idx} className="bg-black border border-slate-900 rounded-2xl overflow-hidden aspect-video shadow-sm">
+                            <div key={idx} className="bg-black border border-ink rounded-2xl overflow-hidden aspect-video shadow-sm">
                               <video src={url} controls className="h-full w-full object-contain" />
                             </div>
                           ))}
@@ -883,17 +883,17 @@ export function CompanyProfileView({
 
                 {/* Upload gallery photos (Company Owner only) */}
                 {isCompanyOwner && (
-                  <form onSubmit={handleMediaUpload} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl mt-6 space-y-4 text-xs">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="font-bold text-[#002d59] flex items-center gap-1.5">
-                        <Upload className="h-4 w-4 text-[#3ac0ff]" /> Upload Photo to Gallery
+                  <form onSubmit={handleMediaUpload} className="p-5 bg-surface-soft border border-hairline rounded-2xl mt-6 space-y-4 text-xs">
+                    <div className="flex justify-between items-center border-b border-hairline pb-2">
+                      <span className="font-bold text-ink flex items-center gap-1.5">
+                        <Upload className="h-4 w-4 text-link" /> Upload Photo to Gallery
                       </span>
-                      <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Max 5MB · Images only</span>
+                      <span className="text-[9px] text-border-strong font-semibold uppercase tracking-wider">Max 5MB · Images only</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="flex-grow w-full">
-                        <div className="flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-slate-400 p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
+                        <div className="flex items-center justify-center border-2 border-dashed border-hairline hover:border-border-strong p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
                           <input
                             type="file"
                             accept="image/*"
@@ -901,15 +901,15 @@ export function CompanyProfileView({
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
                           <div className="text-center space-y-1">
-                            <Plus className="h-5 w-5 text-slate-400 mx-auto group-hover:scale-110 transition-transform" />
-                            <p className="text-[10px] font-bold text-slate-600 uppercase">Select Photo</p>
-                            <p className="text-[9px] text-slate-400 font-semibold">PNG, JPG, WebP — max 5MB</p>
+                            <Plus className="h-5 w-5 text-border-strong mx-auto group-hover:scale-110 transition-transform" />
+                            <p className="text-[10px] font-bold text-body uppercase">Select Photo</p>
+                            <p className="text-[9px] text-border-strong font-semibold">PNG, JPG, WebP — max 5MB</p>
                           </div>
                         </div>
                       </div>
 
                       {mediaPreview && (
-                        <div className="h-20 w-32 border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white">
+                        <div className="h-20 w-32 border border-hairline rounded-xl overflow-hidden shrink-0 bg-white">
                           <img src={mediaPreview} alt="preview" className="h-full w-full object-cover" />
                         </div>
                       )}
@@ -917,7 +917,7 @@ export function CompanyProfileView({
 
 
                     {mediaFile && (
-                      <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
+                      <div className="flex justify-end gap-2 border-t border-hairline pt-3">
                         <Button
                           variant="outline"
                           size="sm"
@@ -938,26 +938,26 @@ export function CompanyProfileView({
 
 
               {/* Team Showcase */}
-              <Card className="p-8 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-5">
+ <Card className="p-8 space-y-5">
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Meet the Team</h3>
-                  <p className="text-xs text-slate-500">Contact points for hiring and project execution</p>
+                  <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Meet the Team</h3>
+                  <p className="text-xs text-muted">Contact points for hiring and project execution</p>
                 </div>
 
                 {teamList.length === 0 ? (
-                  <div className="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 rounded-xl">
+                  <div className="text-center text-xs text-border-strong py-6 border border-dashed border-hairline rounded-xl">
                     No team members listed yet.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {teamList.map((member: any, idx: number) => (
-                      <Card
+ <Card
                         key={idx}
-                        className="p-5 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-3.5 hover:shadow-md transition-shadow relative overflow-hidden"
+                        className="p-5 bg-surface-soft/50 border border-hairline rounded-2xl space-y-3.5 hover:shadow-md transition-shadow relative overflow-hidden"
                       >
                         {/* Member top details */}
                         <div className="flex gap-4">
-                          <div className="h-16 w-16 rounded-2xl bg-sky-100 flex items-center justify-center font-bold text-[#002d59] text-base border border-sky-200 shrink-0 overflow-hidden shadow-sm">
+                          <div className="h-16 w-16 rounded-2xl bg-link/10 flex items-center justify-center font-bold text-ink text-base border border-link/20 shrink-0 overflow-hidden shadow-sm">
                             {member.photoUrl ? (
                               <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
                             ) : (
@@ -965,14 +965,14 @@ export function CompanyProfileView({
                             )}
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
-                            <h4 className="text-sm font-black text-[#002d59] truncate">{member.name}</h4>
-                            <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider truncate">{member.role}</p>
+                            <h4 className="text-sm font-semibold text-ink truncate">{member.name}</h4>
+                            <p className="text-[10px] text-border-strong font-bold uppercase tracking-wider truncate">{member.role}</p>
                             {member.linkedinUrl && (
                               <a
                                 href={member.linkedinUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] text-[#3ac0ff] hover:underline font-bold"
+                                className="inline-flex items-center gap-1 text-[10px] text-link hover:underline font-bold"
                               >
                                 <Share2 className="h-3 w-3" /> LinkedIn Profile
                               </a>
@@ -982,7 +982,7 @@ export function CompanyProfileView({
 
                         {/* Member bio */}
                         {member.bio && (
-                          <p className="text-xs text-slate-500 bg-white p-3 border border-slate-100 rounded-xl italic leading-relaxed">
+                          <p className="text-xs text-muted bg-white p-3 border border-hairline rounded-xl italic leading-relaxed">
                             &quot;{member.bio}&quot;
                           </p>
                         )}
@@ -991,7 +991,7 @@ export function CompanyProfileView({
                         {member.skills && member.skills.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {member.skills.map((skill: string, sIdx: number) => (
-                              <Badge key={sIdx} variant="neutral" className="text-[8px] py-0.5 px-2 bg-white/80 border-slate-200">
+                              <Badge key={sIdx} variant="neutral" className="text-[8px] py-0.5 px-2 bg-white/80 border-hairline">
                                 {skill}
                               </Badge>
                             ))}
@@ -1009,26 +1009,26 @@ export function CompanyProfileView({
         {/* Right Column (Sidebar containing stats, AI Insights, hiring activity and contacts) */}
         <div className="space-y-6">
           {/* Profile Strength Score Card */}
-          <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-[#002d59]/5 rounded-xl">
-                <Building2 className="h-4.5 w-4.5 text-[#002d59]" />
+              <div className="p-1.5 bg-ink/5 rounded-xl">
+                <Building2 className="h-4.5 w-4.5 text-ink" />
               </div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-[#002d59]">Profile Strength</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink">Profile Strength</h3>
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-slate-500">LinkedIn Profile Score</span>
-                <span className="font-black text-[#002d59]">{completionPercent}%</span>
+                <span className="font-semibold text-muted">LinkedIn Profile Score</span>
+                <span className="font-semibold text-ink">{completionPercent}%</span>
               </div>
-              <div className="w-full bg-slate-150 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-surface-strong h-2 rounded-full overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-[#3ac0ff] to-[#002d59] h-full rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-link to-ink h-full rounded-full transition-all duration-300"
                   style={{ width: `${completionPercent}%` }}
                 />
               </div>
-              <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+              <p className="text-[10px] text-border-strong font-semibold leading-relaxed">
                 {completionPercent < 80 
                   ? "Complete missing sections (cover banner, office locations, showcase details) to maximize recruiter visibility index." 
                   : "Excellent! Your company page profile has completed premium status metrics."}
@@ -1037,45 +1037,45 @@ export function CompanyProfileView({
           </Card>
 
           {/* AI Company Insights (Premium capability) */}
-          <Card className="p-6 bg-[#002d59] text-white border-0 shadow-lg space-y-4 rounded-3xl relative overflow-hidden">
+ <Card className="p-6 bg-ink text-white border-0 space-y-4 relative overflow-hidden">
             <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none transform translate-y-5 scale-125">
               <BrainCircuit className="h-44 w-44" />
             </div>
             <div className="flex items-center gap-2 relative z-10">
-              <div className="p-2 bg-sky-500/20 backdrop-blur-md rounded-xl border border-sky-300/20">
-                <BrainCircuit className="h-5 w-5 text-sky-300" />
+              <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                <BrainCircuit className="h-5 w-5 text-white/70" />
               </div>
-              <h3 className="text-sm font-black uppercase tracking-wider">AI Company Insights</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider">AI Company Insights</h3>
             </div>
  
             {activeTab === "overview" && (
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Company Trust Score</span>
-                    <span className="text-3xl font-black text-white">{company.trustScore}%</span>
+                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Company Trust Score</span>
+                    <span className="text-3xl font-semibold text-white">{company.trustScore}%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
                     <span>{company.trustScore}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Project Completion Rate</span>
-                    <strong className="font-bold text-sky-200">{company.completionRate}%</strong>
+                    <span className="text-border-strong font-medium">Project Completion Rate</span>
+                    <strong className="font-bold text-white/70">{company.completionRate}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Freelancer Retention Rate</span>
-                    <strong className="font-bold text-sky-200">{company.retentionRate}%</strong>
+                    <span className="text-border-strong font-medium">Freelancer Retention Rate</span>
+                    <strong className="font-bold text-white/70">{company.retentionRate}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Payment Reliability</span>
-                    <strong className="font-bold text-sky-200">{company.paymentReliability}%</strong>
+                    <span className="text-border-strong font-medium">Payment Reliability</span>
+                    <strong className="font-bold text-white/70">{company.paymentReliability}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Reputation Score</span>
-                    <strong className="font-bold text-sky-200">{company.reputationScore}%</strong>
+                    <span className="text-border-strong font-medium">Reputation Score</span>
+                    <strong className="font-bold text-white/70">{company.reputationScore}%</strong>
                   </div>
                 </div>
               </>
@@ -1085,32 +1085,32 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Project Match Score</span>
-                    <span className="text-3xl font-black text-white">96%</span>
+                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Project Match Score</span>
+                    <span className="text-3xl font-semibold text-white">96%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
                     <span>96</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Active Hiring Success</span>
-                    <strong className="font-bold text-sky-200">{company.hiringSuccessRate}%</strong>
+                    <span className="text-border-strong font-medium">Active Hiring Success</span>
+                    <strong className="font-bold text-white/70">{company.hiringSuccessRate}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Avg Project Budget</span>
-                    <strong className="font-bold text-sky-200">
+                    <span className="text-border-strong font-medium">Avg Project Budget</span>
+                    <strong className="font-bold text-white/70">
                       ${projects.length > 0 ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0) / projects.length) : "1,200"}
                     </strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Avg Time-to-Hire</span>
-                    <strong className="font-bold text-sky-200">{company.avgTimeToHire || "14 days"}</strong>
+                    <span className="text-border-strong font-medium">Avg Time-to-Hire</span>
+                    <strong className="font-bold text-white/70">{company.avgTimeToHire || "14 days"}</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Response Rate</span>
-                    <strong className="font-bold text-sky-200">{company.avgResponseTime || "Within 1 hour"}</strong>
+                    <span className="text-border-strong font-medium">Response Rate</span>
+                    <strong className="font-bold text-white/70">{company.avgResponseTime || "Within 1 hour"}</strong>
                   </div>
                 </div>
               </>
@@ -1120,30 +1120,30 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Review Reputation</span>
-                    <span className="text-3xl font-black text-white">{company.reputationScore}%</span>
+                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Review Reputation</span>
+                    <span className="text-3xl font-semibold text-white">{company.reputationScore}%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
                     <span>{company.reputationScore}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Communication Score</span>
-                    <strong className="font-bold text-sky-200">{avgCommunication.toFixed(1)} / 5.0</strong>
+                    <span className="text-border-strong font-medium">Communication Score</span>
+                    <strong className="font-bold text-white/70">{avgCommunication.toFixed(1)} / 5.0</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Payment Promptness</span>
-                    <strong className="font-bold text-sky-200">{avgPayment.toFixed(1)} / 5.0</strong>
+                    <span className="text-border-strong font-medium">Payment Promptness</span>
+                    <strong className="font-bold text-white/70">{avgPayment.toFixed(1)} / 5.0</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Project Requirement Clarity</span>
-                    <strong className="font-bold text-sky-200">{avgClarity.toFixed(1)} / 5.0</strong>
+                    <span className="text-border-strong font-medium">Project Requirement Clarity</span>
+                    <strong className="font-bold text-white/70">{avgClarity.toFixed(1)} / 5.0</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Total Verified Reviews</span>
-                    <strong className="font-bold text-sky-200">{reviews.length}</strong>
+                    <span className="text-border-strong font-medium">Total Verified Reviews</span>
+                    <strong className="font-bold text-white/70">{reviews.length}</strong>
                   </div>
                 </div>
               </>
@@ -1153,30 +1153,30 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-sky-200 block uppercase font-bold tracking-wider">Culture Health Index</span>
-                    <span className="text-3xl font-black text-white">95%</span>
+                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Culture Health Index</span>
+                    <span className="text-3xl font-semibold text-white">95%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-sky-500/20 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
                     <span>95</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-white/10 text-xs relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Core Team Members</span>
-                    <strong className="font-bold text-sky-200">{teamList.length} members</strong>
+                    <span className="text-border-strong font-medium">Core Team Members</span>
+                    <strong className="font-bold text-white/70">{teamList.length} members</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Founded Year</span>
-                    <strong className="font-bold text-sky-200">{company.foundedYear || "N/A"}</strong>
+                    <span className="text-border-strong font-medium">Founded Year</span>
+                    <strong className="font-bold text-white/70">{company.foundedYear || "N/A"}</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Office Photos & Videos</span>
-                    <strong className="font-bold text-sky-200">{galleryPhotos.length + galleryVideos.length} items</strong>
+                    <span className="text-border-strong font-medium">Office Photos & Videos</span>
+                    <strong className="font-bold text-white/70">{galleryPhotos.length + galleryVideos.length} items</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Benefits & Perks Listed</span>
-                    <strong className="font-bold text-sky-200">{company.benefits.length} benefits</strong>
+                    <span className="text-border-strong font-medium">Benefits & Perks Listed</span>
+                    <strong className="font-bold text-white/70">{company.benefits.length} benefits</strong>
                   </div>
                 </div>
               </>
@@ -1184,15 +1184,15 @@ export function CompanyProfileView({
 
             {(activeTab === "overview" || activeTab === "reviews") && company.sentimentAnalysis && (
               <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1 text-[11px] relative z-10">
-                <span className="font-bold uppercase tracking-wider text-sky-300 block text-[9px]">Review Sentiment Analysis</span>
-                <p className="text-slate-200 italic leading-relaxed">
+                <span className="font-bold uppercase tracking-wider text-white/70 block text-[9px]">Review Sentiment Analysis</span>
+                <p className="text-border-strong italic leading-relaxed">
                   &quot;{company.sentimentAnalysis}&quot;
                 </p>
               </div>
             )}
 
-            <div className="p-3.5 bg-sky-400/10 border border-sky-400/20 text-sky-100 rounded-2xl space-y-1 text-[11px] relative z-10 font-medium font-sans">
-              <span className="font-bold uppercase tracking-wider text-sky-300 block text-[9px] flex items-center gap-1">
+            <div className="p-3.5 bg-white/5 border border-white/10 text-white/70 rounded-2xl space-y-1 text-[11px] relative z-10 font-medium font-sans">
+              <span className="font-bold uppercase tracking-wider text-white/70 block text-[9px] flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" /> AI Predictive Hiring Insight
               </span>
               <p className="leading-relaxed">
@@ -1213,15 +1213,15 @@ export function CompanyProfileView({
           </Card>
 
           {/* Company Statistics */}
-          <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">
+              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">
                 {activeTab === "overview" && "Hiring Statistics"}
                 {activeTab === "projects" && "Project Statistics"}
                 {activeTab === "reviews" && "Reputation Statistics"}
                 {activeTab === "gallery_team" && "Culture & Team Stats"}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 {activeTab === "overview" && "Platform performance history metrics"}
                 {activeTab === "projects" && "Overview of company gig activity"}
                 {activeTab === "reviews" && "Contractor ratings overview metrics"}
@@ -1231,22 +1231,22 @@ export function CompanyProfileView({
 
             {activeTab === "overview" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Posted Gigs</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{projects.length + (reviews.length || 2)}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Posted Gigs</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">{projects.length + (reviews.length || 2)}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Active Projects</span>
-                  <span className="text-lg font-black text-sky-600 mt-0.5 block">{projects.length}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Active Projects</span>
+                  <span className="text-lg font-semibold text-link mt-0.5 block">{projects.length}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Completed Gigs</span>
-                    <span className="text-lg font-black text-emerald-600 mt-0.5 block">{reviews.length || 0} Gigs</span>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Completed Gigs</span>
+                    <span className="text-lg font-semibold text-success mt-0.5 block">{reviews.length || 0} Gigs</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Response Time</span>
-                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">{company.avgResponseTime || "Within 1 hour"}</span>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Response Time</span>
+                    <span className="text-xs font-semibold text-body mt-0.5 block">{company.avgResponseTime || "Within 1 hour"}</span>
                   </div>
                 </div>
               </div>
@@ -1254,26 +1254,26 @@ export function CompanyProfileView({
 
             {activeTab === "projects" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Gigs</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{projects.length}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Gigs</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">{projects.length}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Open Gigs</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Open Gigs</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">
                     {projects.filter((p: any) => p.status === "OPEN" || p.status === "ACTIVE").length}
                   </span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Closed Gigs</span>
-                    <span className="text-lg font-black text-slate-500 mt-0.5 block">
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Closed Gigs</span>
+                    <span className="text-lg font-semibold text-muted mt-0.5 block">
                       {projects.filter((p: any) => p.status !== "OPEN" && p.status !== "ACTIVE").length}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Budget</span>
-                    <span className="text-xs font-bold text-emerald-600 mt-0.5 block">
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Budget</span>
+                    <span className="text-xs font-bold text-success mt-0.5 block">
                       ${projects.length > 0 ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0) / projects.length) : "1,200"}
                     </span>
                   </div>
@@ -1283,24 +1283,24 @@ export function CompanyProfileView({
 
             {activeTab === "reviews" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Total Reviews</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{reviews.length}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Reviews</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">{reviews.length}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Avg Rating</span>
-                  <span className="text-lg font-black text-amber-500 mt-0.5 block">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Rating</span>
+                  <span className="text-lg font-semibold text-star mt-0.5 block">
                     {reviews.length ? (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1) : "5.0"}
                   </span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Rec. Rate</span>
-                    <span className="text-lg font-black text-emerald-600 mt-0.5 block">98%</span>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Rec. Rate</span>
+                    <span className="text-lg font-semibold text-success mt-0.5 block">98%</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Review Freq.</span>
-                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">Regular</span>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Review Freq.</span>
+                    <span className="text-xs font-semibold text-body mt-0.5 block">Regular</span>
                   </div>
                 </div>
               </div>
@@ -1308,24 +1308,24 @@ export function CompanyProfileView({
 
             {activeTab === "gallery_team" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Team Size</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{teamList.length}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Team Size</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">{teamList.length}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Gallery Size</span>
-                  <span className="text-lg font-black text-[#002d59] mt-0.5 block">{galleryPhotos.length}</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
+                  <span className="text-[10px] text-border-strong font-bold block uppercase">Gallery Size</span>
+                  <span className="text-lg font-semibold text-ink mt-0.5 block">{galleryPhotos.length}</span>
                 </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Company Age</span>
-                    <span className="text-lg font-black text-slate-700 mt-0.5 block">
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Company Age</span>
+                    <span className="text-lg font-semibold text-body mt-0.5 block">
                       {company.foundedYear ? new Date().getFullYear() - company.foundedYear + " yrs" : "N/A"}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Listed Perks</span>
-                    <span className="text-xs font-semibold text-slate-700 mt-0.5 block">{company.benefits.length} Perks</span>
+                    <span className="text-[10px] text-border-strong font-bold block uppercase">Listed Perks</span>
+                    <span className="text-xs font-semibold text-body mt-0.5 block">{company.benefits.length} Perks</span>
                   </div>
                 </div>
               </div>
@@ -1333,15 +1333,15 @@ export function CompanyProfileView({
           </Card>
 
           {/* Hiring Activity & Skills */}
-          <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">
+              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">
                 {activeTab === "overview" && "Hiring Activity"}
                 {activeTab === "projects" && "Project Activity"}
                 {activeTab === "reviews" && "Feedback Activity"}
                 {activeTab === "gallery_team" && "Culture Activity"}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 {activeTab === "overview" && "Skills and rate indicators"}
                 {activeTab === "projects" && "Bid and category trends"}
                 {activeTab === "reviews" && "Contractor satisfaction indicators"}
@@ -1353,12 +1353,12 @@ export function CompanyProfileView({
               {activeTab === "overview" && (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Hiring Success Rate</span>
-                    <strong className="text-slate-800 font-bold text-sm">{company.hiringSuccessRate}%</strong>
+                    <span className="text-muted">Hiring Success Rate</span>
+                    <strong className="text-ink font-bold text-sm">{company.hiringSuccessRate}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Average Time to Hire</span>
-                    <strong className="text-slate-800 font-bold text-sm">{company.avgTimeToHire || "14 days"}</strong>
+                    <span className="text-muted">Average Time to Hire</span>
+                    <strong className="text-ink font-bold text-sm">{company.avgTimeToHire || "14 days"}</strong>
                   </div>
                 </>
               )}
@@ -1366,12 +1366,12 @@ export function CompanyProfileView({
               {activeTab === "projects" && (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Avg Time to Fill</span>
-                    <strong className="text-slate-800 font-bold text-sm">12 days avg</strong>
+                    <span className="text-muted">Avg Time to Fill</span>
+                    <strong className="text-ink font-bold text-sm">12 days avg</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Active Bid Frequency</span>
-                    <strong className="text-slate-800 font-bold text-sm">High (18 bids/project)</strong>
+                    <span className="text-muted">Active Bid Frequency</span>
+                    <strong className="text-ink font-bold text-sm">High (18 bids/project)</strong>
                   </div>
                 </>
               )}
@@ -1379,12 +1379,12 @@ export function CompanyProfileView({
               {activeTab === "reviews" && (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Contractor Satisfaction</span>
-                    <strong className="text-slate-800 font-bold text-sm">4.9 / 5.0</strong>
+                    <span className="text-muted">Contractor Satisfaction</span>
+                    <strong className="text-ink font-bold text-sm">4.9 / 5.0</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Milestone Resolution</span>
-                    <strong className="text-slate-800 font-bold text-sm">100%</strong>
+                    <span className="text-muted">Milestone Resolution</span>
+                    <strong className="text-ink font-bold text-sm">100%</strong>
                   </div>
                 </>
               )}
@@ -1392,20 +1392,20 @@ export function CompanyProfileView({
               {activeTab === "gallery_team" && (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Freelancer Retention</span>
-                    <strong className="text-slate-800 font-bold text-sm">{company.retentionRate}%</strong>
+                    <span className="text-muted">Freelancer Retention</span>
+                    <strong className="text-ink font-bold text-sm">{company.retentionRate}%</strong>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Hiring Philosophy</span>
-                    <strong className="text-slate-800 font-bold text-[11px] truncate max-w-[150px]" title={company.hiringPhilosophy || "Growth-oriented"}>
+                    <span className="text-muted">Hiring Philosophy</span>
+                    <strong className="text-ink font-bold text-[11px] truncate max-w-[150px]" title={company.hiringPhilosophy || "Growth-oriented"}>
                       {company.hiringPhilosophy || "Growth-oriented"}
                     </strong>
                   </div>
                 </>
               )}
 
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              <div className="space-y-1.5 pt-2 border-t border-hairline">
+                <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">
                   {activeTab === "gallery_team" ? "Core Perks Highlight" : "Most Hired Skills"}
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -1428,10 +1428,10 @@ export function CompanyProfileView({
           </Card>
 
           {/* Contact Section */}
-          <Card className="p-6 bg-white border border-slate-100 shadow-sm rounded-3xl space-y-4">
+ <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-[#002d59] uppercase tracking-wider">Contact & Socials</h3>
-              <p className="text-xs text-slate-500">Official channels for direct communication</p>
+              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Contact & Socials</h3>
+              <p className="text-xs text-muted">Official channels for direct communication</p>
             </div>
 
             <div className="space-y-3 text-xs">
@@ -1440,9 +1440,9 @@ export function CompanyProfileView({
                   href={company.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors text-slate-700 font-semibold cursor-pointer"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft hover:bg-surface-strong hover:border-hairline transition-colors text-body font-semibold cursor-pointer"
                 >
-                  <Globe className="h-4.5 w-4.5 text-[#3ac0ff]" />
+                  <Globe className="h-4.5 w-4.5 text-link" />
                   <span className="truncate">{company.website.replace("https://", "").replace("http://", "")}</span>
                 </a>
               )}
@@ -1452,23 +1452,23 @@ export function CompanyProfileView({
                   href={company.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-200/40 hover:border-slate-300 transition-colors text-slate-700 font-semibold cursor-pointer"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft hover:bg-surface-strong/40 hover:border-border-strong transition-colors text-body font-semibold cursor-pointer"
                 >
-                  <Building2 className="h-4.5 w-4.5 text-blue-700" />
+                  <Building2 className="h-4.5 w-4.5 text-link" />
                   <span className="truncate">LinkedIn Profile</span>
                 </a>
               )}
  
               {company.email && (
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 font-semibold">
-                  <Mail className="h-4.5 w-4.5 text-slate-400" />
+                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft text-body font-semibold">
+                  <Mail className="h-4.5 w-4.5 text-border-strong" />
                   <span className="truncate">{company.email}</span>
                 </div>
               )}
  
               {company.phone && (
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 font-semibold">
-                  <Phone className="h-4.5 w-4.5 text-slate-400" />
+                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft text-body font-semibold">
+                  <Phone className="h-4.5 w-4.5 text-border-strong" />
                   <span className="truncate">{company.phone}</span>
                 </div>
               )}
@@ -1480,11 +1480,11 @@ export function CompanyProfileView({
       {/* 4. Fullscreen Zoom Image overlay */}
       {zoomedImage && (
         <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
-          <div className="relative max-w-4xl max-h-[85vh] bg-white border border-slate-100 rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
+          <div className="relative max-w-4xl max-h-[85vh] bg-white border border-hairline rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
             <button
               onClick={() => setZoomedImage(null)}
-              className="absolute top-4 right-4 p-1.5 text-slate-600 hover:text-slate-900 bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 text-body hover:text-ink bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1497,29 +1497,29 @@ export function CompanyProfileView({
       {selectedProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-ink/80 backdrop-blur-sm"
             onClick={() => setSelectedProject(null)}
           />
 
-          <Card className="relative w-full max-w-lg p-8 z-10 border-slate-100 bg-white shadow-2xl rounded-3xl">
+ <Card className="relative w-full max-w-lg p-8 z-10 shadow-2xl">
             <button
               onClick={() => setSelectedProject(null)}
-              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100"
+              className="absolute top-4 right-4 p-1 text-muted hover:text-body rounded-full hover:bg-surface-strong"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-lg font-bold text-[#002d59] mb-2">Apply for Project Gig</h3>
-            <p className="text-xs text-slate-500 mb-6 font-semibold">
-              Project: <span className="text-[#002d59]">{selectedProject.title}</span>
+            <h3 className="text-lg font-bold text-ink mb-2">Apply for Project Gig</h3>
+            <p className="text-xs text-muted mb-6 font-semibold">
+              Project: <span className="text-ink">{selectedProject.title}</span>
             </p>
 
             {applyMessage && (
               <div
                 className={`p-3 rounded-xl mb-4 text-xs font-semibold border ${
                   applyMessage.includes("submitted")
-                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
-                    : "bg-rose-500/10 border-rose-500/20 text-rose-600"
+                    ? "bg-success/10 border-success-border/20 text-success"
+                    : "bg-danger/10 border-danger-border/20 text-danger"
                 }`}
               >
                 {applyMessage}
@@ -1528,11 +1528,11 @@ export function CompanyProfileView({
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-600">
+                <label className="block text-xs font-semibold text-body">
                   Cover Letter / Proposal
                 </label>
                 <textarea
-                  className="w-full min-h-[140px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                  className="w-full min-h-[140px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-hairline text-ink focus:border-ink focus:ring-ink/20"
                   placeholder="Outline why you are the perfect contractor for this gig, and list relevant architectural/product achievements..."
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
@@ -1563,14 +1563,14 @@ export function CompanyProfileView({
       {viewingProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-ink/80 backdrop-blur-sm"
             onClick={() => setViewingProject(null)}
           />
 
-          <Card className="relative w-full max-w-2xl p-8 z-10 border-slate-100 bg-white shadow-2xl overflow-y-auto max-h-[90vh] rounded-3xl">
+ <Card className="relative w-full max-w-2xl p-8 z-10 shadow-2xl overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => setViewingProject(null)}
-              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100"
+              className="absolute top-4 right-4 p-1 text-muted hover:text-body rounded-full hover:bg-surface-strong"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1583,34 +1583,34 @@ export function CompanyProfileView({
                   {viewingProject.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
                   {viewingProject.priority === "LOW" && <Badge variant="neutral">Low Priority</Badge>}
                 </div>
-                <h3 className="text-2xl font-black text-[#002d59] leading-tight">{viewingProject.title}</h3>
-                <p className="text-sm text-slate-500 flex items-center gap-1.5 font-medium">
-                  <span className="text-slate-800 font-semibold">{company.companyName}</span>
+                <h3 className="text-2xl font-semibold text-ink leading-tight">{viewingProject.title}</h3>
+                <p className="text-sm text-muted flex items-center gap-1.5 font-medium">
+                  <span className="text-ink font-semibold">{company.companyName}</span>
                   <span>•</span>
                   <span>{company.location || "Remote"}</span>
                 </p>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4.5 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4.5 bg-surface-soft rounded-2xl border border-hairline">
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Budget</span>
-                  <span className="text-lg font-black text-[#002d59]">${viewingProject.budget}</span>
+                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Budget</span>
+                  <span className="text-lg font-semibold text-ink">{formatProjectBudget(viewingProject)}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Required Experience</span>
-                  <span className="text-base font-bold text-slate-800">{viewingProject.experienceRequired} years</span>
+                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Required Experience</span>
+                  <span className="text-base font-bold text-ink">{viewingProject.experienceRequired} years</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Urgency Priority</span>
-                  <span className="text-base font-bold text-slate-800 capitalize">{viewingProject.priority.toLowerCase()}</span>
+                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Urgency Priority</span>
+                  <span className="text-base font-bold text-ink capitalize">{viewingProject.priority.toLowerCase()}</span>
                 </div>
               </div>
 
                {/* Description */}
               <div className="space-y-2 text-left">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Description</h4>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                <h4 className="text-xs font-bold text-border-strong uppercase tracking-wider">Project Description</h4>
+                <p className="text-sm text-body leading-relaxed whitespace-pre-wrap font-medium">
                   {getProjectDescriptionText(viewingProject.description)}
                 </p>
               </div>
@@ -1627,8 +1627,8 @@ export function CompanyProfileView({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 text-left">
                     {hasObjectives && (
                       <div className="space-y-2">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Key Objectives</h4>
-                        <ul className="list-disc pl-4 text-xs text-slate-600 space-y-1">
+                        <h4 className="text-xs font-bold text-border-strong uppercase tracking-wider">Key Objectives</h4>
+                        <ul className="list-disc pl-4 text-xs text-body space-y-1">
                           {meta.objectives.map((obj, i) => (
                             <li key={i}>{obj}</li>
                           ))}
@@ -1637,8 +1637,8 @@ export function CompanyProfileView({
                     )}
                     {hasDeliverables && (
                       <div className="space-y-2">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expected Deliverables</h4>
-                        <ul className="list-disc pl-4 text-xs text-slate-600 space-y-1">
+                        <h4 className="text-xs font-bold text-border-strong uppercase tracking-wider">Expected Deliverables</h4>
+                        <ul className="list-disc pl-4 text-xs text-body space-y-1">
                           {meta.deliverables.map((del, i) => (
                             <li key={i}>{del}</li>
                           ))}
@@ -1651,7 +1651,7 @@ export function CompanyProfileView({
 
               {/* Required Skills */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Required Skills</h4>
+                <h4 className="text-xs font-bold text-border-strong uppercase tracking-wider">Required Skills</h4>
                 <div className="flex flex-wrap gap-2">
                   {viewingProject.requiredSkills.map((skill: string) => (
                     <Badge key={skill} variant="neutral" className="text-xs py-1 px-3">
@@ -1662,7 +1662,7 @@ export function CompanyProfileView({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-hairline">
                 <Button
                   variant="outline"
                   onClick={() => setViewingProject(null)}

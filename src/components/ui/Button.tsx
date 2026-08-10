@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "accent" | "outline" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "accent" | "outline" | "ghost" | "danger" | "pill";
   size?: "xs" | "sm" | "md" | "lg";
 }
 
@@ -15,27 +15,29 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400/40 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
+    "inline-flex items-center justify-center font-medium rounded-[12px] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#458fff]/30 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.99]";
 
   const variants = {
     primary:
-      "bg-[#002d59] hover:bg-[#001f3f] text-white shadow-md shadow-[#002d59]/10 border border-transparent",
+      "bg-[#181d26] hover:bg-[#0d1218] active:bg-[#0d1218] text-white border border-transparent shadow-sm",
     secondary:
-      "bg-[#3ac0ff] hover:bg-[#1ab5ff] text-[#002d59] shadow-md shadow-sky-400/10 border border-transparent",
+      "bg-white hover:bg-slate-50 text-[#181d26] border border-[#dddddd] shadow-sm",
     accent:
-      "bg-sky-400 hover:bg-sky-500 text-white shadow-md shadow-sky-400/10 border border-transparent",
+      "bg-[#1b61c9] hover:bg-[#1a3866] text-white border border-transparent shadow-sm",
     outline:
-      "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950 hover:border-slate-300",
-    ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+      "bg-white hover:bg-slate-50 text-[#181d26] border border-[#dddddd]",
+    ghost: "text-[#333840] hover:bg-[#f8fafc] hover:text-[#181d26]",
     danger:
-      "bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/10",
+      "bg-rose-600 hover:bg-rose-700 text-white shadow-sm",
+    pill:
+      "bg-white hover:bg-slate-50 text-[#181d26] rounded-full border border-[#dddddd] px-6 py-3",
   };
 
   const sizes = {
-    xs: "px-2.5 py-1 text-[10px]",
-    sm: "px-3.5 py-1.5 text-xs",
-    md: "px-5 py-2.5 text-sm",
-    lg: "px-6 py-3.5 text-base",
+    xs: "px-3 py-1 text-xs",
+    sm: "px-4 py-2 text-xs",
+    md: "px-5 py-3 text-sm",
+    lg: "px-6 py-4 text-base",
   };
 
   return (
@@ -49,3 +51,4 @@ export function Button({
     </button>
   );
 }
+

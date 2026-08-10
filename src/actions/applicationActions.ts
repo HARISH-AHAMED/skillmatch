@@ -5,12 +5,22 @@ import { auth } from "@/auth";
 import { Role, ApplicationStatus, ProjectStatus } from "@prisma/client";
 import { computeRecommendationScore } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
-import { serializeApplicationMetadata, ApplicationWorkflowData } from "@/lib/workflowHelpers";
+import {
+  serializeApplicationMetadata,
+  ApplicationWorkflowData,
+  parseFreelancerMetadata,
+  serializeFreelancerMetadata,
+  getFreelancerBioText,
+} from "@/lib/workflowHelpers";
 
 export async function applyToProject(
   projectId: string,
   coverLetter: string,
-  screeningAnswers?: Record<string, string>
+  screeningAnswers?: Record<string, string>,
+  /** Role slot being applied for. Omitted on listings that do not use roles. */
+  roleId?: string,
+  /** Applying to shadow the role rather than fill it. */
+  isApprentice?: boolean
 ) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
@@ -51,6 +61,10 @@ export async function applyToProject(
     where: {
       projectId,
       status: ApplicationStatus.HIRED,
+      // Apprentices shadow a role rather than filling a slot, so they must not
+      // consume project capacity. Non-role projects have no apprentices, so this
+      // is a no-op for them.
+      isApprentice: false,
     },
   });
 
@@ -81,6 +95,8 @@ export async function applyToProject(
       coverLetter: serializedCoverLetter,
       aiScore,
       status: ApplicationStatus.PENDING,
+      ...(roleId ? { roleId } : {}),
+      ...(isApprentice ? { isApprentice: true } : {}),
     },
   });
 
@@ -93,8 +109,24 @@ export async function applyToProject(
     },
   });
 
+  // If this application came from a company invitation, close that invite out so
+  // it stops showing as an outstanding action on the freelancer's dashboard.
+  const inviteMeta = parseFreelancerMetadata(freelancer.bio);
+  const openInvite = inviteMeta.projectInvites?.find(
+    (inv) => inv.projectId === projectId && inv.status === "PENDING"
+  );
+  if (openInvite) {
+    openInvite.status = "APPLIED";
+    openInvite.respondedAt = new Date().toISOString();
+    await db.freelancer.update({
+      where: { id: freelancer.id },
+      data: { bio: serializeFreelancerMetadata(getFreelancerBioText(freelancer.bio), inviteMeta) },
+    });
+  }
+
   revalidatePath("/freelancer/applications");
   revalidatePath("/freelancer/projects");
+  revalidatePath("/freelancer/dashboard");
   revalidatePath("/company/applicants");
   revalidatePath("/company/dashboard");
 
@@ -209,11 +241,61 @@ export async function hireApplicant(applicationId: string) {
 
   const projectId = application.projectId;
 
+  // Role-scoped capacity. Only applies when the listing actually uses roles —
+  // projects without them keep the original project-wide limit behaviour.
+  if (application.roleId && !application.isApprentice) {
+    const role = await db.projectRole.findUnique({
+      where: { id: application.roleId },
+      include: {
+        applications: { where: { status: ApplicationStatus.HIRED, isApprentice: false } },
+      },
+    });
+    if (role && role.applications.length >= role.slots) {
+      throw new Error(
+        `All ${role.slots} slot(s) for "${role.name}" are already filled. Release a slot before hiring another.`
+      );
+    }
+  }
+
   // 1. Mark this application as HIRED
   await db.application.update({
     where: { id: applicationId },
     data: { status: ApplicationStatus.HIRED },
   });
+
+  // 1b. Team lock (role-based projects only). Once a role has its full quota of
+  // primaries, candidates still in contention for that role can no longer be
+  // selected, so close their applications rather than leaving them hanging.
+  //
+  // Deliberately narrow: scoped to this one role, leaves other roles alone,
+  // never touches HIRED/REJECTED rows, and spares apprentice applicants while
+  // the role still welcomes an apprentice. updateMany over the two open statuses
+  // makes it safe to run repeatedly.
+  if (application.roleId) {
+    const lockedRole = await db.projectRole.findUnique({
+      where: { id: application.roleId },
+      select: {
+        slots: true,
+        allowApprentice: true,
+        applications: {
+          where: { status: ApplicationStatus.HIRED, isApprentice: false },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (lockedRole && lockedRole.applications.length >= lockedRole.slots) {
+      await db.application.updateMany({
+        where: {
+          roleId: application.roleId,
+          status: { in: [ApplicationStatus.PENDING, ApplicationStatus.SHORTLISTED] },
+          // Apprentices remain in contention while the role accepts one.
+          ...(lockedRole.allowApprentice ? { isApprentice: false } : {}),
+        },
+        data: { status: ApplicationStatus.REJECTED },
+      });
+    }
+  }
 
   // 2. Count the number of currently hired freelancers for this project
   const hiredCount = await db.application.count({
@@ -238,8 +320,11 @@ export async function hireApplicant(applicationId: string) {
   await db.notification.create({
     data: {
       userId: application.freelancer.user.id,
-      title: "Hired!",
-      message: `Congratulations! You have been hired for the project '${application.project.title}'.`,
+      title: application.roleId ? "Hired — confirm your team" : "Hired!",
+      message: application.roleId
+        ? "Congratulations! You have been hired onto \"" + application.project.title +
+          "\". Open Track Applications to meet your teammates and confirm your place on the team."
+        : "Congratulations! You have been hired for the project \"" + application.project.title + "\".",
     },
   });
 

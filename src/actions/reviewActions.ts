@@ -5,6 +5,12 @@ import { auth } from "@/auth";
 import { Role, ProjectStatus } from "@prisma/client";
 import { recalculateRecommendationsForFreelancer } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
+import {
+  parseFreelancerMetadata,
+  serializeFreelancerMetadata,
+  getFreelancerBioText,
+} from "@/lib/workflowHelpers";
+import { issueProjectCertificates } from "@/actions/certificateActions";
 
 // COMPLETE PROJECT (company-only)
 export async function completeProject(projectId: string) {
@@ -24,10 +30,24 @@ export async function completeProject(projectId: string) {
     ),
     db.notification.create({ data: { userId: session.user.id, title: "Project Marked Complete", message: `"${project.title}" is complete. Review your freelancers to seal the contract.` } }),
   ]);
+  // Certificates are issued here, never at project creation. If the company
+  // enabled certificates but never designed one, nudge them instead.
+  const { issued, needsDesign } = await issueProjectCertificates(projectId);
+  if (needsDesign) {
+    await db.notification.create({
+      data: {
+        userId: session.user.id,
+        title: "Design your certificate",
+        message: `"${project.title}" is complete but its certificate has not been designed yet. Design it so your freelancers receive it.`,
+      },
+    });
+  }
+
   revalidatePath("/workspace");
   revalidatePath("/company/projects");
   revalidatePath("/freelancer/applications");
-  return { success: true };
+  revalidatePath("/freelancer/certificates");
+  return { success: true, certificatesIssued: issued, certificateNeedsDesign: needsDesign };
 }
 
 // GET REVIEW STATUS
@@ -70,9 +90,49 @@ export async function submitReview(projectId: string, revieweeUserId: string, ra
   const review = await db.review.create({ data: { projectId, reviewerId: session.user.id, revieweeId: revieweeUserId, rating, comment } });
   const freelancer = await db.freelancer.findUnique({ where: { userId: revieweeUserId } });
   if (freelancer) {
-    const allReviews = await db.review.findMany({ where: { revieweeId: revieweeUserId }, select: { rating: true } });
-    const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
-    const updated = await db.freelancer.update({ where: { id: freelancer.id }, data: { rating: Math.round(avg * 10) / 10, completedProjects: freelancer.completedProjects + 1 } });
+    // Apprentice work is scored separately: reviews earned while shadowing a role
+    // must not move the freelancer's primary rating. Derived from the existing
+    // Application.isApprentice flag, so no schema change and no new score store.
+    const apprenticeApps = await db.application.findMany({
+      where: { freelancerId: freelancer.id, isApprentice: true },
+      select: { projectId: true },
+    });
+    const apprenticeProjectIds = new Set(apprenticeApps.map((a) => a.projectId));
+
+    const allReviews = await db.review.findMany({ where: { revieweeId: revieweeUserId }, select: { rating: true, projectId: true } });
+    const primaryReviews = allReviews.filter((r) => !apprenticeProjectIds.has(r.projectId));
+
+    // With no apprentice history this is every review — identical to before.
+    const isApprenticeWork = apprenticeProjectIds.has(projectId);
+
+    // Persist the apprentice aggregate so other surfaces can reuse it without
+    // recomputing. Written only when apprentice work exists, so freelancers with
+    // no apprentice history keep an untouched bio and unchanged behaviour.
+    if (apprenticeProjectIds.size > 0) {
+      const apprenticeReviews = allReviews.filter((r) => apprenticeProjectIds.has(r.projectId));
+      const fmeta = parseFreelancerMetadata(freelancer.bio);
+      fmeta.apprenticeScore = {
+        rating: apprenticeReviews.length
+          ? Math.round((apprenticeReviews.reduce((s, r) => s + r.rating, 0) / apprenticeReviews.length) * 10) / 10
+          : 0,
+        reviews: apprenticeReviews.length,
+        updatedAt: new Date().toISOString(),
+      };
+      await db.freelancer.update({
+        where: { id: freelancer.id },
+        data: { bio: serializeFreelancerMetadata(getFreelancerBioText(freelancer.bio), fmeta) },
+      });
+    }
+    const updated = primaryReviews.length > 0
+      ? await db.freelancer.update({
+          where: { id: freelancer.id },
+          data: {
+            rating: Math.round((primaryReviews.reduce((s, r) => s + r.rating, 0) / primaryReviews.length) * 10) / 10,
+            // Apprentice contributions do not count as completed primary gigs.
+            completedProjects: isApprenticeWork ? freelancer.completedProjects : freelancer.completedProjects + 1,
+          },
+        })
+      : freelancer;
     await recalculateRecommendationsForFreelancer(updated.id);
   }
   await db.notification.create({ data: { userId: revieweeUserId, title: "New Review Received", message: `${session.user.name} reviewed your work on "${project.title}". Rating: ${rating}/5.` } });

@@ -29,8 +29,17 @@ import { submitDiscussionQuestion } from "@/actions/workflowActions";
 import {
   getProjectDescriptionText,
   getProjectMetadataDirect,
+  getPaymentCategoryLabel,
+  getPaymentUnitLabel,
+  formatMoney,
+  DEFAULT_CURRENCY,
   serializeApplicationMetadata,
   ApplicationWorkflowData,
+  formatProjectBudget,
+  getBenefitLabel,
+  supportsBenefits,
+  isNonMonetary,
+  NON_MONETARY_BENEFITS,
 } from "@/lib/workflowHelpers";
 
 interface ProjectDetailsViewProps {
@@ -65,17 +74,18 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
     }
   };
 
-  const isGenderMatched = !project.preferredGender || project.preferredGender === "ANY" || project.preferredGender === freelancer?.gender;
+  // Gender preference no longer gates applications (see apply/page.tsx).
+  const isGenderMatched = true;
 
   return (
     <div className="space-y-6">
       {/* Hero Banner header card */}
-      <Card className="p-6 md:p-8 border-slate-200/60 bg-gradient-to-r from-slate-50 via-white to-sky-50/20 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm">
+      <Card className="p-6 md:p-8 border border-[#dddddd] bg-white rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
         <div className="space-y-2.5 text-left">
           <div className="flex flex-wrap items-center gap-2">
             {aiScore !== undefined && (
-              <Badge variant="accent" className="bg-[#3ac0ff]/15 text-[#002d59] border border-[#3ac0ff]/20 font-black">
-                <BrainCircuit className="h-3.5 w-3.5 mr-1 text-[#3ac0ff]" />
+              <Badge variant="cream" className="text-[#181d26] font-semibold">
+                <BrainCircuit className="h-3.5 w-3.5 mr-1 text-[#181d26]" />
                 AI Match Score: {aiScore}%
               </Badge>
             )}
@@ -83,18 +93,18 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
               {project.priority === "HIGH" ? "High Priority Urgency" : project.priority === "MEDIUM" ? "Medium Priority" : "Low Priority"}
             </Badge>
           </div>
-          <h1 className="text-xl md:text-2xl font-black text-[#002d59] tracking-tight">{project.title}</h1>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500 font-semibold">
+          <h1 className="text-xl md:text-2xl font-semibold text-[#181d26] tracking-tight">{project.title}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[#41454d] font-normal">
             <Link
               href={`/companies/${project.company.id}`}
-              className="text-[#002d59] font-extrabold hover:text-[#3ac0ff] hover:underline transition-all flex items-center gap-1"
+              className="text-[#181d26] font-semibold hover:text-[#1b61c9] hover:underline transition-all flex items-center gap-1"
             >
-              <Building className="h-3.5 w-3.5 text-slate-400" />
+              <Building className="h-3.5 w-3.5 text-[#41454d]" />
               {project.company.companyName}
             </Link>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5 text-slate-400" />
+              <MapPin className="h-3.5 w-3.5 text-[#41454d]" />
               {project.company.location || "Remote"}
             </span>
           </div>
@@ -118,7 +128,7 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
             <Link href={`/freelancer/projects/${project.id}/apply`}>
               <Button
                 size="lg"
-                className="cursor-pointer gap-2 font-bold px-7.5 shadow-md shadow-[#002d59]/10 animate-pulse hover:animate-none"
+                className="cursor-pointer gap-2 font-bold px-7.5 shadow-md shadow-[#181d26]/10 animate-pulse hover:animate-none"
               >
                 Apply Now <ArrowRight className="h-4.5 w-4.5" />
               </Button>
@@ -133,25 +143,25 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
         <div className="lg:col-span-2 space-y-6">
           
           {/* Important Deadlines Bar */}
-          <Card className="p-5 border-slate-200/60 bg-white shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="p-5 border border-[#dddddd] bg-white rounded-[12px] grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
-                <Calendar className="h-5 w-5 text-rose-500" />
+              <div className="h-10 w-10 rounded-[8px] bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5 text-[#181d26]" />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Application Deadline</span>
-                <span className="text-xs font-black text-slate-800">
+                <span className="text-[10px] text-[#41454d] font-medium uppercase block">Application Deadline</span>
+                <span className="text-xs font-semibold text-[#181d26]">
                   {meta.timeline?.applicationDeadline || "Not specified"}
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                <Calendar className="h-5 w-5 text-emerald-500" />
+              <div className="h-10 w-10 rounded-[8px] bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5 text-[#181d26]" />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Kickoff / Start Date</span>
-                <span className="text-xs font-black text-slate-800">
+                <span className="text-[10px] text-[#41454d] font-medium uppercase block">Kickoff / Start Date</span>
+                <span className="text-xs font-semibold text-[#181d26]">
                   {meta.timeline?.projectStart || "Not specified"}
                 </span>
               </div>
@@ -159,11 +169,11 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
           </Card>
 
           {/* About the Project Overview */}
-          <Card className="p-6 border-slate-200/60 bg-white shadow-sm space-y-3.5">
-            <h3 className="text-sm font-black text-[#002d59] uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-3">
-              <Briefcase className="h-4.5 w-4.5 text-[#3ac0ff]" /> Opportunity Description
+          <Card className="p-6 border border-[#dddddd] bg-white rounded-[12px] space-y-3.5">
+            <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#dddddd] pb-3">
+              <Briefcase className="h-4.5 w-4.5 text-[#181d26]" /> Opportunity Description
             </h3>
-            <p className="text-xs text-slate-650 leading-relaxed whitespace-pre-wrap text-left">
+            <p className="text-xs text-[#333840] leading-relaxed whitespace-pre-wrap text-left font-normal">
               {descriptionText || "No project overview available."}
             </p>
           </Card>
@@ -197,8 +207,8 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
 
           {/* Selection Process and Rounds timeline */}
           <Card className="p-6 border-slate-200/60 bg-white shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-[#002d59] uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="h-4.5 w-4.5 text-[#3ac0ff]" /> Selection Process & Rounds
+            <h3 className="text-sm font-black text-[#181d26] uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="h-4.5 w-4.5 text-[#1b61c9]" /> Selection Process & Rounds
             </h3>
             
             <div className="border border-slate-200/80 rounded-2xl p-5 bg-[#f8faff] space-y-4">
@@ -210,12 +220,12 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
 
                   return (
                     <div key={r.id || idx} className={`flex items-start gap-3.5 text-left ${idx > 0 ? "border-t border-slate-100 pt-4" : ""}`}>
-                      <div className="h-7 w-7 rounded-full bg-sky-200 text-[#002d59] flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      <div className="h-7 w-7 rounded-full bg-sky-200 text-[#181d26] flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                         {idx + 1}
                       </div>
                       <div className="space-y-1 min-w-0 flex-grow">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-xs font-extrabold text-[#002d59]">Round {idx + 1}: {r.name}</p>
+                          <p className="text-xs font-extrabold text-[#181d26]">Round {idx + 1}: {r.name}</p>
                           <Badge variant="neutral" className="text-[9px] py-0 font-extrabold capitalize bg-slate-100 text-slate-700">
                             {r.type.toLowerCase().replace("_", " ")}
                           </Badge>
@@ -232,14 +242,14 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
                   );
                 })
               ) : (
-                <p className="text-xs text-slate-450 italic text-center p-3">No recruitment rounds specified.</p>
+                <p className="text-xs text-slate-400 italic text-center p-3">No recruitment rounds specified.</p>
               )}
             </div>
           </Card>
 
           {/* Pre-Application Q&A FAQ forum board */}
           <Card className="p-6 border-slate-200/60 bg-white shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-[#002d59] uppercase tracking-wider flex items-center gap-1.5">
+            <h3 className="text-sm font-black text-[#181d26] uppercase tracking-wider flex items-center gap-1.5">
               <MessageSquare className="h-4.5 w-4.5 text-sky-500" /> FAQ & Pre-Application Discussion Forum
             </h3>
 
@@ -249,9 +259,9 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
               ) : (
                 meta.faq?.map((f: any, idx: number) => (
                   <div key={idx} className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-2 text-left">
-                    <p className="text-xs font-bold text-[#002d59]">{f.question}</p>
+                    <p className="text-xs font-bold text-[#181d26]">{f.question}</p>
                     {f.answer ? (
-                      <p className="text-xs text-slate-600 font-semibold pl-3.5 border-l-2 border-[#3ac0ff]">
+                      <p className="text-xs text-slate-600 font-semibold pl-3.5 border-l-2 border-[#1b61c9]">
                         Response: {f.answer}
                       </p>
                     ) : (
@@ -272,7 +282,7 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
                 onChange={(e) => setDiscQuestion(e.target.value)}
                 placeholder="Ask recruiters a question about requirements, deliverables, etc..."
                 disabled={submittingDisc}
-                className="flex-grow h-10 px-4 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002d59] focus:border-[#002d59]"
+                className="flex-grow h-10 px-4 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#181d26] focus:border-[#181d26]"
               />
               <Button
                 type="button"
@@ -299,8 +309,42 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
                 <span className="text-slate-500 font-semibold flex items-center gap-1.5">
                   <DollarSign className="h-4 w-4 text-slate-400" /> Total Budget
                 </span>
-                <strong className="text-slate-800 font-black text-sm">${project.budget}</strong>
+                <strong className="text-slate-800 font-black text-sm">{formatProjectBudget(project)}</strong>
               </div>
+              <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+                <span className="text-slate-500 font-semibold flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-slate-400" /> Payment Type
+                </span>
+                <strong className="text-slate-800 font-black text-sm">
+                  {getPaymentCategoryLabel(meta.paymentCategory)}
+                  {meta.paymentRate ? ` · ${formatMoney(meta.paymentRate, meta.currency, meta.paymentCategory)}` : ` · ${meta.currency || DEFAULT_CURRENCY}`}
+                </strong>
+              </div>
+              {supportsBenefits(meta.paymentCategory) && (meta.nonMonetaryBenefits?.length ?? 0) > 0 && (
+                <div className="py-2.5 border-b border-slate-100 space-y-2">
+                  <span className="text-slate-500 font-semibold flex items-center gap-1.5">
+                    <Award className="h-4 w-4 text-slate-400" />
+                    {isNonMonetary(meta.paymentCategory) ? "What You Receive" : "Additional Benefits"}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {meta.nonMonetaryBenefits!.map((b) => (
+                      <Badge
+                        key={b}
+                        variant="secondary"
+                        className="text-[10px]"
+                        title={NON_MONETARY_BENEFITS.find((x) => x.value === b)?.hint}
+                      >
+                        {getBenefitLabel(b)}
+                      </Badge>
+                    ))}
+                  </div>
+                  {meta.nonMonetaryDetails && (
+                    <p className="text-[11px] text-slate-500 italic leading-relaxed">
+                      {meta.nonMonetaryDetails}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold flex items-center gap-1.5">
                   <Award className="h-4 w-4 text-slate-400" /> Required Experience
@@ -330,12 +374,12 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
 
           {/* Recruiter / Company Profile Box */}
           <Card className="p-6 border-slate-200/60 bg-white shadow-sm text-center space-y-4">
-            <div className="h-14 w-14 rounded-2xl bg-[#f8faff] border border-slate-200/50 flex items-center justify-center font-bold text-lg text-[#002d59] mx-auto shadow-inner">
+            <div className="h-14 w-14 rounded-2xl bg-[#f8faff] border border-slate-200/50 flex items-center justify-center font-bold text-lg text-[#181d26] mx-auto shadow-inner">
               {project.company.companyName[0].toUpperCase()}
             </div>
             
             <div className="space-y-1">
-              <h4 className="text-sm font-black text-[#002d59]">{project.company.companyName}</h4>
+              <h4 className="text-sm font-black text-[#181d26]">{project.company.companyName}</h4>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{project.company.industry || "Enterprise Partner"}</p>
             </div>
 
@@ -344,7 +388,7 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
                 href={project.company.website.startsWith("http") ? project.company.website : `https://${project.company.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] font-bold text-[#3ac0ff] hover:underline flex items-center justify-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-[#1b61c9] hover:underline flex items-center justify-center gap-1 cursor-pointer"
               >
                 <Globe className="h-3.5 w-3.5" /> Visit Website
               </a>
@@ -352,7 +396,7 @@ export function ProjectDetailsView({ project, hasApplied, aiScore, freelancer }:
 
             <div className="pt-2 border-t border-slate-100">
               <Link href={`/companies/${project.company.id}`}>
-                <Button size="sm" variant="outline" className="w-full cursor-pointer font-bold gap-1 text-[#002d59] border-[#002d59]/20 hover:bg-slate-50">
+                <Button size="sm" variant="outline" className="w-full cursor-pointer font-bold gap-1 text-[#181d26] border-[#181d26]/20 hover:bg-slate-50">
                   View Recruiter Profile <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>

@@ -18,6 +18,9 @@ import {
   ApplicationPipelineEvent,
   getProjectMetadataDirect,
   serializeProjectMetadata,
+  PaymentCategory,
+  DEFAULT_CURRENCY,
+  NonMonetaryBenefit,
 } from "@/lib/workflowHelpers";
 
 /**
@@ -367,13 +370,13 @@ export async function transitionApplicationStage(
   let notificationMsg = `Your application for "${app.project.title}" has been updated to "${targetStage}".`;
 
   if ((targetStage === "Interview" || targetStage === "Interview Scheduled") && interviewData) {
-    notificationTitle = "🗓️ Interview Scheduled!";
+    notificationTitle = "Interview Scheduled";
     notificationMsg = `An interview round has been scheduled for "${app.project.title}" on ${new Date(interviewData.date).toLocaleString()}. Meet URL: ${interviewData.meetingLink}`;
   } else if (targetStage === "Interview Conducted") {
-    notificationTitle = "✅ Interview Completed";
+    notificationTitle = "Interview Completed";
     notificationMsg = `Your interview round for "${app.project.title}" was marked as conducted. Awaiting recruiter evaluation.`;
   } else if (targetStage === "Offer Sent") {
-    notificationTitle = "🎉 Job Offer Received!";
+    notificationTitle = "Job Offer Received";
     notificationMsg = `You have received an official hiring offer for "${app.project.title}". Check your dashboard applications to review details.`;
   }
 
@@ -588,7 +591,7 @@ export async function releaseMilestonePayment(
   await db.notification.create({
     data: {
       userId: app.freelancer.user.id,
-      title: "💰 Escrow Funds Released!",
+      title: "Escrow Funds Released",
       message: `The client has released $${milestone.budget} for milestone "${milestone.title}".`,
     },
   });
@@ -689,7 +692,11 @@ export async function sendOfferLetterAction(
   applicationId: string,
   offerText: string,
   stipendAmount: number,
-  milestones: { title: string; budget: number }[]
+  milestones: { title: string; budget: number }[],
+  paymentCategory: PaymentCategory = "FIXED",
+  currency: string = DEFAULT_CURRENCY,
+  nonMonetaryBenefits: NonMonetaryBenefit[] = [],
+  nonMonetaryDetails?: string
 ): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
@@ -715,8 +722,14 @@ export async function sendOfferLetterAction(
     offerText,
     stipendAmount,
     milestones: milestones.map((m) => ({ ...m, status: "PENDING" as const })),
+    paymentCategory,
+    currency,
+    nonMonetaryBenefits,
+    nonMonetaryDetails,
     status: "PENDING",
     sentAt: new Date().toISOString(),
+    // Preserve negotiation history across re-sent offers so the audit trail survives.
+    negotiation: meta.offerLetter?.negotiation ?? [],
   };
 
   // Log pipeline event
@@ -744,8 +757,211 @@ export async function sendOfferLetterAction(
   await db.notification.create({
     data: {
       userId: app.freelancer.user.id,
-      title: "🎉 You Received a Job Offer!",
+      title: "You Received a Job Offer",
       message: `You have received an official hiring offer for "${app.project.title}". Log in to review and respond.`,
+    },
+  });
+
+  revalidatePath("/company/applicants");
+  revalidatePath(`/company/applicants/${applicationId}`);
+  revalidatePath("/freelancer/applications");
+  return { success: true };
+}
+
+/**
+ * 13b. Freelancer raises a counter-offer on the payment amount and/or category.
+ *
+ * This does not change the offer terms — it parks the offer in NEGOTIATING
+ * until the company accepts or rejects the proposal, so neither side can be
+ * bound by terms the other has not agreed to.
+ */
+export async function negotiateOfferAction(
+  applicationId: string,
+  proposedAmount: number,
+  proposedCategory: PaymentCategory,
+  proposedCurrency: string = DEFAULT_CURRENCY,
+  message?: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.FREELANCER) {
+    throw new Error("Unauthorized");
+  }
+
+  // A non-monetary counter-offer legitimately carries no cash figure.
+  if (proposedCategory !== "NON_MONETARY" && (!Number.isFinite(proposedAmount) || proposedAmount <= 0)) {
+    return { success: false, error: "Proposed amount must be greater than zero." };
+  }
+
+  const app = await db.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      project: { select: { title: true, company: { select: { userId: true } } } },
+      freelancer: { include: { user: { select: { id: true, name: true } } } },
+    },
+  });
+
+  if (!app) return { success: false, error: "Application not found" };
+  if (app.freelancer.user.id !== session.user.id)
+    return { success: false, error: "Unauthorized: not your application" };
+
+  const meta = parseApplicationMetadata(app.coverLetter);
+  const offer = meta.offerLetter;
+  if (!offer) return { success: false, error: "No offer letter found" };
+  if (offer.status === "ACCEPTED" || offer.status === "DECLINED") {
+    return { success: false, error: "This offer has already been closed." };
+  }
+
+  const history = offer.negotiation ?? [];
+  if (history.some((n) => n.status === "PENDING")) {
+    return { success: false, error: "You already have a counter-offer awaiting the company's response." };
+  }
+
+  const now = new Date().toISOString();
+  const currentCategory = offer.paymentCategory ?? "FIXED";
+  const currentCurrency = offer.currency ?? DEFAULT_CURRENCY;
+
+  offer.negotiation = [
+    ...history,
+    {
+      proposedAmount,
+      proposedCategory,
+      proposedCurrency,
+      message,
+      status: "PENDING",
+      requestedAt: now,
+      previousAmount: offer.stipendAmount,
+      previousCategory: currentCategory,
+      previousCurrency: currentCurrency,
+    },
+  ];
+  offer.status = "NEGOTIATING";
+
+  meta.pipelineHistory = [
+    ...meta.pipelineHistory,
+    {
+      stage: "Offer Negotiation Requested",
+      timestamp: now,
+      notes: `Freelancer proposed ${proposedCategory} at ${proposedAmount} (was ${currentCategory} at ${offer.stipendAmount}).${message ? ` Note: "${message}"` : ""}`,
+      recruiterId: session.user.id,
+      recruiterName: session.user.name || "Freelancer",
+    },
+  ];
+
+  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
+    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
+    : app.coverLetter;
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
+  });
+
+  await db.notification.create({
+    data: {
+      userId: app.project.company.userId,
+      title: "Counter-Offer Received",
+      message: `${app.freelancer.user.name || "A freelancer"} proposed new payment terms for "${app.project.title}". Review and respond.`,
+    },
+  });
+
+  revalidatePath("/company/applicants");
+  revalidatePath(`/company/applicants/${applicationId}`);
+  revalidatePath("/freelancer/applications");
+  return { success: true };
+}
+
+/**
+ * 13c. Company accepts or rejects the freelancer's counter-offer.
+ *
+ * Accepting copies the proposed terms onto the offer and returns it to PENDING
+ * so the freelancer still has to give final acceptance.
+ */
+export async function respondToNegotiationAction(
+  applicationId: string,
+  decision: "ACCEPT" | "REJECT",
+  responseNote?: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    throw new Error("Unauthorized");
+  }
+
+  const app = await db.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      project: { select: { title: true, company: { select: { userId: true } } } },
+      freelancer: { include: { user: { select: { id: true } } } },
+    },
+  });
+
+  if (!app) return { success: false, error: "Application not found" };
+  if (app.project.company.userId !== session.user.id)
+    return { success: false, error: "Unauthorized: not your project" };
+
+  const meta = parseApplicationMetadata(app.coverLetter);
+  const offer = meta.offerLetter;
+  if (!offer) return { success: false, error: "No offer letter found" };
+
+  const pending = offer.negotiation?.find((n) => n.status === "PENDING");
+  if (!pending) return { success: false, error: "No pending counter-offer to respond to." };
+
+  const now = new Date().toISOString();
+  pending.respondedAt = now;
+  pending.responseNote = responseNote;
+
+  if (decision === "ACCEPT") {
+    pending.status = "ACCEPTED";
+    offer.stipendAmount = pending.proposedAmount;
+    offer.paymentCategory = pending.proposedCategory;
+    offer.currency = pending.proposedCurrency ?? offer.currency;
+
+    // Milestone splits are derived from the old total, so they no longer add up.
+    // Rescale proportionally rather than silently leaving stale figures.
+    const oldTotal = pending.previousAmount;
+    if (oldTotal > 0 && offer.milestones?.length) {
+      offer.milestones = offer.milestones.map((m) => ({
+        ...m,
+        budget: Math.round((m.budget / oldTotal) * pending.proposedAmount),
+      }));
+    }
+  } else {
+    pending.status = "REJECTED";
+  }
+
+  // Either way the ball returns to the freelancer for a final accept/decline.
+  offer.status = "PENDING";
+
+  meta.pipelineHistory = [
+    ...meta.pipelineHistory,
+    {
+      stage: decision === "ACCEPT" ? "Negotiation Accepted" : "Negotiation Rejected",
+      timestamp: now,
+      notes:
+        decision === "ACCEPT"
+          ? `Company accepted revised terms: ${pending.proposedCategory} at ${pending.proposedAmount}.`
+          : `Company kept the original terms: ${pending.previousCategory} at ${pending.previousAmount}.${responseNote ? ` Note: "${responseNote}"` : ""}`,
+      recruiterId: session.user.id,
+      recruiterName: session.user.name || "Recruiter",
+    },
+  ];
+
+  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
+    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
+    : app.coverLetter;
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
+  });
+
+  await db.notification.create({
+    data: {
+      userId: app.freelancer.user.id,
+      title: decision === "ACCEPT" ? "Counter-Offer Accepted" : "Counter-Offer Declined",
+      message:
+        decision === "ACCEPT"
+          ? `Your proposed terms for "${app.project.title}" were accepted. Review and confirm the updated offer.`
+          : `The company kept the original terms for "${app.project.title}". Review the offer again.`,
     },
   });
 
@@ -782,6 +998,15 @@ export async function respondToOfferLetterAction(
 
   const meta = parseApplicationMetadata(app.coverLetter);
   if (!meta.offerLetter) return { success: false, error: "No offer letter found" };
+
+  // Terms are still in flux — accepting now would bind the freelancer to figures
+  // the company has not agreed to.
+  if (meta.offerLetter.negotiation?.some((n) => n.status === "PENDING")) {
+    return {
+      success: false,
+      error: "Your counter-offer is still awaiting the company's response. Withdraw it or wait for their reply.",
+    };
+  }
 
   const now = new Date().toISOString();
   meta.offerLetter.respondedAt = now;
@@ -846,7 +1071,7 @@ export async function respondToOfferLetterAction(
     await db.notification.create({
       data: {
         userId: app.project.company.userId,
-        title: "✅ Offer Accepted — Project Started!",
+        title: "Offer Accepted — Project Started",
         message: `${app.freelancer.user.name || "The freelancer"} has accepted your offer for "${app.project.title}". The project is now in progress.`,
       },
     });
@@ -893,7 +1118,7 @@ export async function sendDMMessageAction(
   await db.notification.create({
     data: {
       userId: recipientUserId,
-      title: "💬 New Message",
+      title: "New Message",
       message: `${session.user.name || "Someone"} sent you a message.`,
     },
   });
@@ -988,7 +1213,7 @@ export async function updateInterviewAction(
   await db.notification.create({
     data: {
       userId: app.freelancer.user.id,
-      title: "🗓️ Interview Rescheduled",
+      title: "Interview Rescheduled",
       message: `Your interview for "${app.project.title}" has been rescheduled to ${new Date(combinedDateTime).toLocaleString()}. New link: ${newMeetLink}`,
     },
   });
@@ -1054,7 +1279,7 @@ export async function cancelInterviewAction(
   await db.notification.create({
     data: {
       userId: app.freelancer.user.id,
-      title: "❌ Interview Cancelled",
+      title: "Interview Cancelled",
       message: `The scheduled interview for "${app.project.title}" has been cancelled by the recruiter. ${reason ? `Reason: ${reason}` : ""}`,
     },
   });

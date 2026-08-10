@@ -1,4 +1,5 @@
 import React from "react";
+import { getProjectTeam } from "@/actions/roleActions";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -177,8 +178,12 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
     (m) => new Date(m.createdAt) >= messageCutoff
   );
 
+  // Shared roster (null for zero-role projects, panel then not rendered).
+  const teamRoster = await getProjectTeam(project.id);
+
   return (
     <WorkspaceView
+      teamRoster={teamRoster}
       role={userWorkspaceRole}
       currentUserId={currentUserId}
       projectId={project.id}

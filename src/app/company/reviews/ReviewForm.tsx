@@ -136,7 +136,7 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
           ) : hiredFreelancers.length === 1 ? (
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
               <span className="text-[10px] text-slate-500 block">Freelancer details</span>
-              <strong className="text-[#002d59] font-semibold">{hiredFreelancers[0].user.name}</strong>
+              <strong className="text-[#181d26] font-semibold">{hiredFreelancers[0].user.name}</strong>
             </div>
           ) : null}
 
@@ -165,7 +165,7 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-slate-600">Written Feedback</label>
             <textarea
-              className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+              className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
               placeholder="Leave a review detailing freelancer communication, efficiency, and quality..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}

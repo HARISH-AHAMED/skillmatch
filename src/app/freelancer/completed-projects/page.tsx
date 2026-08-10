@@ -31,6 +31,12 @@ export default async function CompletedProjectsPage() {
             companyName: true,
           },
         },
+        // The freelancer's own certificate for this contract, surfaced on the card.
+        certificates: {
+          where: { freelancer: { userId }, revokedAt: null },
+          select: { publicId: true },
+          take: 1,
+        },
         reviews: {
           include: {
             reviewer: {
@@ -50,7 +56,7 @@ export default async function CompletedProjectsPage() {
   if (!freelancer) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">Completed Projects</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">Completed Projects</h1>
         <Card className="p-8 text-center space-y-4 bg-white border border-slate-200">
           <p className="text-slate-500 text-sm">Please complete your freelancer profile first to access Completed Projects features.</p>
           <Link href="/freelancer/profile">
@@ -64,7 +70,7 @@ export default async function CompletedProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">Completed Projects</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">Completed Projects</h1>
         <p className="text-xs text-slate-500 mt-1">
           Review your completed platform contracts and customize your portfolio gallery showcase.
         </p>

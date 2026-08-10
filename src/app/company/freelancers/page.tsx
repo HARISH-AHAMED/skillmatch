@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { FreelancerSearch } from "./FreelancerSearch";
 import { TopFreelancers, type TopFreelancerItem } from "@/components/TopFreelancers";
+import { LeaderboardSidebar } from "@/components/LeaderboardSidebar";
 
 interface SearchParams {
   skills?: string;
@@ -225,7 +226,7 @@ export default async function CompanyFreelancersPage({
         <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">
           Company Portal
         </span>
-        <h1 className="text-3xl font-black text-[#002d59] tracking-tight mt-0.5">
+        <h1 className="text-3xl font-black text-[#181d26] tracking-tight mt-0.5">
           Search Freelancers
         </h1>
         <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -233,24 +234,12 @@ export default async function CompanyFreelancersPage({
         </p>
       </div>
 
-      {/* Top Talent Leaderboard */}
-      {scored.length > 0 && (
-        <div className="bg-gradient-to-br from-slate-50 via-white to-amber-50/30 border border-amber-100/60 rounded-3xl p-6 shadow-sm relative z-10">
-          <TopFreelancers topFreelancers={scored} />
-        </div>
-      )}
-
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-slate-200" />
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Search &amp; Filter</span>
-        <div className="flex-1 h-px bg-slate-200" />
-      </div>
-
+      <div className="min-w-0">
       <FreelancerSearch
         freelancers={freelancers as any}
         savedFreelancerIds={savedFreelancerIds}
         savedFreelancers={savedFreelancers as any}
+        companyId={company?.id}
         initialParams={{
           q: params.q || "",
           skills: params.skills || "",
@@ -263,6 +252,13 @@ export default async function CompanyFreelancersPage({
           sortBy: params.sortBy || "rating",
         }}
       />
+
+        {scored.length > 0 && (
+          <LeaderboardSidebar>
+            <TopFreelancers topFreelancers={scored} />
+          </LeaderboardSidebar>
+        )}
+      </div>
     </div>
   );
 }

@@ -8,7 +8,6 @@ import { Role } from "@prisma/client";
 import { registerUser } from "@/actions/authActions";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, Users, Building } from "lucide-react";
 
@@ -68,24 +67,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-12 relative overflow-hidden bg-gradient-to-b from-[#f4f8ff] to-[#ffffff]">
-      <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-[#3ac0ff]/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-[#002d59]/4 rounded-full blur-[100px] pointer-events-none" />
-
-      <div className="w-full max-w-md space-y-6 relative z-10">
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-12 bg-white text-[#181d26]">
+      <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] items-center justify-center shadow-md shadow-[#3ac0ff]/20">
-            <Sparkles className="h-6 w-6 text-white" />
+          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#181d26] items-center justify-center text-white">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-2xl font-black text-[#002d59] tracking-tight">Create Talentra Account</h1>
-          <p className="text-xs text-slate-500 font-semibold">Join our marketplace and start collaborating today</p>
+          <h1 className="text-2xl font-normal text-[#181d26] tracking-tight">Create Talentra Account</h1>
+          <p className="text-xs text-[#333840]">Join our marketplace and start collaborating today</p>
         </div>
 
         {/* Card containing register forms */}
-        <Card className="p-8 border-slate-200/60 bg-white shadow-xl shadow-[#002d59]/5 space-y-6">
+        <Card className="p-8 border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-6">
           {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-600">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-[6px] text-xs font-medium text-rose-600">
               {error}
             </div>
           )}
@@ -120,40 +116,41 @@ export default function RegisterPage() {
 
             {/* Role Switcher */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-600">Account Type</label>
+              <label className="block text-xs font-medium text-[#333840]">Account Type</label>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => setRole(Role.FREELANCER)}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
                     role === Role.FREELANCER
-                      ? "border-[#3ac0ff] bg-[#3ac0ff]/10 text-[#002d59]"
-                      : "border-slate-200 bg-slate-50/50 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                      ? "border-[#181d26] bg-[#181d26] text-white"
+                      : "border-[#dddddd] bg-[#f8fafc] text-[#333840] hover:bg-slate-100"
                   }`}
                   disabled={loading}
                 >
                   <Users className="h-4.5 w-4.5" />
-                  <span className="text-xs font-semibold">Freelancer</span>
+                  <span className="text-xs font-medium">Freelancer</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setRole(Role.COMPANY)}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
                     role === Role.COMPANY
-                      ? "border-[#3ac0ff] bg-[#3ac0ff]/10 text-[#002d59]"
-                      : "border-slate-200 bg-slate-50/50 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                      ? "border-[#181d26] bg-[#181d26] text-white"
+                      : "border-[#dddddd] bg-[#f8fafc] text-[#333840] hover:bg-slate-100"
                   }`}
                   disabled={loading}
                 >
                   <Building className="h-4.5 w-4.5" />
-                  <span className="text-xs font-semibold">Company</span>
+                  <span className="text-xs font-medium">Company</span>
                 </button>
               </div>
             </div>
 
             <Button
               type="submit"
+              variant="primary"
               className="w-full mt-4 cursor-pointer"
               disabled={loading}
             >
@@ -163,9 +160,9 @@ export default function RegisterPage() {
         </Card>
 
         {/* Link back or login */}
-        <p className="text-center text-xs text-slate-500 font-medium">
+        <p className="text-center text-xs text-[#333840] font-normal">
           Already have an account?{" "}
-          <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
+          <Link href="/login" className="text-[#1b61c9] hover:underline font-medium">
             Log In
           </Link>
         </p>
@@ -173,3 +170,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

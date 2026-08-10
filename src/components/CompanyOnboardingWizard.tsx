@@ -147,17 +147,17 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-4 space-y-6">
+    <div className="max-w-3xl mx-auto py-4 space-y-6 text-left">
       {/* Header section with profile progress bar */}
-      <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-4">
+      <div className="bg-white border border-[#dddddd] p-6 rounded-[12px] shadow-xs space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-black text-[#002d59]">Configure Your Business Hub</h1>
-            <p className="text-xs text-slate-500 mt-1">Host jobs and recruit top freelancers for free</p>
+            <h1 className="text-2xl font-semibold text-[#181d26]">Configure Your Business Hub</h1>
+            <p className="text-xs text-[#41454d] mt-1 font-normal">Host jobs and recruit top freelancers for free</p>
           </div>
           <div className="text-right">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completeness</span>
-            <p className="text-xl font-black text-emerald-600">{calculateCompleteness()}%</p>
+            <span className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Completeness</span>
+            <p className="text-xl font-semibold text-[#181d26]">{calculateCompleteness()}%</p>
           </div>
         </div>
 
@@ -175,9 +175,9 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
             return (
               <div key={s.id} className="space-y-1">
                 <div className={`h-1.5 rounded-full transition-all duration-300 ${
-                  isPassed ? "bg-[#3ac0ff]" : isCurrent ? "bg-[#002d59]" : "bg-slate-200"
+                  isPassed ? "bg-[#181d26]" : isCurrent ? "bg-[#181d26]" : "bg-[#e0e2e6]"
                 }`} />
-                <div className="hidden sm:flex items-center gap-1 mt-1 text-[10px] font-bold text-slate-500">
+                <div className="hidden sm:flex items-center gap-1 mt-1 text-[10px] font-medium text-[#41454d]">
                   <Icon className="h-3 w-3" />
                   <span>{s.label}</span>
                 </div>
@@ -188,26 +188,28 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
       </div>
 
       {error && (
-        <Card className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-medium flex items-start gap-2">
+        <Card className="p-4 bg-rose-50 border border-rose-200 rounded-[8px] text-rose-800 text-xs font-medium flex items-start gap-2">
           <ShieldAlert className="h-4.5 w-4.5 shrink-0" />
           <span>{error}</span>
         </Card>
       )}
 
       {success && (
-        <Card className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-center space-y-2">
-          <CheckCircle className="h-10 w-10 mx-auto text-emerald-600 animate-bounce" />
-          <h3 className="text-lg font-bold">Onboarding Completed!</h3>
-          <p className="text-xs">Your Recruiter and Business profile is now verified. Unlocking your Dashboard...</p>
+        <Card className="p-8 text-center bg-white border border-[#dddddd] rounded-[12px] space-y-3">
+          <div className="p-3 bg-[#f8fafc] text-[#181d26] rounded-full w-fit mx-auto border border-[#dddddd]">
+            <CheckCircle className="h-8 w-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#181d26]">Onboarding Completed!</h3>
+          <p className="text-xs text-[#41454d]">Your Recruiter and Business profile is now verified. Unlocking your Dashboard...</p>
         </Card>
       )}
 
       {!success && (
-        <Card className="p-8 bg-white border border-slate-200 shadow-sm rounded-2xl">
+        <Card className="p-8 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           {/* Step 1: Business Verification */}
           {step === 1 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-semibold text-[#181d26] border-b border-[#dddddd] pb-2">
                 Step 1: Business Registry Verification
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -276,7 +278,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 2: Recruiter Profile & Company Info */}
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
                 Step 2: Recruiter Profile & Company Details
               </h2>
               
@@ -311,7 +313,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                     </select>
                     <input
                       type="text"
-                      className="flex-grow px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                      className="flex-grow px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                       placeholder="9876543210"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
@@ -345,7 +347,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-600">About Company</label>
                 <textarea
-                  className="w-full min-h-[90px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                  className="w-full min-h-[90px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                   placeholder="Tell potential candidates about your company mission and services..."
                   value={about}
                   onChange={(e) => setAbout(e.target.value)}
@@ -408,7 +410,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 3: Document Verification */}
           {step === 3 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
                 Step 3: Upload Certificate of Incorporation & ID
               </h2>
 
@@ -419,7 +421,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 <div className="space-y-2 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
                   <span className="block text-xs font-bold text-slate-700">Certificate of Incorporation *</span>
-                  <p className="text-[10px] text-slate-450 mt-1">PDF, JPG, PNG up to 5MB</p>
+                  <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 5MB</p>
                   <input
                     type="file"
                     className="hidden"
@@ -436,7 +438,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
 
                 <div className="space-y-2 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
                   <span className="block text-xs font-bold text-slate-700">Representative Government ID *</span>
-                  <p className="text-[10px] text-slate-450 mt-1">Passport, Aadhaar Card, or Driver's license</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Passport, Aadhaar Card, or Driver's license</p>
                   <input
                     type="file"
                     className="hidden"
@@ -453,7 +455,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
               </div>
 
               <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4.5 space-y-3">
-                <h4 className="text-xs font-bold text-[#002d59]">Verify Recruiter Email Code</h4>
+                <h4 className="text-xs font-bold text-[#181d26]">Verify Recruiter Email Code</h4>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Enter 6-digit code sent to company email"
@@ -497,7 +499,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 4: Team Seats */}
           {step === 4 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
                 Step 4: Manage Team & Invite Recruiter Seats
               </h2>
 
@@ -544,8 +546,8 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                     {teamMembers.map((m, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 text-xs">
                         <div>
-                          <p className="font-bold text-[#002d59]">{m.name} <span className="font-normal text-slate-550">({m.email})</span></p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">{m.designation || "HR Specialist"} • Role: <strong className="text-[#002d59]">{m.role}</strong></p>
+                          <p className="font-bold text-[#181d26]">{m.name} <span className="font-normal text-slate-500">({m.email})</span></p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{m.designation || "HR Specialist"} • Role: <strong className="text-[#181d26]">{m.role}</strong></p>
                         </div>
                         <button
                           onClick={() => handleRemoveMember(idx)}

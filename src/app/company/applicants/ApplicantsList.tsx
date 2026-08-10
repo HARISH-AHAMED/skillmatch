@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { shortlistApplicant, rejectApplicant, hireApplicant, removeFreelancer } from "@/actions/applicationActions";
 import { transitionApplicationStage, bulkTransitionApplicants, releaseMilestonePayment } from "@/actions/workflowActions";
-import { parseApplicationMetadata, getApplicationCoverLetterText, getProjectMetadataDirect } from "@/lib/workflowHelpers";
+import { parseApplicationMetadata, getApplicationCoverLetterText, getProjectMetadataDirect, formatProjectBudget } from "@/lib/workflowHelpers";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -100,6 +100,23 @@ interface ApplicantsListProps {
 }
 
 export function ApplicantsList({ applicants, projects, selectedProjectId }: ApplicantsListProps) {
+  // Role tabs. Only meaningful once a project using role slots is selected;
+  // otherwise the single "All" tab renders and behaviour is unchanged.
+  const [activeRoleId, setActiveRoleId] = useState<string>("ALL");
+  const roleTabs = Array.from(
+    applicants.reduce((m, a: any) => {
+      if (a.role?.id) m.set(a.role.id, { id: a.role.id, name: a.role.name, slots: a.role.slots });
+      return m;
+    }, new Map<string, { id: string; name: string; slots: number }>()).values()
+  );
+  const visibleApplicants =
+    activeRoleId === "ALL"
+      ? applicants
+      : applicants.filter((a: any) => a.role?.id === activeRoleId);
+  const roleCount = (id: string) =>
+    id === "ALL" ? applicants.length : applicants.filter((a: any) => a.role?.id === id).length;
+  const roleHired = (id: string) =>
+    applicants.filter((a: any) => a.role?.id === id && a.status === ApplicationStatus.HIRED && !a.isApprentice).length;
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -217,17 +234,17 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
 
   if (!selectedProjectId) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white border border-slate-100/80 shadow-sm p-6 rounded-2xl">
-          <h2 className="text-base font-bold text-[#002d59] mb-1">Select a Project to Review</h2>
-          <p className="text-xs text-slate-500">
+      <div className="space-y-6 text-left">
+        <div className="bg-white border border-[#dddddd] p-6 rounded-[12px] shadow-xs">
+          <h2 className="text-base font-semibold text-[#181d26] mb-1">Select a Project to Review</h2>
+          <p className="text-xs text-[#41454d] font-normal">
             Please choose a project below to evaluate and rank candidate proposals matching that listing.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.length === 0 ? (
-            <Card className="col-span-full p-10 text-center text-xs text-slate-500">
+            <Card className="col-span-full p-10 text-center text-xs text-[#41454d] border border-[#dddddd] rounded-[12px]">
               No projects posted yet. Post a project first to receive proposals.
             </Card>
           ) : (
@@ -235,32 +252,32 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               <Card
                 key={project.id}
                 onClick={() => router.push(`/company/applicants?projectId=${project.id}`)}
-                className="p-6 border-slate-100 bg-white hover:shadow-md transition-all cursor-pointer hover:border-[#3ac0ff]/30 flex flex-col justify-between space-y-4 group"
+                className="p-6 border border-[#dddddd] bg-white hover:bg-[#f8fafc] transition-all cursor-pointer rounded-[12px] flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-2">
                   <div className="flex justify-between items-start gap-3">
-                    <h3 className="text-sm font-bold text-[#002d59] group-hover:text-[#3ac0ff] transition-colors line-clamp-1">
+                    <h3 className="text-sm font-semibold text-[#181d26] transition-colors line-clamp-1">
                       {project.title}
                     </h3>
-                    <Badge variant={project.status === "OPEN" ? "success" : "neutral"} className="shrink-0 text-[9px] px-2 py-0.5">
+                    <Badge variant={project.status === "OPEN" ? "forest" : "neutral"} className="shrink-0 text-[9px] px-2 py-0.5">
                       {project.status === "OPEN" ? "Active" : project.status.toLowerCase()}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
-                    <span>Budget: <strong>${project.budget}</strong></span>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#41454d] font-normal">
+                    <span>Budget: <strong className="text-[#181d26] font-semibold">{formatProjectBudget(project)}</strong></span>
                     <span>•</span>
-                    <span>Exp: <strong>{project.experienceRequired}y</strong></span>
+                    <span>Exp: <strong className="text-[#181d26] font-semibold">{project.experienceRequired}y</strong></span>
                     <span>•</span>
-                    <span>Priority: <strong className="uppercase">{project.priority.toLowerCase()}</strong></span>
+                    <span>Priority: <strong className="text-[#181d26] font-semibold uppercase">{project.priority.toLowerCase()}</strong></span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  <span className="text-[10px] font-semibold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100/50 flex items-center gap-1">
-                    <ClipboardList className="h-3 w-3 text-slate-400" />
+                <div className="flex items-center justify-between pt-3 border-t border-[#dddddd]">
+                  <span className="text-[10px] font-medium text-[#181d26] bg-[#f8fafc] px-2.5 py-1 rounded-[8px] border border-[#dddddd] flex items-center gap-1">
+                    <ClipboardList className="h-3 w-3 text-[#41454d]" />
                     <strong>{project._count.applications}</strong> proposals
                   </span>
-                  <span className="text-[10px] font-bold text-[#002d59] flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                  <span className="text-[10px] font-medium text-[#181d26] flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
                     View Applicants <ChevronRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
@@ -278,12 +295,12 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white border border-slate-100 shadow-md p-6 rounded-2xl sticky top-0 z-20">
         <div className="space-y-1">
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Currently Reviewing</span>
-          <h2 className="text-base font-extrabold text-[#002d59] line-clamp-1">
+          <h2 className="text-base font-extrabold text-[#181d26] line-clamp-1">
             {selectedProject ? selectedProject.title : "Project Details"}
           </h2>
           <button
             onClick={() => router.push("/company/applicants")}
-            className="text-[10px] font-semibold text-[#3ac0ff] hover:text-[#002d59] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+            className="text-[10px] font-semibold text-[#1b61c9] hover:text-[#181d26] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
           >
             ← Back to all projects
           </button>
@@ -298,7 +315,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               className={cn(
                 "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
                 viewMode === "card"
-                  ? "bg-white text-[#002d59] shadow-xs"
+                  ? "bg-white text-[#181d26] shadow-xs"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -310,7 +327,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               className={cn(
                 "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
                 viewMode === "table"
-                  ? "bg-white text-[#002d59] shadow-xs"
+                  ? "bg-white text-[#181d26] shadow-xs"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -328,7 +345,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 router.push(`/company/applicants?projectId=${e.target.value}`);
               }
             }}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer min-w-[200px]"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer min-w-[200px]"
           >
             <option value="all">-- Select Project --</option>
             {projects.map((p) => (
@@ -355,9 +372,9 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   setSelectedAppIds([]);
                 }
               }}
-              className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+              className="rounded border-slate-300 focus:ring-[#181d26] h-4 w-4 cursor-pointer"
             />
-            <label htmlFor="selectAllApps" className="font-bold text-[#002d59] cursor-pointer">
+            <label htmlFor="selectAllApps" className="font-bold text-[#181d26] cursor-pointer">
               Select All Candidates ({selectedAppIds.length} chosen)
             </label>
           </div>
@@ -394,16 +411,48 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       )}
 
       <div className="space-y-4">
-      {applicants.length === 0 ? (
+      {/* Per-role tabs. Applicant review is naturally scoped to one role at a
+          time when a project has several. Hidden entirely for single-hire listings. */}
+      {roleTabs.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {[{ id: "ALL", name: "All Roles", slots: 0 }, ...roleTabs].map((tab) => {
+            const active = activeRoleId === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveRoleId(tab.id)}
+                className={cn(
+                  "px-3.5 py-2 rounded-[12px] text-xs font-medium transition-colors cursor-pointer border",
+                  active
+                    ? "bg-[#181d26] text-white border-[#181d26]"
+                    : "bg-white text-[#333840] border-[#dddddd] hover:border-[#9297a0]"
+                )}
+              >
+                {tab.name} ({roleCount(tab.id)})
+                {tab.id !== "ALL" && (
+                  <span className={cn("ml-1.5 text-[10px]", active ? "text-white/70" : "text-[#41454d]")}>
+                    · {roleHired(tab.id)}/{tab.slots} hired
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {visibleApplicants.length === 0 ? (
         <Card className="p-8 text-center text-xs text-slate-500">
-          No proposals submitted for this project yet.
+          {applicants.length === 0
+            ? "No proposals submitted for this project yet."
+            : "No applicants for this role yet."}
         </Card>
       ) : viewMode === "table" ? (
         <Card className="border-slate-100 bg-white shadow-sm overflow-hidden rounded-2xl">
           <div className="overflow-x-auto p-5">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[950px]">
             <thead>
-              <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-slate-100 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
                 <th className="pb-3.5 pl-2 pt-1 w-10">Select</th>
                 <th className="pb-3.5 pt-1">Candidate Profile</th>
                 <th className="pb-3.5 pt-1">Applied Project</th>
@@ -414,7 +463,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {applicants.map((app) => {
+              {visibleApplicants.map((app) => {
                 const isSelected = selectedAppIds.includes(app.id);
                 const isHired = app.status === ApplicationStatus.HIRED;
                 const isRejected = app.status === ApplicationStatus.REJECTED;
@@ -439,14 +488,14 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                             setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
                           }
                         }}
-                        className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+                        className="rounded border-slate-300 focus:ring-[#181d26] h-4 w-4 cursor-pointer"
                       />
                     </td>
 
                     {/* Candidate Profile Details */}
                     <td className="py-4 pr-3 text-left">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-[10px] border border-slate-200 shrink-0 overflow-hidden">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-[#181d26] text-[10px] border border-slate-200 shrink-0 overflow-hidden">
                           {app.freelancer.user.image ? (
                             <img src={app.freelancer.user.image} className="h-full w-full object-cover" />
                           ) : (
@@ -457,7 +506,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                           <button
                             type="button"
                             onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                            className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                            className="font-bold text-[#181d26] hover:text-[#1b61c9] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
                           >
                             {app.freelancer.user.name}
                           </button>
@@ -473,7 +522,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                       <p className="font-bold text-slate-700 truncate max-w-[180px]" title={app.project.title}>
                         {app.project.title}
                       </p>
-                      <span className="text-[9px] text-slate-450 block font-semibold">Submitted {new Date(app.createdAt).toLocaleDateString()}</span>
+                      <span className="text-[9px] text-slate-400 block font-semibold">Submitted {new Date(app.createdAt).toLocaleDateString()}</span>
                     </td>
 
                     {/* Match Score */}
@@ -535,7 +584,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                     <td className="py-4 text-center">
                       <div className="space-y-0.5 text-[10px] text-slate-500 font-bold">
                         <p><strong className="text-slate-700">{app.freelancer.experienceYears}y</strong> exp</p>
-                        <p><strong className="text-[#002d59]">{app.freelancer.rating}★</strong> rating</p>
+                        <p><strong className="text-[#181d26]">{app.freelancer.rating}/5</strong> rating</p>
                         <p><strong className="text-emerald-700">{app.freelancer.completionRate}%</strong> done</p>
                       </div>
                     </td>
@@ -545,7 +594,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                       <div className="flex flex-col items-end gap-1.5">
                         {isHired ? (
                           <Link href={`/workspace/${app.id}`} target="_blank">
-                            <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
+                            <Button size="xs" className="cursor-pointer bg-[#1b61c9] hover:bg-[#29aaeb] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
                               Open Workspace
                             </Button>
                           </Link>
@@ -558,7 +607,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                                 size="xs"
                                 variant="secondary"
                                 onClick={() => setSchedulingApp(app)}
-                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#3ac0ff]/10 text-[#002d59] font-bold"
+                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#1b61c9]/10 text-[#181d26] font-bold"
                               >
                                 Schedule Meet
                               </Button>
@@ -592,7 +641,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
           </div>
         </Card>
       ) : (
-        applicants.map((app) => {
+        visibleApplicants.map((app) => {
           const isHired = app.status === ApplicationStatus.HIRED;
           const isRejected = app.status === ApplicationStatus.REJECTED;
           const isProjectActive = app.project.status === "OPEN" || app.project.status === "IN_PROGRESS";
@@ -617,13 +666,13 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                         setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
                       }
                     }}
-                    className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer mr-1 shrink-0"
+                    className="rounded border-slate-300 focus:ring-[#181d26] h-4 w-4 cursor-pointer mr-1 shrink-0"
                   />
                   <button
                     type="button"
                     onClick={() => app.freelancer.user.image && setLightboxImage(app.freelancer.user.image)}
                     disabled={!app.freelancer.user.image}
-                    className={`h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] shrink-0 overflow-hidden border border-slate-200/50 ${
+                    className={`h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#181d26] shrink-0 overflow-hidden border border-slate-200/50 ${
                       app.freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
                     }`}
                     title={app.freelancer.user.image ? "Click to view full image" : undefined}
@@ -637,7 +686,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   <div>
                     <h3
                       onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                      className="text-sm font-bold text-[#002d59] hover:text-[#3ac0ff] cursor-pointer transition-colors"
+                      className="text-sm font-bold text-[#181d26] hover:text-[#1b61c9] cursor-pointer transition-colors"
                     >
                       {app.freelancer.user.name}
                     </h3>
@@ -664,8 +713,8 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 block">Average Rating</span>
-                  <span className="font-bold text-slate-800 flex items-center gap-1">
-                    {app.freelancer.rating}★
+                  <span className="font-semibold text-[#181d26] flex items-center gap-1">
+                    {app.freelancer.rating}/5
                   </span>
                 </div>
                 <div>
@@ -705,7 +754,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                       onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
                       className="cursor-pointer text-xs gap-1.5 font-bold"
                     >
-                      <User className="h-3.5 w-3.5 text-[#002d59]" /> View Profile
+                      <User className="h-3.5 w-3.5 text-[#181d26]" /> View Profile
                     </Button>
                   </div>
 
@@ -726,7 +775,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       {schedulingApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-pointer"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-pointer"
             onClick={() => setSchedulingApp(null)}
           />
           <Card className="relative w-full max-w-md p-6 z-10 border-slate-100 bg-white shadow-2xl space-y-4 rounded-3xl">
@@ -738,8 +787,8 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
             </button>
 
             <div className="space-y-1.5 text-left border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-black text-[#002d59]">Schedule Video Interview</h3>
-              <p className="text-[10px] text-slate-500 font-medium font-semibold">Candidate: <span className="text-[#002d59]">{schedulingApp.freelancer.user.name}</span></p>
+              <h3 className="text-sm font-black text-[#181d26]">Schedule Video Interview</h3>
+              <p className="text-[10px] text-slate-500 font-medium font-semibold">Candidate: <span className="text-[#181d26]">{schedulingApp.freelancer.user.name}</span></p>
             </div>
 
             <div className="space-y-3 text-left">
@@ -802,12 +851,12 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-zoom-out"
             onClick={() => setLightboxImage(null)}
           />
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#181d26]/70 hover:bg-[#181d26] transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />

@@ -54,10 +54,10 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
 
   return (
     <div className="mt-4 bg-slate-50/50 border border-slate-100 rounded-xl p-4 space-y-3.5 text-xs text-left">
-      <div className="flex items-center gap-1.5 text-[#002d59]">
-        <MessageSquare className="h-4 w-4 text-sky-500" />
-        <span className="text-[10px] font-black uppercase tracking-wider block">
-          💬 Pre-Application Q&A Board ({discussionQuestions.length})
+      <div className="flex items-center gap-1.5 text-[#181d26]">
+        <MessageSquare className="h-4 w-4" />
+        <span className="text-[10px] font-medium uppercase tracking-wider block">
+          Pre-Application Q&A Board ({discussionQuestions.length})
         </span>
       </div>
 
@@ -93,7 +93,7 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
                     onChange={(e) => setReplyText((prev) => ({ ...prev, [q.originalIndex]: e.target.value }))}
                     placeholder="Type your response to this freelancer query..."
                     disabled={submitting[q.originalIndex]}
-                    className="flex-1 h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] focus:ring-1 focus:ring-[#002d59] focus:outline-none"
+                    className="flex-1 h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] focus:ring-1 focus:ring-[#181d26] focus:outline-none"
                   />
                   <Button
                     size="sm"

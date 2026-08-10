@@ -29,7 +29,8 @@ interface ApplicationsListClientProps {
 export function ApplicationsListClient({ applications, currentUserId }: ApplicationsListClientProps) {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
-  const getStatusStyle = (status: string) => {
+  const getStatusStyle = (status: string, pendingTeamMatch?: boolean) => {
+    if (pendingTeamMatch) return "bg-amber-100 text-amber-800 border-amber-200";
     switch (status) {
       case "HIRED": return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "SHORTLISTED": return "bg-sky-100 text-sky-800 border-sky-200";
@@ -38,8 +39,15 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
     }
   };
 
-  const getStatusLabel = (status: string, projectStatus: string) => {
+  const getStatusLabel = (
+    status: string,
+    projectStatus: string,
+    roleId?: string | null,
+    teamConfirmedAt?: Date | string | null
+  ) => {
     if (status === "HIRED" && projectStatus === "COMPLETED") return "Completed";
+    // Role-based hires are not fully placed until the freelancer confirms the team.
+    if (status === "HIRED" && roleId && !teamConfirmedAt) return "Team Match Pending";
     switch (status) {
       case "HIRED": return "Hired";
       case "SHORTLISTED": return "Shortlisted";
@@ -79,18 +87,18 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
   return (
     <div className="space-y-4">
       {/* View toggle toolbar */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500 font-medium">{applications.length} application{applications.length !== 1 ? "s" : ""} found</p>
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+      <div className="flex items-center justify-between text-left">
+        <p className="text-xs text-[#41454d] font-normal">{applications.length} application{applications.length !== 1 ? "s" : ""} found</p>
+        <div className="flex items-center gap-1 bg-[#f8fafc] border border-[#dddddd] p-1 rounded-[12px]">
           <button
             onClick={() => setViewMode("card")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "card" ? "bg-white text-[#002d59] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "card" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"}`}
           >
             <LayoutGrid className="h-3.5 w-3.5" /> Cards
           </button>
           <button
             onClick={() => setViewMode("table")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "table" ? "bg-white text-[#002d59] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "table" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"}`}
           >
             <List className="h-3.5 w-3.5" /> Table
           </button>
@@ -113,15 +121,15 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
             <table className="w-full text-xs whitespace-nowrap min-w-[900px]">
               <thead>
                 <tr className="bg-[#f8faff] border-b border-slate-200">
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Project</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Company</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Stage</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Status</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Budget</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">AI Score</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Applied</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Alerts</th>
-                  <th className="px-4 py-3 text-left font-black text-[#002d59] uppercase tracking-wider text-[10px]">Action</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Project</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Company</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Stage</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Status</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Budget</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">AI Score</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Applied</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Alerts</th>
+                  <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -133,7 +141,7 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                     <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
                       {/* Project */}
                       <td className="px-4 py-3 text-left">
-                        <p className="font-bold text-[#002d59] truncate max-w-[160px]">{app.project.title}</p>
+                        <p className="font-bold text-[#181d26] truncate max-w-[160px]">{app.project.title}</p>
                       </td>
                       {/* Company */}
                       <td className="px-4 py-3 text-left">
@@ -148,8 +156,8 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                       </td>
                       {/* Status */}
                       <td className="px-4 py-3 text-left">
-                        <span className={`px-2 py-0.5 rounded-full border font-bold text-[10px] ${getStatusStyle(app.status)}`}>
-                          {getStatusLabel(app.status, app.project.status)}
+                        <span className={`px-2 py-0.5 rounded-full border font-bold text-[10px] ${getStatusStyle(app.status, app.status === "HIRED" && !!app.roleId && !app.teamConfirmedAt)}`}>
+                          {getStatusLabel(app.status, app.project.status, app.roleId, app.teamConfirmedAt)}
                         </span>
                       </td>
                       {/* Budget */}
@@ -158,7 +166,7 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                       </td>
                       {/* AI Score */}
                       <td className="px-4 py-3 text-left">
-                        <span className="font-black text-[#002d59]">{app.aiScore}%</span>
+                        <span className="font-black text-[#181d26]">{app.aiScore}%</span>
                       </td>
                       {/* Applied Date */}
                       <td className="px-4 py-3 text-left text-slate-500">
@@ -186,26 +194,28 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                       </td>
                       {/* Actions */}
                       <td className="px-4 py-3 text-left">
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Link href={`/freelancer/applications/${app.id}`}>
+                            <button className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] bg-[#181d26] hover:bg-[#333840] text-white font-medium rounded-[8px] transition-colors cursor-pointer">
+                              Track Status <ChevronRight className="h-3 w-3" />
+                            </button>
+                          </Link>
                           {scheduledInterview && (
                             <a
                               href={[...(parseApplicationMetadata(app.coverLetter).pipelineHistory || [])].reverse().find((h: any) => h.meetingLink)?.meetingLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-sky-600 hover:bg-sky-500 text-white font-black rounded-lg"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-[#1b61c9] hover:bg-[#154ca0] text-white font-medium rounded-[8px]"
                             >
-                              <Video className="h-3 w-3" /> Join Meet
+                              <Video className="h-3 w-3" /> Meet
                             </a>
                           )}
                           {app.status === "HIRED" && (
-                            <Link href={`/workspace/${app.id}`} target="_blank">
-                              <button className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-[#002d59] hover:bg-[#001d3d] text-white font-black rounded-lg w-full">
-                                <ChevronRight className="h-3 w-3" /> Workspace
+                            <Link href={`/workspace/${app.id}`}>
+                              <button className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-[#181d26] hover:bg-[#333840] text-white font-medium rounded-[8px]">
+                                Open Workspace
                               </button>
                             </Link>
-                          )}
-                          {!scheduledInterview && app.status !== "HIRED" && (
-                            <span className="text-[10px] text-slate-400 italic">—</span>
                           )}
                         </div>
                       </td>

@@ -34,6 +34,7 @@ export default async function CompanyProjectsPage() {
           id: true,
           freelancer: {
             select: {
+              id: true,
               user: {
                 select: {
                   name: true,
@@ -42,6 +43,9 @@ export default async function CompanyProjectsPage() {
             },
           },
         },
+      },
+      certificates: {
+        select: { publicId: true, freelancerId: true, revokedAt: true },
       },
       _count: {
         select: { applications: true },
@@ -52,7 +56,7 @@ export default async function CompanyProjectsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <ProjectsList initialProjects={projects} />
+      <ProjectsList initialProjects={projects} companyName={company.companyName} />
     </div>
   );
 }

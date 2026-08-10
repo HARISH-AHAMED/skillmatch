@@ -83,8 +83,8 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
     const isActive = activeTab === tabRole;
     return `flex items-center gap-2 px-6 py-3 border-b-2 font-semibold text-xs transition-all duration-200 cursor-pointer ${
       isActive
-        ? "border-[#002d59] text-[#002d59] bg-[#002d59]/5 font-bold"
-        : "border-transparent text-slate-500 hover:text-[#002d59] hover:bg-slate-50"
+        ? "border-[#181d26] text-[#181d26] bg-[#181d26]/5 font-bold"
+        : "border-transparent text-slate-500 hover:text-[#181d26] hover:bg-slate-50"
     }`;
   };
 
@@ -105,7 +105,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           Freelancers
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.FREELANCER 
-              ? "bg-[#002d59] text-white" 
+              ? "bg-[#181d26] text-white" 
               : "bg-slate-100 text-slate-600"
           }`}>
             {freelancers.length}
@@ -118,7 +118,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           Companies
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.COMPANY 
-              ? "bg-[#002d59] text-white" 
+              ? "bg-[#181d26] text-white" 
               : "bg-slate-100 text-slate-600"
           }`}>
             {companies.length}
@@ -131,7 +131,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           Admins
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.ADMIN 
-              ? "bg-[#002d59] text-white" 
+              ? "bg-[#181d26] text-white" 
               : "bg-slate-100 text-slate-600"
           }`}>
             {admins.length}
@@ -162,7 +162,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
               <tbody className="divide-y divide-slate-100">
                 {activeUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/50 text-slate-600">
-                    <td className="p-4 font-bold text-[#002d59]">
+                    <td className="p-4 font-bold text-[#181d26]">
                       {u.name || "Anonymous User"}
                     </td>
                     <td className="p-4 font-mono">{u.email || "N/A"}</td>
@@ -180,7 +180,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
                             onChange={(e) =>
                               handleRoleChange(u.id, e.target.value as Role)
                             }
-                            className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:border-[#002d59] text-slate-800 cursor-pointer disabled:opacity-50"
+                            className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:border-[#181d26] text-slate-800 cursor-pointer disabled:opacity-50"
                           >
                             <option value="ADMIN">Admin</option>
                             <option value="COMPANY">Company</option>

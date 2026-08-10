@@ -141,23 +141,22 @@ export function FreelancerProfileDetail({
 
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
   const expList = Array.isArray(freelancer.experience) ? (freelancer.experience as any[]) : [];
-  const certList = Array.isArray(freelancer.certifications) ? (freelancer.certifications as any[]) : [];
   const portList = Array.isArray(freelancer.portfolioItems) ? (freelancer.portfolioItems as any[]) : [];
 
   const getPortfolioIcon = (type: string) => {
     switch (type) {
       case "IMAGE":
-        return <ImageIcon className="h-4 w-4 text-indigo-500" />;
+        return <ImageIcon className="h-4 w-4 text-[#1b61c9]" />;
       case "VIDEO":
         return <Video className="h-4 w-4 text-amber-500" />;
       case "GITHUB":
-        return <FileCode className="h-4 w-4 text-slate-800" />;
+        return <FileCode className="h-4 w-4 text-[#181d26]" />;
       case "WEBSITE":
-        return <Globe className="h-4 w-4 text-emerald-600" />;
+        return <Globe className="h-4 w-4 text-[#006400]" />;
       case "CASE_STUDY":
-        return <FileText className="h-4 w-4 text-sky-500" />;
+        return <FileText className="h-4 w-4 text-[#1b61c9]" />;
       default:
-        return <ExternalLink className="h-4 w-4 text-slate-400" />;
+        return <ExternalLink className="h-4 w-4 text-[#9297a0]" />;
     }
   };
 
@@ -167,7 +166,7 @@ export function FreelancerProfileDetail({
       <div className="flex items-center justify-between">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-xs"
+          className="flex items-center gap-2 text-xs font-bold text-[#41454d] hover:text-[#181d26] transition-colors cursor-pointer bg-white border border-[#dddddd] px-3.5 py-1.5 rounded-xl shadow-xs"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to list
@@ -192,7 +191,7 @@ export function FreelancerProfileDetail({
             >
               <Heart
                 className={`h-4.5 w-4.5 transition-colors ${
-                  isSaved ? "fill-rose-500 text-rose-500" : "text-slate-400"
+                  isSaved ? "fill-rose-500 text-rose-500" : "text-[#9297a0]"
                 }`}
               />
               {isSaved ? "Saved to Bookmarks" : "Bookmark Profile"}
@@ -204,9 +203,9 @@ export function FreelancerProfileDetail({
               href={freelancer.resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 h-9 px-4 rounded-xl transition-colors border border-slate-200/50 shadow-xs"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-[#e0e2e6] hover:bg-[#e0e2e6] text-[#333840] h-9 px-4 rounded-xl transition-colors border border-[#dddddd]/50 shadow-xs"
             >
-              <FileText className="h-4 w-4 text-slate-500" />
+              <FileText className="h-4 w-4 text-[#41454d]" />
               View Resume
             </a>
           )}
@@ -214,9 +213,9 @@ export function FreelancerProfileDetail({
       </div>
 
       {/* Main Profile Showcase Card */}
-      <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm relative">
+      <div className="bg-white border border-[#dddddd]/60 rounded-3xl overflow-hidden shadow-sm relative">
         {/* Banner with rich gradient */}
-        <div className="h-32 bg-gradient-to-r from-[#002d59] via-[#0b4880] to-[#3ac0ff]" />
+        <div className="h-32 bg-gradient-to-r from-[#181d26] via-[#0b4880] to-[#1b61c9]" />
 
         <div className="px-6 pb-6 relative">
           {/* Avatar floating and overlapping banner */}
@@ -226,7 +225,7 @@ export function FreelancerProfileDetail({
                 type="button"
                 onClick={() => freelancer.user.image && setLightboxImage(freelancer.user.image)}
                 disabled={!freelancer.user.image}
-                className={`h-20 w-20 rounded-3xl bg-white border-4 border-white overflow-hidden flex items-center justify-center font-black text-2xl text-[#002d59] shrink-0 shadow-md relative ${
+                className={`h-20 w-20 rounded-3xl bg-white border-4 border-white overflow-hidden flex items-center justify-center font-semibold text-2xl text-[#181d26] shrink-0 shadow-md relative ${
                   freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
                 }`}
                 title={freelancer.user.image ? "Click to view full image" : undefined}
@@ -244,22 +243,22 @@ export function FreelancerProfileDetail({
               </button>
 
               <div className="space-y-1.5 pb-1">
-                <h2 className="text-xl font-black text-[#002d59] tracking-tight leading-none flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-[#181d26] tracking-tight leading-none flex items-center gap-2">
                   {freelancer.user.name}
                 </h2>
                 {freelancer.professionalHeadline ? (
-                  <p className="text-xs font-bold text-[#3ac0ff] leading-none">
+                  <p className="text-xs font-bold text-[#1b61c9] leading-none">
                     {freelancer.professionalHeadline}
                   </p>
                 ) : (
-                  <p className="text-xs font-bold text-slate-400 leading-none">Talentra Verified Freelancer</p>
+                  <p className="text-xs font-bold text-[#9297a0] leading-none">Talentra Verified Freelancer</p>
                 )}
               </div>
             </div>
 
             {/* Badges container */}
             <div className="flex flex-wrap gap-1.5 self-start sm:self-end pt-2 sm:pt-0">
-              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
+              <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.dot}`} />
                 {avail.label}
               </span>
@@ -267,9 +266,9 @@ export function FreelancerProfileDetail({
               {freelancer.verificationBadges && freelancer.verificationBadges.map((badge) => (
                 <span
                   key={badge}
-                  className="inline-flex items-center gap-1 bg-sky-50 text-[9px] font-black text-[#002d59] border border-sky-100 px-2.5 py-0.5 rounded-full shadow-xs"
+                  className="inline-flex items-center gap-1 bg-[#1b61c9]/5 text-[9px] font-semibold text-[#181d26] border border-[#1b61c9]/20 px-2.5 py-0.5 rounded-full shadow-xs"
                 >
-                  <CheckCircle className="h-3 w-3 text-sky-500 fill-sky-50" />
+                  <CheckCircle className="h-3 w-3 text-[#1b61c9] fill-[#1b61c9]/5" />
                   {badge}
                 </span>
               ))}
@@ -277,18 +276,18 @@ export function FreelancerProfileDetail({
           </div>
 
           {/* Quick contact and response time */}
-          <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 pt-3 border-t border-slate-100">
-            <span className="flex items-center gap-1 text-slate-400">
-              <Mail className="h-3.5 w-3.5 text-slate-400" />
+          <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-[#41454d] pt-3 border-t border-[#dddddd]">
+            <span className="flex items-center gap-1 text-[#9297a0]">
+              <Mail className="h-3.5 w-3.5 text-[#9297a0]" />
               {freelancer.user.email}
             </span>
             {freelancer.responseTime && (
-              <span className="text-slate-400">
-                • Response: <strong className="text-slate-700">{freelancer.responseTime}</strong>
+              <span className="text-[#9297a0]">
+                • Response: <strong className="text-[#333840]">{freelancer.responseTime}</strong>
               </span>
             )}
             <span>
-              • Completion Rate: <strong className="text-emerald-600">{freelancer.completionRate}%</strong>
+              • Completion Rate: <strong className="text-[#006400]">{freelancer.completionRate}%</strong>
             </span>
           </div>
         </div>
@@ -299,59 +298,59 @@ export function FreelancerProfileDetail({
         {/* Left Column (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Stats Bar */}
-          <Card className="p-5 border-slate-200/60 shadow-xs bg-white">
+          <Card className="p-5 border-[#dddddd]/60 shadow-xs bg-white">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Experience</p>
-                <p className="text-lg font-black text-[#002d59] mt-0.5">{freelancer.experienceYears} Years</p>
+                <p className="text-[#9297a0] font-bold uppercase text-[9px] tracking-wider">Experience</p>
+                <p className="text-lg font-semibold text-[#181d26] mt-0.5">{freelancer.experienceYears} Years</p>
               </div>
-              <div className="border-x border-slate-200">
-                <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Rating Score</p>
-                <p className="text-lg font-black text-[#002d59] mt-0.5 flex items-center justify-center gap-0.5">
+              <div className="border-x border-[#dddddd]">
+                <p className="text-[#9297a0] font-bold uppercase text-[9px] tracking-wider">Rating Score</p>
+                <p className="text-lg font-semibold text-[#181d26] mt-0.5 flex items-center justify-center gap-0.5">
                   <Star className="h-4.5 w-4.5 text-amber-500 fill-amber-400" />
                   {freelancer.rating.toFixed(1)}
                 </p>
               </div>
               <div>
-                <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Gigs Done</p>
-                <p className="text-lg font-black text-[#002d59] mt-0.5">{freelancer.completedProjects} Jobs</p>
+                <p className="text-[#9297a0] font-bold uppercase text-[9px] tracking-wider">Gigs Done</p>
+                <p className="text-lg font-semibold text-[#181d26] mt-0.5">{freelancer.completedProjects} Jobs</p>
               </div>
             </div>
           </Card>
  
           {/* Biography */}
-          <Card className="p-6 border-slate-200/60 shadow-xs bg-white space-y-3">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Professional Biography</h3>
-            <p className="text-xs text-slate-700 leading-relaxed italic bg-slate-50 p-4 border border-slate-200 rounded-2xl font-medium">
+          <Card className="p-6 border-[#dddddd]/60 shadow-xs bg-white space-y-3">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">Professional Biography</h3>
+            <p className="text-xs text-[#333840] leading-relaxed italic bg-[#f8fafc] p-4 border border-[#dddddd] rounded-2xl font-medium">
               &quot;{getFreelancerBioText(freelancer.bio) || "No professional biography has been provided yet."}&quot;
             </p>
           </Card>
 
           {/* Work History Timeline */}
-          <Card className="p-6 border-slate-200/60 shadow-xs bg-white space-y-4">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+          <Card className="p-6 border-[#dddddd]/60 shadow-xs bg-white space-y-4">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">
               Work Experience Timeline ({expList.length})
             </h3>
             {expList.length === 0 ? (
-              <p className="text-xs text-slate-400 italic font-medium py-3">No work history provided.</p>
+              <p className="text-xs text-[#9297a0] italic font-medium py-3">No work history provided.</p>
             ) : (
               <div className="space-y-4">
                 {expList.map((exp: any, idx: number) => (
                   <div
                     key={exp.id || idx}
-                    className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-2 text-xs hover:border-slate-300 transition-colors"
+                    className="p-4 bg-[#f8fafc]/70 border border-[#dddddd] rounded-2xl space-y-2 text-xs hover:border-[#9297a0] transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-extrabold text-[#002d59] text-sm">{exp.title}</h4>
-                        <p className="text-[10px] text-[#3ac0ff] font-bold mt-0.5">{exp.company}</p>
+                        <h4 className="font-semibold text-[#181d26] text-sm">{exp.title}</h4>
+                        <p className="text-[10px] text-[#1b61c9] font-bold mt-0.5">{exp.company}</p>
                       </div>
-                      <span className="text-[9px] font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shrink-0">
+                      <span className="text-[9px] font-bold text-[#41454d] bg-white border border-[#dddddd] px-2.5 py-0.5 rounded-full shrink-0">
                         {exp.startDate} to {exp.current ? "Present" : exp.endDate}
                       </span>
                     </div>
                     {exp.description && (
-                      <p className="text-[11px] text-slate-600 leading-relaxed pt-1 border-t border-slate-100 mt-1">
+                      <p className="text-[11px] text-[#333840] leading-relaxed pt-1 border-t border-[#dddddd] mt-1">
                         {exp.description}
                       </p>
                     )}
@@ -362,30 +361,30 @@ export function FreelancerProfileDetail({
           </Card>
 
           {/* Portfolio gallery */}
-          <Card className="p-6 border-slate-200/60 shadow-xs bg-white space-y-4">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+          <Card className="p-6 border-[#dddddd]/60 shadow-xs bg-white space-y-4">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">
               Portfolio Showcase Gallery ({portList.length})
             </h3>
             {portList.length === 0 ? (
-              <p className="text-xs text-slate-400 italic font-medium py-3">No portfolio items added yet.</p>
+              <p className="text-xs text-[#9297a0] italic font-medium py-3">No portfolio items added yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {portList.map((item: any, idx: number) => (
                   <div
                     key={item.id || idx}
-                    className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-3.5 hover:border-sky-200 transition-colors shadow-2xs"
+                    className="p-4 bg-[#f8fafc]/70 border border-[#dddddd] rounded-2xl flex flex-col justify-between space-y-3.5 hover:border-[#1b61c9]/20 transition-colors shadow-2xs"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-xs font-black text-[#002d59] line-clamp-1 flex items-center gap-1.5">
+                        <h4 className="text-xs font-semibold text-[#181d26] line-clamp-1 flex items-center gap-1.5">
                           {getPortfolioIcon(item.type)}
                           {item.title}
                         </h4>
-                        <Badge variant="neutral" className="text-[8px] uppercase tracking-wider font-black px-1.5 py-0.5 shrink-0">
+                        <Badge variant="neutral" className="text-[8px] uppercase tracking-wider font-semibold px-1.5 py-0.5 shrink-0">
                           {item.type.replace("_", " ")}
                         </Badge>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-medium line-clamp-3">
+                      <p className="text-[10px] text-[#41454d] leading-relaxed font-medium line-clamp-3">
                         {item.description}
                       </p>
 
@@ -397,7 +396,7 @@ export function FreelancerProfileDetail({
                               key={i}
                               type="button"
                               onClick={() => setLightboxImage(img)}
-                              className="aspect-video bg-white border border-slate-200 rounded-lg overflow-hidden h-10 shrink-0 cursor-zoom-in hover:opacity-90 transition-opacity"
+                              className="aspect-video bg-white border border-[#dddddd] rounded-lg overflow-hidden h-10 shrink-0 cursor-zoom-in hover:opacity-90 transition-opacity"
                               title="Click to zoom image"
                             >
                               <img src={img} alt="screenshot" className="h-full w-full object-cover" />
@@ -409,7 +408,7 @@ export function FreelancerProfileDetail({
                           <button
                             type="button"
                             onClick={() => setLightboxImage(item.fileUrl)}
-                            className="w-full bg-white border border-slate-200 rounded-xl overflow-hidden h-28 flex items-center justify-center cursor-zoom-in hover:brightness-95 transition-all shadow-inner mt-1"
+                            className="w-full bg-white border border-[#dddddd] rounded-xl overflow-hidden h-28 flex items-center justify-center cursor-zoom-in hover:brightness-95 transition-all shadow-inner mt-1"
                           >
                             <img src={item.fileUrl} alt={item.title} className="h-full w-full object-cover" />
                           </button>
@@ -417,25 +416,25 @@ export function FreelancerProfileDetail({
                       ) : null}
 
                       {item.type === "VIDEO" && item.fileUrl && (
-                        <div className="bg-black border border-slate-900 rounded-xl overflow-hidden h-28 mt-1 flex items-center justify-center">
+                        <div className="bg-black border border-[#181d26] rounded-xl overflow-hidden h-28 mt-1 flex items-center justify-center">
                           <video src={item.fileUrl} controls className="h-full w-full object-contain" />
                         </div>
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 flex justify-end">
+                    <div className="pt-2 border-t border-[#dddddd] flex justify-end">
                       {item.url ? (
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] font-bold text-[#3ac0ff] hover:text-[#002d59] transition-colors"
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1b61c9] hover:text-[#181d26] transition-colors"
                         >
                           <span>Visit link</span>
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       ) : (
-                        <span className="text-[9px] text-slate-400 italic">No link provided</span>
+                        <span className="text-[9px] text-[#9297a0] italic">No link provided</span>
                       )}
                     </div>
                   </div>
@@ -448,13 +447,13 @@ export function FreelancerProfileDetail({
         {/* Right Column (1/3 width) */}
         <div className="space-y-6">
           {/* Skills Card */}
-          <Card className="p-5 border-slate-200/60 shadow-xs bg-white space-y-3">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Expertise Skills</h3>
+          <Card className="p-5 border-[#dddddd]/60 shadow-xs bg-white space-y-3">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">Expertise Skills</h3>
             <div className="flex flex-wrap gap-1.5">
               {freelancer.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="text-[10px] font-bold bg-[#002d59]/5 text-[#002d59] border border-[#002d59]/10 px-2.5 py-1 rounded-full uppercase tracking-wide"
+                  className="text-[10px] font-bold bg-[#181d26]/5 text-[#181d26] border border-[#181d26]/10 px-2.5 py-1 rounded-full uppercase tracking-wide"
                 >
                   {skill}
                 </span>
@@ -463,31 +462,31 @@ export function FreelancerProfileDetail({
           </Card>
 
           {/* Reviews Card */}
-          <Card className="p-5 border-slate-200/60 shadow-xs bg-white space-y-3.5">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+          <Card className="p-5 border-[#dddddd]/60 shadow-xs bg-white space-y-3.5">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">
               Client Reviews ({freelancer.user.reviewsReceived.length})
             </h3>
             {freelancer.user.reviewsReceived.length === 0 ? (
-              <p className="text-xs text-slate-400 italic font-medium py-2">No reviews received yet.</p>
+              <p className="text-xs text-[#9297a0] italic font-medium py-2">No reviews received yet.</p>
             ) : (
               <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
                 {freelancer.user.reviewsReceived.map((rev) => (
                   <div
                     key={rev.id}
-                    className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs"
+                    className="p-3.5 bg-[#f8fafc] border border-[#dddddd] rounded-2xl space-y-2 text-xs"
                   >
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                      <span className="font-bold text-[#002d59] truncate max-w-[70%]">
+                    <div className="flex justify-between items-center border-b border-[#dddddd] pb-1.5">
+                      <span className="font-bold text-[#181d26] truncate max-w-[70%]">
                         {rev.project.title}
                       </span>
-                      <span className="text-[10px] font-extrabold text-amber-500 shrink-0">
-                        {rev.rating}★
+                      <span className="text-[10px] font-semibold text-[#181d26] shrink-0">
+                        {rev.rating}/5
                       </span>
                     </div>
-                    <p className="text-slate-600 italic leading-relaxed font-medium">
+                    <p className="text-[#333840] italic leading-relaxed font-medium">
                       &quot;{rev.comment}&quot;
                     </p>
-                    <p className="text-[9px] text-slate-400 text-right font-semibold">
+                    <p className="text-[9px] text-[#9297a0] text-right font-semibold">
                       — Reviewed by {rev.reviewer.name || "Client Representative"}
                     </p>
                   </div>
@@ -496,65 +495,25 @@ export function FreelancerProfileDetail({
             )}
           </Card>
 
-          {/* Certifications Card */}
-          <Card className="p-5 border-slate-200/60 shadow-xs bg-white space-y-3.5">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
-              Certifications ({certList.length})
-            </h3>
-            {certList.length === 0 ? (
-              <p className="text-xs text-slate-400 italic font-medium py-2">No credentials listed.</p>
-            ) : (
-              <div className="space-y-3">
-                {certList.map((cert: any, idx: number) => (
-                  <div
-                    key={cert.id || idx}
-                    className="p-3 bg-slate-50/70 border border-slate-200 rounded-2xl flex items-center gap-3 text-xs"
-                  >
-                    {cert.imageUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => setLightboxImage(cert.imageUrl)}
-                        className="h-10 w-10 border border-slate-200 bg-white rounded-xl overflow-hidden shrink-0 flex items-center justify-center cursor-zoom-in hover:opacity-90"
-                        title="Zoom credential image"
-                      >
-                        <img src={cert.imageUrl} alt={cert.name} className="h-full w-full object-cover" />
-                      </button>
-                    ) : (
-                      <div className="p-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 shrink-0">
-                        <Award className="h-4.5 w-4.5" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-bold text-[#002d59] leading-tight truncate">{cert.name}</p>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                        {cert.issuer} • {cert.year}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
           {/* Platform Projects Done */}
-          <Card className="p-5 border-slate-200/60 shadow-xs bg-white space-y-3.5">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+          <Card className="p-5 border-[#dddddd]/60 shadow-xs bg-white space-y-3.5">
+            <h3 className="text-xs font-semibold uppercase text-[#9297a0] tracking-wider">
               Completed Projects ({freelancer.applications.length})
             </h3>
             {freelancer.applications.length === 0 ? (
-              <p className="text-xs text-slate-400 italic font-medium py-2">No platform projects completed yet.</p>
+              <p className="text-xs text-[#9297a0] italic font-medium py-2">No platform projects completed yet.</p>
             ) : (
               <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
                 {freelancer.applications.map((app) => (
                   <div
                     key={app.id}
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs"
+                    className="p-3 bg-[#f8fafc] border border-[#dddddd] rounded-xl flex justify-between items-center text-xs"
                   >
                     <div className="min-w-0 flex-1 pr-2">
-                      <h4 className="font-bold text-[#002d59] truncate">{app.project.title}</h4>
-                      <p className="text-[10px] text-slate-500 truncate">Hired by {app.project.company.companyName}</p>
+                      <h4 className="font-bold text-[#181d26] truncate">{app.project.title}</h4>
+                      <p className="text-[10px] text-[#41454d] truncate">Hired by {app.project.company.companyName}</p>
                     </div>
-                    <span className="font-black text-[#002d59] shrink-0">${app.project.budget}</span>
+                    <span className="font-semibold text-[#181d26] shrink-0">${app.project.budget}</span>
                   </div>
                 ))}
               </div>
@@ -568,14 +527,14 @@ export function FreelancerProfileDetail({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-zoom-out"
             onClick={() => setLightboxImage(null)}
           />
 
           {/* Close button top right */}
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#181d26]/70 hover:bg-[#181d26] transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />

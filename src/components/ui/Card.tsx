@@ -10,8 +10,8 @@ export function Card({ children, className, hoverable = true, ...props }: CardPr
   return (
     <div
       className={cn(
-        hasBg ? "rounded-2xl p-6 border border-slate-200/50 shadow-sm" : "glass-panel rounded-2xl p-6",
-        "transition-all duration-300",
+        hasBg ? "rounded-[12px] p-6 border border-[#dddddd]" : "glass-panel rounded-[12px] p-6",
+        "transition-all duration-200",
         hoverable && !hasBg && "glass-panel-hover",
         className
       )}
@@ -21,3 +21,4 @@ export function Card({ children, className, hoverable = true, ...props }: CardPr
     </div>
   );
 }
+

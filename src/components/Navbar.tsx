@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Button } from "@/components/ui/Button";
 import { Sparkles } from "lucide-react";
@@ -14,67 +13,67 @@ export async function Navbar() {
     : "/login";
 
   return (
-    <header className="glass-navbar sticky top-0 z-50 w-full transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-6 h-16.5 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#dddddd]">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
-          <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-md shadow-[#3ac0ff]/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="h-4.5 w-4.5 text-white" />
+          <div className="h-8 w-8 rounded-lg bg-[#181d26] flex items-center justify-center text-white">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <span className="font-bold text-[#002d59] tracking-tight text-lg">Talentra</span>
+          <span className="font-medium text-[#181d26] tracking-tight text-lg">Talentra</span>
         </Link>
 
         {/* Links */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-normal text-[#333840]">
           {!session?.user ? (
             <>
-              <Link href="/features" className="hover:text-[#002d59] transition-colors">Features</Link>
-              <Link href="/about" className="hover:text-[#002d59] transition-colors">About Us</Link>
-              <Link href="/contact" className="hover:text-[#002d59] transition-colors">Contact</Link>
+              <Link href="/features" className="hover:text-[#181d26] transition-colors">Platform</Link>
+              <Link href="/about" className="hover:text-[#181d26] transition-colors">Solutions</Link>
+              <Link href="/contact" className="hover:text-[#181d26] transition-colors">Resources</Link>
             </>
           ) : session.user.role === "FREELANCER" ? (
             <>
-              <Link href="/freelancer/dashboard" className="hover:text-[#002d59] transition-colors">Dashboard</Link>
-              <Link href="/freelancer/projects" className="hover:text-[#002d59] transition-colors">Browse Projects</Link>
-              <Link href="/freelancer/applications" className="hover:text-[#002d59] transition-colors">Track Applications</Link>
-              <Link href="/freelancer/profile" className="hover:text-[#002d59] transition-colors">My Profile</Link>
+              <Link href="/freelancer/dashboard" className="hover:text-[#181d26] transition-colors">Dashboard</Link>
+              <Link href="/freelancer/projects" className="hover:text-[#181d26] transition-colors">Browse Projects</Link>
+              <Link href="/freelancer/applications" className="hover:text-[#181d26] transition-colors">Track Applications</Link>
+              <Link href="/freelancer/profile" className="hover:text-[#181d26] transition-colors">My Profile</Link>
             </>
           ) : session.user.role === "COMPANY" ? (
             <>
-              <Link href="/company/dashboard" className="hover:text-[#002d59] transition-colors">Dashboard</Link>
-              <Link href="/company/projects/new" className="hover:text-[#002d59] transition-colors">Post a Gig</Link>
-              <Link href="/company/projects" className="hover:text-[#002d59] transition-colors">Manage Gigs</Link>
-              <Link href="/company/applicants" className="hover:text-[#002d59] transition-colors">Applicants</Link>
-              <Link href="/company/profile" className="hover:text-[#002d59] transition-colors">My Profile</Link>
+              <Link href="/company/dashboard" className="hover:text-[#181d26] transition-colors">Dashboard</Link>
+              <Link href="/company/projects/new" className="hover:text-[#181d26] transition-colors">Post a Gig</Link>
+              <Link href="/company/projects" className="hover:text-[#181d26] transition-colors">Manage Gigs</Link>
+              <Link href="/company/applicants" className="hover:text-[#181d26] transition-colors">Applicants</Link>
+              <Link href="/company/profile" className="hover:text-[#181d26] transition-colors">My Profile</Link>
             </>
           ) : (
             <>
-              <Link href="/admin/dashboard" className="hover:text-[#002d59] transition-colors">Admin Dashboard</Link>
-              <Link href="/admin/users" className="hover:text-[#002d59] transition-colors">Users</Link>
-              <Link href="/admin/projects" className="hover:text-[#002d59] transition-colors">Projects</Link>
+              <Link href="/admin/dashboard" className="hover:text-[#181d26] transition-colors">Admin Dashboard</Link>
+              <Link href="/admin/users" className="hover:text-[#181d26] transition-colors">Users</Link>
+              <Link href="/admin/projects" className="hover:text-[#181d26] transition-colors">Projects</Link>
             </>
           )}
         </nav>
 
         {/* Auth / Dashboard */}
-        <div className="flex items-center gap-4.5">
+        <div className="flex items-center gap-4">
           {session?.user ? (
             <>
               <NotificationCenter />
               <Link href={dashboardLink}>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="primary">
                   Go to Dashboard
                 </Button>
               </Link>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-[#002d59] transition-colors">
+              <Link href="/login" className="text-sm font-medium text-[#333840] hover:text-[#181d26] transition-colors">
                 Log In
               </Link>
               <Link href="/register">
                 <Button size="sm" variant="primary">
-                  Get Started
+                  Sign up for free
                 </Button>
               </Link>
             </>
@@ -84,3 +83,4 @@ export async function Navbar() {
     </header>
   );
 }
+

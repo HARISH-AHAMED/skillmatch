@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { Navbar } from "@/components/Navbar";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { FreelancerProfileDetail } from "./FreelancerProfileDetail";
+import { getFreelancerCertificates } from "@/actions/certificateActions";
 
 interface PageProps {
   params: Promise<{
@@ -28,6 +29,7 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
           name: true,
           email: true,
           image: true,
+          createdAt: true,
           reviewsReceived: {
             select: {
               id: true,
@@ -64,6 +66,9 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
     notFound();
   }
 
+  // Platform-issued, verifiable credentials (distinct from self-reported ones).
+  const earnedCertificates = await getFreelancerCertificates(freelancer.id);
+
   // Check if saved by the currently logged-in user
   let isSaved = false;
   if (currentUserId) {
@@ -81,6 +86,7 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
       <DashboardLayout role={session.user.role} userName={session.user.name}>
         <FreelancerProfileDetail
           freelancer={freelancer as any}
+          earnedCertificates={earnedCertificates}
           initialSaved={isSaved}
           currentUserId={currentUserId}
         />
@@ -90,11 +96,12 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
 
   // Unauthenticated – show with public Navbar
   return (
-    <div className="min-h-screen bg-[#f4f8ff] flex flex-col">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
       <Navbar />
       <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-10">
         <FreelancerProfileDetail
           freelancer={freelancer as any}
+          earnedCertificates={earnedCertificates}
           initialSaved={false}
           currentUserId={currentUserId}
         />

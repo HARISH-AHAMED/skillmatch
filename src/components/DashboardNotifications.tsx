@@ -66,20 +66,20 @@ export function DashboardNotifications({ initialNotifications }: DashboardNotifi
   };
 
   return (
-    <Card className="p-6 bg-white border border-slate-200/60 shadow-md rounded-2xl space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+    <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-4 text-left">
+      <div className="flex items-center justify-between border-b border-[#dddddd] pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-sky-50 text-[#002d59]">
-            <Bell className="h-4.5 w-4.5 text-[#3ac0ff]" />
+          <div className="p-1.5 rounded-[8px] bg-[#f8fafc] text-[#181d26] border border-[#dddddd]">
+            <Bell className="h-4.5 w-4.5 text-[#181d26]" />
           </div>
-          <h3 className="font-black text-[#002d59] text-sm tracking-tight">
+          <h3 className="font-semibold text-[#181d26] text-sm tracking-tight">
             Recent Notifications
           </h3>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={handleReadAll}
-            className="flex items-center gap-1 text-[11px] text-[#3ac0ff] hover:text-[#002d59] font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-[11px] text-[#1b61c9] hover:underline font-medium transition-colors cursor-pointer"
           >
             <CheckCheck className="h-3.5 w-3.5" />
             Mark all read
@@ -90,10 +90,10 @@ export function DashboardNotifications({ initialNotifications }: DashboardNotifi
       <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
-            <div className="p-3 rounded-full bg-slate-50 text-slate-400">
+            <div className="p-3 rounded-full bg-[#f8fafc] text-[#41454d]">
               <Inbox className="h-6 w-6" />
             </div>
-            <p className="text-xs text-slate-500 font-medium">All caught up! No notifications.</p>
+            <p className="text-xs text-[#41454d] font-normal">All caught up! No notifications.</p>
           </div>
         ) : (
           notifications.map((notif) => (
@@ -101,23 +101,23 @@ export function DashboardNotifications({ initialNotifications }: DashboardNotifi
               key={notif.id}
               onClick={() => handleNotificationClick(notif)}
               className={cn(
-                "p-3.5 rounded-xl border transition-all flex justify-between gap-3 items-start cursor-pointer hover:border-sky-300 hover:shadow-md hover:bg-slate-50/10",
+                "p-3.5 rounded-[10px] border transition-all flex justify-between gap-3 items-start cursor-pointer hover:border-[#181d26]",
                 notif.read
-                  ? "bg-slate-50/50 border-slate-100 text-slate-500 opacity-80"
-                  : "bg-white border-slate-200/60 shadow-sm text-slate-800 ring-1 ring-sky-100/30"
+                  ? "bg-[#f8fafc] border-[#dddddd] text-[#41454d]"
+                  : "bg-white border-[#dddddd] text-[#181d26] font-medium"
               )}
             >
               <div className="flex-1 space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-xs font-black text-[#002d59] tracking-tight">{notif.title}</p>
+                  <p className="text-xs font-semibold text-[#181d26] tracking-tight">{notif.title}</p>
                   {!notif.read && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#181d26] shrink-0" />
                   )}
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-medium break-words">
+                <p className="text-[11px] text-[#333840] leading-relaxed font-normal break-words">
                   {notif.message}
                 </p>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                <p className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-1.5">
                   {new Date(notif.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -131,7 +131,7 @@ export function DashboardNotifications({ initialNotifications }: DashboardNotifi
                     handleRead(notif.id);
                   }}
                   title="Mark as read"
-                  className="p-1 rounded-lg bg-sky-50 text-[#002d59] hover:bg-sky-100 transition-colors cursor-pointer shrink-0"
+                  className="p-1 rounded-[6px] bg-[#f8fafc] border border-[#dddddd] text-[#181d26] hover:bg-[#e0e2e6] transition-colors cursor-pointer shrink-0"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>

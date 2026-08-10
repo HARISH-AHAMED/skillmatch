@@ -19,7 +19,10 @@ export async function GET() {
           freelancer: { userId },
           status: "HIRED",
           project: {
-            status: "IN_PROGRESS",
+            // Every project the freelancer is actively enrolled in. Projects are
+            // still OPEN in the window between being hired and the company moving
+            // the project to IN_PROGRESS — those need a workspace link too.
+            status: { in: ["OPEN", "IN_PROGRESS"] },
           },
         },
         include: {
@@ -27,9 +30,11 @@ export async function GET() {
             select: {
               id: true,
               title: true,
+              status: true,
             },
           },
         },
+        orderBy: { updatedAt: "desc" },
       });
 
       const workspaces = activeApps.map((app) => ({
@@ -37,6 +42,7 @@ export async function GET() {
         label: app.project.title,
         href: `/workspace/${app.id}`,
         applicationIds: [app.id],
+        status: app.project.status,
       }));
 
       return NextResponse.json(workspaces);
@@ -66,6 +72,7 @@ export async function GET() {
             },
           },
         },
+        orderBy: { updatedAt: "desc" },
       });
 
       // Group active hired workspaces by Project ID so companies only see one link per project

@@ -47,7 +47,7 @@ export default async function AdminReviewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Review Moderation
         </h1>
         <p className="text-xs text-slate-500 mt-1">
@@ -65,7 +65,7 @@ export default async function AdminReviewsPage() {
             <Card key={rev.id} className="p-6 border-slate-100 bg-white shadow-sm space-y-4">
               <div className="flex justify-between items-start border-b border-slate-200 pb-3">
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-bold text-[#002d59]">{rev.project.title}</h4>
+                  <h4 className="text-sm font-bold text-[#181d26]">{rev.project.title}</h4>
                   <p className="text-[10px] text-slate-500">
                     Reviewer: {rev.reviewer.name} ({rev.reviewer.email}) • Reviewee: {rev.reviewee.name}
                   </p>

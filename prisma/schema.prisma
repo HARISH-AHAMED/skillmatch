@@ -126,6 +126,7 @@ model Freelancer {
   recommendations Recommendation[]
   savedByCompanies SavedFreelancer[]
   savedProjects   SavedProject[]
+  certificates    Certificate[]
 }
 
 model Company {
@@ -171,6 +172,7 @@ model Company {
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects          Project[]
   savedFreelancers  SavedFreelancer[]
+  certificates      Certificate[]
 }
 
 model SavedFreelancer {
@@ -199,6 +201,7 @@ model Project {
   freelancersLimit   Int             @default(1)
   isVisible          Boolean         @default(true)
   domain             String?         @default("Other")
+  bannerUrl          String?
   preferredGender    String?         @default("ANY")
   dueDate            DateTime?
   createdAt          DateTime        @default(now())
@@ -209,10 +212,12 @@ model Project {
   recommendations Recommendation[]
   reviews         Review[]
   savedByFreelancers SavedProject[]
+  roles           ProjectRole[]
   messages        Message[]
   sharedFiles     SharedFile[]
   projectUpdates  ProjectUpdate[]
   tasks           Task[]
+  certificates    Certificate[]
 
   @@index([companyId])
   @@index([status])
@@ -222,18 +227,27 @@ model Application {
   id           String            @id @default(cuid())
   projectId    String
   freelancerId String
+  /// Which role slot this application targets. Null for listings posted before
+  /// roles existed, or for projects that do not use them.
+  roleId       String?
+  /// Applying as an apprentice (shadowing) rather than as the primary hire.
+  isApprentice Boolean           @default(false)
+  /// Set when the freelancer confirms after seeing the assembled team.
+  teamConfirmedAt DateTime?
   coverLetter  String            @db.Text
   aiScore      Float             @default(0.0)
   status       ApplicationStatus @default(PENDING)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer Freelancer   @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  role       ProjectRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, freelancerId])
   @@index([freelancerId])
   @@index([status])
+  @@index([roleId])
 }
 
 model Recommendation {
@@ -380,4 +394,61 @@ model Task {
   @@index([projectId])
   @@index([assignedToId])
   @@index([createdById])
+}
+
+/// A platform-issued, publicly verifiable credential awarded to a freelancer for
+/// completed work. Distinct from the self-reported entries in
+/// Freelancer.certifications JSON — this one is issued by a company, tied to a real
+/// project, and resolvable at /verify/{publicId} so a third party can confirm it.
+model Certificate {
+  id           String   @id @default(cuid())
+  /// Short, human-shareable code shown on the certificate and used in the verify URL.
+  publicId     String   @unique
+  projectId    String
+  freelancerId String
+  companyId    String
+  /// Snapshot of the details at issue time. Deliberately denormalised: a certificate
+  /// must keep saying what it said when issued, even if the project or profile changes.
+  roleTitle    String
+  skills       String[] @default([])
+  durationText String?
+  summary      String?  @db.Text
+  issuerName   String
+  recipientName String
+  projectTitle String
+  issuedAt     DateTime @default(now())
+  /// Revocation keeps the record for auditability rather than deleting it.
+  revokedAt    DateTime?
+  revokeReason String?
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, freelancerId])
+  @@index([freelancerId])
+  @@index([companyId])
+  @@index([publicId])
+}
+
+/// A named position on a project with a fixed number of openings, e.g.
+/// "2 × Frontend Developer". Optional by design: a project with no roles keeps
+/// the original one-candidate-per-listing behaviour untouched.
+model ProjectRole {
+  id          String  @id @default(cuid())
+  projectId   String
+  name        String
+  description String? @db.Text
+  /// How many people are wanted in this role.
+  slots       Int     @default(1)
+  /// Whether a junior may shadow this role (apprentice programme).
+  allowApprentice Boolean @default(false)
+  /// Display order in the wizard and applicant review tabs.
+  sortOrder   Int     @default(0)
+  createdAt   DateTime @default(now())
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@index([projectId])
 }

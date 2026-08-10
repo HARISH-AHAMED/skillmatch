@@ -1,8 +1,13 @@
 "use client";
 
+import Link from "next/link";
+
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { editProject } from "@/actions/projectActions";
+import { ProjectBannerUpload } from "@/components/ProjectBannerUpload";
+import { saveProjectRoles, type RoleInput } from "@/actions/roleActions";
+import { RoleSlotsEditor } from "@/components/RoleSlotsEditor";
 import { ProjectPriority } from "@prisma/client";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -14,8 +19,24 @@ import {
   getProjectMetadataDirect, 
   serializeProjectMetadata, 
   ProjectWizardData,
-  RecruitmentRound
+  RecruitmentRound,
+  PAYMENT_CATEGORIES,
+  COMPENSATION_TYPES,
+  CompensationType,
+  STIPEND_FREQUENCIES,
+  StipendFrequency,
+  estimatedHourlyTotal,
+  PaymentCategory,
+  CURRENCIES,
+  DEFAULT_CURRENCY,
+  getCurrencySymbol,
+  NON_MONETARY_BENEFITS,
+  NonMonetaryBenefit,
+  isNonMonetary,
+  supportsBenefits
 } from "@/lib/workflowHelpers";
+import { ROUND_TYPE_CATALOG } from "@/lib/workflowHelpers";
+import { RoundConfigPanel } from "@/components/RoundConfigPanel";
 import { 
   Plus, 
   Trash2, 
@@ -47,6 +68,8 @@ interface EditProjectFormProps {
     isVisible: boolean;
     preferredGender: string | null;
     domain: string | null;
+    bannerUrl?: string | null;
+    roles?: { id: string; name: string; description: string | null; slots: number; allowApprentice: boolean }[];
   };
 }
 
@@ -60,6 +83,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
   // Tab 1: Core Details States
   const [title, setTitle] = useState(project.title);
   const [domain, setDomain] = useState(project.domain || "Software Engineering");
+  const [bannerUrl, setBannerUrl] = useState<string | null>(project.bannerUrl || null);
   const [category, setCategory] = useState(meta.category || "Software Development");
   const [subcategory, setSubcategory] = useState(meta.subcategory || "Full Stack Development");
   const [duration, setDuration] = useState(meta.duration || "3 Months");
@@ -91,6 +115,28 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
   const [stipendType, setStipendType] = useState<"Unpaid" | "Paid" | "Stipend">(meta.stipendType || "Paid");
   const [budget, setBudget] = useState(project.budget);
   const [stipendDetails, setStipendDetails] = useState(meta.stipendDetails || "");
+  const [paymentCategory, setPaymentCategory] = useState<PaymentCategory>(meta.paymentCategory || "FIXED");
+  const [paymentRate, setPaymentRate] = useState<number>(meta.paymentRate ?? 0);
+  const [currency, setCurrency] = useState<string>(meta.currency || DEFAULT_CURRENCY);
+  const [compensationType, setCompensationType] = useState<CompensationType>(meta.compensationType || "FIXED");
+  const [estimatedHours, setEstimatedHours] = useState<number>(meta.estimatedHours ?? 0);
+  const [stipendFrequency, setStipendFrequency] = useState<StipendFrequency>(meta.stipendFrequency || "MONTHLY");
+  const [budgetNegotiable, setBudgetNegotiable] = useState<boolean>(meta.budgetNegotiable ?? false);
+  const [certificateIncluded, setCertificateIncluded] = useState<boolean>(meta.certificateIncluded ?? false);
+  const [nonMonetaryBenefits, setNonMonetaryBenefits] = useState<NonMonetaryBenefit[]>(meta.nonMonetaryBenefits || []);
+  const [nonMonetaryDetails, setNonMonetaryDetails] = useState(meta.nonMonetaryDetails || "");
+  // Existing role slots, editable. Empty stays empty — zero-role projects unchanged.
+  const [roles, setRoles] = useState<RoleInput[]>(
+    (project.roles || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description || "",
+      slots: r.slots,
+      allowApprentice: r.allowApprentice,
+    }))
+  );
+  const toggleBenefit = (b: NonMonetaryBenefit) =>
+    setNonMonetaryBenefits((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
   const [workingDays, setWorkingDays] = useState(meta.workingDays || "5 Days/Week");
   const [timingType, setTimingType] = useState(meta.timingType || "Full Time");
   
@@ -270,8 +316,31 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         projectStart: projectStart,
         expectedCompletion: expectedCompletion,
       },
-      stipendType,
+      stipendType: (compensationType === "UNPAID"
+        ? "Unpaid"
+        : compensationType === "STIPEND"
+        ? "Stipend"
+        : "Paid") as "Unpaid" | "Paid" | "Stipend",
       stipendDetails,
+      paymentCategory: (compensationType === "HOURLY"
+        ? "HOURLY"
+        : compensationType === "MILESTONE"
+        ? "MILESTONE"
+        : compensationType === "STIPEND"
+        ? "MONTHLY"
+        : compensationType === "UNPAID"
+        ? "NON_MONETARY"
+        : "FIXED") as PaymentCategory,
+      paymentRate,
+      compensationType,
+      estimatedHours,
+      stipendFrequency,
+      budgetNegotiable,
+      certificateIncluded,
+      certificate: certificateIncluded ? meta.certificate : undefined,
+      currency,
+      nonMonetaryBenefits,
+      nonMonetaryDetails,
       workingDays,
       timingType,
       screeningQuestions: allQuestions,
@@ -297,9 +366,18 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         isVisible,
         preferredGender,
         domain,
+        bannerUrl,
       });
 
       if (res.success) {
+        // Persist role changes. saveProjectRoles refuses to delete roles that
+        // already have applications and reports which ones.
+        const roleRes = await saveProjectRoles(project.id, roles);
+        if (!roleRes.success) {
+          setError(roleRes.error || "Project saved, but roles could not be updated.");
+          setLoading(false);
+          return;
+        }
         router.push(`/company/projects/${project.id}`);
         router.refresh();
       }
@@ -335,7 +413,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               onClick={() => setActiveTab(tab.key as any)}
               className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === tab.key
-                  ? "bg-[#002d59] text-white shadow-sm"
+                  ? "bg-[#181d26] text-white shadow-sm"
                   : "bg-slate-50 border border-slate-100 text-slate-500 hover:bg-slate-100"
               }`}
             >
@@ -351,6 +429,8 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         {/* Tab 1: Core Details */}
         {activeTab === "core" && (
           <div className="space-y-5 text-left">
+            <ProjectBannerUpload value={bannerUrl} onChange={setBannerUrl} />
+
             <Input
               label="Project Opportunity Title *"
               placeholder="e.g. Senior React Developer"
@@ -471,9 +551,9 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         {activeTab === "scope" && (
           <div className="space-y-6 text-left">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-655 font-bold">Scope Overview / Objectives Text *</label>
+              <label className="block text-xs font-semibold text-[#333840] font-bold">Scope Overview / Objectives Text *</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                 placeholder="Detailed objectives, business targets, and engineering stacks..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -517,7 +597,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                       <Badge
                         key={s}
                         variant="primary"
-                        className="bg-[#3ac0ff]/10 text-[#002d59] border border-[#3ac0ff]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#1b61c9]/10 text-[#181d26] border border-[#1b61c9]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
                       >
                         {s}
                         <button
@@ -587,7 +667,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             {/* Sub builders for Lists */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Objectives List</span>
+                <span className="block text-xs font-bold text-slate-600">Objectives List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Integrate Neon Cloud database"
@@ -622,7 +702,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Key Deliverables List</span>
+                <span className="block text-xs font-bold text-slate-600">Key Deliverables List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. React code cleanups"
@@ -657,7 +737,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Daily Responsibilities List</span>
+                <span className="block text-xs font-bold text-slate-600">Daily Responsibilities List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Write clean code"
@@ -692,7 +772,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-650">Daily Routine Tasks</span>
+                <span className="block text-xs font-bold text-slate-600">Daily Routine Tasks</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Standup updates"
@@ -733,31 +813,167 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         {activeTab === "schedules" && (
           <div className="space-y-6 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {compensationType !== "UNPAID" && (
+                <Select
+                  label="Currency"
+                  options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} (${c.symbol})` }))}
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  disabled={loading}
+                />
+              )}
               <Select
-                label="Compensation Structure"
-                options={[
-                  { value: "Paid", label: "Paid (Fixed Project Budget)" },
-                  { value: "Stipend", label: "Monthly Stipend" },
-                  { value: "Unpaid", label: "Unpaid / Volunteer engagement" },
-                ]}
-                value={stipendType}
-                onChange={(e) => setStipendType(e.target.value as any)}
-                disabled={loading}
+                label="Compensation Type"
+                options={COMPENSATION_TYPES.map((c) => ({ value: c.value, label: c.label }))}
+                value={compensationType}
+                onChange={(e) => setCompensationType(e.target.value as CompensationType)}
+                    disabled={loading}
               />
-              <Input
-                label="Estimated Total Opportunity Budget ($) *"
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                disabled={loading}
-              />
-              <Input
-                label="Stipend details / Payment schedule text"
-                placeholder="e.g. $1000 - $1200 per month"
-                value={stipendDetails}
-                onChange={(e) => setStipendDetails(e.target.value)}
-                disabled={loading}
-              />
+              {compensationType === "HOURLY" && (
+                <>
+                  <Input
+                    label={`Hourly Rate (${getCurrencySymbol(currency)} per hour)`}
+                    type="number"
+                    min={0}
+                    value={paymentRate}
+                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                    disabled={loading}
+                  />
+                  <Input
+                    label="Estimated Hours"
+                    type="number"
+                    min={0}
+                    value={estimatedHours}
+                    onChange={(e) => setEstimatedHours(Number(e.target.value))}
+                    disabled={loading}
+                  />
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    Estimated Total:{" "}
+                    <strong className="text-[#181d26]">
+                      {getCurrencySymbol(currency)}
+                      {estimatedHourlyTotal(paymentRate, estimatedHours).toLocaleString()}
+                    </strong>
+                  </div>
+                </>
+              )}
+              {compensationType === "STIPEND" && (
+                <>
+                  <Input
+                    label={`Stipend Amount (${getCurrencySymbol(currency)})`}
+                    type="number"
+                    min={0}
+                    value={paymentRate}
+                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                    disabled={loading}
+                  />
+                  <Select
+                    label="Stipend Frequency"
+                    options={STIPEND_FREQUENCIES.map((f) => ({ value: f.value, label: f.label }))}
+                    value={stipendFrequency}
+                    onChange={(e) => setStipendFrequency(e.target.value as StipendFrequency)}
+                    disabled={loading}
+                  />
+                </>
+              )}
+              {compensationType === "FIXED" && (
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={budgetNegotiable}
+                    onChange={(e) => setBudgetNegotiable(e.target.checked)}
+                    disabled={loading}
+                    className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                  />
+                  Budget is negotiable
+                </label>
+              )}
+              {compensationType === "MILESTONE" && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  Total is derived from the milestone values defined for this project.
+                </div>
+              )}
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={certificateIncluded}
+                  onChange={(e) => setCertificateIncluded(e.target.checked)}
+                    disabled={loading}
+                  className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                />
+                Certificate Included
+              </label>
+              {certificateIncluded && (
+                <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-600">
+                  <span>Your certificate can be customized on the certificate design page.</span>
+                  <Link
+                    href={`/company/projects/${project.id}/certificate`}
+                    className="font-semibold text-[#1b61c9] hover:underline"
+                  >
+                    Design Certificate →
+                  </Link>
+                </div>
+              )}
+              {compensationType !== "UNPAID" && (
+                <>
+                  <Input
+                    label={`Estimated Total Opportunity Budget (${getCurrencySymbol(currency)}) *`}
+                    type="number"
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                    disabled={loading}
+                  />
+                  <Input
+                    label="Stipend details / Payment schedule text"
+                    placeholder={`e.g. ${getCurrencySymbol(currency)}1000 - ${getCurrencySymbol(currency)}1200 per month`}
+                    value={stipendDetails}
+                    onChange={(e) => setStipendDetails(e.target.value)}
+                    disabled={loading}
+                  />
+                </>
+              )}
+              {supportsBenefits(paymentCategory) && (
+                <div className="sm:col-span-2 space-y-3 p-4 rounded-[12px] border border-hairline bg-surface-soft">
+                  <div>
+                    <span className="text-xs font-semibold text-ink block">Non-Monetary Compensation</span>
+                    <span className="text-[11px] text-muted">
+                      Only tick what this opportunity genuinely provides — freelancers filter on these.
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {NON_MONETARY_BENEFITS.map((b) => (
+                      <label key={b.value} className="flex items-start gap-2 text-xs text-body cursor-pointer" title={b.hint}>
+                        <input
+                          type="checkbox"
+                          checked={nonMonetaryBenefits.includes(b.value)}
+                          onChange={() => toggleBenefit(b.value)}
+                          disabled={loading}
+                          className="mt-0.5 accent-ink cursor-pointer"
+                        />
+                        <span>
+                          {b.label}
+                          <span className="block text-[10px] text-border-strong">{b.hint}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <Input
+                    label="Additional details (equity %, prize pool, certificate issuer, etc.)"
+                    value={nonMonetaryDetails}
+                    onChange={(e) => setNonMonetaryDetails(e.target.value)}
+                    disabled={loading}
+                  />
+                  {nonMonetaryBenefits.length === 0 && (
+                    <p className="text-[11px] text-warning">
+                      Select at least one benefit — otherwise this opportunity offers no compensation at all.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="sm:col-span-2">
+                <RoleSlotsEditor roles={roles} onChange={setRoles} disabled={loading} />
+              </div>
+
               <Select
                 label="Required Working Days Schedule"
                 options={[
@@ -832,20 +1048,20 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                       onDrop={(e) => handleDrop(e, index)}
                       className={`p-4 bg-white border rounded-2xl flex items-center justify-between gap-4 transition-all duration-200 ${
                         isSelected
-                          ? "border-[#3ac0ff] shadow-md ring-1 ring-[#3ac0ff]/20 bg-slate-50/10"
-                          : "border-slate-200 hover:border-slate-350 shadow-sm"
+                          ? "border-[#1b61c9] shadow-md ring-1 ring-[#1b61c9]/20 bg-slate-50/10"
+                          : "border-slate-200 hover:border-slate-300 shadow-sm"
                       } cursor-grab active:cursor-grabbing`}
                     >
                       <div className="flex items-center gap-3.5 flex-1 min-w-0">
                         <div className="text-slate-400 shrink-0">
                           <GripVertical className="h-5 w-5" />
                         </div>
-                        <div className="h-8 w-8 rounded-full bg-[#002d59]/5 text-[#002d59] flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-[#181d26]/5 text-[#181d26] flex items-center justify-center font-bold text-xs shrink-0">
                           {index + 1}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-xs text-[#002d59] truncate">{round.name}</span>
+                            <span className="font-extrabold text-xs text-[#181d26] truncate">{round.name}</span>
                             <Badge variant={isScreening ? "primary" : "neutral"} className="text-[9px] font-bold py-0.5">
                               {round.type.replace("_", " ")}
                             </Badge>
@@ -853,7 +1069,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                               <span className="text-[10px] text-slate-500 font-semibold">({questionCount} Questions)</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-455 truncate mt-0.5">{round.description}</p>
+                          <p className="text-[10px] text-[#9297a0] truncate mt-0.5">{round.description}</p>
                         </div>
                       </div>
 
@@ -893,8 +1109,8 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
 
             {/* Form to add a new round */}
             <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-left">
-              <h4 className="text-xs font-black text-[#002d59] flex items-center gap-1.5 font-bold">
-                <Plus className="h-4 w-4 text-[#3ac0ff]" /> Add Custom Recruitment Round Step
+              <h4 className="text-xs font-black text-[#181d26] flex items-center gap-1.5 font-bold">
+                <Plus className="h-4 w-4 text-[#1b61c9]" /> Add Custom Recruitment Round Step
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -906,13 +1122,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 />
                 <Select
                   label="Round Evaluation Type"
-                  options={[
-                    { value: "SCREENING_QUESTIONS", label: "Screening Questionnaire (Custom Questions)" },
-                    { value: "CV_PITCH", label: "CV Screening / Profile Review" },
-                    { value: "INTERVIEW", label: "Recruiter Panel Interview" },
-                    { value: "COGNITIVE_TEST", label: "Cognitive Skill Assessment" },
-                    { value: "TECHNICAL_ASSESSMENT", label: "Technical Coding Assessment" },
-                  ]}
+                  options={ROUND_TYPE_CATALOG.map((t) => ({ value: t.value, label: t.label + " — " + t.description }))}
                   value={newRoundType}
                   onChange={(e) => setNewRoundType(e.target.value as any)}
                   disabled={loading}
@@ -930,12 +1140,25 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                   type="button"
                   onClick={handleAddRound}
                   disabled={loading || !newRoundName.trim()}
-                  className="cursor-pointer text-xs font-bold bg-[#002d59] hover:bg-[#001f3f] text-white"
+                  className="cursor-pointer text-xs font-bold bg-[#181d26] hover:bg-[#001f3f] text-white"
                 >
                   Create Round Step
                 </Button>
               </div>
             </div>
+
+            {selectedRoundId && (() => {
+              const r = rounds.find((x) => x.id === selectedRoundId);
+              if (!r) return null;
+              return (
+                <RoundConfigPanel
+                  round={r}
+                  onChange={(config) =>
+                    setRounds(rounds.map((x) => (x.id === r.id ? { ...x, config } : x)))
+                  }
+                />
+              );
+            })()}
 
             {/* Screening questionnaire builder (Active ONLY for selected SCREENING_QUESTIONS round) */}
             {selectedRoundId && (
@@ -946,7 +1169,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 return (
                   <div className="space-y-5 border-t border-slate-100 pt-5 text-left">
                     <div className="space-y-1">
-                      <h3 className="text-xs font-black text-[#002d59] uppercase tracking-wider">
+                      <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">
                         Configure Questions for round: &quot;{activeRound.name}&quot;
                       </h3>
                       <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
@@ -957,15 +1180,15 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                     {/* Questions inside active round */}
                     <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
                       {(!activeRound.questions || activeRound.questions.length === 0) ? (
-                        <p className="text-xs text-slate-450 italic p-4 text-center">No questions added yet. Add screening questions below.</p>
+                        <p className="text-xs text-slate-400 italic p-4 text-center">No questions added yet. Add screening questions below.</p>
                       ) : (
                         activeRound.questions.map((q, idx) => (
                           <div key={q.id} className="flex justify-between items-center p-3.5 text-xs bg-white">
                             <div>
-                              <p className="font-bold text-[#002d59]">Q{idx + 1}: {q.question}</p>
+                              <p className="font-bold text-[#181d26]">Q{idx + 1}: {q.question}</p>
                               <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
                               {q.options && q.options.length > 0 && (
-                                <p className="text-[9px] text-[#3ac0ff] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
+                                <p className="text-[9px] text-[#1b61c9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
                               )}
                             </div>
                             <button
@@ -983,7 +1206,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
 
                     {/* Question Builder */}
                     <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl">
-                      <h4 className="text-xs font-bold text-[#002d59]">Add Question to &quot;{activeRound.name}&quot;</h4>
+                      <h4 className="text-xs font-bold text-[#181d26]">Add Question to &quot;{activeRound.name}&quot;</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                           label="Question Prompt text *"
@@ -1050,7 +1273,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                           type="button"
                           onClick={handleAddQuestionToRound}
                           disabled={loading || !newQuestionText.trim()}
-                          className="cursor-pointer text-xs font-bold bg-white text-[#002d59] border border-[#002d59]/25 hover:bg-slate-50"
+                          className="cursor-pointer text-xs font-bold bg-white text-[#181d26] border border-[#181d26]/25 hover:bg-slate-50"
                         >
                           Add Question
                         </Button>
@@ -1064,7 +1287,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         )}
 
         {/* Global Action controls */}
-        <div className="flex gap-4 pt-4 border-t border-slate-150 justify-end">
+        <div className="flex gap-4 pt-4 border-t border-slate-100 justify-end">
           <Button
             variant="outline"
             type="button"
@@ -1078,7 +1301,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="w-1/2 cursor-pointer bg-[#002d59] text-white hover:bg-[#001c37] h-[42px] font-bold text-sm rounded-xl flex items-center justify-center"
+            className="w-1/2 cursor-pointer bg-[#181d26] text-white hover:bg-[#001c37] h-[42px] font-bold text-sm rounded-xl flex items-center justify-center"
           >
             {loading ? "Saving changes..." : "Save Opportunity Specification"}
           </Button>

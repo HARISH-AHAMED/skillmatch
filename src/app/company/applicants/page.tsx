@@ -2,6 +2,8 @@ import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { ApplicantsList } from "./ApplicantsList";
+import { getProjectTeam } from "@/actions/roleActions";
+import { TeamRosterPanel } from "@/components/TeamRosterPanel";
 
 interface PageProps {
   searchParams: Promise<{
@@ -40,6 +42,7 @@ export default async function CompanyApplicantsPage({ searchParams }: PageProps)
         },
       },
       include: {
+        role: true,
         project: {
           select: {
             title: true,
@@ -111,16 +114,30 @@ export default async function CompanyApplicantsPage({ searchParams }: PageProps)
     );
   }
 
+  // Team roster for the selected project (null when no project is selected or it
+  // does not use role slots, in which case the panel simply is not rendered).
+  const team = projectId ? await getProjectTeam(projectId) : null;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Review Proposals
         </h1>
         <p className="text-xs text-slate-500 mt-1">
           Evaluate applications ranked automatically by our AI recommendation engine
         </p>
       </div>
+
+      {team?.usesRoles && (
+        <TeamRosterPanel
+          roles={team.roles}
+          totalSlots={team.totalSlots}
+          totalFilled={team.totalFilled}
+          isTeamComplete={team.isTeamComplete}
+          viewerRole="COMPANY"
+        />
+      )}
 
       <ApplicantsList
         applicants={applicants as any}

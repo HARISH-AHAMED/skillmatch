@@ -79,7 +79,7 @@ export function AddUserModal() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm"
             onClick={() => !loading && setIsOpen(false)}
           />
 
@@ -89,7 +89,7 @@ export function AddUserModal() {
             <button
               onClick={() => setIsOpen(false)}
               disabled={loading}
-              className="absolute top-5 right-5 p-1 text-slate-450 hover:text-slate-700 rounded-full hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50"
+              className="absolute top-5 right-5 p-1 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50"
             >
               <X className="h-5 w-5" />
             </button>
@@ -97,10 +97,10 @@ export function AddUserModal() {
             {/* Header */}
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100 mb-6">
               <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100">
-                <UserPlus className="h-5 w-5 text-[#002d59]" />
+                <UserPlus className="h-5 w-5 text-[#181d26]" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#002d59]">Add New User</h3>
+                <h3 className="text-base font-bold text-[#181d26]">Add New User</h3>
                 <p className="text-[10px] text-slate-500 font-medium">Create a new platform workspace account</p>
               </div>
             </div>

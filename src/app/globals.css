@@ -1,128 +1,152 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #002d59;
-  --color-secondary: #3ac0ff;
-  --color-accent: #38bdf8;
-  
+  --color-primary: #181d26;
+  --color-primary-active: #0d1218;
+  --color-ink: #181d26;
+  --color-body: #333840;
+  --color-muted: #41454d;
+  --color-hairline: #dddddd;
+  --color-border-strong: #9297a0;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-surface-strong: #e0e2e6;
+  --color-surface-dark: #181d26;
+  --color-signature-coral: #aa2d00;
+  --color-signature-forest: #0a2e0e;
+  --color-signature-cream: #f5e9d4;
+  --color-signature-peach: #fcab79;
+  --color-signature-mint: #a8d8c4;
+  --color-signature-yellow: #f4d35e;
+  --color-signature-mustard: #d9a441;
+  --color-link: #1b61c9;
+  --color-link-active: #1a3866;
+
+  /* Semantic status tokens — values taken from the existing Badge variants so
+     success/warning/danger stop depending on raw Tailwind palette colours. */
+  --color-success: #006400;
+  --color-success-surface: #ecfdf5;
+  --color-success-border: #39bf45;
+  --color-warning: #78350f;
+  --color-warning-surface: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-danger: #aa2d00;
+  --color-danger-surface: #fff1f2;
+  --color-danger-border: #fecdd3;
+
+  /* Focus ring — previously hardcoded as #458fff in Button and .glass-input */
+  --color-focus: #458fff;
+
+  /* Rating star fill */
+  --color-star: #f59e0b;
+
   --color-card-bg: #ffffff;
-  --color-card-border: rgba(0, 45, 89, 0.06);
-  --color-glass-bg: rgba(255, 255, 255, 0.8);
-  
-  --animate-pulse-glow: pulse-glow 3s infinite alternate;
-  --animate-float: float 6s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 10px rgba(0, 45, 89, 0.03), 0 0 20px rgba(58, 192, 255, 0.05);
-  }
-  100% {
-    box-shadow: 0 0 20px rgba(0, 45, 89, 0.08), 0 0 40px rgba(58, 192, 255, 0.12);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  --color-card-border: #dddddd;
 }
 
 :root {
-  --background: #f4f8ff;
-  --foreground: #0c192c;
-  --primary: #002d59;
-  --secondary: #3ac0ff;
-  --accent: #38bdf8;
+  --background: #ffffff;
+  --foreground: #181d26;
+  --primary: #181d26;
+  --body: #333840;
+  --muted: #41454d;
+  --hairline: #dddddd;
+  --link: #1b61c9;
 }
 
 body {
   background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--body);
+  font-family: 'Haas', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(58, 192, 255, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(0, 45, 89, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(58, 192, 255, 0.02) 0%, transparent 60%);
-  background-attachment: fixed;
 }
 
-/* Custom Scrollbar for clean light feel */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f4f8ff;
+  background: #f8fafc;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 45, 89, 0.15);
+  background: #dddddd;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 45, 89, 0.3);
+  background: #9297a0;
 }
 
-/* Glassmorphism utility classes - light mode optimized */
+/* Clean Editorial Card & Navbar utility classes */
 .glass-panel {
   background: #ffffff;
-  border: 1px solid rgba(0, 45, 89, 0.06);
-  box-shadow: 0 4px 20px -2px rgba(0, 45, 89, 0.02), 0 2px 6px -1px rgba(0, 45, 89, 0.02);
+  border: 1px solid #dddddd;
+  box-shadow: 0 1px 3px rgba(24, 29, 38, 0.04);
 }
 
 .glass-panel-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .glass-panel-hover:hover {
   background: #ffffff;
-  border-color: rgba(58, 192, 255, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(0, 45, 89, 0.08);
-  transform: translateY(-2px);
+  border-color: #9297a0;
+  box-shadow: 0 4px 12px rgba(24, 29, 38, 0.06);
 }
 
 .glass-navbar {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(0, 45, 89, 0.06);
+  background: #ffffff;
+  border-bottom: 1px solid #dddddd;
 }
 
 .glass-input {
   background: #ffffff;
-  border: 1px solid rgba(0, 45, 89, 0.1);
-  color: #0c192c;
+  border: 1px solid #dddddd;
+  color: #181d26;
   transition: all 0.2s;
 }
 .glass-input:focus {
-  border-color: #3ac0ff;
+  border-color: #458fff;
   background: #ffffff;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(58, 192, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(69, 143, 255, 0.2);
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, #002d59 0%, #00508a 60%, #3ac0ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-cyan {
-  background: linear-gradient(135deg, #3ac0ff 0%, #002d59 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
   display: none;
 }
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
+
+
+
+/* Certificate download/print: isolate the sheet on a landscape page. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .certificate-sheet,
+  .certificate-sheet * {
+    visibility: visible;
+  }
+  .certificate-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

@@ -31,10 +31,12 @@ import {
   Heart,
   LayoutGrid,
   Table,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleSaveFreelancer } from "@/actions/savedFreelancerActions";
-import { getFreelancerBioText } from "@/lib/workflowHelpers";
+import { getFreelancerBioText, parseFreelancerMetadata } from "@/lib/workflowHelpers";
+import { InviteToProjectModal } from "@/components/InviteToProjectModal";
 
 interface ReviewItem {
   id: string;
@@ -95,6 +97,8 @@ interface InitialParams {
 }
 
 interface FreelancerSearchProps {
+  /** Viewing company, so invite badges only reflect this company own invites. */
+  companyId?: string;
   freelancers: FreelancerItem[];
   savedFreelancerIds: string[];
   savedFreelancers: FreelancerItem[];
@@ -103,9 +107,9 @@ interface FreelancerSearchProps {
 
 const AVAILABILITY_OPTIONS = [
   { value: "ALL", label: "All Availability" },
-  { value: "AVAILABLE", label: "🟢 Available Now" },
-  { value: "BUSY", label: "🟡 Busy / Limited" },
-  { value: "UNAVAILABLE", label: "🔴 Unavailable" },
+  { value: "AVAILABLE", label: "Available Now" },
+  { value: "BUSY", label: "Busy / Limited" },
+  { value: "UNAVAILABLE", label: "Unavailable" },
 ];
 
 const SORT_OPTIONS = [
@@ -117,10 +121,10 @@ const SORT_OPTIONS = [
 
 const RATING_OPTIONS = [
   { value: "", label: "Any Rating" },
-  { value: "4.5", label: "4.5★ and above" },
-  { value: "4.0", label: "4.0★ and above" },
-  { value: "3.5", label: "3.5★ and above" },
-  { value: "3.0", label: "3.0★ and above" },
+  { value: "4.5", label: "4.5 & above" },
+  { value: "4.0", label: "4.0 & above" },
+  { value: "3.5", label: "3.5 & above" },
+  { value: "3.0", label: "3.0 & above" },
 ];
 
 const EXP_OPTIONS = [
@@ -156,14 +160,31 @@ const DOMAIN_OPTIONS = [
 function getAvailabilityConfig(status: string | null) {
   switch (status) {
     case "AVAILABLE":
-      return { dot: "bg-emerald-500", label: "Available", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      return { dot: "bg-success", label: "Available", badge: "bg-success-surface text-success border-success-border/40" };
     case "BUSY":
-      return { dot: "bg-amber-400", label: "Busy", badge: "bg-amber-50 text-amber-700 border-amber-200" };
+      return { dot: "bg-star", label: "Busy", badge: "bg-warning-surface text-warning border-warning-border" };
     case "UNAVAILABLE":
-      return { dot: "bg-rose-500", label: "Unavailable", badge: "bg-rose-50 text-rose-700 border-rose-200" };
+      return { dot: "bg-danger", label: "Unavailable", badge: "bg-danger-surface text-danger border-danger-border" };
     default:
-      return { dot: "bg-slate-300", label: "Unknown", badge: "bg-slate-50 text-slate-600 border-slate-200" };
+      return { dot: "bg-surface-strong", label: "Unknown", badge: "bg-surface-soft text-body border-hairline" };
   }
+}
+
+/**
+ * Status of this company own invite to a freelancer, read from the existing
+ * invite metadata already carried on the freelancer record. Returns null when
+ * this company never invited them, so nothing renders.
+ */
+function getInviteStatus(bio: string | null, companyId?: string) {
+  if (!companyId) return null;
+  const invites = (parseFreelancerMetadata(bio).projectInvites ?? []).filter(
+    (i) => i.companyId === companyId
+  );
+  if (invites.length === 0) return null;
+  const latest = invites[invites.length - 1];
+  if (latest.status === "APPLIED") return { label: "Applied", variant: "success" as const };
+  if (latest.status === "DISMISSED") return { label: "Declined", variant: "neutral" as const };
+  return { label: "Invited", variant: "accent" as const };
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -174,17 +195,18 @@ function StarRating({ rating }: { rating: number }) {
           key={star}
           className={`h-3 w-3 ${
             star <= Math.round(rating)
-              ? "text-amber-400 fill-amber-400"
-              : "text-slate-200 fill-slate-200"
+              ? "text-star fill-star"
+              : "text-border-strong fill-surface-strong"
           }`}
         />
       ))}
-      <span className="text-[10px] font-bold text-slate-600 ml-1">{rating.toFixed(1)}</span>
+      <span className="text-[10px] font-bold text-body ml-1">{rating.toFixed(1)}</span>
     </div>
   );
 }
 
 export function FreelancerSearch({
+  companyId,
   freelancers,
   savedFreelancerIds,
   savedFreelancers,
@@ -229,6 +251,8 @@ export function FreelancerSearch({
 
   // Lightbox Zoom-In Modal state
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  // Proactive sourcing: which freelancer we are inviting, if any.
+  const [invitingFreelancer, setInvitingFreelancer] = useState<{ id: string; name: string } | null>(null);
 
   const buildSearchParams = useCallback(
     (overrides?: Partial<Record<string, string>>) => {
@@ -327,21 +351,21 @@ export function FreelancerSearch({
   ].filter(Boolean).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       {/* Title + Tabs Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-black text-[#002d59] tracking-tight">Find Talent</h1>
-          <p className="text-xs text-slate-500 font-semibold mt-1">Connect with verified top-tier freelancers and remote specialists.</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-ink tracking-tight">Find Talent</h1>
+          <p className="text-xs text-muted font-normal mt-1">Connect with verified top-tier freelancers and remote specialists.</p>
         </div>
         {/* Tabs as sleek pills */}
-        <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/40 shrink-0">
+        <div className="flex bg-surface-soft p-1 rounded-[12px] w-fit border border-[#181d26]/25 shrink-0">
           <button
             onClick={() => setActiveTab("search")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-black tracking-wider uppercase rounded-lg transition-all cursor-pointer border-none bg-transparent ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-[8px] transition-all cursor-pointer border-none bg-transparent ${
               activeTab === "search"
-                ? "bg-white text-[#002d59] shadow-xs"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-ink text-white"
+                : "text-muted hover:text-ink"
             }`}
           >
             <Search className="h-3.5 w-3.5" />
@@ -349,13 +373,13 @@ export function FreelancerSearch({
           </button>
           <button
             onClick={() => setActiveTab("saved")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-black tracking-wider uppercase rounded-lg transition-all cursor-pointer border-none bg-transparent ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-[8px] transition-all cursor-pointer border-none bg-transparent ${
               activeTab === "saved"
-                ? "bg-white text-rose-600 shadow-xs"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-ink text-white"
+                : "text-muted hover:text-ink"
             }`}
           >
-            <Heart className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-rose-500 text-rose-500 animate-pulse" : "text-slate-400"}`} />
+            <Heart className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-danger text-danger" : "text-muted"}`} />
             Bookmarks ({savedList.length})
           </button>
         </div>
@@ -363,23 +387,25 @@ export function FreelancerSearch({
 
       {activeTab === "search" && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Sticky search header — results scroll underneath, never behind it */}
+          <div className="sticky top-0 z-40 -mx-1 space-y-3 bg-[#f8fafc]/95 px-1 pb-3 pt-2 backdrop-blur supports-[backdrop-filter]:bg-[#f8fafc]/80">
           {/* Search Bar + Sort + Filter toggle row */}
-          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-2xl border border-slate-200/60 shadow-xs">
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-[12px] border border-[#181d26]/25 shadow-xs">
             {/* Keyword search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search name, headline, bio keywords..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && commitSearch({ q: e.currentTarget.value })}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl text-xs bg-slate-50 hover:bg-slate-100/55 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-2 focus:ring-[#002d59]/10 transition-all shadow-2xs focus:outline-none"
+                className="w-full pl-10 pr-10 py-2 rounded-[6px] text-xs bg-white border border-[#181d26]/25 text-ink focus:border-focus transition-all focus:outline-none"
               />
               {q && (
                 <button
                   onClick={() => { setQ(""); commitSearch({ q: "" }); }}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer border-none bg-transparent"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer border-none bg-transparent"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -391,29 +417,29 @@ export function FreelancerSearch({
               <select
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); commitSearch({ sortBy: e.target.value }); }}
-                className="w-full lg:w-auto pl-4 pr-9 py-2.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-750 focus:border-[#002d59] focus:ring-2 focus:ring-[#002d59]/10 cursor-pointer appearance-none shadow-2xs focus:outline-none min-w-[160px]"
+                className="w-full lg:w-auto pl-4 pr-9 py-2 rounded-[6px] text-xs font-medium bg-white border border-[#181d26]/25 text-ink focus:border-focus cursor-pointer appearance-none focus:outline-none min-w-[160px]"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
             </div>
 
             {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs shrink-0 ${
+              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[12px] text-xs font-medium border transition-all cursor-pointer shrink-0 ${
                 showFilters
-                  ? "bg-[#002d59] text-white border-[#002d59] hover:bg-[#001f3f]"
-                  : "bg-white text-slate-750 border-slate-200 hover:bg-slate-50 hover:border-slate-350"
+                  ? "bg-ink text-white border-ink"
+                  : "bg-white text-ink border-hairline hover:bg-surface-soft"
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span>Filters</span>
               {activeFilterCount > 0 && (
-                <span className={`h-4.5 w-4.5 rounded-full text-[9px] font-black flex items-center justify-center ${
-                  showFilters ? "bg-white text-[#002d59]" : "bg-[#002d59] text-white"
+                <span className={`h-4.5 w-4.5 rounded-full text-[9px] font-semibold flex items-center justify-center ${
+                  showFilters ? "bg-white text-ink" : "bg-ink text-white"
                 }`}>
                   {activeFilterCount}
                 </span>
@@ -424,7 +450,7 @@ export function FreelancerSearch({
             <button
               onClick={() => commitSearch()}
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#3ac0ff] hover:bg-[#29aaeb] text-white border border-[#3ac0ff]/20 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#181d26] hover:bg-[#333840] text-white border border-[#181d26]/20 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
             >
               <Search className="h-3.5 w-3.5" />
               {isPending ? "Searching..." : "Search"}
@@ -433,16 +459,16 @@ export function FreelancerSearch({
 
           {/* Expanded filter panel */}
           {showFilters && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-white border border-[#181d26]/25 rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-[#002d59]" />
-                  <h3 className="text-xs font-black text-[#002d59] uppercase tracking-wider">Filter Freelancers</h3>
+                  <Filter className="h-4 w-4 text-ink" />
+                  <h3 className="text-xs font-semibold text-ink uppercase tracking-wider">Filter Freelancers</h3>
                 </div>
                 {activeFilterCount > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="text-[10px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors border-none bg-transparent"
+                    className="text-[10px] font-bold text-danger hover:text-danger flex items-center gap-1 cursor-pointer transition-colors border-none bg-transparent"
                   >
                     <X className="h-3 w-3" /> Clear all filters
                   </button>
@@ -452,53 +478,53 @@ export function FreelancerSearch({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {/* Domain Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Domain
                   </label>
                   <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <select
                       value={domain}
                       onChange={(e) => { setDomain(e.target.value); commitSearch({ domain: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {DOMAIN_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-border-strong pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Skills Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Skills (comma-separated)
                   </label>
                   <div className="relative">
-                    <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <input
                       type="text"
                       placeholder="react, node.js..."
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitSearch({ skills: e.currentTarget.value })}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10"
                     />
                   </div>
                 </div>
 
                 {/* Experience Range */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Experience Range
                   </label>
                   <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <select
                       value={expRange}
                       onChange={(e) => { setExpRange(e.target.value); commitSearch({ expRange: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {EXP_OPTIONS.map((opt) => (
                         <option
@@ -509,86 +535,105 @@ export function FreelancerSearch({
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-border-strong pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Minimum Rating */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Minimum Rating
                   </label>
                   <div className="relative">
-                    <Star className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Star className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <select
                       value={minRating}
                       onChange={(e) => { setMinRating(e.target.value); commitSearch({ minRating: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {RATING_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-border-strong pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Completed Projects */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Completed Projects
                   </label>
                   <div className="relative">
-                    <BarChart3 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <BarChart3 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <select
                       value={minCompleted}
                       onChange={(e) => { setMinCompleted(e.target.value); commitSearch({ minCompleted: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {COMPLETED_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-border-strong pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Availability */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Availability Status
                   </label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-border-strong pointer-events-none" />
                     <select
                       value={availability}
                       onChange={(e) => { setAvailability(e.target.value); commitSearch({ availability: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-slate-50 focus:bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#181d26]/25 text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {AVAILABILITY_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-border-strong pointer-events-none" />
                   </div>
                 </div>
               </div>
 
               {/* Active filter pills summary */}
               {activeFilterCount > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider self-center">Active:</span>
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-hairline">
+                  <span className="text-[9px] font-semibold text-border-strong uppercase tracking-wider self-center">Active:</span>
                   {q && <FilterPill label={`Keyword: "${q}"`} onRemove={() => { setQ(""); commitSearch({ q: "" }); }} />}
                   {skills && <FilterPill label={`Skills: ${skills}`} onRemove={() => { setSkills(""); commitSearch({ skills: "" }); }} />}
                   {expRange && <FilterPill label={`Exp: ${EXP_OPTIONS.find(o => `${o.min}:${o.max}` === expRange)?.label || expRange}`} onRemove={() => { setExpRange(""); commitSearch({ expRange: "" }); }} />}
-                  {minRating && <FilterPill label={`Rating ≥ ${minRating}★`} onRemove={() => { setMinRating(""); commitSearch({ minRating: "" }); }} />}
+                  {minRating && <FilterPill label={`Rating ≥ ${minRating}`} onRemove={() => { setMinRating(""); commitSearch({ minRating: "" }); }} />}
                   {minCompleted && <FilterPill label={`Projects ≥ ${minCompleted}`} onRemove={() => { setMinCompleted(""); commitSearch({ minCompleted: "" }); }} />}
-                  {availability && availability !== "ALL" && <FilterPill label={`${availability === "AVAILABLE" ? "🟢" : availability === "BUSY" ? "🟡" : "🔴"} ${availability}`} onRemove={() => { setAvailability("ALL"); commitSearch({ availability: "ALL" }); }} />}
+                  {availability && availability !== "ALL" && <FilterPill label={`${availability}`} onRemove={() => { setAvailability("ALL"); commitSearch({ availability: "ALL" }); }} />}
                   {sortBy !== "rating" && <FilterPill label={`Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label}`} onRemove={() => { setSortBy("rating"); commitSearch({ sortBy: "rating" }); }} />}
                 </div>
               )}
             </div>
           )}
+
+          {/* Domain quick filters — one click narrows results to a discipline */}
+          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-0.5 scrollbar-thin">
+            {DOMAIN_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { setDomain(opt.value); commitSearch({ domain: opt.value }); }}
+                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
+                  domain === opt.value
+                    ? "bg-[#181d26] text-white border-[#181d26] shadow-sm"
+                    : "bg-white text-[#41454d] border-hairline hover:border-[#181d26]/30 hover:text-[#181d26]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          </div>
         </div>
       )}
 
@@ -597,23 +642,23 @@ export function FreelancerSearch({
           {/* Results Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-[#002d59]">{freelancers.length}</span>
-              <span className="text-xs font-semibold text-slate-500">freelancers found</span>
+              <span className="text-sm font-semibold text-ink">{freelancers.length}</span>
+              <span className="text-xs font-semibold text-muted">freelancers found</span>
               {isPending && (
-                <div className="h-4 w-4 rounded-full border-2 border-[#3ac0ff] border-t-transparent animate-spin" />
+                <div className="h-4 w-4 rounded-full border-2 border-link border-t-transparent animate-spin" />
               )}
             </div>
 
             {/* View Mode Toggle Switch */}
-            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 self-center">
+            <div className="flex bg-surface-strong p-1 rounded-xl gap-0.5 self-center">
               <button
                 type="button"
                 onClick={() => setViewMode("card")}
                 className={cn(
                   "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
                   viewMode === "card"
-                    ? "bg-white text-[#002d59] shadow-xs"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 )}
               >
                 <LayoutGrid className="h-3 w-3" /> Cards
@@ -624,8 +669,8 @@ export function FreelancerSearch({
                 className={cn(
                   "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
                   viewMode === "table"
-                    ? "bg-white text-[#002d59] shadow-xs"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 )}
               >
                 <Table className="h-3 w-3" /> Table
@@ -635,24 +680,24 @@ export function FreelancerSearch({
 
           {/* Freelancer Cards Grid / Table Grid */}
           {freelancers.length === 0 ? (
-            <Card className="p-12 text-center bg-white border border-slate-100 rounded-2xl space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
-                <Search className="h-6 w-6 text-slate-400" />
+ <Card className="p-12 text-center space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-surface-strong flex items-center justify-center mx-auto">
+                <Search className="h-6 w-6 text-border-strong" />
               </div>
-              <p className="text-sm font-bold text-slate-500">No freelancers match your current filters.</p>
-              <p className="text-xs text-slate-400">Try adjusting your search criteria or clearing some filters.</p>
+              <p className="text-sm font-bold text-muted">No freelancers match your current filters.</p>
+              <p className="text-xs text-border-strong">Try adjusting your search criteria or clearing some filters.</p>
               <button
                 onClick={clearFilters}
-                className="text-xs font-bold text-[#3ac0ff] hover:text-[#002d59] transition-colors cursor-pointer"
+                className="text-xs font-bold text-link hover:text-ink transition-colors cursor-pointer"
               >
                 Clear all filters →
               </button>
             </Card>
           ) : viewMode === "table" ? (
-            <Card className="overflow-x-auto border-slate-100 bg-white shadow-sm p-5 rounded-2xl">
+ <Card className="overflow-x-auto p-5">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                  <tr className="border-b border-hairline text-[10px] text-border-strong font-extrabold uppercase tracking-wider">
                     <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
                     <th className="pb-3.5 pt-1 text-center">Availability</th>
                     <th className="pb-3.5 pt-1">Skills</th>
@@ -662,12 +707,12 @@ export function FreelancerSearch({
                     <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-hairline font-medium">
                   {freelancers.map((f) => {
                     const avail = getAvailabilityConfig(f.availabilityStatus);
                     const isSaved = savedIds.has(f.id);
                     return (
-                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={f.id} className="hover:bg-surface-soft/50 transition-colors">
                         <td className="py-4 pl-2 text-left pr-3">
                           <div className="flex items-center gap-3">
                             <button
@@ -675,7 +720,7 @@ export function FreelancerSearch({
                               onClick={() => f.user.image && setLightboxImage(f.user.image)}
                               disabled={!f.user.image}
                               className={cn(
-                                "h-8 w-8 rounded-lg border bg-slate-55 flex items-center justify-center font-bold text-[#002d59] text-[10px] shrink-0 overflow-hidden relative",
+                                "h-8 w-8 rounded-lg border bg-surface-soft flex items-center justify-center font-bold text-ink text-[10px] shrink-0 overflow-hidden relative",
                                 f.user.image ? "cursor-zoom-in" : ""
                               )}
                             >
@@ -689,11 +734,11 @@ export function FreelancerSearch({
                               <button
                                 type="button"
                                 onClick={() => router.push(`/freelancers/${f.id}`)}
-                                className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                                className="font-bold text-ink hover:text-link hover:underline cursor-pointer block text-left truncate max-w-[150px]"
                               >
                                 {f.user.name}
                               </button>
-                              <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                              <span className="text-[10px] text-border-strong block truncate max-w-[150px]">
                                 {f.professionalHeadline || "Elite Specialist"}
                               </span>
                             </div>
@@ -713,23 +758,23 @@ export function FreelancerSearch({
                               <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
                             ))}
                             {f.skills.length > 3 && (
-                              <span className="text-[8px] font-black text-slate-450 self-center">+{f.skills.length - 3}</span>
+                              <span className="text-[8px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
                             )}
                           </div>
                         </td>
 
                         <td className="py-4 text-center">
-                          <div className="inline-flex items-center gap-0.5 font-bold text-slate-700">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <div className="inline-flex items-center gap-0.5 font-bold text-body">
+                            <Star className="h-3.5 w-3.5 fill-star text-star" />
                             <span>{f.rating.toFixed(1)}</span>
                           </div>
                         </td>
 
-                        <td className="py-4 text-center font-bold text-slate-605">
+                        <td className="py-4 text-center font-bold text-body">
                           {f.experienceYears}y
                         </td>
 
-                        <td className="py-4 text-center font-bold text-[#002d59]">
+                        <td className="py-4 text-center font-bold text-ink">
                           {f.completedProjects} Jobs
                         </td>
 
@@ -738,14 +783,14 @@ export function FreelancerSearch({
                             <button
                               type="button"
                               onClick={() => handleToggleSave(f)}
-                              className="p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer"
+                              className="p-1.5 rounded-lg hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
                               title={isSaved ? "Remove bookmark" : "Bookmark"}
                             >
-                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-350 hover:text-rose-500")} />
+                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-danger text-danger scale-105" : "text-border-strong hover:text-danger")} />
                             </button>
 
                             <Link href={`/freelancers/${f.id}`}>
-                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-[#002d59]/20 text-[#002d59]">
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
                                 Profile
                               </Button>
                             </Link>
@@ -753,7 +798,7 @@ export function FreelancerSearch({
                             {f.resumeUrl && (
                               <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
                                 <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
-                                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                  <FileText className="h-3.5 w-3.5 text-muted" />
                                 </Button>
                               </a>
                             )}
@@ -774,6 +819,8 @@ export function FreelancerSearch({
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
                   onViewProfile={() => router.push(`/freelancers/${freelancer.id}`)}
+                  onInvite={() => setInvitingFreelancer({ id: freelancer.id, name: freelancer.user.name || "this freelancer" })}
+                  inviteStatus={getInviteStatus(freelancer.bio, companyId)}
                   onViewImage={setLightboxImage}
                 />
               ))}
@@ -785,20 +832,20 @@ export function FreelancerSearch({
           {/* Saved Tab Content */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-[#002d59]">{savedList.length}</span>
-              <span className="text-xs font-semibold text-slate-500">bookmarked talent profiles</span>
+              <span className="text-sm font-semibold text-ink">{savedList.length}</span>
+              <span className="text-xs font-semibold text-muted">bookmarked talent profiles</span>
             </div>
 
             {/* View Mode Toggle Switch */}
-            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 self-center">
+            <div className="flex bg-surface-strong p-1 rounded-xl gap-0.5 self-center">
               <button
                 type="button"
                 onClick={() => setViewMode("card")}
                 className={cn(
                   "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
                   viewMode === "card"
-                    ? "bg-white text-[#002d59] shadow-xs"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 )}
               >
                 <LayoutGrid className="h-3 w-3" /> Cards
@@ -809,8 +856,8 @@ export function FreelancerSearch({
                 className={cn(
                   "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
                   viewMode === "table"
-                    ? "bg-white text-[#002d59] shadow-xs"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 )}
               >
                 <Table className="h-3 w-3" /> Table
@@ -819,24 +866,24 @@ export function FreelancerSearch({
           </div>
 
           {savedList.length === 0 ? (
-            <Card className="p-12 text-center bg-white border border-slate-100 rounded-2xl space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
-                <Heart className="h-6 w-6 text-slate-300" />
+ <Card className="p-12 text-center space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-surface-strong flex items-center justify-center mx-auto">
+                <Heart className="h-6 w-6 text-border-strong" />
               </div>
-              <p className="text-sm font-bold text-slate-500">No bookmarked freelancers yet.</p>
-              <p className="text-xs text-slate-400">Click the heart button on any freelancer profile in search results to save them.</p>
+              <p className="text-sm font-bold text-muted">No bookmarked freelancers yet.</p>
+              <p className="text-xs text-border-strong">Click the heart button on any freelancer profile in search results to save them.</p>
               <button
                 onClick={() => setActiveTab("search")}
-                className="text-xs font-bold text-[#3ac0ff] hover:text-[#002d59] transition-colors cursor-pointer"
+                className="text-xs font-bold text-link hover:text-ink transition-colors cursor-pointer"
               >
                 Find Freelancers →
               </button>
             </Card>
           ) : viewMode === "table" ? (
-            <Card className="overflow-x-auto border-slate-100 bg-white shadow-sm p-5 rounded-2xl">
+ <Card className="overflow-x-auto p-5">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-150 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                  <tr className="border-b border-hairline text-[10px] text-border-strong font-extrabold uppercase tracking-wider">
                     <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
                     <th className="pb-3.5 pt-1 text-center">Availability</th>
                     <th className="pb-3.5 pt-1">Skills</th>
@@ -846,12 +893,12 @@ export function FreelancerSearch({
                     <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-hairline font-medium">
                   {savedList.map((f) => {
                     const avail = getAvailabilityConfig(f.availabilityStatus);
                     const isSaved = savedIds.has(f.id);
                     return (
-                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={f.id} className="hover:bg-surface-soft/50 transition-colors">
                         <td className="py-4 pl-2 text-left pr-3">
                           <div className="flex items-center gap-3">
                             <button
@@ -859,7 +906,7 @@ export function FreelancerSearch({
                               onClick={() => f.user.image && setLightboxImage(f.user.image)}
                               disabled={!f.user.image}
                               className={cn(
-                                "h-8 w-8 rounded-lg border bg-slate-55 flex items-center justify-center font-bold text-[#002d59] text-[10px] shrink-0 overflow-hidden relative",
+                                "h-8 w-8 rounded-lg border bg-surface-soft flex items-center justify-center font-bold text-ink text-[10px] shrink-0 overflow-hidden relative",
                                 f.user.image ? "cursor-zoom-in" : ""
                               )}
                             >
@@ -873,11 +920,11 @@ export function FreelancerSearch({
                               <button
                                 type="button"
                                 onClick={() => router.push(`/freelancers/${f.id}`)}
-                                className="font-bold text-[#002d59] hover:text-[#3ac0ff] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                                className="font-bold text-ink hover:text-link hover:underline cursor-pointer block text-left truncate max-w-[150px]"
                               >
                                 {f.user.name}
                               </button>
-                              <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                              <span className="text-[10px] text-border-strong block truncate max-w-[150px]">
                                 {f.professionalHeadline || "Elite Specialist"}
                               </span>
                             </div>
@@ -897,23 +944,23 @@ export function FreelancerSearch({
                               <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
                             ))}
                             {f.skills.length > 3 && (
-                              <span className="text-[8px] font-black text-slate-455 self-center">+{f.skills.length - 3}</span>
+                              <span className="text-[8px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
                             )}
                           </div>
                         </td>
 
                         <td className="py-4 text-center">
-                          <div className="inline-flex items-center gap-0.5 font-bold text-slate-700">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <div className="inline-flex items-center gap-0.5 font-bold text-body">
+                            <Star className="h-3.5 w-3.5 fill-star text-star" />
                             <span>{f.rating.toFixed(1)}</span>
                           </div>
                         </td>
 
-                        <td className="py-4 text-center font-bold text-slate-605">
+                        <td className="py-4 text-center font-bold text-body">
                           {f.experienceYears}y
                         </td>
 
-                        <td className="py-4 text-center font-bold text-[#002d59]">
+                        <td className="py-4 text-center font-bold text-ink">
                           {f.completedProjects} Jobs
                         </td>
 
@@ -922,14 +969,14 @@ export function FreelancerSearch({
                             <button
                               type="button"
                               onClick={() => handleToggleSave(f)}
-                              className="p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer"
+                              className="p-1.5 rounded-lg hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
                               title={isSaved ? "Remove bookmark" : "Bookmark"}
                             >
-                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-350 hover:text-rose-500")} />
+                              <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-danger text-danger scale-105" : "text-border-strong hover:text-danger")} />
                             </button>
 
                             <Link href={`/freelancers/${f.id}`}>
-                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-[#002d59]/20 text-[#002d59]">
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
                                 Profile
                               </Button>
                             </Link>
@@ -937,7 +984,7 @@ export function FreelancerSearch({
                             {f.resumeUrl && (
                               <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
                                 <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
-                                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                  <FileText className="h-3.5 w-3.5 text-muted" />
                                 </Button>
                               </a>
                             )}
@@ -958,6 +1005,8 @@ export function FreelancerSearch({
                   isSaved={savedIds.has(freelancer.id)}
                   onToggleSave={() => handleToggleSave(freelancer)}
                   onViewProfile={() => router.push(`/freelancers/${freelancer.id}`)}
+                  onInvite={() => setInvitingFreelancer({ id: freelancer.id, name: freelancer.user.name || "this freelancer" })}
+                  inviteStatus={getInviteStatus(freelancer.bio, companyId)}
                   onViewImage={setLightboxImage}
                 />
               ))}
@@ -967,15 +1016,23 @@ export function FreelancerSearch({
       )}
 
       {/* Lightbox Zoom-In Modal Overlay */}
+      {invitingFreelancer && (
+        <InviteToProjectModal
+          freelancerId={invitingFreelancer.id}
+          freelancerName={invitingFreelancer.name}
+          onClose={() => setInvitingFreelancer(null)}
+        />
+      )}
+
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md cursor-zoom-out"
+            className="absolute inset-0 bg-ink/80 backdrop-blur-sm cursor-zoom-out"
             onClick={() => setLightboxImage(null)}
           />
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-slate-900/60 hover:bg-slate-900/80 transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-ink/70 hover:bg-ink transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />
@@ -993,9 +1050,9 @@ export function FreelancerSearch({
 
 function FilterPill({ label, onRemove }: { label?: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 bg-[#002d59]/5 text-[#002d59] border border-[#002d59]/15 text-[9px] font-bold px-2 py-1 rounded-full">
+    <span className="inline-flex items-center gap-1 bg-ink/5 text-ink border border-ink/15 text-[9px] font-bold px-2 py-1 rounded-full">
       {label}
-      <button onClick={onRemove} className="text-[#002d59]/50 hover:text-[#002d59] cursor-pointer transition-colors">
+      <button onClick={onRemove} className="text-ink/50 hover:text-ink cursor-pointer transition-colors">
         <X className="h-2.5 w-2.5" />
       </button>
     </span>
@@ -1007,20 +1064,24 @@ function FreelancerCard({
   isSaved,
   onToggleSave,
   onViewProfile,
+  onInvite,
+  inviteStatus,
   onViewImage,
 }: {
   freelancer: FreelancerItem;
   isSaved: boolean;
   onToggleSave: () => void;
   onViewProfile: () => void;
+  onInvite: () => void;
+  inviteStatus: { label: string; variant: "success" | "neutral" | "accent" } | null;
   onViewImage: (img: string) => void;
 }) {
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-3xl shadow-xs hover:shadow-md hover:border-[#3ac0ff]/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
+    <div className="bg-white border border-[#181d26]/25 rounded-3xl shadow-xs hover:shadow-md hover:border-link/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
       {/* Premium accent bar at top */}
-      <div className="relative h-1 w-full bg-gradient-to-r from-[#002d59] via-[#1a6baf] to-[#3ac0ff]/80" />
+      <div className="relative h-1 w-full bg-gradient-to-r from-ink to-link" />
 
       <div className="p-6 flex flex-col flex-1 space-y-4">
         {/* Avatar + Name + Headline */}
@@ -1030,7 +1091,7 @@ function FreelancerCard({
             type="button"
             onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
             disabled={!freelancer.user.image}
-            className={`h-14 w-14 rounded-2xl bg-[#002d59]/5 border border-slate-200/80 flex items-center justify-center font-black text-[#002d59] text-xl shrink-0 overflow-hidden shadow-2xs relative ${
+            className={`h-14 w-14 rounded-2xl bg-ink/5 border border-[#181d26]/25 flex items-center justify-center font-semibold text-ink text-xl shrink-0 overflow-hidden shadow-2xs relative ${
               freelancer.user.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
             }`}
             title={freelancer.user.image ? "Click to expand image" : undefined}
@@ -1050,7 +1111,7 @@ function FreelancerCard({
             <div className="flex items-start justify-between gap-2">
               <h3
                 onClick={onViewProfile}
-                className="text-sm font-black text-[#002d59] leading-snug truncate hover:underline hover:text-[#1a6baf] transition-colors cursor-pointer"
+                className="text-sm font-semibold text-ink leading-snug truncate hover:underline hover:text-link-active transition-colors cursor-pointer"
               >
                 {freelancer.user.name}
               </h3>
@@ -1062,30 +1123,30 @@ function FreelancerCard({
                   e.stopPropagation();
                   onToggleSave();
                 }}
-                className="p-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/60 transition-all shrink-0 cursor-pointer -mt-1"
+                className="p-1.5 rounded-xl hover:bg-surface-soft border border-transparent hover:border-hairline/60 transition-all shrink-0 cursor-pointer -mt-1"
                 title={isSaved ? "Remove Bookmark" : "Bookmark Freelancer"}
               >
                 <Heart
                   className={`h-4 w-4 transition-all duration-200 ${
                     isSaved
-                      ? "fill-rose-500 text-rose-500 scale-110"
-                      : "text-slate-350 hover:text-rose-450 hover:scale-105"
+                      ? "fill-danger text-danger scale-110"
+                      : "text-border-strong hover:text-danger/70 hover:scale-105"
                   }`}
                 />
               </button>
             </div>
             {freelancer.professionalHeadline && (
-              <p className="text-[10px] text-[#3ac0ff] font-bold truncate leading-tight mt-1">
+              <p className="text-[10px] text-link font-bold truncate leading-tight mt-1">
                 {freelancer.professionalHeadline}
               </p>
             )}
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border tracking-wide uppercase shrink-0 ${avail.badge}`}>
+              <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-full border tracking-wide uppercase shrink-0 ${avail.badge}`}>
                 {avail.label}
               </span>
               {isSaved && (
-                <span className="text-[8px] font-black text-rose-600 bg-rose-50 border border-rose-150 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-in fade-in zoom-in-95 duration-150">
-                  <Heart className="h-2 w-2 fill-rose-500 text-rose-500" />
+                <span className="text-[8px] font-semibold text-danger bg-danger-surface border border-danger-border px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-in fade-in zoom-in-95 duration-150">
+                  <Heart className="h-2 w-2 fill-danger text-danger" />
                   Saved
                 </span>
               )}
@@ -1094,27 +1155,27 @@ function FreelancerCard({
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 bg-slate-50/60 border border-slate-200/30 rounded-2xl p-3 text-center">
+        <div className="grid grid-cols-3 gap-2 bg-surface-soft/60 border border-hairline/30 rounded-2xl p-3 text-center">
           <div>
-            <p className="text-sm font-black text-[#002d59]">{freelancer.experienceYears}y</p>
-            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Exp</p>
+            <p className="text-sm font-semibold text-ink">{freelancer.experienceYears}y</p>
+            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Exp</p>
           </div>
-          <div className="border-x border-slate-200/50">
+          <div className="border-x border-hairline/50">
             <div className="flex items-center justify-center gap-0.5">
-              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-              <p className="text-sm font-black text-[#002d59]">{freelancer.rating.toFixed(1)}</p>
+              <Star className="h-3 w-3 text-star fill-star" />
+              <p className="text-sm font-semibold text-ink">{freelancer.rating.toFixed(1)}</p>
             </div>
-            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Rating</p>
+            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Rating</p>
           </div>
           <div>
-            <p className="text-sm font-black text-[#002d59]">{freelancer.completedProjects}</p>
-            <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Done</p>
+            <p className="text-sm font-semibold text-ink">{freelancer.completedProjects}</p>
+            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Done</p>
           </div>
         </div>
 
         {/* Bio snippet */}
         {getFreelancerBioText(freelancer.bio) && (
-          <p className="text-[10px] text-slate-550 leading-relaxed font-medium line-clamp-2 italic">
+          <p className="text-[10px] text-muted leading-relaxed font-medium line-clamp-2 italic">
             &quot;{getFreelancerBioText(freelancer.bio)}&quot;
           </p>
         )}
@@ -1124,53 +1185,70 @@ function FreelancerCard({
           {freelancer.skills.slice(0, 4).map((skill) => (
             <span
               key={skill}
-              className="text-[9px] font-bold bg-slate-50 text-slate-600 border border-slate-200/50 px-2 py-0.5 rounded-lg shadow-2xs"
+              className="text-[9px] font-bold bg-surface-soft text-body border border-hairline/50 px-2 py-0.5 rounded-lg shadow-2xs"
             >
               {skill}
             </span>
           ))}
           {freelancer.skills.length > 4 && (
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider self-center pl-0.5">
+            <span className="text-[8px] font-semibold text-border-strong uppercase tracking-wider self-center pl-0.5">
               +{freelancer.skills.length - 4} more
             </span>
           )}
         </div>
 
         {/* Bottom Metadata & CTAs */}
-        <div className="space-y-3 pt-3 border-t border-slate-100 mt-auto">
-          <div className="flex items-center justify-between gap-3 text-[10px] text-slate-450 font-bold">
+        <div className="space-y-3 pt-3 border-t border-hairline mt-auto">
+          <div className="flex items-center justify-between gap-3 text-[10px] text-border-strong font-bold">
             {freelancer.responseTime && (
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+                <Clock className="h-3 w-3 text-border-strong shrink-0" />
                 Responds {freelancer.responseTime.toLowerCase()}
               </span>
             )}
             {freelancer.verificationBadges && freelancer.verificationBadges.length > 0 && (
               <div className="flex items-center gap-1 ml-auto">
-                <CheckCircle className="h-3 w-3 text-sky-500 shrink-0" />
-                <span className="text-[9px] text-sky-700 font-black uppercase tracking-wider">Verified</span>
+                <CheckCircle className="h-3 w-3 text-link shrink-0" />
+                <span className="text-[9px] text-link-active font-semibold uppercase tracking-wider">Verified</span>
               </div>
             )}
           </div>
+
+          {inviteStatus && (
+            <div className="pb-2">
+              <Badge variant={inviteStatus.variant} className="text-[9px]">
+                {inviteStatus.label}
+              </Badge>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button
               suppressHydrationWarning
               onClick={onViewProfile}
-              className="flex-1 py-2.5 text-xs font-bold bg-[#002d59] hover:bg-[#001f3f] text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 py-2.5 text-xs font-bold bg-ink hover:bg-primary-active text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
             >
               <User className="h-3.5 w-3.5" />
               View Profile
+            </button>
+            <button
+              suppressHydrationWarning
+              onClick={onInvite}
+              title="Invite this freelancer to one of your open projects"
+              className="flex-1 py-2.5 text-xs font-bold bg-white hover:bg-surface-soft text-ink border border-[#181d26]/25 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Invite
             </button>
             {freelancer.resumeUrl && (
               <a
                 href={freelancer.resumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer flex items-center justify-center border border-slate-200/60 shadow-2xs shrink-0"
+                className="px-3 py-2.5 text-xs font-bold bg-surface-strong hover:bg-surface-strong text-body rounded-xl transition-all cursor-pointer flex items-center justify-center border border-[#181d26]/25 shadow-2xs shrink-0"
                 title="View Resume"
               >
-                <FileText className="h-3.5 w-3.5 text-slate-500" />
+                <FileText className="h-3.5 w-3.5 text-muted" />
               </a>
             )}
           </div>

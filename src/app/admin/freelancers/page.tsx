@@ -15,28 +15,28 @@ export default async function AdminFreelancersPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           Freelancer Directory
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#41454d] font-normal mt-1">
           Monitor freelancer bio credentials, active skills indices, and rating averages
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {freelancers.length === 0 ? (
-          <Card className="p-8 text-center text-slate-500 text-xs md:col-span-2">
+          <Card className="p-8 text-center text-[#41454d] text-xs md:col-span-2 border border-[#dddddd] rounded-[12px]">
             No freelancer profiles registered yet.
           </Card>
         ) : (
           freelancers.map((f) => (
-            <Card key={f.id} className="p-6 border-slate-100 bg-white shadow-sm space-y-4">
-              <div className="flex justify-between items-start border-b border-slate-200 pb-3">
+            <Card key={f.id} className="p-6 border border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-4">
+              <div className="flex justify-between items-start border-b border-[#dddddd] pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-[#002d59]">{f.user.name}</h3>
-                  <p className="text-[10px] font-mono text-slate-500">{f.user.email}</p>
+                  <h3 className="text-sm font-semibold text-[#181d26]">{f.user.name}</h3>
+                  <p className="text-[10px] font-mono text-[#41454d]">{f.user.email}</p>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-amber-400">
                   <Star className="h-4 w-4 fill-amber-400/20" />

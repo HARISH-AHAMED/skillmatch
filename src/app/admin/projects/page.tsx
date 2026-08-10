@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Briefcase, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { ProjectStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { getProjectDescriptionText } from "@/lib/workflowHelpers";
+import { getProjectDescriptionText, formatProjectBudget } from "@/lib/workflowHelpers";
 
 export default async function AdminProjectsPage() {
   const projects = await db.project.findMany({
@@ -47,7 +47,7 @@ export default async function AdminProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Project Listings Moderator
         </h1>
         <p className="text-xs text-slate-500 mt-1">
@@ -66,7 +66,7 @@ export default async function AdminProjectsPage() {
               <div className="flex justify-between items-start pb-3 border-b border-slate-200 mb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-[#002d59]">{project.title}</h3>
+                    <h3 className="text-sm font-bold text-[#181d26]">{project.title}</h3>
                     {getStatusBadge(project.status)}
                   </div>
                   <p className="text-[10px] text-slate-500">
@@ -94,7 +94,7 @@ export default async function AdminProjectsPage() {
               <div className="grid grid-cols-3 gap-2.5 text-[10px] text-slate-600 border-t border-slate-200 pt-3.5">
                 <div className="flex items-center gap-1">
                   <DollarSign className="h-3.5 w-3.5 text-slate-500" />
-                  <span>Budget: <strong className="text-slate-800">${project.budget}</strong></span>
+                  <span>Budget: <strong className="text-slate-800">{formatProjectBudget(project)}</strong></span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5 text-slate-500" />

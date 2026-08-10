@@ -7,6 +7,7 @@ import {
   getProjectDescriptionText,
   getProjectMetadataDirect,
   RecruitmentRound,
+  formatProjectBudget,
 } from "@/lib/workflowHelpers";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -44,6 +45,18 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
   // Step 1: Specs review agreement
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Role selection. Only relevant when the listing defines role slots; otherwise
+  // the application is submitted with no role, exactly as before.
+  const projectRoles: any[] = project.roles || [];
+  const openRoles = projectRoles.filter(
+    (r: any) => (r.applications?.length ?? 0) < r.slots || r.allowApprentice
+  );
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [applyAsApprentice, setApplyAsApprentice] = useState(false);
+  const selectedRole = projectRoles.find((r: any) => r.id === selectedRoleId);
+  const selectedRoleIsFull =
+    selectedRole && (selectedRole.applications?.length ?? 0) >= selectedRole.slots;
+
   // Step 2: Questionnaire answers
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
@@ -61,6 +74,10 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
     if (step === 1) {
       if (!agreedToTerms) {
         setError("Please review and agree to the gig specifications and deadlines.");
+        return;
+      }
+      if (projectRoles.length > 0 && !selectedRoleId) {
+        setError("Please select which role you are applying for.");
         return;
       }
       setError("");
@@ -105,7 +122,13 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
     setError("");
 
     try {
-      const res = await applyToProject(project.id, coverLetter.trim(), answers);
+      const res = await applyToProject(
+        project.id,
+        coverLetter.trim(),
+        answers,
+        selectedRoleId || undefined,
+        applyAsApprentice
+      );
       if (res.success) {
         router.push(`/freelancer/projects/${project.id}`);
         router.refresh();
@@ -139,9 +162,9 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                   <div
                     className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-xs ${
                       isActive
-                        ? "bg-[#002d59] text-white ring-4 ring-[#002d59]/20"
+                        ? "bg-[#181d26] text-white ring-4 ring-[#181d26]/20"
                         : isCompleted
-                        ? "bg-[#3ac0ff] text-white"
+                        ? "bg-[#1b61c9] text-white"
                         : "bg-slate-200 text-slate-500"
                     }`}
                   >
@@ -149,7 +172,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                   </div>
                   <span
                     className={`text-xs font-bold ${
-                      isActive ? "text-[#002d59]" : "text-slate-400"
+                      isActive ? "text-[#181d26]" : "text-slate-400"
                     }`}
                   >
                     {s.label}
@@ -174,23 +197,23 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
       {step === 1 && (
         <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
           <div className="border-b border-slate-100 pb-4 space-y-1">
-            <h2 className="text-xl font-black text-[#002d59]">Step 1: Review Project Specifications & Requirements</h2>
-            <p className="text-xs text-slate-450 font-medium">Verify the scope and parameters of the gig assignment.</p>
+            <h2 className="text-xl font-black text-[#181d26]">Step 1: Review Project Specifications & Requirements</h2>
+            <p className="text-xs text-slate-400 font-medium">Verify the scope and parameters of the gig assignment.</p>
           </div>
 
           {/* Company details */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-150 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Recruiting Company</span>
               <div className="flex items-center gap-2 mt-1">
-                <Building className="h-4 w-4 text-[#002d59]" />
-                <span className="font-extrabold text-sm text-[#002d59]">{project.company.companyName}</span>
+                <Building className="h-4 w-4 text-[#181d26]" />
+                <span className="font-extrabold text-sm text-[#181d26]">{project.company.companyName}</span>
               </div>
             </div>
             <div>
               <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Engagement Location</span>
               <div className="flex items-center gap-2 mt-1">
-                <MapPin className="h-4 w-4 text-[#3ac0ff]" />
+                <MapPin className="h-4 w-4 text-[#1b61c9]" />
                 <span className="font-semibold text-xs text-slate-600">{project.company.location || "Remote Workspace"}</span>
               </div>
             </div>
@@ -198,7 +221,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
           {/* Project description brief */}
           <div className="space-y-2">
-            <h3 className="text-xs font-black text-[#002d59] uppercase tracking-wider">Opportunity Brief</h3>
+            <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Opportunity Brief</h3>
             <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{cleanDescription}</p>
           </div>
 
@@ -206,8 +229,8 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
             {meta.deliverables && meta.deliverables.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-[#002d59] uppercase tracking-wider">Key Deliverables</h4>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-550 font-medium">
+                <h4 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Key Deliverables</h4>
+                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500 font-medium">
                   {meta.deliverables.map((d: string, idx: number) => (
                     <li key={idx}>{d}</li>
                   ))}
@@ -216,27 +239,121 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
             )}
             
             <div className="space-y-2">
-              <h4 className="text-xs font-black text-[#002d59] uppercase tracking-wider">Parameters & Schedule</h4>
+              <h4 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Parameters & Schedule</h4>
               <div className="space-y-2.5 text-xs text-slate-600">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-450">Compensation Budget:</span>
-                  <span className="font-black text-[#002d59]">${project.budget} Total</span>
+                  <span className="font-bold text-slate-400">Compensation Budget:</span>
+                  <span className="font-black text-[#181d26]">{formatProjectBudget(project)} Total</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-450">Working Timings:</span>
+                  <span className="font-bold text-slate-400">Working Timings:</span>
                   <span className="font-extrabold text-slate-700">{meta.timingType || "Full Time"} ({meta.workingDays || "5 Days/Week"})</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-450">Project Duration:</span>
+                  <span className="font-bold text-slate-400">Project Duration:</span>
                   <span className="font-extrabold text-slate-700">{meta.duration || "3 Months"}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-450">Required Experience:</span>
+                  <span className="font-bold text-slate-400">Required Experience:</span>
                   <span className="font-extrabold text-slate-700">{project.experienceRequired} Years</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Role selection — only when this listing actually defines role slots */}
+          {projectRoles.length > 0 && (
+            <div className="pt-4 border-t border-slate-100 text-left space-y-2.5">
+              <div>
+                <span className="text-xs font-bold text-slate-600 block">Which role are you applying for?</span>
+                <span className="text-[11px] text-slate-500">
+                  This is a team project — pick the position you want to fill.
+                </span>
+              </div>
+              <div className="space-y-2">
+                {projectRoles.map((role: any) => {
+                  const filled = role.applications?.length ?? 0;
+                  const isFull = filled >= role.slots;
+                  const selectable = !isFull || role.allowApprentice;
+                  return (
+                    <label
+                      key={role.id}
+                      className={`flex items-start gap-2.5 p-3 border rounded-[12px] transition-colors ${
+                        selectedRoleId === role.id
+                          ? "border-[#181d26] bg-[#f8fafc]"
+                          : "border-[#dddddd] bg-white"
+                      } ${selectable ? "cursor-pointer hover:border-[#9297a0]" : "opacity-60 cursor-not-allowed"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="roleSlot"
+                        value={role.id}
+                        checked={selectedRoleId === role.id}
+                        disabled={!selectable}
+                        onChange={() => {
+                          setSelectedRoleId(role.id);
+                          // A full role can only be joined as an apprentice.
+                          setApplyAsApprentice(filled >= role.slots);
+                        }}
+                        className="mt-0.5 accent-[#181d26]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-[#181d26]">{role.name}</span>
+                          <span
+                            className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                              isFull
+                                ? "bg-[#f8fafc] text-[#41454d] border-[#dddddd]"
+                                : "bg-emerald-50 text-[#006400] border-emerald-200"
+                            }`}
+                          >
+                            {filled} / {role.slots} filled
+                          </span>
+                          {role.allowApprentice && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200">
+                              Apprentice welcome
+                            </span>
+                          )}
+                        </div>
+                        {role.description && (
+                          <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{role.description}</p>
+                        )}
+                        {isFull && role.allowApprentice && (
+                          <p className="text-[11px] text-amber-700 mt-1">
+                            All primary slots are taken — you can still apply to shadow this role as an
+                            apprentice.
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Apprentice opt-in, when the role still has room but allows shadowing */}
+              {selectedRole?.allowApprentice && !selectedRoleIsFull && (
+                <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={applyAsApprentice}
+                    onChange={(e) => setApplyAsApprentice(e.target.checked)}
+                    className="accent-[#181d26]"
+                  />
+                  Apply as an apprentice (shadow this role) rather than as the primary hire
+                  <span className="block text-[10px] text-slate-500 font-normal mt-0.5">
+                    Apprentices assist the primary freelancer, are scored separately from primary work,
+                    and can be promoted to primary if the primary cannot continue.
+                  </span>
+                </label>
+              )}
+
+              {openRoles.length === 0 && (
+                <p className="text-[11px] text-rose-600">
+                  Every role on this project is currently filled.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Agreement Checkbox */}
           <div className="pt-4 border-t border-slate-100 text-left">
@@ -245,7 +362,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-1 accent-[#002d59] h-4 w-4"
+                className="mt-1 accent-[#181d26] h-4 w-4"
               />
               <div className="text-xs font-semibold text-slate-600 select-none">
                 I verify that I have reviewed the qualifications, skill set requirements, deadlines, and responsibilities for this opportunity, and I possess the capability to fulfill them.
@@ -256,7 +373,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
           <div className="flex justify-end pt-2">
             <Button
               onClick={handleNextStep}
-              disabled={!agreedToTerms}
+              disabled={!agreedToTerms || (projectRoles.length > 0 && !selectedRoleId)}
               className="cursor-pointer gap-1.5 font-bold"
             >
               {allQuestions.length === 0 ? "Skip to Final Submission" : "Proceed to Screening rounds"} <ChevronRight className="h-4 w-4" />
@@ -269,8 +386,8 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
       {step === 2 && allQuestions.length > 0 && (
         <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
           <div className="border-b border-slate-100 pb-4 space-y-1">
-            <h2 className="text-xl font-black text-[#002d59]">Step 2: Screening Questionnaire Assessments</h2>
-            <p className="text-xs text-slate-455 font-medium">Please answer the questions below required for the screening phase.</p>
+            <h2 className="text-xl font-black text-[#181d26]">Step 2: Screening Questionnaire Assessments</h2>
+            <p className="text-xs text-[#9297a0] font-medium">Please answer the questions below required for the screening phase.</p>
           </div>
 
           <div className="space-y-6">
@@ -281,7 +398,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
               return (
                 <div key={q.id} className="p-4 bg-slate-50/50 border border-slate-200/50 rounded-2xl space-y-2.5">
-                  <label className="block text-xs font-bold text-[#002d59] leading-relaxed">
+                  <label className="block text-xs font-bold text-[#181d26] leading-relaxed">
                     Q{index + 1}: {q.question} {q.required && <span className="text-rose-500 font-bold">*</span>}
                   </label>
 
@@ -295,7 +412,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                             value={opt}
                             checked={ansVal === opt}
                             onChange={() => setAnswer(opt)}
-                            className="accent-[#002d59] h-4 w-4"
+                            className="accent-[#181d26] h-4 w-4"
                           />
                           {opt}
                         </label>
@@ -314,8 +431,8 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                             onClick={() => setAnswer(opt)}
                             className={`p-3 text-xs text-left rounded-xl border font-semibold transition-all ${
                               isSelected
-                                ? "bg-[#002d59]/5 border-[#002d59] text-[#002d59] ring-2 ring-[#002d59]/5"
-                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-350 hover:bg-slate-50"
+                                ? "bg-[#181d26]/5 border-[#181d26] text-[#181d26] ring-2 ring-[#181d26]/5"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                             }`}
                           >
                             {opt}
@@ -331,7 +448,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                       value={ansVal}
                       onChange={(e) => setAnswer(e.target.value)}
                       placeholder="Type your comprehensive response details here..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#002d59] focus:border-[#002d59]"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#181d26] focus:border-[#181d26]"
                     />
                   )}
 
@@ -374,20 +491,20 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
         <form onSubmit={handleFormSubmit}>
           <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
             <div className="border-b border-slate-100 pb-4 space-y-1">
-              <h2 className="text-xl font-black text-[#002d59]">Step 3: Cover Letter & Final Submission</h2>
-              <p className="text-xs text-slate-450 font-medium">Tell the recruiters why you are the perfect fit for this engagement assignment.</p>
+              <h2 className="text-xl font-black text-[#181d26]">Step 3: Cover Letter & Final Submission</h2>
+              <p className="text-xs text-slate-400 font-medium">Tell the recruiters why you are the perfect fit for this engagement assignment.</p>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-black text-[#002d59] uppercase tracking-wider">
+                <label className="block text-xs font-black text-[#181d26] uppercase tracking-wider">
                   Cover Letter Pitch Letter *
                 </label>
-                <p className="text-[10px] text-slate-450 font-semibold mb-1">
+                <p className="text-[10px] text-slate-400 font-semibold mb-1">
                   Introduce yourself, state your background experience aligning with the role, and briefly state how you plan to tackle key deliverables.
                 </p>
                 <textarea
-                  className="w-full min-h-[160px] px-4 py-3 rounded-2xl text-xs transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                  className="w-full min-h-[160px] px-4 py-3 rounded-2xl text-xs transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
                   placeholder="Explain why you are the perfect fit for this project. Highlight relevant skills and past projects..."
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
@@ -399,10 +516,10 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
               {/* Summary overview of questionnaire */}
               {allQuestions.length > 0 && (
                 <div className="space-y-2 border-t border-slate-100 pt-4">
-                  <span className="text-[10px] font-black text-[#002d59] uppercase tracking-wider block">
+                  <span className="text-[10px] font-black text-[#181d26] uppercase tracking-wider block">
                     Completed Questionnaire Review
                   </span>
-                  <div className="bg-slate-50 rounded-2xl p-4 space-y-3.5 border border-slate-150 text-xs">
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-3.5 border border-slate-100 text-xs">
                     {allQuestions.map((q: any) => (
                       <div key={q.id} className="space-y-1">
                         <p className="font-bold text-slate-700">{q.question}</p>
@@ -429,7 +546,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
               <Button
                 type="submit"
                 disabled={loading || !coverLetter.trim()}
-                className="cursor-pointer gap-1.5 font-bold bg-[#002d59] text-white hover:bg-[#001f3f]"
+                className="cursor-pointer gap-1.5 font-bold bg-[#181d26] text-white hover:bg-[#001f3f]"
               >
                 {loading ? (
                   "Submitting Proposal..."

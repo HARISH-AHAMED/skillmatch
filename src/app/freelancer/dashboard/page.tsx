@@ -18,7 +18,8 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { ApplicationStatus, ProjectStatus } from "@prisma/client";
-import { getProjectDescriptionText } from "@/lib/workflowHelpers";
+import { getProjectDescriptionText, parseFreelancerMetadata } from "@/lib/workflowHelpers";
+import { DeclineInviteButton } from "@/components/DeclineInviteButton";
 
 export default async function FreelancerDashboard() {
   const session = await auth();
@@ -39,19 +40,19 @@ export default async function FreelancerDashboard() {
   if (!freelancer || !freelancer.verificationBadges.includes("ONBOARDING_COMPLETED")) {
     return (
       <div className="space-y-6 max-w-2xl mx-auto text-center py-10">
-        <div className="p-10 bg-white border border-slate-200/80 shadow-md rounded-3xl space-y-6">
-          <div className="h-14 w-14 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto text-amber-500">
-            <Sparkles className="h-7 w-7 fill-amber-50" />
+        <div className="p-10 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-6">
+          <div className="h-14 w-14 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center mx-auto text-[#181d26]">
+            <Sparkles className="h-7 w-7 text-[#181d26]" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-black text-[#002d59]">Complete Your Profile Onboarding</h2>
-            <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto font-semibold">
+            <h2 className="text-xl font-normal text-[#181d26]">Complete Your Profile Onboarding</h2>
+            <p className="text-xs text-[#333840] leading-relaxed max-w-md mx-auto font-normal">
               To unlock full platform privileges—including AI match recommendations, the project search directory, slot booking calendar, and client workspace applications—you must save your profile settings.
             </p>
           </div>
           <div className="pt-2">
             <Link href="/freelancer/profile">
-              <Button className="px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md bg-[#002d59] text-white hover:bg-[#001f3f] cursor-pointer">
+              <Button variant="primary" className="px-8 py-3 rounded-[12px] font-medium text-xs uppercase tracking-wider cursor-pointer">
                 Go to Profile Settings →
               </Button>
             </Link>
@@ -60,6 +61,14 @@ export default async function FreelancerDashboard() {
       </div>
     );
   }
+
+  // Direct invitations from companies (proactive sourcing). Only surface ones
+  // still pending — applied/dismissed invites are history, not an action.
+  // Declined invites stay visible as history rather than disappearing; only
+  // invites already converted into an application drop off the list.
+  const pendingInvites = (parseFreelancerMetadata(freelancer.bio).projectInvites ?? []).filter(
+    (inv) => inv.status === "PENDING" || inv.status === "DISMISSED"
+  );
 
   // 2. Fetch stats, recommendations, and active applications in parallel
   const [totalApps, shortlistedApps, recommendations, activeApplications] = await Promise.all([
@@ -118,40 +127,40 @@ export default async function FreelancerDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome header based on Screenshot 2 */}
+      {/* Welcome header */}
       <div className="flex justify-between items-center bg-transparent">
         <div>
-          <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">
+          <span className="text-[10px] font-medium text-[#41454d] tracking-wider uppercase">
             Freelancer Dashboard
           </span>
-          <h1 className="text-3xl font-black text-[#002d59] tracking-tight mt-0.5">
+          <h1 className="text-3xl font-normal text-[#181d26] tracking-tight mt-0.5">
             Hello, {session?.user?.name || "Alex Rivera"}
           </h1>
         </div>
         
-        {/* Profile Circle with Green Active Indicator dot */}
+        {/* Profile Circle */}
         <div className="relative">
-          <div className="h-12 w-12 rounded-full bg-sky-100 flex items-center justify-center font-bold text-[#002d59] text-base border-2 border-white shadow-md">
+          <div className="h-12 w-12 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-base border border-[#dddddd] shadow-xs">
             {session?.user?.name ? session.user.name[0].toUpperCase() : "A"}
           </div>
           <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
         </div>
       </div>
 
-      {/* Top Match Hero Card (Screenshot 2 Top Match banner) */}
-      <Card className="p-6 bg-white border border-slate-200/60 shadow-lg shadow-[#002d59]/5 rounded-2xl">
+      {/* Top Match Hero Card */}
+      <Card className="p-6 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-2">
-              <Badge variant="accent" className="bg-[#3ac0ff]/10 text-[#002d59] border border-sky-200/30">
-                <Sparkles className="h-3 w-3 mr-1 text-[#002d59]" />
+              <Badge variant="cream" className="text-[10px]">
+                <Sparkles className="h-3 w-3 mr-1 text-[#181d26]" />
                 TOP MATCH
               </Badge>
             </div>
-            <h2 className="text-2xl font-black text-[#002d59] tracking-tight leading-tight">
+            <h2 className="text-2xl font-normal text-[#181d26] tracking-tight leading-tight">
               {topMatchTitle}
             </h2>
-            <p className="text-xs text-slate-600 max-w-xl font-medium leading-relaxed">
+            <p className="text-xs text-[#333840] max-w-xl font-normal leading-relaxed">
               {topMatchDesc.length > 180 ? `${topMatchDesc.slice(0, 180)}...` : topMatchDesc}
             </p>
             <div className="pt-2">
@@ -171,7 +180,7 @@ export default async function FreelancerDashboard() {
                   cx="56"
                   cy="56"
                   r="48"
-                  stroke="#e2edf8"
+                  stroke="#f8fafc"
                   strokeWidth="8"
                   fill="transparent"
                 />
@@ -179,7 +188,7 @@ export default async function FreelancerDashboard() {
                   cx="56"
                   cy="56"
                   r="48"
-                  stroke="#3ac0ff"
+                  stroke="#181d26"
                   strokeWidth="8"
                   fill="transparent"
                   strokeDasharray={301.6}
@@ -188,68 +197,113 @@ export default async function FreelancerDashboard() {
                 />
               </svg>
               <div className="text-center z-10">
-                <span className="text-3xl font-black text-[#002d59]">{topMatchScore}</span>
-                <p className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">% Match</p>
+                <span className="text-3xl font-normal text-[#181d26]">{topMatchScore}</span>
+                <p className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">% Match</p>
               </div>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Grid summary metrics with green growth indicators */}
+      {/* Grid summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <FileCheck className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <FileCheck className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+12%</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+12%</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{totalApps || 24}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Applications</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{totalApps || 24}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Applications</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <Eye className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <Eye className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+5</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+5</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{shortlistedApps * 15 + 142}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Profile Views</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{shortlistedApps * 15 + 142}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Profile Views</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <TrendingUp className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">+2</span>
+            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+2</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{freelancer.completedProjects || 8}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Completed Gigs</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{freelancer.completedProjects || 8}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Completed Gigs</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100/50">
-              <Star className="h-5 w-5 text-[#002d59]" />
+            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+              <Star className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100/50">Top Rate</span>
+            <span className="text-[10px] font-medium text-[#1b61c9] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#dddddd]">Top Rate</span>
           </div>
           <div>
-            <p className="text-3xl font-black text-[#002d59] leading-none">{freelancer.rating || "5.0"}</p>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mt-2">Rating Score</p>
+            <p className="text-3xl font-normal text-[#181d26] leading-none">{freelancer.rating || "5.0"}</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Rating Score</p>
           </div>
         </Card>
       </div>
+
+      {pendingInvites.length > 0 && (
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#181d26]" />
+            <h2 className="text-sm font-semibold text-[#181d26]">
+              You have {pendingInvites.length} project invitation
+              {pendingInvites.length === 1 ? "" : "s"}
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {pendingInvites.map((inv) => (
+              <div
+                key={inv.projectId + inv.invitedAt}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#f8fafc] border border-[#dddddd] rounded-[12px]"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[#181d26] truncate">{inv.projectTitle}</p>
+                  <p className="text-[11px] text-[#41454d]">
+                    Invited by {inv.companyName}
+                    {inv.roleName ? " · " + (inv.isApprentice ? "Apprentice on " : "") + inv.roleName : ""}
+                  </p>
+                  {inv.message && (
+                    <p className="text-[11px] text-[#333840] italic mt-1">&quot;{inv.message}&quot;</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {inv.status === "DISMISSED" ? (
+                    <Badge variant="neutral" className="text-[10px]">Declined</Badge>
+                  ) : (
+                    <>
+                      <Link href={"/freelancer/projects/" + inv.projectId}>
+                        <Button size="sm" className="cursor-pointer">
+                          View &amp; Accept
+                        </Button>
+                      </Link>
+                      <DeclineInviteButton projectId={inv.projectId} />
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Main Splits: Active Applications & Recommendations */}
       <div className="grid lg:grid-cols-3 gap-8">
@@ -259,31 +313,31 @@ export default async function FreelancerDashboard() {
           {/* Active Applications Section */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-black text-[#002d59] tracking-tight">Active Applications</h2>
-              <Link href="/freelancer/applications" className="text-xs font-bold text-sky-600 hover:text-sky-700">
+              <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Active Applications</h2>
+              <Link href="/freelancer/applications" className="text-xs font-medium text-[#1b61c9] hover:underline">
                 VIEW ALL
               </Link>
             </div>
 
             <div className="space-y-4">
               {activeApplications.length === 0 ? (
-                /* Mock applications showing the structure matching Screenshot 2 */
+                /* Mock applications showing structure */
                 <>
-                  <Card className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <Briefcase className="h-6 w-6 text-[#002d59]" />
+                      <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center text-white font-medium text-sm">
+                        <Briefcase className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-[#002d59]">Stellar Systems</h4>
-                        <p className="text-xs text-slate-600">Senior DevOps Engineer</p>
+                        <h4 className="text-sm font-semibold text-[#181d26]">Stellar Systems</h4>
+                        <p className="text-xs text-[#333840]">Senior DevOps Engineer</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <Badge variant="primary" className="bg-[#3ac0ff]/10 text-[#002d59] border border-sky-200/30 uppercase text-[9px]">
+                      <Badge variant="primary" className="uppercase text-[9px]">
                         INTERVIEWING
                       </Badge>
-                      <div className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
+                      <div className="text-xs text-[#333840] flex items-center gap-1.5 font-normal">
                         <Calendar className="h-3.5 w-3.5" />
                         May 12, 10:00 AM
                       </div>
@@ -294,14 +348,14 @@ export default async function FreelancerDashboard() {
                     </div>
                   </Card>
 
-                  <Card className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <Briefcase className="h-6 w-6 text-[#002d59]" />
+                      <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center text-white font-medium text-sm">
+                        <Briefcase className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-[#002d59]">NeoCode Lab</h4>
-                        <p className="text-xs text-slate-600">Node.js Engineer</p>
+                        <h4 className="text-sm font-semibold text-[#181d26]">NeoCode Lab</h4>
+                        <p className="text-xs text-[#333840]">Node.js Engineer</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -313,23 +367,23 @@ export default async function FreelancerDashboard() {
                 </>
               ) : (
                 activeApplications.map((app) => (
-                  <Card key={app.id} className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <Card key={app.id} className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-11 w-11 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                        <Briefcase className="h-5.5 w-5.5 text-[#002d59]" />
+                      <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center shrink-0">
+                        <Briefcase className="h-5 w-5 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-[#002d59] truncate">{app.project.company.companyName}</h4>
-                        <p className="text-xs text-slate-600 truncate">{app.project.title}</p>
+                        <h4 className="text-sm font-semibold text-[#181d26] truncate">{app.project.company.companyName}</h4>
+                        <p className="text-xs text-[#333840] truncate">{app.project.title}</p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
-                      <Badge variant="primary" className="bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase text-[9px] py-0.5">
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-t-0 border-[#dddddd] pt-3 sm:pt-0">
+                      <Badge variant="mint" className="uppercase text-[9px] py-0.5">
                         HIRED & ACTIVE
                       </Badge>
-                      <span className="text-sm font-bold text-[#002d59]">${app.project.budget}</span>
+                      <span className="text-sm font-semibold text-[#181d26]">${app.project.budget}</span>
                       <Link href={`/workspace/${app.id}`} target="_blank" rel="noopener noreferrer">
-                        <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white font-bold text-[10px] py-1.5 px-3 h-auto">
+                        <Button size="xs" variant="primary" className="cursor-pointer font-medium text-[10px] py-1.5 px-3 h-auto">
                           Open Workspace
                         </Button>
                       </Link>
@@ -342,26 +396,26 @@ export default async function FreelancerDashboard() {
 
           {/* Recommended list */}
           <div className="space-y-4 pt-2">
-            <h2 className="text-lg font-black text-[#002d59] tracking-tight">Recommended for You</h2>
+            <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Recommended for You</h2>
             <div className="space-y-4">
               {recommendations.length === 0 ? (
-                <Card className="p-8 text-center text-xs text-slate-400 bg-white border border-slate-100">
+                <Card className="p-8 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
                   No matching projects found yet. Try updating your skills profile!
                 </Card>
               ) : (
                 recommendations.map((rec) => (
-                  <Card key={rec.id} className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-sky-300 transition-all">
+                  <Card key={rec.id} className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#9297a0] transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant="accent">AI Score: {rec.score}%</Badge>
+                        <Badge variant="cream">AI Score: {rec.score}%</Badge>
                         {rec.project.priority === "HIGH" && (
-                          <Badge variant="danger" className="bg-rose-50 text-rose-700 border border-rose-100">
+                          <Badge variant="coral">
                             Urgent
                           </Badge>
                         )}
                       </div>
-                      <h3 className="text-base font-bold text-[#002d59]">{rec.project.title}</h3>
-                      <p className="text-xs text-slate-600 font-medium">
+                      <h3 className="text-base font-semibold text-[#181d26]">{rec.project.title}</h3>
+                      <p className="text-xs text-[#333840] font-normal">
                         {rec.project.company.companyName} • {rec.project.company.location}
                       </p>
                       <div className="flex flex-wrap gap-1.5 pt-1">
@@ -373,13 +427,13 @@ export default async function FreelancerDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-100 pt-3 md:pt-0">
+                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-[#dddddd] pt-3 md:pt-0">
                       <div className="text-right pr-2">
-                        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Est. Budget</p>
-                        <p className="text-sm font-black text-[#002d59]">${rec.project.budget}</p>
+                        <p className="text-[10px] text-[#41454d] uppercase font-medium tracking-wider">Est. Budget</p>
+                        <p className="text-sm font-semibold text-[#181d26]">${rec.project.budget}</p>
                       </div>
                       <Link href="/freelancer/projects">
-                        <Button size="sm">Apply Now</Button>
+                        <Button size="sm" variant="primary">Apply Now</Button>
                       </Link>
                     </div>
                   </Card>
@@ -390,26 +444,26 @@ export default async function FreelancerDashboard() {
 
         </div>
 
-        {/* Right side Analytics & Tips (matching Screenshot 2) */}
+        {/* Right side Analytics & Tips */}
         <div className="space-y-6">
           <DashboardNotifications initialNotifications={notifications} />
           
-          <h2 className="text-lg font-black text-[#002d59] tracking-tight">Hiring Trends</h2>
+          <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Hiring Trends</h2>
           
           <AnalyticsChart title="Market Statistics" subtitle="Monthly Matching Index" data={chartData} type="line" />
 
-          {/* Profile Level Up Card matching Screenshot 2 exactly - restyled to light theme */}
-          <Card className="p-6 bg-white border border-slate-200/60 shadow-md rounded-2xl space-y-4">
-            <h4 className="text-base font-black tracking-tight flex items-center gap-2 text-[#002d59]">
-              <Sparkles className="h-4.5 w-4.5 text-[#3ac0ff]" />
+          {/* Profile Level Up Card */}
+          <Card className="p-6 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-4">
+            <h4 className="text-base font-normal tracking-tight flex items-center gap-2 text-[#181d26]">
+              <Sparkles className="h-4.5 w-4.5 text-[#181d26]" />
               Level up your profile
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+            <p className="text-xs text-[#333840] leading-relaxed font-normal">
               AI suggests adding &quot;Golang&quot; to your skills based on current market trends in your niche.
             </p>
             <div className="pt-2">
               <Link href="/freelancer/profile">
-                <Button variant="primary" className="w-full rounded-xl">
+                <Button variant="primary" className="w-full rounded-[12px]">
                   Update Skills
                 </Button>
               </Link>
@@ -417,20 +471,20 @@ export default async function FreelancerDashboard() {
           </Card>
 
           {/* Secondary stats lists */}
-          <Card className="p-5 bg-white border border-slate-200/60 shadow-sm rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Skill Match Index</h3>
+          <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-4">
+            <h3 className="text-sm font-semibold text-[#181d26] border-b border-[#dddddd] pb-2">Skill Match Index</h3>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">AI Match Score</span>
-                <span className="text-emerald-600 font-black">92%</span>
+                <span className="text-[#333840] font-normal">AI Match Score</span>
+                <span className="text-[#006400] font-semibold">92%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">Fintech Market Growth</span>
-                <span className="text-emerald-600 font-black">+ 12%</span>
+                <span className="text-[#333840] font-normal">Fintech Market Growth</span>
+                <span className="text-[#006400] font-semibold">+ 12%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">Fintech Dev Demand</span>
-                <span className="text-sky-500 font-black">+ 8%</span>
+                <span className="text-[#333840] font-normal">Fintech Dev Demand</span>
+                <span className="text-[#1b61c9] font-semibold">+ 8%</span>
               </div>
             </div>
           </Card>
@@ -439,3 +493,4 @@ export default async function FreelancerDashboard() {
     </div>
   );
 }
+

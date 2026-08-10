@@ -23,6 +23,7 @@ import {
   FolderCheck,
   UserSearch,
   Lock,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -44,7 +45,7 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName, notifications = [], className }: SidebarProps) {
   const pathname = usePathname();
-  const [workspaces, setWorkspaces] = useState<{ id: string; label: string; href: string; applicationIds?: string[] }[]>([]);
+  const [workspaces, setWorkspaces] = useState<{ id: string; label: string; href: string; applicationIds?: string[]; status?: string }[]>([]);
   const [profileHref, setProfileHref] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isOnboarded, setIsOnboarded] = useState<boolean>(true);
@@ -100,6 +101,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
           { name: "My Projects", href: "/company/projects", icon: Briefcase, exact: true },
           { name: "Post New Project", href: "/company/projects/new", icon: PlusCircle },
           { name: "Review Applicants", href: "/company/applicants", icon: ClipboardList },
+          { name: "Project Workspace", href: "/company/workspace", icon: FolderCheck },
           { name: "Search Freelancers", href: "/company/freelancers", icon: UserSearch },
           { name: "Freelancer Reviews", href: "/company/reviews", icon: Star },
         ];
@@ -108,6 +110,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         return [
           { name: "Dashboard", href: "/freelancer/dashboard", icon: LayoutDashboard },
           { name: "My Profile", href: "/freelancer/profile", icon: UserCircle },
+          { name: "Project Workspace", href: "/freelancer/workspace", icon: FolderCheck },
           { name: "Completed Projects", href: "/freelancer/completed-projects", icon: FolderCheck },
           { name: "Browse Projects", href: "/freelancer/projects", icon: Briefcase },
           { name: "Track Applications", href: "/freelancer/applications", icon: FileText },
@@ -123,16 +126,16 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
   };
 
   return (
-    <aside className={cn("w-64 border-r border-slate-200/60 bg-[#f8faff] h-screen sticky top-0 flex flex-col p-6 z-30", className)}>
+    <aside className={cn("w-64 border-r border-[#dddddd] bg-white h-screen sticky top-0 flex flex-col p-6 z-30", className)}>
       {/* Logo + notifications — always visible at top */}
       <div className="flex items-center justify-between mb-8 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#002d59] to-[#3ac0ff] flex items-center justify-center shadow-md shadow-[#3ac0ff]/20">
-            <Sparkles className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-[#181d26] flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-[#002d59] tracking-tight text-base leading-none">Talentra</h1>
-            <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1 inline-block">
+            <h1 className="font-medium text-[#181d26] tracking-tight text-base leading-none">Talentra</h1>
+            <span className="text-[10px] text-[#41454d] font-medium tracking-wider uppercase mt-1 inline-block">
               {role} Space
             </span>
           </div>
@@ -155,30 +158,52 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
               return (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl opacity-50 cursor-not-allowed text-slate-400 border border-transparent"
+                  className="flex items-center justify-between px-3 py-2.5 text-sm font-normal rounded-md opacity-50 cursor-not-allowed text-[#9297a0]"
                   title="Complete onboarding to unlock this section"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="h-4.5 w-4.5 shrink-0 text-slate-400" />
+                    <Icon className="h-4 w-4 shrink-0 text-[#9297a0]" />
                     <span>{item.name}</span>
                   </div>
-                  <Lock className="h-3.5 w-3.5 text-slate-400" />
+                  <Lock className="h-3.5 w-3.5 text-[#9297a0]" />
+                </div>
+              );
+            }
+
+            const itemClasses = cn(
+              "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors duration-150 cursor-pointer",
+              isActive
+                ? "bg-[#f8fafc] text-[#181d26] font-semibold border-l-2 border-[#181d26]"
+                : "text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc]"
+            );
+            const iconClasses = cn("h-4 w-4 shrink-0", isActive ? "text-[#181d26]" : "text-[#41454d]");
+
+            // Workspaces are long-lived per-project surfaces — offer a launcher
+            // so each project can live in its own tab.
+            if (item.name === "Project Workspace") {
+              return (
+                <div key={item.name} className="group relative flex items-center">
+                  <Link href={item.href} className={cn(itemClasses, "flex-1 min-w-0 pr-9")}>
+                    <Icon className={iconClasses} />
+                    <span className="truncate">{item.name}</span>
+                  </Link>
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open workspace in a new tab"
+                    aria-label="Open workspace in a new tab"
+                    className="absolute right-1.5 p-1.5 rounded-md text-[#41454d] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-[#181d26] hover:bg-[#e0e2e6] transition-all cursor-pointer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 </div>
               );
             }
 
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 cursor-pointer",
-                  isActive
-                    ? "bg-[#3ac0ff]/15 border border-[#3ac0ff]/30 text-[#002d59] shadow-sm"
-                    : "text-slate-600 hover:text-[#002d59] hover:bg-slate-100 border border-transparent"
-                )}
-              >
-                <Icon className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-[#002d59]" : "text-slate-400")} />
+              <Link key={item.name} href={item.href} className={itemClasses}>
+                <Icon className={iconClasses} />
                 {item.name}
               </Link>
             );
@@ -187,9 +212,12 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
 
         {/* Active Workspaces Section */}
         {workspaces.length > 0 && isOnboarded && (
-          <div className="mt-6 pt-4 border-t border-slate-200/80">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block px-4 mb-2">
+          <div className="mt-6 pt-4 border-t border-[#dddddd]">
+            <span className="text-[10px] font-semibold text-[#41454d] uppercase tracking-wider block px-3 mb-2">
               Active Workspaces
+              <span className="normal-case tracking-normal font-normal text-[#9297a0] block mt-0.5">
+                Each opens in its own tab
+              </span>
             </span>
             <div className="space-y-1">
               {workspaces.map((ws) => {
@@ -204,15 +232,16 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      "flex items-center gap-3 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all duration-150 cursor-pointer truncate",
+                      "group flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-md transition-colors duration-150 cursor-pointer",
                       isActive
-                        ? "bg-[#3ac0ff]/15 border border-[#3ac0ff]/30 text-[#002d59] shadow-sm"
-                        : "text-slate-600 hover:text-[#002d59] hover:bg-slate-100 border border-transparent"
+                        ? "bg-[#f8fafc] text-[#181d26] font-semibold border-l-2 border-[#181d26]"
+                        : "text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc]"
                     )}
-                    title={ws.label}
+                    title={`${ws.label} — opens in a new tab`}
                   >
-                    <FolderCheck className={cn("h-4 w-4 shrink-0", isActive ? "text-[#002d59]" : "text-slate-400")} />
-                    <span className="truncate">{ws.label}</span>
+                    <FolderCheck className={cn("h-4 w-4 shrink-0", isActive ? "text-[#181d26]" : "text-[#41454d]")} />
+                    <span className="truncate flex-1 min-w-0">{ws.label}</span>
+                    <ExternalLink className="h-3 w-3 shrink-0 text-[#9297a0] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
                   </Link>
                 );
               })}
@@ -221,15 +250,14 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
         )}
       </div>
 
-
       {/* Profile summary & Logout */}
-      <div className="border-t border-slate-200/80 pt-4 space-y-3">
+      <div className="border-t border-[#dddddd] pt-4 space-y-3">
         {profileHref ? (
           <Link
             href={profileHref}
-            className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-100/80 rounded-xl transition-colors cursor-pointer group"
+            className="flex items-center gap-3 px-2 py-1.5 hover:bg-[#f8fafc] rounded-md transition-colors cursor-pointer group"
           >
-            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-[#3ac0ff]/50 transition-all">
+            <div className="h-8 w-8 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-xs shrink-0 overflow-hidden">
               {profileImage ? (
                 <img src={profileImage} alt={userName || "Profile"} className="h-full w-full object-cover" />
               ) : (
@@ -237,13 +265,13 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
               )}
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
-              <p className="text-[10px] text-slate-500 capitalize truncate">{role.toLowerCase()}</p>
+              <p className="text-xs font-medium text-[#181d26] truncate">{userName || "User Profile"}</p>
+              <p className="text-[10px] text-[#41454d] capitalize truncate">{role.toLowerCase()}</p>
             </div>
           </Link>
         ) : (
           <div className="flex items-center gap-3 px-2 py-1.5">
-            <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-[#002d59] text-sm border border-slate-200 shrink-0 overflow-hidden">
+            <div className="h-8 w-8 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-xs shrink-0 overflow-hidden">
               {profileImage ? (
                 <img src={profileImage} alt={userName || "Profile"} className="h-full w-full object-cover" />
               ) : (
@@ -251,19 +279,20 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
               )}
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-semibold text-slate-800 truncate">{userName || "User Profile"}</p>
-              <p className="text-[10px] text-slate-500 capitalize truncate">{role.toLowerCase()}</p>
+              <p className="text-xs font-medium text-[#181d26] truncate">{userName || "User Profile"}</p>
+              <p className="text-[10px] text-[#41454d] capitalize truncate">{role.toLowerCase()}</p>
             </div>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all cursor-pointer"
+          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-all cursor-pointer"
         >
-          <LogOut className="h-4.5 w-4.5 text-rose-600" />
+          <LogOut className="h-4 w-4 text-rose-600" />
           Log Out
         </button>
       </div>
     </aside>
   );
 }
+

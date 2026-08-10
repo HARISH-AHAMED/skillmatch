@@ -30,7 +30,10 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 
+import { EarnedCertificatesPanel, EarnedCertificate } from "@/components/EarnedCertificatesPanel";
+
 interface ProfileFormProps {
+  earnedCertificates?: EarnedCertificate[];
   initialData?: {
     bio: string | null;
     skills: string[];
@@ -63,13 +66,6 @@ interface ExperienceItem {
   description: string;
 }
 
-interface CertificationItem {
-  id: string;
-  name: string;
-  issuer: string;
-  year: string;
-  imageUrl?: string;
-}
 
 interface PortfolioItem {
   id: string;
@@ -81,7 +77,7 @@ interface PortfolioItem {
   images?: string[];
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFormProps) {
   // Parse serialized freelancer metadata from bio
   const meta = parseFreelancerMetadata(initialData?.bio);
   const initialBioText = getFreelancerBioText(initialData?.bio);
@@ -137,9 +133,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     (initialData?.experience && Array.isArray(initialData.experience) ? initialData.experience : []) as ExperienceItem[]
   );
 
-  const [certifications, setCertifications] = useState<CertificationItem[]>(
-    (initialData?.certifications as CertificationItem[]) || []
-  );
 
   // Default seeded portfolio items if empty
   const defaultPortfolioItems: PortfolioItem[] = [
@@ -187,14 +180,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     current: false,
     description: "",
   });
-
-  const [showCertModal, setShowCertModal] = useState(false);
-  const [newCert, setNewCert] = useState<Omit<CertificationItem, "id">>({
-    name: "",
-    issuer: "",
-    year: new Date().getFullYear().toString(),
-  });
-  const [certFile, setCertFile] = useState<File | null>(null);
 
   const [showPortModal, setShowPortModal] = useState(false);
   const [newPort, setNewPort] = useState<Omit<PortfolioItem, "id">>({
@@ -252,40 +237,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     setShowExpModal(false);
   };
 
-  const addCertification = async () => {
-    if (!newCert.name || !newCert.issuer) {
-      alert("Please fill in certification name and issuer.");
-      return;
-    }
-    setLoading(true);
-    setUploadProgress("Processing certification image...");
-    try {
-      let imageUrl = "";
-      if (certFile) {
-        imageUrl = await fileToBase64(certFile, 1.5);
-      }
-      const item: CertificationItem = {
-        id: `cert-${Date.now()}`,
-        name: newCert.name,
-        issuer: newCert.issuer,
-        year: newCert.year,
-        imageUrl,
-      };
-      setCertifications([...certifications, item]);
-      setNewCert({
-        name: "",
-        issuer: "",
-        year: new Date().getFullYear().toString(),
-      });
-      setCertFile(null);
-      setShowCertModal(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to add certification");
-    } finally {
-      setLoading(false);
-      setUploadProgress(null);
-    }
-  };
 
   const addPortfolioItem = async () => {
     if (!newPort.title || !newPort.description) {
@@ -372,7 +323,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         resumeUrl: finalResumeUrl,
         professionalHeadline,
         experience,
-        certifications,
+        certifications: initialData?.certifications ?? undefined,
         portfolioItems,
         responseTime,
         availabilityStatus,
@@ -431,12 +382,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   };
 
   return (
-    <Card className="p-8 w-full bg-white shadow-lg border border-slate-100 rounded-3xl space-y-6">
+    <Card className="p-8 w-full bg-white border border-[#dddddd] rounded-[12px] space-y-6 shadow-xs">
       {message && (
         <div
-          className={`p-4 rounded-xl text-xs font-semibold border ${
+          className={`p-4 rounded-[8px] text-xs font-medium border ${
             message.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+              ? "bg-[#f8fafc] border-[#dddddd] text-[#181d26]"
               : "bg-rose-50 border-rose-200 text-rose-800"
           }`}
         >
@@ -445,29 +396,29 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       )}
 
       {uploadProgress && (
-        <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 rounded-xl text-xs font-semibold animate-pulse flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-sky-500" />
+        <div className="p-3 bg-[#f8fafc] border border-[#dddddd] text-[#181d26] rounded-[8px] text-xs font-medium flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[#181d26]" />
           {uploadProgress}
         </div>
       )}
 
       {/* Tabs Selector Navigation */}
-      <div className="flex flex-nowrap overflow-x-auto no-scrollbar border-b border-slate-100 pb-2 mb-2 gap-2 whitespace-nowrap scroll-smooth md:flex-wrap md:overflow-x-visible md:pb-1.5 md:mb-0">
+      <div className="flex flex-nowrap overflow-x-auto no-scrollbar border-b border-[#dddddd] pb-2 mb-2 gap-2 whitespace-nowrap scroll-smooth md:flex-wrap md:overflow-x-visible md:pb-1.5 md:mb-0">
         {(["info", "skills", "experience", "certifications", "portfolio", "calendar"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 ${
+            className={`px-4 py-2 text-xs font-medium rounded-[12px] transition-all cursor-pointer shrink-0 ${
               activeTab === tab
-                ? "bg-[#002d59] text-white shadow-md shadow-[#002d59]/10"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                ? "bg-[#181d26] text-white"
+                : "text-[#41454d] hover:bg-[#f8fafc] hover:text-[#181d26]"
             }`}
           >
             {tab === "info" && "Profile Info"}
             {tab === "skills" && "Skills & Resume"}
             {tab === "experience" && "Work Experience"}
-            {tab === "certifications" && "Certifications"}
+            {tab === "certifications" && "Certificates"}
             {tab === "portfolio" && "Portfolio Gallery"}
             {tab === "calendar" && "Availability & Calendar"}
           </button>
@@ -480,7 +431,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 border border-slate-200/40 rounded-2xl">
               <div className="relative">
-                <div className="h-20 w-20 rounded-2xl bg-sky-100 border border-slate-200 overflow-hidden flex items-center justify-center font-bold text-[#002d59] text-2xl shadow-inner">
+                <div className="h-20 w-20 rounded-2xl bg-sky-100 border border-slate-200 overflow-hidden flex items-center justify-center font-bold text-[#181d26] text-2xl shadow-inner">
                   {image ? (
                     <img src={image} alt="Profile Photo" className="h-full w-full object-cover" />
                   ) : (
@@ -527,7 +478,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-600">Bio / About Me</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
                 placeholder="Write a compelling summary about your software career..."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -541,11 +492,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <select
                   value={availabilityStatus}
                   onChange={(e) => setAvailabilityStatus(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                 >
-                  <option value="AVAILABLE">🟢 Available for Hire (Immediate)</option>
-                  <option value="BUSY">🟡 Busy / Limited availability</option>
-                  <option value="UNAVAILABLE">🔴 Unavailable / Not looking</option>
+                  <option value="AVAILABLE">Available for Hire (Immediate)</option>
+                  <option value="BUSY">Busy / Limited availability</option>
+                  <option value="UNAVAILABLE">Unavailable / Not looking</option>
                 </select>
               </div>
 
@@ -554,13 +505,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <select
                   value={responseTime}
                   onChange={(e) => setResponseTime(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                 >
-                  <option value="Within 1 hour">⚡ Within 1 hour</option>
-                  <option value="Within 3 hours">🕒 Within 3 hours</option>
-                  <option value="Within 12 hours">⏰ Within 12 hours</option>
-                  <option value="Within 24 hours">📅 Within 24 hours</option>
-                  <option value="Within a few days">💬 Within a few days</option>
+                  <option value="Within 1 hour">Within 1 hour</option>
+                  <option value="Within 3 hours">Within 3 hours</option>
+                  <option value="Within 12 hours">Within 12 hours</option>
+                  <option value="Within 24 hours">Within 24 hours</option>
+                  <option value="Within a few days">Within a few days</option>
                 </select>
               </div>
             </div>
@@ -571,7 +522,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                 >
                   <option value="ANY">Prefer Not to Say / Other</option>
                   <option value="MALE">Male</option>
@@ -584,7 +535,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <select
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                 >
                   <option value="Software Engineering">Software Engineering</option>
                   <option value="Data & AI">Data & AI</option>
@@ -612,7 +563,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                       onClick={() => toggleBadge(badge)}
                       className={`px-3 py-1.5 text-[10px] font-bold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
                         isChecked
-                          ? "bg-sky-50 border-sky-300 text-[#002d59] shadow-sm"
+                          ? "bg-sky-50 border-sky-300 text-[#181d26] shadow-sm"
                           : "bg-white border-slate-200 text-slate-400 hover:border-slate-400"
                       }`}
                     >
@@ -630,7 +581,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         {activeTab === "skills" && (
           <div className="space-y-5 text-left">
             <div className="space-y-2.5">
-              <label className="block text-xs font-bold text-slate-650 font-bold">Professional Skills *</label>
+              <label className="block text-xs font-bold text-slate-600 font-bold">Professional Skills *</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Type skill and press Add (e.g. react, typescript)"
@@ -669,7 +620,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <Badge
                       key={s}
                       variant="primary"
-                      className="bg-[#3ac0ff]/10 text-[#002d59] border border-[#3ac0ff]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                      className="bg-[#1b61c9]/10 text-[#181d26] border border-[#1b61c9]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
                     >
                       {s}
                       <button
@@ -705,7 +656,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     href={resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-bold text-[#3ac0ff] hover:text-[#002d59] transition-colors flex items-center gap-1"
+                    className="text-xs font-bold text-[#1b61c9] hover:text-[#181d26] transition-colors flex items-center gap-1"
                   >
                     <span>View File</span>
                     <ExternalLink className="h-3 w-3" />
@@ -727,7 +678,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   }
                 }}
                 disabled={loading}
-                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
               />
             </div>
           </div>
@@ -744,7 +695,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               <button
                 type="button"
                 onClick={() => setShowExpModal(true)}
-                className="px-3.5 py-1.5 text-[10px] font-bold text-[#002d59] hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 text-[10px] font-bold text-[#181d26] hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Experience
               </button>
@@ -764,8 +715,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-[#002d59]" />
-                        <h4 className="text-xs font-bold text-[#002d59]">{item.title}</h4>
+                        <Briefcase className="h-4 w-4 text-[#181d26]" />
+                        <h4 className="text-xs font-bold text-[#181d26]">{item.title}</h4>
                       </div>
                       <p className="text-[10px] text-slate-600 font-medium">
                         {item.company} • <span className="italic">{item.startDate} to {item.current ? "Present" : item.endDate}</span>
@@ -788,9 +739,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {/* Add Experience Modal Popup */}
             {showExpModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowExpModal(false)} />
+                <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowExpModal(false)} />
                 <div className="relative w-full max-w-md bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-                  <h3 className="text-sm font-bold text-[#002d59]">Add Work Experience</h3>
+                  <h3 className="text-sm font-bold text-[#181d26]">Add Work Experience</h3>
 
                   <div className="space-y-3.5">
                     <Input
@@ -828,7 +779,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                         id="currJob"
                         checked={newExp.current}
                         onChange={(e) => setNewExp({ ...newExp, current: e.target.checked, endDate: e.target.checked ? "" : newExp.endDate })}
-                        className="rounded border-slate-300 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+                        className="rounded border-slate-300 focus:ring-[#181d26] h-4 w-4 cursor-pointer"
                       />
                       <label htmlFor="currJob" className="text-xs font-semibold text-slate-600 cursor-pointer">
                         Currently working here
@@ -838,7 +789,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold text-slate-600">Role Description</label>
                       <textarea
-                        className="w-full min-h-[90px] px-3.5 py-2 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                        className="w-full min-h-[90px] px-3.5 py-2 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
                         placeholder="Detail key tech used and deliverables completed..."
                         value={newExp.description}
                         onChange={(e) => setNewExp({ ...newExp, description: e.target.value })}
@@ -860,130 +811,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           </div>
         )}
 
-        {/* TAB 4: Certifications */}
+        {/* TAB 4: Platform certificates (view / show / hide) */}
         {activeTab === "certifications" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <div>
-                <h4 className="text-xs font-bold text-slate-700">Certificates & Awards</h4>
-                <p className="text-[10px] text-slate-500">List professional credentials, qualifications, or badges.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCertModal(true)}
-                className="px-3.5 py-1.5 text-[10px] font-bold text-[#002d59] hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" /> Add Credential
-              </button>
-            </div>
-
-            {/* Certs List */}
-            <div className="space-y-3">
-              {certifications.length === 0 ? (
-                <p className="text-xs text-slate-400 italic text-center p-6 bg-slate-50 rounded-2xl">
-                  No certifications listed.
-                </p>
-              ) : (
-                certifications.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm flex justify-between items-center gap-4 hover:border-slate-200 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      {item.imageUrl ? (
-                        <div className="h-10 w-10 border border-slate-200 bg-white rounded-xl overflow-hidden shrink-0 flex items-center justify-center cursor-pointer">
-                          <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="p-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 shrink-0">
-                          <Award className="h-5 w-5" />
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="text-xs font-bold text-[#002d59]">{item.name}</h4>
-                        <p className="text-[10px] text-slate-500 font-semibold">
-                          {item.issuer} • Issued {item.year}
-                          {item.imageUrl && (
-                            <a
-                              href={item.imageUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#3ac0ff] hover:text-[#002d59] font-bold ml-2 transition-colors inline-flex items-center gap-0.5"
-                            >
-                              View <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setCertifications(certifications.filter((c) => c.id !== item.id))}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Add Cert Modal Popup */}
-            {showCertModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowCertModal(false)} />
-                <div className="relative w-full max-w-md bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-                  <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Add Certification</h3>
-
-                  <div className="space-y-3.5">
-                    <Input
-                      label="Credential Name"
-                      placeholder="Google Cloud Digital Leader"
-                      value={newCert.name}
-                      onChange={(e) => setNewCert({ ...newCert, name: e.target.value })}
-                    />
-                    <Input
-                      label="Issuer Organization"
-                      placeholder="Google"
-                      value={newCert.issuer}
-                      onChange={(e) => setNewCert({ ...newCert, issuer: e.target.value })}
-                    />
-                    <Input
-                      label="Year Issued"
-                      type="number"
-                      min="2000"
-                      max={new Date().getFullYear() + 2}
-                      value={newCert.year}
-                      onChange={(e) => setNewCert({ ...newCert, year: e.target.value })}
-                    />
-                    
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-slate-600">Upload Certificate Badge / Image (Max 5MB)</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setCertFile(file);
-                        }}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-200 text-slate-800 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
-                    <Button variant="outline" size="sm" onClick={() => { setCertFile(null); setShowCertModal(false); }}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={addCertification}>
-                      Add Entry
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <EarnedCertificatesPanel certificates={earnedCertificates} />
         )}
 
         {/* TAB 5: Portfolio Gallery */}
@@ -997,7 +827,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               <button
                 type="button"
                 onClick={() => setShowPortModal(true)}
-                className="px-3.5 py-1.5 text-[10px] font-bold text-[#002d59] hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 text-[10px] font-bold text-[#181d26] hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Gallery Project
               </button>
@@ -1014,7 +844,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getPortfolioIcon(item.type)}
-                        <h4 className="text-xs font-extrabold text-[#002d59]">{item.title}</h4>
+                        <h4 className="text-xs font-extrabold text-[#181d26]">{item.title}</h4>
                       </div>
                       <Badge variant="neutral" className="text-[9px] uppercase px-1.5 py-0.5">
                         {item.type.replace("_", " ")}
@@ -1042,7 +872,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#3ac0ff] hover:text-[#002d59] transition-colors"
+                        className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#1b61c9] hover:text-[#181d26] transition-colors"
                       >
                         <span>View Project</span>
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -1066,9 +896,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {/* Add Portfolio Item Modal Popup */}
             {showPortModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setShowPortModal(false); }} />
+                <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setShowPortModal(false); }} />
                 <div className="relative w-full max-w-md bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
-                  <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Add Portfolio Project</h3>
+                  <h3 className="text-sm font-bold text-[#181d26] border-b border-slate-100 pb-2">Add Portfolio Project</h3>
 
                   <div className="space-y-3.5">
                     <Input
@@ -1081,7 +911,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold text-slate-600">Project Description</label>
                       <textarea
-                        className="w-full min-h-[70px] px-3.5 py-2 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                        className="w-full min-h-[70px] px-3.5 py-2 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
                         placeholder="Outline the core functionality and what technologies you used..."
                         value={newPort.description}
                         onChange={(e) => setNewPort({ ...newPort, description: e.target.value })}
@@ -1093,13 +923,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                       <select
                         value={newPort.type}
                         onChange={(e) => { setNewPort({ ...newPort, type: e.target.value as any, url: "" }); setSelectedFiles(null); setSelectedFilePreviews([]); }}
-                        className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                        className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                       >
-                        <option value="IMAGE">🖼️ Local Images Showcase (Multiple Uploads)</option>
-                        <option value="VIDEO">🎥 Local Video Demo Showcase</option>
-                        <option value="GITHUB">💻 GitHub Repository Link</option>
-                        <option value="WEBSITE">🌐 Live Website URL</option>
-                        <option value="CASE_STUDY">📝 Case Study / Article Link</option>
+                        <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
+                        <option value="VIDEO">Local Video Demo Showcase</option>
+                        <option value="GITHUB">GitHub Repository Link</option>
+                        <option value="WEBSITE">Live Website URL</option>
+                        <option value="CASE_STUDY">Case Study / Article Link</option>
                       </select>
                     </div>
 
@@ -1175,7 +1005,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         {/* TAB 6: Availability & Calendar */}
         {activeTab === "calendar" && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#002d59] border-b border-slate-100 pb-2">
+            <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
               Unstop-style Profile Rankings & Availability Calendar
             </h2>
 
@@ -1183,13 +1013,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Global Platform Rank</span>
-                <p className="text-xl font-black text-[#002d59]"># 1,832,289</p>
+                <p className="text-xl font-black text-[#181d26]"># 1,832,289</p>
                 <p className="text-[10px] text-slate-500 font-medium">Based on active workspace completions</p>
               </Card>
 
               <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Unstop-style Points</span>
-                <p className="text-xl font-black text-[#002d59]">20 Points</p>
+                <p className="text-xl font-black text-[#181d26]">20 Points</p>
                 <p className="text-[10px] text-slate-500 font-medium">Earned through quality ratings</p>
               </Card>
 
@@ -1202,7 +1032,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                       className={`h-4 w-4 rounded shrink-0 border transition-all ${
                         v === 4 ? "bg-emerald-700 border-emerald-800" :
                         v === 3 ? "bg-emerald-500 border-emerald-600" :
-                        v === 2 ? "bg-[#3ac0ff] border-sky-400" :
+                        v === 2 ? "bg-[#1b61c9] border-sky-400" :
                         v === 1 ? "bg-sky-100 border-sky-200" :
                         "bg-slate-100 border-slate-200"
                       }`}
@@ -1218,7 +1048,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-600">What's your primary purpose? *</label>
               <select
-                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002d59]/20"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value as any)}
               >
@@ -1232,13 +1062,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {/* Rates & Availability preferences */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <Input
-                label="Expected Hourly Rate ($/hr)"
+                label="Expected Hourly Rate (per hour)"
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(e.target.value)}
               />
               <Input
-                label="Expected Budget Minimum ($)"
+                label="Expected Budget Minimum"
                 type="number"
                 value={expectedBudget}
                 onChange={(e) => setExpectedBudget(e.target.value)}
@@ -1312,9 +1142,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                               setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: [] } : c));
                             }
                           }}
-                          className="rounded border-slate-350 focus:ring-[#002d59] h-4 w-4 cursor-pointer"
+                          className="rounded border-slate-300 focus:ring-[#181d26] h-4 w-4 cursor-pointer"
                         />
-                        <label htmlFor={`day-${day}`} className="font-bold text-[#002d59] cursor-pointer">
+                        <label htmlFor={`day-${day}`} className="font-bold text-[#181d26] cursor-pointer">
                           {day}
                         </label>
                       </div>

@@ -6,10 +6,25 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { parseApplicationMetadata, getApplicationCoverLetterText } from "@/lib/workflowHelpers";
+import { TeamMatchConfirmation } from "@/components/TeamMatchConfirmation";
+import {
+  parseApplicationMetadata,
+  getApplicationCoverLetterText,
+  PAYMENT_CATEGORIES,
+  PaymentCategory,
+  getPaymentUnitLabel,
+  getPaymentCategoryLabel,
+  CURRENCIES,
+  DEFAULT_CURRENCY,
+  getCurrencySymbol,
+  formatMoney,
+  getBenefitLabel,
+  isNonMonetary,
+} from "@/lib/workflowHelpers";
 import {
   signDigitalContract,
   respondToOfferLetterAction,
+  negotiateOfferAction,
   sendDMMessageAction,
   getDMMessagesAction,
   editDMMessageAction,
@@ -41,9 +56,15 @@ interface FreelancerApplicationCardProps {
 export function FreelancerApplicationCard({ app, currentUserId }: FreelancerApplicationCardProps) {
   const router = useRouter();
   const [signing, setSigning] = useState(false);
-  const [offerLoading, setOfferLoading] = useState<"ACCEPT" | "DECLINE" | null>(null);
+  const [offerLoading, setOfferLoading] = useState<"ACCEPT" | "DECLINE" | "NEGOTIATE" | null>(null);
   const [isDeclining, setIsDeclining] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
+  const [isNegotiating, setIsNegotiating] = useState(false);
+  const [showTeamMatch, setShowTeamMatch] = useState(false);
+  const [negoAmount, setNegoAmount] = useState(0);
+  const [negoCategory, setNegoCategory] = useState<PaymentCategory>("FIXED");
+  const [negoCurrency, setNegoCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [negoMessage, setNegoMessage] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "chat">("overview");
   const [dmMessages, setDmMessages] = useState<any[]>([]);
   const [dmInput, setDmInput] = useState("");
@@ -78,6 +99,13 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
   const offerLetter = appMeta.offerLetter;
   const hasOffer = !!offerLetter;
   const offerPending = offerLetter?.status === "PENDING";
+  // While a counter-offer is outstanding the offer is parked in NEGOTIATING —
+  // the card must stay visible or the freelancer loses sight of it entirely.
+  const offerNegotiating = offerLetter?.status === "NEGOTIATING";
+  const pendingNegotiation = offerLetter?.negotiation?.find((n) => n.status === "PENDING");
+  const lastResolvedNegotiation = [...(offerLetter?.negotiation ?? [])]
+    .reverse()
+    .find((n) => n.status !== "PENDING");
   const offerAccepted = offerLetter?.status === "ACCEPTED";
   const offerDeclined = offerLetter?.status === "DECLINED";
 
@@ -115,6 +143,28 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
     } catch (err: any) {
       alert(err.message || "Failed to sign contract.");
     } finally { setSigning(false); }
+  };
+
+  const handleNegotiate = async () => {
+    if (negoCategory !== "NON_MONETARY" && negoAmount <= 0) {
+      alert("Please enter a proposed amount greater than zero.");
+      return;
+    }
+    setOfferLoading("NEGOTIATE");
+    try {
+      const res = await negotiateOfferAction(app.id, negoAmount, negoCategory, negoCurrency, negoMessage.trim() || undefined);
+      if (res.success) {
+        setIsNegotiating(false);
+        setNegoMessage("");
+        router.refresh();
+      } else {
+        alert(res.error || "Failed to send counter-offer.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to send counter-offer.");
+    } finally {
+      setOfferLoading(null);
+    }
   };
 
   const handleOfferResponse = async (decision: "ACCEPT" | "DECLINE") => {
@@ -190,38 +240,104 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
   ];
 
   return (
-    <Card className="p-0 border border-slate-100 bg-white shadow-sm overflow-hidden">
+    <Card className="p-0 border border-[#dddddd] bg-white rounded-[12px] shadow-xs overflow-hidden">
 
       {/* ═══ OFFER LETTER BANNER ═══ */}
-      {hasOffer && offerPending && (
-        <div className="px-6 pt-5 pb-5 bg-gradient-to-r from-[#002d59] to-[#0055a5] text-white space-y-4">
+      {hasOffer && (offerPending || offerNegotiating) && (
+        <div className="px-6 pt-5 pb-5 bg-[#181d26] text-white space-y-4 text-left">
           <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-white/15 rounded-xl shrink-0">
-              <Gift className="h-5 w-5 text-yellow-300" />
+            <div className="p-2.5 bg-white/10 rounded-[8px] shrink-0">
+              <Gift className="h-5 w-5 text-[#fcab79]" />
             </div>
             <div className="flex-1 space-y-1 text-left">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Official Hiring Offer Received</p>
-              <h3 className="text-sm font-black">You&apos;ve been offered a position on this project!</h3>
-              <p className="text-xs text-blue-100 leading-relaxed">{offerLetter!.offerText}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-300">Official Hiring Offer Received</p>
+              <h3 className="text-sm font-semibold">You&apos;ve been offered a position on this project!</h3>
+              <p className="text-xs text-slate-200 leading-relaxed font-normal">{offerLetter!.offerText}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 bg-white/10 rounded-2xl p-4">
+          <div className="grid grid-cols-3 gap-3 bg-white/10 rounded-[10px] p-4">
             <div>
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-wider">Total Stipend</p>
-              <p className="text-lg font-black text-yellow-300">₹{offerLetter!.stipendAmount}</p>
+              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">
+                {offerLetter!.paymentCategory === "HOURLY"
+                  ? "Hourly Rate"
+                  : offerLetter!.paymentCategory === "MONTHLY"
+                  ? "Monthly Rate"
+                  : "Total Stipend"}
+              </p>
+              <p className="text-lg font-semibold text-[#fcab79]">
+                {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)}
+              </p>
             </div>
             <div>
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-wider">Payment Plan</p>
-              <p className="text-xs font-bold text-white">{offerLetter!.milestones?.length || 0} milestones</p>
+              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">Payment Category</p>
+              <p className="text-xs font-semibold text-white">{getPaymentCategoryLabel(offerLetter!.paymentCategory)}</p>
+              <p className="text-[9px] text-white/60 mt-0.5">{offerLetter!.currency || DEFAULT_CURRENCY}</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">Payment Plan</p>
+              <p className="text-xs font-semibold text-white">{offerLetter!.milestones?.length || 0} milestones</p>
             </div>
           </div>
+
+          {(offerLetter!.nonMonetaryBenefits?.length ?? 0) > 0 && (
+            <div className="bg-white/10 rounded-[10px] p-4 space-y-2">
+              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">
+                {isNonMonetary(offerLetter!.paymentCategory) ? "What You Receive" : "Additional Benefits"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {offerLetter!.nonMonetaryBenefits!.map((b) => (
+                  <span key={b} className="text-[10px] font-semibold bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full">
+                    {getBenefitLabel(b)}
+                  </span>
+                ))}
+              </div>
+              {offerLetter!.nonMonetaryDetails && (
+                <p className="text-[11px] text-white/70 italic">{offerLetter!.nonMonetaryDetails}</p>
+              )}
+            </div>
+          )}
+
+          {/* Awaiting the company's decision on a counter-offer */}
+          {pendingNegotiation && (
+            <div className="bg-white/10 border border-white/20 rounded-[10px] p-4 space-y-1.5">
+              <p className="text-[9px] font-bold text-[#f4d35e] uppercase tracking-wider">
+                Counter-offer sent — awaiting response
+              </p>
+              <p className="text-xs text-white font-semibold">
+                You proposed {formatMoney(pendingNegotiation.proposedAmount, pendingNegotiation.proposedCurrency, pendingNegotiation.proposedCategory)}
+                {" · "}{getPaymentCategoryLabel(pendingNegotiation.proposedCategory)}
+              </p>
+              <p className="text-[10px] text-white/70">
+                You can accept or decline the original offer once the company responds.
+              </p>
+            </div>
+          )}
+
+          {/* Outcome of the previous round, once the company has replied */}
+          {!pendingNegotiation && lastResolvedNegotiation && (
+            <div className="bg-white/10 border border-white/20 rounded-[10px] p-4 space-y-1">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
+                Your counter-offer was {lastResolvedNegotiation.status.toLowerCase()}
+              </p>
+              {lastResolvedNegotiation.status === "ACCEPTED" ? (
+                <p className="text-xs text-white font-semibold">
+                  The terms above reflect your proposal.
+                </p>
+              ) : (
+                <p className="text-xs text-white font-semibold">
+                  The original terms stand.
+                  {lastResolvedNegotiation.responseNote ? ` "${lastResolvedNegotiation.responseNote}"` : ""}
+                </p>
+              )}
+            </div>
+          )}
           {offerLetter!.milestones?.length > 0 && (
             <div className="bg-white/10 rounded-2xl p-3.5 space-y-1.5">
               <p className="text-[9px] font-bold text-blue-200 uppercase tracking-wider mb-2">Milestone Breakdown</p>
               {offerLetter!.milestones.map((m: any, i: number) => (
                 <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-white/10 last:border-0">
                   <span className="text-blue-100 font-medium">{m.title}</span>
-                  <span className="font-black text-yellow-300">₹{m.budget}</span>
+                  <span className="font-black text-yellow-300">{formatMoney(m.budget, offerLetter!.currency)}</span>
                 </div>
               ))}
             </div>
@@ -247,12 +363,108 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   </Button>
                 </div>
               </div>
+            ) : isNegotiating ? (
+              <div className="w-full space-y-3 bg-white/10 p-4 rounded-xl border border-white/20 animate-fade-in text-left">
+                <label className="text-[10px] font-bold text-white/70 uppercase tracking-wider block">
+                  Propose new payment terms
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-white/60 uppercase tracking-wider">Category</span>
+                    <select
+                      value={negoCategory}
+                      onChange={(e) => setNegoCategory(e.target.value as PaymentCategory)}
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none cursor-pointer"
+                    >
+                      {PAYMENT_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value} className="text-ink">{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-white/60 uppercase tracking-wider">Currency</span>
+                    <select
+                      value={negoCurrency}
+                      onChange={(e) => setNegoCurrency(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none cursor-pointer"
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code} className="text-ink">
+                          {c.code} ({c.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-white/60 uppercase tracking-wider">
+                      Amount ({getCurrencySymbol(negoCurrency)}){getPaymentUnitLabel(negoCategory)}
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={negoAmount}
+                      onChange={(e) => setNegoAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none"
+                    />
+                  </div>
+                </div>
+                {negoCurrency !== (offerLetter!.currency || DEFAULT_CURRENCY) && (
+                  <p className="text-[10px] text-[#f4d35e]">
+                    You are proposing a currency change from {offerLetter!.currency || DEFAULT_CURRENCY} to {negoCurrency}.
+                    The amount is not converted — enter the value you want in {negoCurrency}.
+                  </p>
+                )}
+                <textarea
+                  rows={2}
+                  value={negoMessage}
+                  onChange={(e) => setNegoMessage(e.target.value)}
+                  placeholder="Briefly explain your proposed terms (optional)..."
+                  className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white placeholder-white/40 text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none resize-none"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    disabled={offerLoading !== null || (negoCategory !== "NON_MONETARY" && negoAmount <= 0)}
+                    onClick={handleNegotiate}
+                    className="flex-1 bg-[#f4d35e] hover:bg-[#d9a441] text-ink font-semibold cursor-pointer"
+                  >
+                    {offerLoading === "NEGOTIATE" ? "Sending..." : "Send Counter-Offer"}
+                  </Button>
+                  <Button
+                    disabled={offerLoading !== null}
+                    onClick={() => setIsNegotiating(false)}
+                    variant="outline"
+                    className="flex-1 border-white/30 text-white hover:bg-white/10 font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
             ) : (
               <>
-                <Button disabled={offerLoading !== null} onClick={() => handleOfferResponse("ACCEPT")} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-black cursor-pointer">
+                <Button
+                  disabled={offerLoading !== null || !!pendingNegotiation}
+                  title={pendingNegotiation ? "Waiting for the company to respond to your counter-offer" : undefined}
+                  onClick={() => handleOfferResponse("ACCEPT")}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
+                >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {offerLoading === "ACCEPT" ? "Accepting..." : "Accept Offer & Start Project"}
                 </Button>
+                {!pendingNegotiation && (
+                  <Button
+                    disabled={offerLoading !== null}
+                    onClick={() => {
+                      setNegoAmount(offerLetter!.stipendAmount);
+                      setNegoCategory((offerLetter!.paymentCategory as PaymentCategory) || "FIXED");
+                      setNegoCurrency(offerLetter!.currency || DEFAULT_CURRENCY);
+                      setIsNegotiating(true);
+                    }}
+                    variant="outline"
+                    className="flex-1 border-white/30 text-white hover:bg-white/10 font-bold cursor-pointer"
+                  >
+                    Negotiate
+                  </Button>
+                )}
                 <Button disabled={offerLoading !== null} onClick={() => setIsDeclining(true)} variant="outline" className="flex-1 border-white/30 text-white hover:bg-white/10 font-bold cursor-pointer">
                   <X className="h-4 w-4 mr-2" />
                   Decline Offer
@@ -269,13 +481,56 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
           <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
           <div className="text-left flex-1">
             <p className="text-xs font-black text-emerald-800">Offer Accepted — Project In Progress</p>
-            <p className="text-[10px] text-emerald-600">Stipend ₹{offerLetter!.stipendAmount} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
+            <p className="text-[10px] text-emerald-600">Stipend {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
           </div>
           {app.status === "HIRED" && (
             <Link href={`/workspace/${app.id}`} target="_blank">
               <Button size="xs" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer">Open Workspace</Button>
             </Link>
           )}
+        </div>
+      )}
+
+      {/* Team Match Confirmation — only for role-based projects where this
+          freelancer is hired but has not yet seen and confirmed their team. */}
+      {app.status === "HIRED" && app.roleId && !app.teamConfirmedAt && (
+        <div className="px-6 py-3.5 bg-[#f8fafc] border-b border-[#dddddd] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-left min-w-0">
+            <p className="text-xs font-semibold text-[#181d26]">
+              You&apos;ve been placed on this team
+            </p>
+            <p className="text-[11px] text-[#41454d]">
+              Review your teammates before confirming your place.
+            </p>
+          </div>
+          <Button
+            size="xs"
+            onClick={() => setShowTeamMatch(true)}
+            className="cursor-pointer shrink-0"
+          >
+            Meet Your Team
+          </Button>
+        </div>
+      )}
+
+      {showTeamMatch && (
+        <TeamMatchConfirmation
+          applicationId={app.id}
+          projectId={app.projectId}
+          projectTitle={app.project.title}
+          companyName={app.project.company?.companyName || "the company"}
+          currentFreelancerId={app.freelancerId}
+          onClose={() => setShowTeamMatch(false)}
+        />
+      )}
+
+      {/* Confirmed marker, so the state is visible after the fact too */}
+      {app.status === "HIRED" && app.roleId && app.teamConfirmedAt && (
+        <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2">
+          <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          <p className="text-[11px] font-semibold text-emerald-800">
+            Team confirmed — you&apos;re on the roster.
+          </p>
         </div>
       )}
 
@@ -287,22 +542,31 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
         </div>
       )}
 
-      <div className="p-6 space-y-5">
+      <div className="p-6 space-y-5 text-left">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-[#dddddd]">
           <div className="space-y-1 text-left">
-            <h3 className="text-sm font-bold text-[#002d59]">{app.project.title}</h3>
-            <p className="text-[11px] text-slate-500 font-medium">
+            <Link href={`/freelancer/applications/${app.id}`} className="hover:underline">
+              <h3 className="text-sm font-semibold text-[#181d26]">{app.project.title}</h3>
+            </Link>
+            <p className="text-[11px] text-[#41454d] font-normal">
               {app.project.company.companyName} • {app.project.company.location || "Remote"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="primary" className="bg-sky-50 text-[#002d59] border border-sky-100 text-[10px] px-2 py-0.5 capitalize">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="primary" className="text-[10px] px-2 py-0.5 capitalize">
               {activeStage}
             </Badge>
+            <Link href={`/freelancer/applications/${app.id}`}>
+              <Button size="sm" className="bg-[#181d26] text-white hover:bg-[#333840] font-medium text-[10px] py-1 px-3 h-8 rounded-[8px] cursor-pointer">
+                Track Application Details →
+              </Button>
+            </Link>
             {app.status === "HIRED" && (
-              <Link href={`/workspace/${app.id}`} target="_blank">
-                <Button size="xs" className="cursor-pointer bg-[#3ac0ff] hover:bg-[#29aaeb] text-white font-bold text-[10px] py-1 px-3 h-auto">Open Workspace</Button>
+              <Link href={`/workspace/${app.id}`}>
+                <Button size="sm" className="text-[10px] py-1 px-3 h-8 rounded-[8px] cursor-pointer bg-[#181d26] text-white hover:bg-[#333840] font-medium">
+                  Open Workspace
+                </Button>
               </Link>
             )}
           </div>
@@ -317,7 +581,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === tab.id ? "bg-white text-[#002d59] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  activeTab === tab.id ? "bg-white text-[#181d26] shadow-sm" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -344,8 +608,8 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   const isCurrent = idx === currentPipelineIdx;
                   return (
                     <div key={stage} className="flex flex-col items-center shrink-0 min-w-[80px]">
-                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#3ac0ff]" : isCurrent ? "bg-[#002d59]" : "bg-slate-100"}`} />
-                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#002d59]" : isPast ? "text-sky-500" : "text-slate-400"}`}>
+                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#1b61c9]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"}`} />
+                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-sky-500" : "text-slate-400"}`}>
                         {stage}
                       </span>
                     </div>
@@ -404,7 +668,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   <span className="text-[9px] font-black text-sky-700 uppercase tracking-widest block flex items-center gap-1">
                     <Video className="h-3 w-3 inline" /> Interview Scheduled via Google Meet
                   </span>
-                  <p className="text-xs font-bold text-[#002d59]">
+                  <p className="text-xs font-bold text-[#181d26]">
                     {latestInterview.interviewDate
                       ? new Date(latestInterview.interviewDate).toLocaleString("en-IN", {
                           weekday: "long", day: "numeric", month: "short",
@@ -436,19 +700,19 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             {/* Contract sign prompt */}
             {activeStage === "Contract Sent" && !isSigned && appMeta.digitalContract && (
               <div className="p-5 bg-sky-50 border border-sky-200 rounded-2xl text-left space-y-3.5">
-                <h4 className="text-xs font-bold text-[#002d59] flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-[#3ac0ff]" /> Action Required: Sign Workspace Contract
+                <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-[#1b61c9]" /> Action Required: Sign Workspace Contract
                 </h4>
                 <p className="text-[10px] text-slate-500">{appMeta.digitalContract.contractText}</p>
                 <div className="border border-slate-200/80 rounded-xl divide-y divide-slate-100 bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between">
-                      <span className="font-bold text-[#002d59]">{m.title}</span>
-                      <span className="text-slate-500">₹{m.budget}</span>
+                      <span className="font-bold text-[#181d26]">{m.title}</span>
+                      <span className="text-slate-500">{formatMoney(m.budget, offerLetter?.currency)}</span>
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleSignContract} disabled={signing} className="cursor-pointer bg-[#002d59] text-white hover:bg-[#083a6b] w-full">
+                <Button onClick={handleSignContract} disabled={signing} className="cursor-pointer bg-[#181d26] text-white hover:bg-[#083a6b] w-full">
                   {signing ? "Signing..." : "Sign Digital Contract"}
                 </Button>
               </div>
@@ -464,8 +728,8 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between items-center">
                       <div>
-                        <span className="font-bold text-[#002d59]">{m.title}</span>
-                        <span className="text-slate-400 ml-1.5">₹{m.budget}</span>
+                        <span className="font-bold text-[#181d26]">{m.title}</span>
+                        <span className="text-slate-400 ml-1.5">{formatMoney(m.budget, offerLetter?.currency)}</span>
                       </div>
                       {m.status === "RELEASED" ? (
                         <Badge variant="success" className="text-[9px]">Released</Badge>
@@ -485,11 +749,11 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
           <div className="border border-slate-200 rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: "340px" }}>
             {/* Chat header */}
             <div className="p-3.5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
-              <div className="h-8 w-8 rounded-xl bg-[#002d59]/10 flex items-center justify-center text-[#002d59] font-black text-sm">
+              <div className="h-8 w-8 rounded-xl bg-[#181d26]/10 flex items-center justify-center text-[#181d26] font-black text-sm">
                 R
               </div>
               <div>
-                <p className="text-xs font-black text-[#002d59]">{app.project.company.companyName} Recruiter</p>
+                <p className="text-xs font-black text-[#181d26]">{app.project.company.companyName} Recruiter</p>
                 <p className="text-[10px] text-slate-400 font-medium">Direct Message · Pre-hire private channel</p>
               </div>
             </div>
@@ -504,7 +768,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   return (
                     <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
                       {!isMe && (
-                        <div className="h-6 w-6 rounded-full bg-[#002d59] flex items-center justify-center text-[10px] font-black text-white shrink-0">R</div>
+                        <div className="h-6 w-6 rounded-full bg-[#181d26] flex items-center justify-center text-[10px] font-black text-white shrink-0">R</div>
                       )}
                       <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs ${isMe ? "bg-sky-600 text-white rounded-tr-none" : "bg-slate-100 text-slate-800 rounded-tl-none"}`}>
                         <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>

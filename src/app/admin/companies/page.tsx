@@ -18,28 +18,28 @@ export default async function AdminCompaniesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           Company Directory
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#41454d] font-normal mt-1">
           Monitor company industry targets, domains, locations, and posted projects
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {companies.length === 0 ? (
-          <Card className="p-8 text-center text-slate-500 text-xs md:col-span-2">
+          <Card className="p-8 text-center text-[#41454d] text-xs md:col-span-2 border border-[#dddddd] rounded-[12px]">
             No company profiles registered yet.
           </Card>
         ) : (
           companies.map((c) => (
-            <Card key={c.id} className="p-6 border-slate-100 bg-white shadow-sm space-y-4">
-              <div className="flex justify-between items-start border-b border-slate-200 pb-3">
+            <Card key={c.id} className="p-6 border border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-4">
+              <div className="flex justify-between items-start border-b border-[#dddddd] pb-3">
                 <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-[#002d59] flex items-center gap-1.5">
-                    <Building2 className="h-4.5 w-4.5 text-[#3ac0ff]" />
+                  <h3 className="text-sm font-bold text-[#181d26] flex items-center gap-1.5">
+                    <Building2 className="h-4.5 w-4.5 text-[#1b61c9]" />
                     {c.companyName}
                   </h3>
                   <p className="text-[10px] text-slate-500">Contact: {c.user.name} ({c.user.email})</p>
@@ -58,7 +58,7 @@ export default async function AdminCompaniesPage() {
                 </div>
                 <div className="flex items-center gap-1.5 col-span-2">
                   <Globe className="h-3.5 w-3.5 text-slate-500" />
-                  <a href={c.website || "#"} target="_blank" rel="noopener noreferrer" className="hover:text-[#3ac0ff] text-[#002d59] font-medium truncate">
+                  <a href={c.website || "#"} target="_blank" rel="noopener noreferrer" className="hover:text-[#1b61c9] text-[#181d26] font-medium truncate">
                     {c.website || "No website"}
                   </a>
                 </div>

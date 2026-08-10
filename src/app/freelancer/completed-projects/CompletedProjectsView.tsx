@@ -28,7 +28,7 @@ import {
   CheckCircle2,
   Pencil
 } from "lucide-react";
-import { getProjectDescriptionText } from "@/lib/workflowHelpers";
+import { getProjectDescriptionText, formatProjectBudget } from "@/lib/workflowHelpers";
 
 interface CompletedProjectsViewProps {
   freelancer: {
@@ -354,6 +354,12 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
 
   return (
     <div className="space-y-6">
+      <a
+        href="/freelancer/certificates"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1b61c9] hover:underline"
+      >
+        View my certificates →
+      </a>
       {message && (
         <div
           className={`p-4 rounded-xl text-xs font-semibold border ${
@@ -367,7 +373,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       )}
 
       {uploadProgress && (
-        <div className="p-3 bg-sky-50 border border-sky-200 text-sky-850 rounded-xl text-xs font-semibold animate-pulse flex items-center gap-2">
+        <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 rounded-xl text-xs font-semibold animate-pulse flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-sky-500" />
           {uploadProgress}
         </div>
@@ -379,7 +385,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
           onClick={() => setActiveTab("platform")}
           className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
             activeTab === "platform"
-              ? "border-[#002d59] text-[#002d59]"
+              ? "border-[#181d26] text-[#181d26]"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -389,7 +395,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
           onClick={() => setActiveTab("portfolio")}
           className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
             activeTab === "portfolio"
-              ? "border-[#002d59] text-[#002d59]"
+              ? "border-[#181d26] text-[#181d26]"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -414,13 +420,28 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                 <Card key={project.id} className="p-6 bg-white border border-slate-100/80 shadow-sm rounded-2xl space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-base font-extrabold text-[#002d59]">{project.title}</h3>
+                      <h3 className="text-base font-extrabold text-[#181d26]">{project.title}</h3>
                       <p className="text-xs text-slate-500 font-semibold mt-1">
-                        Completed for: <strong className="text-slate-800">{project.company.companyName}</strong> • Budget: <strong>${project.budget}</strong>
+                        Completed for: <strong className="text-slate-800">{project.company.companyName}</strong> • Budget: <strong>{formatProjectBudget(project)}</strong>
                       </p>
                     </div>
                     <Badge variant="success">Platform Completed</Badge>
                   </div>
+
+                  {/* Certificate earned on this contract — easy to spot and act on */}
+                  {project.certificates?.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-amber-50/70 border border-amber-100 rounded-2xl">
+                      <span className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                        <Award className="h-4 w-4" /> Certificate of Completion issued
+                      </span>
+                      <a
+                        href={`/freelancer/certificates/${project.certificates[0].publicId}`}
+                        className="px-3.5 py-1.5 text-[11px] font-bold text-white bg-[#1b61c9] rounded-xl hover:bg-[#154e9f] inline-flex items-center gap-1.5"
+                      >
+                        View / Download Certificate <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
 
                   <p className="text-xs text-slate-600 leading-relaxed font-medium">
                     {(() => {
@@ -458,7 +479,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     {reviewOfCompany ? (
                       <div className="p-4 bg-[#f8faff] border border-sky-100 rounded-2xl space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-[#002d59] uppercase tracking-widest flex items-center gap-1.5">
+                          <span className="text-[10px] font-black text-[#181d26] uppercase tracking-widest flex items-center gap-1.5">
                             <Star className="h-4 w-4 text-amber-500 fill-amber-500/20" /> Your Review of Client
                           </span>
                           <div className="flex items-center gap-0.5 text-amber-500 text-xs">
@@ -477,7 +498,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 bg-sky-50/30 border border-dashed border-[#3ac0ff]/30 rounded-2xl text-center flex flex-col justify-center items-center py-6 gap-2">
+                      <div className="p-4 bg-sky-50/30 border border-dashed border-[#1b61c9]/30 rounded-2xl text-center flex flex-col justify-center items-center py-6 gap-2">
                         <p className="text-slate-500 text-xs font-semibold">Share your feedback about the client!</p>
                         <Button
                           size="sm"
@@ -501,14 +522,14 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-[#002d59]">Portfolio Project Showcase</h3>
+              <h3 className="text-sm font-bold text-[#181d26]">Portfolio Project Showcase</h3>
               <p className="text-xs text-slate-500">Showcase screenshots, repositories, and custom project highlights.</p>
             </div>
             <Button
               type="button"
               onClick={() => setShowPortModal(true)}
               size="sm"
-              className="whitespace-nowrap shrink-0 gap-1.5 px-4 py-2 cursor-pointer text-xs flex items-center justify-center font-bold bg-[#002d59] text-white hover:bg-[#003f7a] transition-all duration-200 shadow-sm shadow-[#002d59]/10 rounded-xl"
+              className="whitespace-nowrap shrink-0 gap-1.5 px-4 py-2 cursor-pointer text-xs flex items-center justify-center font-bold bg-[#181d26] text-white hover:bg-[#003f7a] transition-all duration-200 shadow-sm shadow-[#181d26]/10 rounded-xl"
             >
               <Plus className="h-4 w-4" /> Add Portfolio Item
             </Button>
@@ -530,7 +551,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getPortfolioIcon(item.type)}
-                        <h4 className="text-sm font-extrabold text-[#002d59]">{item.title}</h4>
+                        <h4 className="text-sm font-extrabold text-[#181d26]">{item.title}</h4>
                       </div>
                       <Badge variant="neutral" className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5">
                         {item.type.replace("_", " ")}
@@ -581,7 +602,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                           href={item.liveLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-[#002d59] font-extrabold transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-[#181d26] font-extrabold transition-colors"
                         >
                           <span>Live Demo</span>
                           <ExternalLink className="h-3 w-3" />
@@ -593,7 +614,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#3ac0ff] hover:text-[#002d59] font-extrabold transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-[#1b61c9] hover:text-[#181d26] font-extrabold transition-colors"
                         >
                           <span>
                             {item.type === "GITHUB" ? "View Code" : "Open Link"}
@@ -635,9 +656,9 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
           {/* Add Portfolio Project modal popup with MULTI-IMAGE support */}
           {showPortModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowPortModal(false)} />
+              <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowPortModal(false)} />
               <div className="relative w-full max-w-lg bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Add Completed Portfolio Project</h3>
+                <h3 className="text-sm font-bold text-[#181d26] border-b border-slate-100 pb-2">Add Completed Portfolio Project</h3>
 
                 <form onSubmit={handleAddPortfolioItem} className="space-y-4">
                   <Input
@@ -651,7 +672,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-slate-600">Project Description</label>
                     <textarea
-                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
                       placeholder="Outline what features this project has and how you built it..."
                       value={newPort.description}
                       onChange={(e) => setNewPort({ ...newPort, description: e.target.value })}
@@ -664,13 +685,13 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     <select
                       value={newPort.type}
                       onChange={(e) => setNewPort({ ...newPort, type: e.target.value as any })}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                     >
-                      <option value="IMAGE">🖼️ Local Images Showcase (Multiple Uploads)</option>
-                      <option value="VIDEO">🎥 Local Video Demo Showcase</option>
-                      <option value="GITHUB">💻 GitHub Repository Project</option>
-                      <option value="WEBSITE">🌐 Live Deploy Website</option>
-                      <option value="CASE_STUDY">📝 Research Case Study</option>
+                      <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
+                      <option value="VIDEO">Local Video Demo Showcase</option>
+                      <option value="GITHUB">GitHub Repository Project</option>
+                      <option value="WEBSITE">Live Deploy Website</option>
+                      <option value="CASE_STUDY">Research Case Study</option>
                     </select>
                   </div>
 
@@ -763,9 +784,9 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
           {/* Edit Portfolio Project modal popup */}
           {editingItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setEditingItem(null); }} />
+              <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setEditingItem(null); }} />
               <div className="relative w-full max-w-lg bg-white border border-slate-100 p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-sm font-bold text-[#002d59] border-b border-slate-100 pb-2">Edit Completed Portfolio Project</h3>
+                <h3 className="text-sm font-bold text-[#181d26] border-b border-slate-100 pb-2">Edit Completed Portfolio Project</h3>
 
                 <form onSubmit={handleEditPortfolioItem} className="space-y-4">
                   <Input
@@ -779,7 +800,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-slate-600">Project Description</label>
                     <textarea
-                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
                       placeholder="Outline what features this project has and how you built it..."
                       value={editingItem.description}
                       onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
@@ -792,13 +813,13 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
                     <select
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#002d59] focus:ring-[#002d59]/20 cursor-pointer"
+                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
                     >
-                      <option value="IMAGE">🖼️ Local Images Showcase (Multiple Uploads)</option>
-                      <option value="VIDEO">🎥 Local Video Demo Showcase</option>
-                      <option value="GITHUB">💻 GitHub Repository Project</option>
-                      <option value="WEBSITE">🌐 Live Deploy Website</option>
-                      <option value="CASE_STUDY">📝 Research Case Study</option>
+                      <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
+                      <option value="VIDEO">Local Video Demo Showcase</option>
+                      <option value="GITHUB">GitHub Repository Project</option>
+                      <option value="WEBSITE">Live Deploy Website</option>
+                      <option value="CASE_STUDY">Research Case Study</option>
                     </select>
                   </div>
 
@@ -904,7 +925,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       {/* Fullscreen Image zoom Modal */}
       {zoomedImage && (
         <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
+          <div className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
           <div className="relative max-w-4xl max-h-[85vh] bg-white border border-slate-100 rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
             <button
               onClick={() => setZoomedImage(null)}
@@ -921,7 +942,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
       {selectedReviewProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm"
             onClick={() => setSelectedReviewProject(null)}
           />
 
@@ -933,9 +954,9 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-lg font-bold text-[#002d59] mb-1">Review Client</h3>
+            <h3 className="text-lg font-bold text-[#181d26] mb-1">Review Client</h3>
             <p className="text-xs text-slate-500 mb-6 font-semibold">
-              Project: <span className="text-[#002d59]">{selectedReviewProject.title}</span> • Company: <span className="text-[#002d59]">{selectedReviewProject.company.companyName}</span>
+              Project: <span className="text-[#181d26]">{selectedReviewProject.title}</span> • Company: <span className="text-[#181d26]">{selectedReviewProject.company.companyName}</span>
             </p>
 
             <form onSubmit={handleCompanyReviewSubmit} className="space-y-4">
@@ -1002,7 +1023,7 @@ export function CompletedProjectsView({ freelancer, completedProjects }: Complet
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-600">Review Comments</label>
                 <textarea
-                  className="w-full min-h-[100px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:border-[#002d59] focus:ring-[#002d59]/20"
+                  className="w-full min-h-[100px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
                   placeholder="Describe your collaboration, payment promptness, communication clarity..."
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}

@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import {
   Sparkles,
-  Zap,
   Target,
   Layers,
   LineChart,
   Briefcase,
   MapPin,
+  ArrowRight,
+  CheckCircle2,
+  Users,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 import { auth } from "@/auth";
@@ -24,187 +28,255 @@ export default async function LandingPage() {
     : "/login";
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white text-[#181d26]">
       <Navbar />
 
-      <main className="flex-1 bg-gradient-to-b from-[#f4f8ff] to-[#ffffff]">
-        {/* Hero Section */}
-        <section className="relative pt-16 pb-20 px-6 max-w-7xl mx-auto text-center overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-400/10 rounded-full blur-[120px] pointer-events-none" />
-          
-          <Badge variant="accent" className="mb-8 py-1.5 px-4.5 bg-[#d0efff] text-[#002d59] border border-sky-300/40 rounded-full font-bold">
-            <Sparkles className="h-3.5 w-3.5 mr-2 text-[#002d59]" />
+      <main className="flex-1">
+        {/* 1. HERO BAND (White Canvas) */}
+        <section className="py-24 px-6 max-w-7xl mx-auto text-center">
+          <Badge variant="secondary" className="mb-6 py-1 px-3 bg-[#f8fafc] text-[#181d26] border border-[#dddddd]">
+            <Sparkles className="h-3.5 w-3.5 mr-2 text-[#181d26]" />
             Next-Gen Talent Matching
           </Badge>
 
-          <h1 className="text-4xl md:text-6xl font-black text-[#002d59] tracking-tight mb-6 max-w-4xl mx-auto leading-[1.2]">
-            Where <span className="bg-[#d0efff] px-2 py-0.5 rounded-lg inline-block text-[#002d59]">Talent</span> <br className="sm:hidden" /> Meets <span className="bg-[#d0efff] px-2 py-0.5 rounded-lg inline-block text-[#002d59]">Opportunity</span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-normal text-[#181d26] tracking-tight mb-6 max-w-4xl mx-auto leading-[1.15]">
+            Production teams in prototype speed. <br className="hidden sm:inline" />
+            Where talent meets execution.
           </h1>
 
-          <p className="text-sm md:text-base text-slate-500 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
-            Talentra uses advanced neural networks to connect the world&apos;s best freelancers with top-tier corporate projects. Get precise matches, not just keywords.
+          <p className="text-base md:text-lg text-[#333840] max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+            Talentra connects top-tier organizations with specialized freelancers through intelligent neural matching. Pure clarity, zero friction.
           </p>
 
-          {/* Search Block mockup based on Screenshot 1 */}
-          <div className="max-w-md mx-auto mb-8 bg-white border border-slate-200/70 rounded-3xl p-5 shadow-xl shadow-[#002d59]/5 space-y-4 text-left">
-            <div className="relative">
-              <Briefcase className="absolute left-4.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Desired role or skill (e.g. UX Designer)" 
-                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-[#3ac0ff] focus:ring-2 focus:ring-[#3ac0ff]/20 text-sm text-slate-800" 
-                readOnly
-                suppressHydrationWarning={true}
-              />
-            </div>
-            <div className="relative">
-              <MapPin className="absolute left-4.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Remote or City" 
-                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-[#3ac0ff] focus:ring-2 focus:ring-[#3ac0ff]/20 text-sm text-slate-800" 
-                readOnly
-                suppressHydrationWarning={true}
-              />
-            </div>
-            <Button className="w-full py-3.5 text-sm" variant="primary">Search</Button>
-          </div>
-
-          {/* Go to Dashboard and user group stats */}
-          <div className="flex flex-col items-center justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link href={dashboardLink}>
-              <Button variant="secondary" className="gap-2 px-8 py-3 bg-[#3ac0ff] hover:bg-[#1ab5ff] text-[#002d59] font-bold rounded-2xl">
-                Go to Dashboard
-                <span className="font-bold text-sm">→</span>
+              <Button variant="primary" size="lg" className="w-full sm:w-auto px-8 py-4">
+                Get started for free
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
-
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex -space-x-2.5">
-                <img className="h-8.5 w-8.5 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120" alt="User 1" />
-                <img className="h-8.5 w-8.5 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" alt="User 2" />
-                <img className="h-8.5 w-8.5 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=120" alt="User 3" />
-              </div>
-              <span className="text-xs text-[#002d59] font-bold bg-[#d0efff] px-2.5 py-1 rounded-full shadow-sm">+2k</span>
-            </div>
-            <p className="text-xs text-slate-500 font-semibold">Trusted by 2,000+ top companies</p>
+            <Link href="/contact">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto px-8 py-4">
+                Book demo
+              </Button>
+            </Link>
           </div>
 
-          {/* Visual Showcase Card */}
-          <div className="mt-12 max-w-4xl mx-auto relative animate-float">
-            <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 to-[#002d59] rounded-3xl blur opacity-10" />
-            <Card className="relative p-2 bg-white border border-slate-200/60 rounded-3xl shadow-xl shadow-[#002d59]/5" hoverable={false}>
-              <div className="bg-slate-50/40 rounded-2xl border border-slate-100 p-8 flex flex-col md:flex-row gap-8 items-center text-left">
-                <div className="flex-1 space-y-4">
-                  <Badge variant="primary">AI Match: 98.4%</Badge>
-                  <h3 className="text-2xl font-bold text-[#002d59]">Marcus Thorne</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                    Senior Full-Stack Architect. Matches 100% of required skills including Next.js, TypeScript, and Tailwind CSS. Average completion rate 98% with 5/5 stars.
-                  </p>
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {["Next.js", "React 19", "TypeScript", "Tailwind CSS"].map((skill) => (
-                      <Badge key={skill} variant="neutral">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div className="w-full md:w-80 bg-white border border-slate-200/70 rounded-2xl p-6 space-y-4 shadow-sm">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-500">Skill Match (50%)</span>
-                    <span className="text-[#002d59]">50.0</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#002d59] h-full rounded-full w-[100%]" />
-                  </div>
-
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-500">Experience Match (20%)</span>
-                    <span className="text-[#002d59]">20.0</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#002d59] h-full rounded-full w-[100%]" />
-                  </div>
-
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-500">Past Ratings (15%)</span>
-                    <span className="text-[#002d59]">14.7</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#002d59] h-full rounded-full w-[98%]" />
-                  </div>
-
-                  <div className="flex justify-between text-xs border-t border-slate-100 pt-3 font-bold">
-                    <span className="text-slate-700">Total Score</span>
-                    <span className="text-[#002d59] text-sm">94.7 / 100</span>
-                  </div>
-                </div>
+          {/* Quick Search Card Mockup */}
+          <div className="max-w-xl mx-auto bg-white border border-[#dddddd] rounded-[12px] p-6 shadow-sm text-left">
+            <div className="grid sm:grid-cols-2 gap-3 mb-3">
+              <div className="relative">
+                <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9297a0]" />
+                <input 
+                  type="text" 
+                  placeholder="Role (e.g. UX Architect)" 
+                  className="w-full h-[44px] pl-10 pr-4 rounded-[6px] border border-[#dddddd] text-sm text-[#181d26] focus:outline-none focus:border-[#458fff]" 
+                  readOnly
+                  suppressHydrationWarning={true}
+                />
               </div>
-            </Card>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9297a0]" />
+                <input 
+                  type="text" 
+                  placeholder="Location or Remote" 
+                  className="w-full h-[44px] pl-10 pr-4 rounded-[6px] border border-[#dddddd] text-sm text-[#181d26] focus:outline-none focus:border-[#458fff]" 
+                  readOnly
+                  suppressHydrationWarning={true}
+                />
+              </div>
+            </div>
+            <Button variant="primary" className="w-full h-[44px] text-sm font-medium">Search talent pool</Button>
           </div>
         </section>
 
-        {/* Feature Grid */}
-        <section className="bg-[#f8faff] border-y border-slate-200/60 py-20 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <Badge variant="secondary" className="mb-3">
-                Features
-              </Badge>
-              <h2 className="text-3xl font-extrabold text-[#002d59]">
-                Architected for Modern Teams
+        {/* 2. LOGO STRIP (Airtable Style) */}
+        <section className="border-y border-[#dddddd] bg-[#ffffff] py-8 px-6">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-8 text-[#41454d] text-sm font-medium opacity-80">
+            <span>TRUSTED BY LEADING TEAMS</span>
+            <span className="font-semibold tracking-wider text-base text-[#181d26]">HBO</span>
+            <span className="font-semibold tracking-wider text-base text-[#181d26]">NETFLIX</span>
+            <span className="font-semibold tracking-wider text-base text-[#181d26]">AMAZON</span>
+            <span className="font-semibold tracking-wider text-base text-[#181d26]">TIME</span>
+            <span className="font-semibold tracking-wider text-base text-[#181d26]">CONDE NAST</span>
+          </div>
+        </section>
+
+        {/* 3. SIGNATURE CORAL CARD BAND */}
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+          <div className="bg-[#aa2d00] text-white rounded-[12px] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-sm">
+            <div className="max-w-2xl space-y-4 text-left">
+              <Badge variant="cream" className="text-[#181d26] bg-[#f5e9d4]">Signature Platform</Badge>
+              <h2 className="text-3xl md:text-4xl font-normal text-white leading-tight">
+                Production apps in prototype speed.
               </h2>
-              <p className="text-sm text-slate-500 mt-2 max-w-xl mx-auto font-medium">
-                Discover a freelance platform designed with advanced matching capabilities, beautiful dashboards, and robust tools.
+              <p className="text-white/90 text-sm md:text-base leading-relaxed font-normal">
+                Assemble high-performing engineering squads, track project updates in real-time, and manage escrows with total compliance.
               </p>
             </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="space-y-4 bg-white border border-slate-200/50">
-                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100">
-                  <Target className="h-5 w-5 text-[#002d59]" />
-                </div>
-                <h3 className="text-lg font-bold text-[#002d59]">AI Scoring Model</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Automatically score freelancers using weight factors: 50% Skills, 20% Experience, 15% Rating, 10% Completion Rate, and 5% Priority.
-                </p>
-              </Card>
-
-              <Card className="space-y-4 bg-white border border-slate-200/50">
-                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100">
-                  <Layers className="h-5 w-5 text-[#002d59]" />
-                </div>
-                <h3 className="text-lg font-bold text-[#002d59]">Role-Based Gateways</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Tailored dashboards for Admins, Companies, and Freelancers, secured by robust middleware auth handlers.
-                </p>
-              </Card>
-
-              <Card className="space-y-4 bg-white border border-slate-200/50">
-                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100">
-                  <LineChart className="h-5 w-5 text-[#002d59]" />
-                </div>
-                <h3 className="text-lg font-bold text-[#002d59]">Analytics Insights</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  View interactive SVG-scaled visual trends tracking user growth, project completions, and applicant pipelines.
-                </p>
-              </Card>
+            <div className="shrink-0">
+              <Link href="/register">
+                <Button variant="secondary" size="lg" className="bg-white text-[#181d26] border-none hover:bg-slate-100 font-medium px-8 py-4">
+                  Explore Enterprise
+                </Button>
+              </Link>
             </div>
+          </div>
+        </section>
+
+        {/* 4. MULTI-SURFACE DEMO GRID (Pastels: Cream, Peach, Mint, Forest) */}
+        <section className="py-16 px-6 max-w-7xl mx-auto">
+          <div className="text-center mb-16 space-y-3">
+            <h2 className="text-3xl font-normal text-[#181d26]">
+              Architected for Enterprise Scale
+            </h2>
+            <p className="text-sm text-[#333840] max-w-xl mx-auto font-normal">
+              A sober, structured platform for talent sourcing, project milestone tracking, and secure financial escrow.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Card 1: Cream Pastel Callout */}
+            <div className="bg-[#f5e9d4] text-[#181d26] rounded-[10px] p-8 flex flex-col justify-between space-y-6">
+              <div className="space-y-3">
+                <Badge variant="primary" className="bg-[#181d26] text-white">50% Skills Weight</Badge>
+                <h3 className="text-xl font-normal text-[#181d26]">AI Neural Matcher</h3>
+                <p className="text-xs text-[#333840] leading-relaxed">
+                  Automated candidate scoring across key dimensions: skills compatibility, verifications, and historical completion metrics.
+                </p>
+              </div>
+              <div className="bg-white/80 rounded-[6px] p-4 border border-[#e0d3bd]">
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span>Match Confidence</span>
+                  <span className="font-semibold text-[#181d26]">98.4%</span>
+                </div>
+                <div className="w-full bg-[#dddddd] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#181d26] h-full rounded-full w-[98%]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Signature Forest Card */}
+            <div className="bg-[#0a2e0e] text-white rounded-[10px] p-8 flex flex-col justify-between space-y-6">
+              <div className="space-y-3">
+                <Badge variant="mint" className="bg-[#a8d8c4] text-[#0a2e0e]">Real-time Sync</Badge>
+                <h3 className="text-xl font-normal text-white">Workspace Collaboration</h3>
+                <p className="text-xs text-white/80 leading-relaxed">
+                  Unified communication rooms, direct file versioning, milestone escrow releases, and printable invoice logs.
+                </p>
+              </div>
+              <div className="bg-white/10 rounded-[6px] p-4 border border-white/20 text-xs space-y-2">
+                <div className="flex items-center gap-2 text-white">
+                  <CheckCircle2 className="h-4 w-4 text-[#a8d8c4]" />
+                  <span>Escrow Budget Locked</span>
+                </div>
+                <div className="flex items-center gap-2 text-white">
+                  <CheckCircle2 className="h-4 w-4 text-[#a8d8c4]" />
+                  <span>Milestone Approved</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Mint / Soft Pastel Card */}
+            <div className="bg-[#a8d8c4] text-[#0a2e0e] rounded-[10px] p-8 flex flex-col justify-between space-y-6">
+              <div className="space-y-3">
+                <Badge variant="forest" className="bg-[#0a2e0e] text-white">Role Security</Badge>
+                <h3 className="text-xl font-normal text-[#0a2e0e]">RBAC Gateways</h3>
+                <p className="text-xs text-[#0a2e0e]/80 leading-relaxed">
+                  Distinct, secured entry points tailored specifically for Corporate Clients, Freelancers, and System Administrators.
+                </p>
+              </div>
+              <div className="bg-white/80 rounded-[6px] p-4 border border-[#8ec7b0] text-xs font-medium text-[#0a2e0e]">
+                <span>Active Roles: Admin · Company · Freelancer</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 5. DARK NAVY MID-PAGE CTA CARD */}
+        <section className="py-16 px-6 max-w-7xl mx-auto">
+          <div className="bg-[#181d26] text-white rounded-[12px] p-8 md:p-12 text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-normal">
+              The path to 10× productivity in your organization.
+            </h2>
+            <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+              Start posting projects or listing your freelance services on Talentra today.
+            </p>
+            <div className="flex justify-center gap-4 pt-2">
+              <Link href="/register">
+                <Button variant="secondary" size="lg" className="bg-white text-[#181d26] border-none hover:bg-slate-100 px-8 py-4 font-medium">
+                  Create account
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. LIGHT GRAY CTA BANNER */}
+        <section className="py-16 px-6 max-w-7xl mx-auto">
+          <div className="bg-[#e0e2e6] text-[#181d26] rounded-[12px] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 className="text-2xl font-normal text-[#181d26]">Start building with Talentra</h3>
+              <p className="text-xs md:text-sm text-[#333840] mt-1">Join thousands of teams scaling their freelance workflows.</p>
+            </div>
+            <Link href={dashboardLink}>
+              <Button variant="primary" size="lg" className="px-8 py-4">
+                Launch Workspace
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200/60 bg-[#f8faff]/50 py-8 px-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} Talentra. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href="/about" className="hover:text-[#002d59] font-medium">About</Link>
-            <Link href="/contact" className="hover:text-[#002d59] font-medium">Contact</Link>
-            <span className="text-slate-300">|</span>
-            <span className="text-slate-400 font-mono">v1.0.0-Beta</span>
+      {/* EDITORIAL FOOTER */}
+      <footer className="border-t border-[#dddddd] bg-white py-16 px-6 text-[#333840]">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-6 gap-8 mb-12 text-xs">
+          <div className="col-span-2 space-y-3">
+            <span className="font-medium text-[#181d26] text-base">Talentra</span>
+            <p className="text-[#41454d] text-xs leading-relaxed max-w-xs">
+              The editorial workflow platform connecting companies with top-tier freelance experts.
+            </p>
           </div>
+          <div className="space-y-3">
+            <span className="font-medium text-[#181d26] block">Platform</span>
+            <ul className="space-y-2 text-[#41454d]">
+              <li><Link href="/features" className="hover:text-[#181d26]">Neural Matching</Link></li>
+              <li><Link href="/features" className="hover:text-[#181d26]">Escrow Vault</Link></li>
+              <li><Link href="/features" className="hover:text-[#181d26]">Workspaces</Link></li>
+            </ul>
+          </div>
+          <div className="space-y-3">
+            <span className="font-medium text-[#181d26] block">Solutions</span>
+            <ul className="space-y-2 text-[#41454d]">
+              <li><Link href="/about" className="hover:text-[#181d26]">Enterprise</Link></li>
+              <li><Link href="/about" className="hover:text-[#181d26]">Startups</Link></li>
+              <li><Link href="/about" className="hover:text-[#181d26]">Agencies</Link></li>
+            </ul>
+          </div>
+          <div className="space-y-3">
+            <span className="font-medium text-[#181d26] block">Resources</span>
+            <ul className="space-y-2 text-[#41454d]">
+              <li><Link href="/contact" className="hover:text-[#181d26]">Documentation</Link></li>
+              <li><Link href="/contact" className="hover:text-[#181d26]">API Reference</Link></li>
+              <li><Link href="/contact" className="hover:text-[#181d26]">Support</Link></li>
+            </ul>
+          </div>
+          <div className="space-y-3">
+            <span className="font-medium text-[#181d26] block">Company</span>
+            <ul className="space-y-2 text-[#41454d]">
+              <li><Link href="/about" className="hover:text-[#181d26]">About Us</Link></li>
+              <li><Link href="/contact" className="hover:text-[#181d26]">Contact</Link></li>
+              <li><Link href="#" className="hover:text-[#181d26]">Privacy Policy</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto pt-8 border-t border-[#dddddd] flex flex-col sm:flex-row items-center justify-between text-xs text-[#41454d]">
+          <p>© {new Date().getFullYear()} Talentra Inc. All rights reserved.</p>
+          <p className="font-mono text-[11px] mt-2 sm:mt-0">Design system inspired by Airtable Editorial Spec</p>
         </div>
       </footer>
     </div>
   );
 }
+

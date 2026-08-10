@@ -85,7 +85,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#002d59]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Project Reviews & Contracts
         </h1>
         <p className="text-xs text-slate-500 mt-1">
@@ -96,13 +96,13 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Left pane: Review submission form */}
         <div className="space-y-6">
-          <h2 className="text-lg font-bold text-[#002d59]">Submit Freelancer Review</h2>
+          <h2 className="text-lg font-bold text-[#181d26]">Submit Freelancer Review</h2>
           <ReviewForm projects={activeContracts as any} initialProjectId={preselectedProjectId} />
         </div>
 
         {/* Right pane: Review logs history */}
         <div className="space-y-6">
-          <h2 className="text-lg font-bold text-[#002d59]">Review History</h2>
+          <h2 className="text-lg font-bold text-[#181d26]">Review History</h2>
           
           <div className="space-y-4">
             {submittedReviews.length === 0 ? (
@@ -114,7 +114,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
                 <Card key={rev.id} className="p-5 border-slate-100 bg-white shadow-sm">
                   <div className="flex justify-between items-center pb-2.5 border-b border-slate-200 mb-3 text-xs">
                     <div>
-                      <h4 className="font-bold text-[#002d59]">{rev.project.title}</h4>
+                      <h4 className="font-bold text-[#181d26]">{rev.project.title}</h4>
                       <p className="text-[10px] text-slate-500 mt-0.5">
                         Reviewed Freelancer: {rev.reviewee.name}
                       </p>
@@ -125,7 +125,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
                   </div>
 
                   <p className="text-xs text-slate-600 italic flex gap-2">
-                    <MessageSquareQuote className="h-4.5 w-4.5 text-[#002d59]/70 shrink-0 mt-0.5" />
+                    <MessageSquareQuote className="h-4.5 w-4.5 text-[#181d26]/70 shrink-0 mt-0.5" />
                     &quot;{rev.comment}&quot;
                   </p>
                 </Card>
