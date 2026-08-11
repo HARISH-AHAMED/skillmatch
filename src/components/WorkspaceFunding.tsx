@@ -75,6 +75,7 @@ export function WorkspaceFunding({
   const [editing, setEditing] = React.useState<any | null>(null);
   const [form, setForm] = React.useState({ title: "", description: "", amount: "", applicationId: "" });
   const [selectedApp, setSelectedApp] = React.useState("ALL");
+  const [showStageForm, setShowStageForm] = React.useState(false);
   const [stageError, setStageError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [fundingStage, setFundingStage] = React.useState<any | null>(null);
@@ -131,6 +132,7 @@ export function WorkspaceFunding({
   React.useEffect(() => setStipendList(seededStipends), [seededStipends]);
 
   const openStageForm = (stage?: any) => {
+    setShowStageForm(true);
     setEditing(stage ?? null);
     setForm({
       title: stage?.title ?? "",
@@ -154,6 +156,7 @@ export function WorkspaceFunding({
     });
     if (res.success) {
       setStageList(res.stages || []);
+      setShowStageForm(false);
       setEditing(null);
       setForm({ title: "", description: "", amount: "", applicationId: "" });
     } else {
@@ -674,7 +677,7 @@ export function WorkspaceFunding({
           </Card>
         )}
 
-        {canManageStages && (editing !== null || form.title !== "" || form.amount !== "") && (
+        {canManageStages && showStageForm && (
           <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <input
@@ -702,7 +705,7 @@ export function WorkspaceFunding({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setEditing(null); setForm({ title: "", description: "", amount: "", applicationId: "" }); setStageError(null); }} className="h-8 cursor-pointer text-[11px]">Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { setShowStageForm(false); setEditing(null); setForm({ title: "", description: "", amount: "", applicationId: "" }); setStageError(null); }} className="h-8 cursor-pointer text-[11px]">Cancel</Button>
               <Button type="button" disabled={saving} onClick={submitStage} className="h-8 cursor-pointer bg-[#181d26] text-[11px] text-white hover:bg-[#333840]">{saving ? "Saving..." : editing ? "Update Stage" : "Add Stage"}</Button>
             </div>
           </Card>

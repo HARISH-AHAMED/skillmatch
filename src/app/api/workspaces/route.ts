@@ -51,7 +51,9 @@ export async function GET() {
         where: {
           project: {
             company: { userId },
-            status: "IN_PROGRESS",
+            // Mirror the freelancer rule: a workspace exists as soon as someone is
+            // hired, which can happen while the listing is still OPEN.
+            status: { in: ["OPEN", "IN_PROGRESS"] },
           },
           status: "HIRED",
         },

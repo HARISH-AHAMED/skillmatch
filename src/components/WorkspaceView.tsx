@@ -578,6 +578,8 @@ export function WorkspaceView({
   const allMilestoneDone =
     updates.length > 0 && updates.every((u) => u.status === "COMPLETED");
   const [taskViewMode, setTaskViewMode] = useState<"board" | "timeline">("board");
+  // Timeline: optional single-day filter (YYYY-MM-DD).
+  const [timelineDate, setTimelineDate] = useState("");
 
   // Sync background polling every 3s
   useEffect(() => {
@@ -1106,7 +1108,9 @@ export function WorkspaceView({
   });
 
   // Sort completion dates descending (newest first)
-  const sortedDates = Object.keys(groupedTimeline).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedDates = Object.keys(groupedTimeline)
+    .filter((d) => !timelineDate || new Date(d).toDateString() === new Date(timelineDate + "T00:00:00").toDateString())
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   // MILESTONE COMPLETION CALCULATION
   const completedMilestones = updates.filter((u) => u.status === "COMPLETED").length;
@@ -2916,6 +2920,18 @@ export function WorkspaceView({
                           )}
                         </div>
                       ) : (
+                        <div className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[#dddddd] bg-white p-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Jump to date</span>
+                          <input type="date" value={timelineDate} onChange={(e) => setTimelineDate(e.target.value)} className="rounded-[8px] border border-[#dddddd] px-3 py-1.5 text-xs focus:outline-none" />
+                          {timelineDate && (
+                            <button type="button" onClick={() => setTimelineDate("")} className="cursor-pointer rounded-[8px] border border-[#dddddd] px-3 py-1.5 text-[11px] font-semibold text-[#41454d] hover:bg-[#f8fafc]">Show all dates</button>
+                          )}
+                          <span className="ml-auto text-[11px] font-semibold text-[#181d26]">{sortedDates.reduce((t, d) => t + groupedTimeline[d].length, 0)} updates</span>
+                        </div>
+                        {sortedDates.length === 0 ? (
+                          <p className="rounded-[12px] border border-dashed border-[#dddddd] bg-white p-6 text-center text-xs font-semibold text-slate-400">No task updates on this date.</p>
+                        ) : (
                         <div className="relative border-l-2 border-slate-200 ml-4 pl-6 py-2 space-y-8">
                           {sortedDates.map((dateStr) => (
                             <div key={dateStr} className="relative space-y-4 animate-in fade-in slide-in-from-left-4 duration-200">
@@ -3005,6 +3021,8 @@ export function WorkspaceView({
                               </div>
                             </div>
                           ))}
+                        </div>
+                        )}
                         </div>
                       )}
                     </div>
