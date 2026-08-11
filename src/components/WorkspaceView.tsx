@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceFunding } from "@/components/WorkspaceFunding";
+import { getProjectMetadataDirect as getProjMetaForFunding } from "@/lib/workflowHelpers";
 import React, { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -133,6 +135,10 @@ interface TaskItem {
 }
 
 interface WorkspaceViewProps {
+  /** The application this workspace is opened for. */
+  applicationId?: string;
+  /** Raw project description; funding reads the compensation metadata from it. */
+  projectDescription?: string | null;
   /** Shared role roster; undefined/zero-role projects render the original Team tab only. */
   teamRoster?: Awaited<ReturnType<typeof import("@/actions/roleActions").getProjectTeam>>;
   role: "COMPANY" | "FREELANCER";
@@ -428,6 +434,8 @@ function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean 
 
 
 export function WorkspaceView({
+  applicationId,
+  projectDescription,
   teamRoster,
   role,
   currentUserId,
@@ -1104,6 +1112,10 @@ export function WorkspaceView({
   const completedMilestones = updates.filter((u) => u.status === "COMPLETED").length;
   const milestonePercentage = updates.length > 0 ? Math.round((completedMilestones / updates.length) * 100) : 0;
 
+  // Compensation model drives the Funding / Payments module. Projects predating
+  // the field fall through to the original milestone escrow UI unchanged.
+  const compensationType = getProjMetaForFunding(projectDescription || "").compensationType || "MILESTONE";
+
   // ESCROW CALCULATIONS
   let fundsEscrowed = 0;
   let fundsPaid = 0;
@@ -1385,7 +1397,7 @@ export function WorkspaceView({
       <nav className="bg-white border-b border-[#dddddd] px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">
         {[
           { id: "overview", label: "Overview", icon: LayoutDashboard },
-          { id: "milestones", label: "Milestones", icon: Sparkles },
+          { id: "milestones", label: "Funding / Payments", icon: Sparkles },
           { id: "tasks", label: "Tasks", icon: CheckSquare },
           { id: "deliverables", label: "Deliverables", icon: Archive },
           { id: "messages", label: "Chat", icon: MessageSquare },
@@ -3165,7 +3177,39 @@ export function WorkspaceView({
               )}
 
               {/* milestones TAB */}
-              {activeView === "milestones" && (
+              {activeView === "milestones" && compensationType !== "MILESTONE" && (
+                <WorkspaceFunding
+                  projectId={projectId}
+                  canManageStages={role === "COMPANY"}
+                  canSubmitStages={role === "FREELANCER"}
+                  teamOptions={hiredFreelancers.map((f) => ({ applicationId: f.id, name: f.name || "Freelancer" }))}
+                  currentUserId={currentUserId}
+                  currentApplicationId={applicationId}
+                  projectDescription={projectDescription}
+                  projectBudget={projectBudget}
+                  fundsEscrowed={fundsEscrowed}
+                  fundsPaid={fundsPaid}
+                />
+              )}
+
+              {activeView === "milestones" && compensationType === "MILESTONE" && (
+                <div className="mb-8">
+                  <WorkspaceFunding
+                    projectId={projectId}
+                    canManageStages={role === "COMPANY"}
+                    canSubmitStages={role === "FREELANCER"}
+                    teamOptions={hiredFreelancers.map((f) => ({ applicationId: f.id, name: f.name || "Freelancer" }))}
+                    currentUserId={currentUserId}
+                    currentApplicationId={applicationId}
+                    projectDescription={projectDescription}
+                    projectBudget={projectBudget}
+                    fundsEscrowed={fundsEscrowed}
+                    fundsPaid={fundsPaid}
+                  />
+                </div>
+              )}
+
+              {activeView === "milestones" && compensationType === "MILESTONE" && (
                 <div className="space-y-6">
                   {/* Header Row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3187,33 +3231,13 @@ export function WorkspaceView({
                     )}
                   </div>
 
-                  {/* Escrow Wallets Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Total Contract Budget</span>
-                      <span className="font-extrabold text-[#181d26] text-lg mt-1.5 block">${projectBudget.toLocaleString()}</span>
-                      <span className="text-[8px] text-slate-400 block mt-1 font-semibold">Allocated Project Cap</span>
-                    </Card>
-
-                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-sky-600">Secured in Escrow</span>
-                      <span className="font-extrabold text-sky-600 text-lg mt-1.5 block">${fundsEscrowed.toLocaleString()}</span>
-                      <span className="text-[8px] text-sky-400 block mt-1 font-semibold">Active Work In Progress</span>
-                    </Card>
-
-                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-emerald-600">Released to Freelancer</span>
-                      <span className="font-extrabold text-emerald-600 text-lg mt-1.5 block">${fundsPaid.toLocaleString()}</span>
-                      <span className="text-[8px] text-emerald-400 block mt-1 font-semibold">Disbursed for Finished Milestones</span>
-                    </Card>
-
-                    <Card className="border border-slate-200/60 p-4 bg-white shadow-2xs">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Budget Balance</span>
-                      <span className="font-extrabold text-amber-600 text-lg mt-1.5 block">
-                        ${Math.max(projectBudget - fundsPaid - fundsEscrowed, 0).toLocaleString()}
-                      </span>
-                      <span className="text-[8px] text-amber-400 block mt-1 font-semibold">Future Unfunded Deliverables</span>
-                    </Card>
+                  {/* Milestone money lives in the funding ledger above, which is the
+                      single source of truth. The legacy escrow tiles are removed so the
+                      same balance is never shown twice with different numbers. */}
+                  <div className="rounded-[12px] border border-[#dddddd] bg-[#f8fafc] px-4 py-3 text-[11px] font-semibold text-[#41454d]">
+                    Funding, release and per-freelancer balances for these milestones are shown in
+                    <span className="text-[#181d26]"> Milestone Funding </span>
+                    above. The list below keeps the milestone details and workflow.
                   </div>
 
                   {/* Milestones list card */}

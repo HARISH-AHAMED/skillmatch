@@ -52,15 +52,19 @@ export async function POST(req: NextRequest) {
     const ext = path.extname(file.name) || (category === "image" ? ".png" : category === "video" ? ".mp4" : ".pdf");
     const filename = `upload-${session.user.id}-${uniqueId}${ext}`;
 
-    // Ensure uploads directory exists
+    // Serverless hosts (Vercel) have a read-only filesystem and no persistence
+    // between invocations, so disk writes 500 and the saved URL later 404s.
+    // There, return a data URL the client can store and render directly.
+    if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+      const dataUrl = `data:${file.type || "application/octet-stream"};base64,${buffer.toString("base64")}`;
+      return NextResponse.json({ url: dataUrl });
+    }
+
+    // Local development keeps writing to public/uploads.
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadDir, { recursive: true });
-
-    const filePath = path.join(uploadDir, filename);
-    await writeFile(filePath, buffer);
-
-    const fileUrl = `/uploads/${filename}`;
-    return NextResponse.json({ url: fileUrl });
+    await writeFile(path.join(uploadDir, filename), buffer);
+    return NextResponse.json({ url: `/uploads/${filename}` });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });

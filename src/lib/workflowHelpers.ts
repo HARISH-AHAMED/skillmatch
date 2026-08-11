@@ -530,10 +530,60 @@ export interface ProjectWizardData {
   currency?: string;
   /** Compensation model. Undefined on projects posted before this field existed. */
   compensationType?: CompensationType;
+  /** Optional funding units for a FIXED engagement. Separate from milestones. */
+  paymentStages?: {
+    id: string;
+    /** Application the stage pays. Absent on legacy single-freelancer stages. */
+    applicationId?: string;
+    freelancerName?: string;
+    title: string;
+    description?: string;
+    amount: number;
+    status?: "PENDING" | "FUNDED" | "SUBMITTED" | "APPROVED" | "RELEASED";
+    submissionNote?: string;
+    funded?: number;
+    released?: number;
+  }[];
+  /** Funded and released totals for HOURLY work. Absent on other types. */
+  hourlyFunding?: { funded: number; released: number };
+  /** One entry per hourly release. Newest entries are appended. */
+  hourlyPayments?: {
+    id: string;
+    /** Application paid. Absent on legacy single-freelancer payment rows. */
+    applicationId?: string;
+    date: string;
+    amount: number;
+    companyName: string;
+    freelancerName: string;
+    note?: string;
+  }[];
+  /** Freelancer work logs for an HOURLY engagement. Absent on other types. */
+  hourlyLogs?: {
+    id: string;
+    /** Application the log belongs to, so hours never mix between freelancers. */
+    applicationId?: string;
+    freelancerUserId: string;
+    freelancerName: string;
+    date: string;
+    hours: number;
+    description: string;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    reviewedAt?: string;
+  }[];
   /** Estimated hours for an HOURLY engagement, used to derive a total. */
   estimatedHours?: number;
   /** Payout cadence for a STIPEND engagement. */
   stipendFrequency?: StipendFrequency;
+  /** Actual stipend payouts. One row per released period per application. */
+  stipendPayments?: {
+    id: string;
+    applicationId: string;
+    freelancerName: string;
+    periodIndex: number;
+    amount: number;
+    date: string;
+    companyName: string;
+  }[];
   /** Company signalled the fixed budget is open to negotiation. */
   budgetNegotiable?: boolean;
   /** Certificate is issued on completion. Independent of the compensation type. */
