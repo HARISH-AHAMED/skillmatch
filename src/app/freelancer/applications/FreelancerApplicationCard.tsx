@@ -240,48 +240,48 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
   ];
 
   return (
-    <Card className="p-0 border border-[#dddddd] bg-white rounded-[12px] shadow-xs overflow-hidden">
+    <Card className="p-0 border border-[#E2E5EA] bg-white rounded-[12px] shadow-xs overflow-hidden">
 
       {/* ═══ OFFER LETTER BANNER ═══ */}
       {hasOffer && (offerPending || offerNegotiating) && (
         <div className="px-6 pt-5 pb-5 bg-[#181d26] text-white space-y-4 text-left">
           <div className="flex items-start gap-3">
             <div className="p-2.5 bg-white/10 rounded-[8px] shrink-0">
-              <Gift className="h-5 w-5 text-[#fcab79]" />
+              <Gift className="h-5 w-5 text-[#FFC700]" />
             </div>
             <div className="flex-1 space-y-1 text-left">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-300">Official Hiring Offer Received</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[#C7CCD4]">Official Hiring Offer Received</p>
               <h3 className="text-sm font-semibold">You&apos;ve been offered a position on this project!</h3>
-              <p className="text-xs text-slate-200 leading-relaxed font-normal">{offerLetter!.offerText}</p>
+              <p className="text-xs text-[#E2E5EA] leading-relaxed font-normal">{offerLetter!.offerText}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 bg-white/10 rounded-[10px] p-4">
             <div>
-              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">
+              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">
                 {offerLetter!.paymentCategory === "HOURLY"
                   ? "Hourly Rate"
                   : offerLetter!.paymentCategory === "MONTHLY"
                   ? "Monthly Rate"
                   : "Total Stipend"}
               </p>
-              <p className="text-lg font-semibold text-[#fcab79]">
+              <p className="text-lg font-semibold text-[#FFC700]">
                 {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)}
               </p>
             </div>
             <div>
-              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">Payment Category</p>
+              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">Payment Category</p>
               <p className="text-xs font-semibold text-white">{getPaymentCategoryLabel(offerLetter!.paymentCategory)}</p>
               <p className="text-[9px] text-white/60 mt-0.5">{offerLetter!.currency || DEFAULT_CURRENCY}</p>
             </div>
             <div>
-              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">Payment Plan</p>
+              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">Payment Plan</p>
               <p className="text-xs font-semibold text-white">{offerLetter!.milestones?.length || 0} milestones</p>
             </div>
           </div>
 
           {(offerLetter!.nonMonetaryBenefits?.length ?? 0) > 0 && (
             <div className="bg-white/10 rounded-[10px] p-4 space-y-2">
-              <p className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">
+              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">
                 {isNonMonetary(offerLetter!.paymentCategory) ? "What You Receive" : "Additional Benefits"}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -300,7 +300,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
           {/* Awaiting the company's decision on a counter-offer */}
           {pendingNegotiation && (
             <div className="bg-white/10 border border-white/20 rounded-[10px] p-4 space-y-1.5">
-              <p className="text-[9px] font-bold text-[#f4d35e] uppercase tracking-wider">
+              <p className="text-[9px] font-bold text-[#FFC700] uppercase tracking-wider">
                 Counter-offer sent — awaiting response
               </p>
               <p className="text-xs text-white font-semibold">
@@ -374,7 +374,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                     <select
                       value={negoCategory}
                       onChange={(e) => setNegoCategory(e.target.value as PaymentCategory)}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none cursor-pointer"
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none cursor-pointer"
                     >
                       {PAYMENT_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value} className="text-ink">{c.label}</option>
@@ -386,7 +386,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                     <select
                       value={negoCurrency}
                       onChange={(e) => setNegoCurrency(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none cursor-pointer"
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none cursor-pointer"
                     >
                       {CURRENCIES.map((c) => (
                         <option key={c.code} value={c.code} className="text-ink">
@@ -404,12 +404,12 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                       min={1}
                       value={negoAmount}
                       onChange={(e) => setNegoAmount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none"
+                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none"
                     />
                   </div>
                 </div>
                 {negoCurrency !== (offerLetter!.currency || DEFAULT_CURRENCY) && (
-                  <p className="text-[10px] text-[#f4d35e]">
+                  <p className="text-[10px] text-[#FFC700]">
                     You are proposing a currency change from {offerLetter!.currency || DEFAULT_CURRENCY} to {negoCurrency}.
                     The amount is not converted — enter the value you want in {negoCurrency}.
                   </p>
@@ -419,13 +419,13 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   value={negoMessage}
                   onChange={(e) => setNegoMessage(e.target.value)}
                   placeholder="Briefly explain your proposed terms (optional)..."
-                  className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white placeholder-white/40 text-xs focus:ring-1 focus:ring-[#f4d35e] focus:outline-none resize-none"
+                  className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white placeholder-white/40 text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none resize-none"
                 />
                 <div className="flex gap-2">
                   <Button
                     disabled={offerLoading !== null || (negoCategory !== "NON_MONETARY" && negoAmount <= 0)}
                     onClick={handleNegotiate}
-                    className="flex-1 bg-[#f4d35e] hover:bg-[#d9a441] text-ink font-semibold cursor-pointer"
+                    className="flex-1 bg-[#FFC700] hover:bg-[#E8A800] text-ink font-semibold cursor-pointer"
                   >
                     {offerLoading === "NEGOTIATE" ? "Sending..." : "Send Counter-Offer"}
                   </Button>
@@ -445,7 +445,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   disabled={offerLoading !== null || !!pendingNegotiation}
                   title={pendingNegotiation ? "Waiting for the company to respond to your counter-offer" : undefined}
                   onClick={() => handleOfferResponse("ACCEPT")}
-                  className="flex-1 bg-[#f8fafc]0 hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
+                  className="flex-1 bg-[#5A6472] hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {offerLoading === "ACCEPT" ? "Accepting..." : "Accept Offer & Start Project"}
@@ -477,7 +477,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Offer accepted ribbon */}
       {hasOffer && offerAccepted && (
-        <div className="px-6 py-3 bg-[#f8fafc] border-b border-[#dddddd] flex items-center gap-3">
+        <div className="px-6 py-3 bg-[#F7F8FA] border-b border-[#E2E5EA] flex items-center gap-3">
           <CheckCircle className="h-4 w-4 text-[#181d26] shrink-0" />
           <div className="text-left flex-1">
             <p className="text-xs font-black text-[#181d26]">Offer Accepted — Project In Progress</p>
@@ -494,12 +494,12 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
       {/* Team Match Confirmation — only for role-based projects where this
           freelancer is hired but has not yet seen and confirmed their team. */}
       {app.status === "HIRED" && app.roleId && !app.teamConfirmedAt && (
-        <div className="px-6 py-3.5 bg-[#f8fafc] border-b border-[#dddddd] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="px-6 py-3.5 bg-[#F7F8FA] border-b border-[#E2E5EA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="text-left min-w-0">
             <p className="text-xs font-semibold text-[#181d26]">
               You&apos;ve been placed on this team
             </p>
-            <p className="text-[11px] text-[#41454d]">
+            <p className="text-[11px] text-[#5A6472]">
               Review your teammates before confirming your place.
             </p>
           </div>
@@ -526,7 +526,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Confirmed marker, so the state is visible after the fact too */}
       {app.status === "HIRED" && app.roleId && app.teamConfirmedAt && (
-        <div className="px-6 py-2.5 bg-[#f8fafc] border-b border-[#dddddd] flex items-center gap-2">
+        <div className="px-6 py-2.5 bg-[#F7F8FA] border-b border-[#E2E5EA] flex items-center gap-2">
           <CheckCircle className="h-3.5 w-3.5 text-[#181d26] shrink-0" />
           <p className="text-[11px] font-semibold text-[#181d26]">
             Team confirmed — you&apos;re on the roster.
@@ -544,12 +544,12 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       <div className="p-6 space-y-5 text-left">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-[#dddddd]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-[#E2E5EA]">
           <div className="space-y-1 text-left">
             <Link href={`/freelancer/applications/${app.id}`} className="hover:underline">
               <h3 className="text-sm font-semibold text-[#181d26]">{app.project.title}</h3>
             </Link>
-            <p className="text-[11px] text-[#41454d] font-normal">
+            <p className="text-[11px] text-[#5A6472] font-normal">
               {app.project.company.companyName} • {app.project.company.location || "Remote"}
             </p>
           </div>
@@ -575,7 +575,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        <div className="flex gap-1 bg-[#EDEFF2] p-1 rounded-xl w-fit">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -583,7 +583,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === tab.id ? "bg-white text-[#181d26] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  activeTab === tab.id ? "bg-white text-[#181d26] shadow-sm" : "text-[#5A6472] hover:text-[#333840]"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -603,15 +603,15 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
           <div className="space-y-5">
             {/* Pipeline progress */}
             <div className="space-y-2">
-              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Recruitment Progress</span>
+              <span className="block text-[10px] font-bold text-[#5A6472] uppercase tracking-wider text-left">Recruitment Progress</span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                 {pipelineOrder.map((stage, idx) => {
                   const isPast = idx < currentPipelineIdx;
                   const isCurrent = idx === currentPipelineIdx;
                   return (
                     <div key={stage} className="flex flex-col items-center shrink-0 min-w-[80px]">
-                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#41454d]" : isCurrent ? "bg-[#181d26]" : "bg-slate-100"}`} />
-                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-[#41454d]" : "text-slate-400"}`}>
+                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#5A6472]" : isCurrent ? "bg-[#181d26]" : "bg-[#EDEFF2]"}`} />
+                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-[#5A6472]" : "text-[#8A94A3]"}`}>
                         {stage}
                       </span>
                     </div>
@@ -622,16 +622,16 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
             {/* Info specs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-left">
-              <div className="flex items-center gap-2 text-slate-600 font-medium">
-                <Calendar className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
+                <Calendar className="h-4 w-4 text-[#8A94A3]" />
                 <span>Applied: {new Date(app.createdAt).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600 font-medium">
-                <DollarSign className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
+                <DollarSign className="h-4 w-4 text-[#8A94A3]" />
                 <span>Budget: ₹{app.project.budget}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600 font-medium">
-                <BrainCircuit className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
+                <BrainCircuit className="h-4 w-4 text-[#8A94A3]" />
                 <span>AI Match: {app.aiScore}%</span>
               </div>
             </div>
@@ -639,7 +639,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             {/* ═══ INTERVIEW SECTION ═══ */}
             {/* Conducted — no join button, show completed badge */}
             {interviewConducted && (
-              <div className="p-4 bg-[#f8fafc] border border-[#dddddd] rounded-2xl flex items-center gap-3">
+              <div className="p-4 bg-[#F7F8FA] border border-[#E2E5EA] rounded-2xl flex items-center gap-3">
                 <div className="p-2 bg-white rounded-xl">
                   <CheckCircle className="h-5 w-5 text-[#181d26]" />
                 </div>
@@ -678,7 +678,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                         })
                       : "Date TBD"}
                   </p>
-                  <p className="text-[10px] text-slate-500">Click the button to join via Google Meet at the scheduled time.</p>
+                  <p className="text-[10px] text-[#5A6472]">Click the button to join via Google Meet at the scheduled time.</p>
                 </div>
                 {latestInterview.meetingLink && (
                   <a
@@ -694,23 +694,23 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             )}
 
             {/* Proposal */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-left space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Proposal Pitch</span>
-              <p className="text-slate-700 italic">&quot;{coverLetterText}&quot;</p>
+            <div className="bg-[#F7F8FA] p-4 rounded-xl border border-[#EDEFF2] text-xs text-left space-y-1.5">
+              <span className="text-[10px] font-bold text-[#5A6472] uppercase tracking-wider block">Your Proposal Pitch</span>
+              <p className="text-[#333840] italic">&quot;{coverLetterText}&quot;</p>
             </div>
 
             {/* Contract sign prompt */}
             {activeStage === "Contract Sent" && !isSigned && appMeta.digitalContract && (
               <div className="p-5 bg-sky-50 border border-sky-200 rounded-2xl text-left space-y-3.5">
                 <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-[#1b61c9]" /> Action Required: Sign Workspace Contract
+                  <FileText className="h-4 w-4 text-[#1968E5]" /> Action Required: Sign Workspace Contract
                 </h4>
-                <p className="text-[10px] text-slate-500">{appMeta.digitalContract.contractText}</p>
-                <div className="border border-slate-200/80 rounded-xl divide-y divide-slate-100 bg-white text-xs">
+                <p className="text-[10px] text-[#5A6472]">{appMeta.digitalContract.contractText}</p>
+                <div className="border border-[#E2E5EA]/80 rounded-xl divide-y divide-[#EDEFF2] bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between">
                       <span className="font-bold text-[#181d26]">{m.title}</span>
-                      <span className="text-slate-500">{formatMoney(m.budget, offerLetter?.currency)}</span>
+                      <span className="text-[#5A6472]">{formatMoney(m.budget, offerLetter?.currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -722,16 +722,16 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
             {/* Signed contract tracker */}
             {isSigned && appMeta.digitalContract && (
-              <div className="p-5 bg-[#f8fafc] border border-[#dddddd] rounded-2xl text-left space-y-3">
+              <div className="p-5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-2xl text-left space-y-3">
                 <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
                   <CheckCircle className="h-4 w-4 text-[#181d26]" /> Signed Contract Active
                 </h4>
-                <div className="border border-slate-200/80 rounded-xl divide-y divide-slate-100 bg-white text-xs">
+                <div className="border border-[#E2E5EA]/80 rounded-xl divide-y divide-[#EDEFF2] bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between items-center">
                       <div>
                         <span className="font-bold text-[#181d26]">{m.title}</span>
-                        <span className="text-slate-400 ml-1.5">{formatMoney(m.budget, offerLetter?.currency)}</span>
+                        <span className="text-[#8A94A3] ml-1.5">{formatMoney(m.budget, offerLetter?.currency)}</span>
                       </div>
                       {m.status === "RELEASED" ? (
                         <Badge variant="success" className="text-[9px]">Released</Badge>
@@ -748,22 +748,22 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
         {/* ═══ DM CHAT TAB ═══ */}
         {activeTab === "chat" && (
-          <div className="border border-slate-200 rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: "340px" }}>
+          <div className="border border-[#E2E5EA] rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: "340px" }}>
             {/* Chat header */}
-            <div className="p-3.5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
+            <div className="p-3.5 border-b border-[#EDEFF2] flex items-center gap-3 bg-[#F7F8FA]">
               <div className="h-8 w-8 rounded-xl bg-[#181d26]/10 flex items-center justify-center text-[#181d26] font-black text-sm">
                 R
               </div>
               <div>
                 <p className="text-xs font-black text-[#181d26]">{app.project.company.companyName} Recruiter</p>
-                <p className="text-[10px] text-slate-400 font-medium">Direct Message · Pre-hire private channel</p>
+                <p className="text-[10px] text-[#8A94A3] font-medium">Direct Message · Pre-hire private channel</p>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[260px]">
               {dmMessages.length === 0 ? (
-                <p className="text-xs text-slate-400 italic text-center py-8">No messages yet. You can reach out to the recruiter directly here.</p>
+                <p className="text-xs text-[#8A94A3] italic text-center py-8">No messages yet. You can reach out to the recruiter directly here.</p>
               ) : (
                 dmMessages.map((msg: any) => {
                   const isMe = msg.senderId === currentUserId;
@@ -772,9 +772,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                       {!isMe && (
                         <div className="h-6 w-6 rounded-full bg-[#181d26] flex items-center justify-center text-[10px] font-black text-white shrink-0">R</div>
                       )}
-                      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs ${isMe ? "bg-sky-600 text-white rounded-tr-none" : "bg-slate-100 text-slate-800 rounded-tl-none"}`}>
+                      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs ${isMe ? "bg-sky-600 text-white rounded-tr-none" : "bg-[#EDEFF2] text-[#181D26] rounded-tl-none"}`}>
                         <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                        <div className={`text-[9px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-sky-200" : "text-slate-400"}`}>
+                        <div className={`text-[9px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-sky-200" : "text-[#8A94A3]"}`}>
                           <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {isMe && (
                             <>
@@ -827,9 +827,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-slate-100 flex gap-2 items-center">
+            <div className="p-3 border-t border-[#EDEFF2] flex gap-2 items-center">
               {editingMessageId && (
-                <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[10px] text-slate-400 hover:text-slate-600 font-medium whitespace-nowrap cursor-pointer">
+                <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[10px] text-[#8A94A3] hover:text-[#5A6472] font-medium whitespace-nowrap cursor-pointer">
                   Cancel Edit
                 </button>
               )}
@@ -839,7 +839,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                 onChange={(e) => setDmInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendDM(); } }}
                 placeholder={editingMessageId ? "Edit message..." : "Type a message to the recruiter..."}
-                className="flex-1 h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:ring-1 focus:ring-sky-600 focus:outline-none"
+                className="flex-1 h-9 px-3 rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] text-xs focus:ring-1 focus:ring-sky-600 focus:outline-none"
               />
               <Button
                 size="sm"

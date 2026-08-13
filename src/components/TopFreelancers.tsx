@@ -34,18 +34,18 @@ const rankStyles = [
     titleColor: "text-[#181d26]",
   },
   {
-    bg: "from-[#1b61c9] via-[#29aaeb] to-[#1b61c9]",
-    text: "text-slate-500",
-    glow: "shadow-sm border-slate-200 ring-1 ring-slate-200/60",
-    badge: "bg-[#1b61c9]/10 text-[#181d26] border-[#1b61c9]/25",
-    icon: "text-slate-400",
+    bg: "from-[#1968E5] via-[#134FB0] to-[#1968E5]",
+    text: "text-[#5A6472]",
+    glow: "shadow-sm border-[#E2E5EA] ring-1 ring-[#E2E5EA]/60",
+    badge: "bg-[#1968E5]/10 text-[#181d26] border-[#1968E5]/25",
+    icon: "text-[#8A94A3]",
     titleColor: "text-[#181d26]",
   },
   {
-    bg: "from-[#29aaeb] via-[#7cc9f2] to-[#29aaeb]",
+    bg: "from-[#134FB0] via-[#7cc9f2] to-[#134FB0]",
     text: "text-[#a1662f]",
     glow: "shadow-sm border-[#a1662f]/25 ring-1 ring-[#a1662f]/10",
-    badge: "bg-[#29aaeb]/10 text-[#181d26] border-[#29aaeb]/30",
+    badge: "bg-[#134FB0]/10 text-[#181d26] border-[#134FB0]/30",
     icon: "text-[#a1662f]",
     titleColor: "text-[#181d26]",
   },
@@ -53,7 +53,7 @@ const rankStyles = [
 
 function getMedalIcon(rank: number) {
   if (rank === 1) return <Trophy className="h-4 w-4 text-amber-500" />;
-  if (rank === 2) return <Medal className="h-4 w-4 text-slate-400" />;
+  if (rank === 2) return <Medal className="h-4 w-4 text-[#8A94A3]" />;
   if (rank === 3) return <Medal className="h-4 w-4 text-[#a1662f]" />;
   return null;
 }
@@ -65,7 +65,7 @@ function getAvailabilityDot(status: string | null) {
     case "BUSY":
       return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-amber-400 border-2 border-white shadow-sm" title="Busy" />;
     default:
-      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-slate-300 border-2 border-white shadow-sm" title="Unavailable" />;
+      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#C7CCD4] border-2 border-white shadow-sm" title="Unavailable" />;
   }
 }
 
@@ -104,7 +104,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#dddddd] pb-4 text-left">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E5EA] pb-4 text-left">
         <div className="flex items-center gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-[#181d26]">
             <Trophy className="h-6 w-6 text-white" />
@@ -114,20 +114,20 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               Top Talent Leaderboard
               <Sparkles className="h-3.5 w-3.5 text-[#181d26]" />
             </h2>
-            <p className="text-[10px] text-[#41454d] font-normal tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
+            <p className="text-[10px] text-[#5A6472] font-normal tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
           </div>
         </div>
-        <div className="w-fit rounded-[12px] border border-[#dddddd] bg-white px-5 py-3 text-left shadow-xs">
+        <div className="w-fit rounded-[12px] border border-[#E2E5EA] bg-white px-5 py-3 text-left shadow-xs">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f1f3f6]">
-            <Star className="h-3 w-3 fill-[#41454d] text-[#41454d]" />
+            <Star className="h-3 w-3 fill-[#5A6472] text-[#5A6472]" />
           </span>
           <p className="mt-1.5 text-2xl font-black leading-none text-[#181d26]">{reranked.length}</p>
-          <p className="mt-1 max-w-[90px] text-[10px] font-semibold uppercase leading-tight tracking-wider text-[#41454d]">Specialists Ranked</p>
+          <p className="mt-1 max-w-[90px] text-[10px] font-semibold uppercase leading-tight tracking-wider text-[#5A6472]">Specialists Ranked</p>
         </div>
       </div>
 
       {/* Domain tabs selector */}
-      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-[#dddddd] scrollbar-track-transparent">
+      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-[#E2E5EA] scrollbar-track-transparent">
         {DOMAIN_TABS.map(tab => {
           const count = tab.value === "ALL" 
             ? topFreelancers.length 
@@ -142,7 +142,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                 "px-4 py-2 rounded-[12px] text-xs font-medium transition-all border shrink-0 flex items-center gap-1.5",
                 activeDomain === tab.value
                   ? "bg-[#181d26] text-white border-[#181d26]"
-                  : "bg-white text-[#41454d] border-[#dddddd] hover:bg-[#f8fafc] hover:text-[#181d26] cursor-pointer"
+                  : "bg-white text-[#5A6472] border-[#E2E5EA] hover:bg-[#F7F8FA] hover:text-[#181d26] cursor-pointer"
               )}
             >
               <span>{tab.label}</span>
@@ -150,7 +150,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                 "px-1.5 py-0.5 rounded-[6px] text-[9px] font-medium",
                 activeDomain === tab.value 
                   ? "bg-white/20 text-white" 
-                  : "bg-[#f8fafc] text-[#41454d]"
+                  : "bg-[#F7F8FA] text-[#5A6472]"
               )}>
                 {count}
               </span>
@@ -160,14 +160,14 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
       </div>
 
       {/* Aligned unified ranking list */}
-      <div className="bg-white border border-[#dddddd] rounded-[12px] overflow-hidden shadow-xs">
+      <div className="bg-white border border-[#E2E5EA] rounded-[12px] overflow-hidden shadow-xs">
         {rest.length === 0 ? (
           <div className="p-10 text-center bg-white space-y-2">
-            <p className="text-sm font-bold text-slate-700">No Specialists Ranked Yet</p>
-            <p className="text-xs text-slate-400">There are currently no active freelancers in this domain with milestones completed.</p>
+            <p className="text-sm font-bold text-[#333840]">No Specialists Ranked Yet</p>
+            <p className="text-xs text-[#8A94A3]">There are currently no active freelancers in this domain with milestones completed.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100/80">
+          <div className="divide-y divide-[#EDEFF2]/80">
             {rest.map((f) => {
               const isRank1 = f.rank === 1;
               const isRank2 = f.rank === 2;
@@ -178,7 +178,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                 ? "bg-[#fdfcf7] hover:bg-[#faf7ee]"
                 : isRank2
                 ? "bg-[#f6f7f9] hover:bg-[#eef0f3]"
-                : "bg-white hover:bg-[#f8fafc]";
+                : "bg-white hover:bg-[#F7F8FA]";
 
               return (
                 <div
@@ -193,13 +193,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     <div className="flex w-[70px] shrink-0 items-center gap-3 text-left">
                       <span className={cn(
                         "text-sm font-bold",
-                        isRank1 ? "text-amber-600" : isRank2 ? "text-slate-500" : isRank3 ? "text-[#a1662f]" : "text-slate-500"
+                        isRank1 ? "text-amber-600" : isRank2 ? "text-[#5A6472]" : isRank3 ? "text-[#a1662f]" : "text-[#5A6472]"
                       )}>
                         #{f.rank}
                       </span>
                       <Star className={cn(
                         "h-4 w-4",
-                        isRank1 ? "fill-amber-500 text-amber-500" : isRank2 ? "fill-slate-400 text-slate-400" : isRank3 ? "fill-[#a1662f] text-[#a1662f]" : "text-slate-300"
+                        isRank1 ? "fill-amber-500 text-amber-500" : isRank2 ? "fill-[#8A94A3] text-[#8A94A3]" : isRank3 ? "fill-[#a1662f] text-[#a1662f]" : "text-[#C7CCD4]"
                       )} />
                     </div>
 
@@ -209,7 +209,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       onClick={() => f.image && setLightboxImage(f.image)}
                       disabled={!f.image}
                       className={cn(
-                        "relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#dddddd] bg-slate-50 p-0 text-left",
+                        "relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#E2E5EA] bg-[#F7F8FA] p-0 text-left",
                         f.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
                       )}
                       title={f.image ? "Click to view full image" : undefined}
@@ -237,7 +237,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       </p>
                       <p
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="text-[9px] font-semibold text-slate-400 truncate mt-0.5 cursor-pointer hover:text-[#181d26] transition-colors"
+                        className="text-[9px] font-semibold text-[#8A94A3] truncate mt-0.5 cursor-pointer hover:text-[#181d26] transition-colors"
                       >
                         {f.headline || "Elite Specialist"}
                       </p>
@@ -262,13 +262,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     <div className="flex items-center gap-3">
                       <span className={cn(
                         "rounded-[10px] border border-transparent bg-[#f1f3f6] px-3 py-1.5 text-xs font-bold",
-                        isRank1 ? "text-[#1b61c9]" : "text-[#181d26]"
+                        isRank1 ? "text-[#1968E5]" : "text-[#181d26]"
                       )}>
                         {f.compositeScore.toFixed(1)}
                       </span>
                       <button
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#181d26] transition-all cursor-pointer border border-transparent hover:border-slate-200/50"
+                        className="p-1 rounded-lg hover:bg-[#EDEFF2] text-[#8A94A3] hover:text-[#181d26] transition-all cursor-pointer border border-transparent hover:border-[#E2E5EA]/50"
                         title="View Profile"
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -285,7 +285,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
         {reranked.length > 7 && (
           <button
             onClick={() => setExpanded((p) => !p)}
-            className="mx-auto my-4 flex w-fit items-center justify-center gap-2 rounded-[10px] border border-[#dddddd] bg-white px-8 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#181d26] transition-colors hover:bg-[#f8fafc] cursor-pointer"
+            className="mx-auto my-4 flex w-fit items-center justify-center gap-2 rounded-[10px] border border-[#E2E5EA] bg-white px-8 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#181d26] transition-colors hover:bg-[#F7F8FA] cursor-pointer"
           >
             {expanded ? "Show less" : `Show ${reranked.length - 7} more`}
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200", expanded ? "-rotate-90" : "rotate-90")} />

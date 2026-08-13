@@ -126,10 +126,10 @@ export function RealtimeNotifications() {
       return <Briefcase className="h-5 w-5 text-[#181d26]" />;
     }
     if (t.includes("review") || t.includes("rating") || t.includes("star")) {
-      return <Star className="h-5 w-5 fill-[#fcab79] text-[#fcab79]" />;
+      return <Star className="h-5 w-5 fill-[#FFC700] text-[#FFC700]" />;
     }
     if (t.includes("completed") || t.includes("milestone") || t.includes("read") || t.includes("accepted")) {
-      return <CheckCircle2 className="h-5 w-5 text-[#006400]" />;
+      return <CheckCircle2 className="h-5 w-5 text-[#0F9D58]" />;
     }
     return <AlertCircle className="h-5 w-5 text-rose-500" />;
   };
@@ -143,12 +143,12 @@ export function RealtimeNotifications() {
           key={toast.id}
           onClick={() => handleToastClick(toast.id)}
           className={cn(
-            "pointer-events-auto p-4 bg-white border border-[#dddddd] shadow-lg rounded-[12px] flex gap-3.5 items-start cursor-pointer transition-all duration-200 hover:border-[#181d26]",
+            "pointer-events-auto p-4 bg-white border border-[#E2E5EA] shadow-lg rounded-[12px] flex gap-3.5 items-start cursor-pointer transition-all duration-200 hover:border-[#181d26]",
             "animate-in slide-in-from-bottom-5 slide-in-from-right-5 duration-300"
           )}
         >
           {/* Icon indicator */}
-          <div className="p-2 bg-[#f8fafc] border border-[#dddddd] rounded-[8px] shrink-0">
+          <div className="p-2 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[8px] shrink-0">
             {getToastIcon(toast.title)}
           </div>
 
@@ -160,7 +160,7 @@ export function RealtimeNotifications() {
             <p className="text-[11px] text-[#333840] mt-0.5 leading-relaxed font-normal line-clamp-2">
               {toast.message}
             </p>
-            <span className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-1.5 block">
+            <span className="text-[9px] text-[#5A6472] font-medium uppercase tracking-wider mt-1.5 block">
               Just Now
             </span>
           </div>
@@ -171,7 +171,7 @@ export function RealtimeNotifications() {
               e.stopPropagation(); // Avoid triggering card redirect click
               handleToastDismiss(toast.id);
             }}
-            className="absolute top-3.5 right-3.5 p-1 text-[#41454d] hover:text-[#181d26] bg-[#f8fafc] hover:bg-[#e0e2e6] rounded-[6px] transition-colors cursor-pointer"
+            className="absolute top-3.5 right-3.5 p-1 text-[#5A6472] hover:text-[#181d26] bg-[#F7F8FA] hover:bg-[#EDEFF2] rounded-[6px] transition-colors cursor-pointer"
             title="Dismiss notification"
           >
             <X className="h-3 w-3" />

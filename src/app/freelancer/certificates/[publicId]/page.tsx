@@ -51,18 +51,18 @@ export default async function FreelancerCertificateViewPage({ params }: PageProp
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/freelancer/certificates"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#181d26]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A6472] hover:text-[#181d26]"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> All certificates
         </Link>
         <CertificateDownload fileName={`certificate-${certificate.publicId}`} />
       </div>
 
-      <Card className="bg-slate-100 p-3 sm:p-6 print:bg-white print:p-0">
+      <Card className="bg-[#EDEFF2] p-3 sm:p-6 print:bg-white print:p-0">
         <CertificatePreview config={config} data={data} />
       </Card>
 
-      <p className="text-[11px] text-slate-500 print:hidden">
+      <p className="text-[11px] text-[#5A6472] print:hidden">
         Verifiable at <span className="font-mono">/verify/{certificate.publicId}</span>
       </p>
     </div>

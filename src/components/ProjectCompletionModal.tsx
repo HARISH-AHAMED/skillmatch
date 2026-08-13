@@ -45,8 +45,8 @@ function StarRating({ value, onChange, disabled }: { value: number; onChange: (v
           <Star
             className={`h-6 w-6 transition-colors ${
               star <= (hover || value)
-                ? "text-[#fcab79] fill-[#fcab79]"
-                : "text-slate-300"
+                ? "text-[#FFC700] fill-[#FFC700]"
+                : "text-[#C7CCD4]"
             }`}
           />
         </button>
@@ -60,17 +60,17 @@ function SubScoreRow({ label, icon: Icon, value, onChange }: { label: string; ic
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-1.5 w-40 shrink-0">
-        <Icon className="h-3.5 w-3.5 text-[#41454d]" />
+        <Icon className="h-3.5 w-3.5 text-[#5A6472]" />
         <span className="text-xs font-medium text-[#333840]">{label}</span>
       </div>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((s) => (
           <button key={s} type="button" onClick={() => onChange(s)} className="cursor-pointer">
-            <Star className={`h-4 w-4 transition-colors ${s <= value ? "text-[#fcab79] fill-[#fcab79]" : "text-slate-200"}`} />
+            <Star className={`h-4 w-4 transition-colors ${s <= value ? "text-[#FFC700] fill-[#FFC700]" : "text-[#E2E5EA]"}`} />
           </button>
         ))}
       </div>
-      <span className="text-xs font-medium text-[#41454d] ml-1">{value}/5</span>
+      <span className="text-xs font-medium text-[#5A6472] ml-1">{value}/5</span>
     </div>
   );
 }
@@ -102,8 +102,8 @@ function CompanyReviewPanel({
   if (!current) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
-        <div className="h-14 w-14 rounded-full bg-[#f0fdf4] border border-[#39bf45]/40 flex items-center justify-center">
-          <CheckCircle2 className="h-7 w-7 text-[#006400]" />
+        <div className="h-14 w-14 rounded-full bg-[#DEF7EB] border border-[#05C165]/40 flex items-center justify-center">
+          <CheckCircle2 className="h-7 w-7 text-[#0F9D58]" />
         </div>
         <h3 className="text-lg font-normal text-[#181d26]">All Freelancers Reviewed!</h3>
         <p className="text-sm text-[#333840]">Your reviews have been submitted and the freelancers have been notified.</p>
@@ -133,11 +133,11 @@ function CompanyReviewPanel({
     <div className="space-y-5">
       {/* Progress */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs font-medium text-[#41454d]">
+        <div className="flex justify-between text-xs font-medium text-[#5A6472]">
           <span>Reviewing freelancers</span>
           <span>{doneCount}/{total} done</span>
         </div>
-        <div className="w-full h-1.5 bg-[#f8fafc] border border-[#dddddd] rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-full overflow-hidden">
           <div
             className="h-full bg-[#181d26] rounded-full transition-all duration-300"
             style={{ width: `${(doneCount / total) * 100}%` }}
@@ -146,9 +146,9 @@ function CompanyReviewPanel({
       </div>
 
       {/* Freelancer card */}
-      <div className="flex items-center gap-3 p-4 bg-[#f8fafc] border border-[#dddddd] rounded-[10px]">
+      <div className="flex items-center gap-3 p-4 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[10px]">
         {current.image ? (
-          <img src={current.image} alt={current.name ?? ""} className="h-10 w-10 rounded-full object-cover border border-[#dddddd]" />
+          <img src={current.image} alt={current.name ?? ""} className="h-10 w-10 rounded-full object-cover border border-[#E2E5EA]" />
         ) : (
           <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center text-white font-medium text-base">
             {(current.name ?? "F")[0].toUpperCase()}
@@ -156,25 +156,25 @@ function CompanyReviewPanel({
         )}
         <div>
           <p className="font-semibold text-[#181d26] text-sm">{current.name}</p>
-          <p className="text-xs text-[#41454d]">Hired Freelancer</p>
+          <p className="text-xs text-[#5A6472]">Hired Freelancer</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Overall Rating</label>
+          <label className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Overall Rating</label>
           <StarRating value={rating} onChange={setRating} disabled={submitting} />
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Written Feedback</label>
+          <label className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Written Feedback</label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={4}
             disabled={submitting}
             placeholder="Describe the freelancer's communication, work quality, and overall performance..."
-            className="w-full p-3 text-sm bg-white border border-[#dddddd] rounded-[6px] focus:outline-none focus:border-[#458fff] text-[#181d26] resize-none"
+            className="w-full p-3 text-sm bg-white border border-[#E2E5EA] rounded-[6px] focus:outline-none focus:border-[#1968E5] text-[#181d26] resize-none"
           />
         </div>
 
@@ -227,8 +227,8 @@ function FreelancerReviewPanel({
   if (done) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
-        <div className="h-14 w-14 rounded-full bg-[#f0fdf4] border border-[#39bf45]/40 flex items-center justify-center">
-          <CheckCircle2 className="h-7 w-7 text-[#006400]" />
+        <div className="h-14 w-14 rounded-full bg-[#DEF7EB] border border-[#05C165]/40 flex items-center justify-center">
+          <CheckCircle2 className="h-7 w-7 text-[#0F9D58]" />
         </div>
         <h3 className="text-lg font-normal text-[#181d26]">Review Submitted!</h3>
         <p className="text-sm text-[#333840]">Your feedback helps improve the platform for all freelancers.</p>
@@ -240,38 +240,38 @@ function FreelancerReviewPanel({
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Company card */}
-      <div className="flex items-center gap-3 p-4 bg-[#f8fafc] border border-[#dddddd] rounded-[10px]">
+      <div className="flex items-center gap-3 p-4 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[10px]">
         <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center">
           <Building2 className="h-5 w-5 text-white" />
         </div>
         <div>
           <p className="font-semibold text-[#181d26] text-sm">{companyName}</p>
-          <p className="text-xs text-[#41454d]">Company — Client</p>
+          <p className="text-xs text-[#5A6472]">Company — Client</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Overall Rating</label>
+        <label className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Overall Rating</label>
         <StarRating value={rating} onChange={setRating} disabled={submitting} />
       </div>
 
       {/* Sub-scores */}
-      <div className="space-y-3 p-4 bg-[#f8fafc] border border-[#dddddd] rounded-[10px]">
-        <p className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Detailed Scores</p>
+      <div className="space-y-3 p-4 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[10px]">
+        <p className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Detailed Scores</p>
         <SubScoreRow label="Communication" icon={MessageSquare} value={commScore} onChange={setCommScore} />
         <SubScoreRow label="Payment Reliability" icon={CreditCard} value={payScore} onChange={setPayScore} />
         <SubScoreRow label="Project Clarity" icon={FileText} value={clarityScore} onChange={setClarityScore} />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Written Feedback</label>
+        <label className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Written Feedback</label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={4}
           disabled={submitting}
           placeholder="Describe the company's communication, payment process, and how clearly the project was defined..."
-          className="w-full p-3 text-sm bg-white border border-[#dddddd] rounded-[6px] focus:outline-none focus:border-[#458fff] text-[#181d26] resize-none"
+          className="w-full p-3 text-sm bg-white border border-[#E2E5EA] rounded-[6px] focus:outline-none focus:border-[#1968E5] text-[#181d26] resize-none"
         />
       </div>
 
@@ -310,14 +310,14 @@ export function ProjectCompletionModal({
           onClick={onClose}
         />
         <motion.div
-          className="relative w-full max-w-lg bg-white rounded-[12px] shadow-lg border border-[#dddddd] overflow-hidden z-10 max-h-[90vh] overflow-y-auto"
+          className="relative w-full max-w-lg bg-white rounded-[12px] shadow-lg border border-[#E2E5EA] overflow-hidden z-10 max-h-[90vh] overflow-y-auto"
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.15 }}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-[#181d26] p-6 text-white border-b border-[#dddddd]">
+          <div className="sticky top-0 z-10 bg-[#181d26] p-6 text-white border-b border-[#E2E5EA]">
             <button
               onClick={onClose}
               className="absolute top-4 right-4 p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-[6px] transition-colors cursor-pointer"
@@ -326,7 +326,7 @@ export function ProjectCompletionModal({
             </button>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/10 rounded-[6px] border border-white/20">
-                <Award className="h-5 w-5 text-[#fcab79]" />
+                <Award className="h-5 w-5 text-[#FFC700]" />
               </div>
               <div>
                 <p className="text-[10px] text-white/60 uppercase font-medium tracking-wider">Project Complete</p>

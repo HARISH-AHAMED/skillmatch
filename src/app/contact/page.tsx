@@ -17,11 +17,11 @@ export default function ContactPage() {
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
             How Can We Help You?
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-md">
+          <p className="text-[#8A94A3] text-sm leading-relaxed max-w-md">
             Have questions about our matching engine, custom company billing tiers, or platform features? Send us a message and our team will reply within 12 hours.
           </p>
 
-          <div className="space-y-4 pt-4 text-sm text-slate-300">
+          <div className="space-y-4 pt-4 text-sm text-[#C7CCD4]">
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-indigo-400" />
               <span>support@skillmatch.ai</span>
@@ -39,14 +39,14 @@ export default function ContactPage() {
 
         {/* Contact Form */}
         <Card className="p-8 space-y-6">
-          <h2 className="text-xl font-bold text-slate-200">Send Message</h2>
+          <h2 className="text-xl font-bold text-[#E2E5EA]">Send Message</h2>
           <div className="space-y-4">
             <Input label="Your Name" placeholder="Alex Carter" />
             <Input label="Email Address" type="email" placeholder="alex@gmail.com" />
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-400">Message Description</label>
+              <label className="block text-xs font-semibold text-[#8A94A3]">Message Description</label>
               <textarea
-                className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 glass-input border border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 glass-input border border-[#181D26] focus:border-indigo-500 focus:ring-indigo-500/20"
                 placeholder="What details are you inquiring about?"
               />
             </div>

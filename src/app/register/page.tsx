@@ -71,7 +71,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#181d26] items-center justify-center text-white">
+          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#FFC700] items-center justify-center text-[#181D26]">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <h1 className="text-2xl font-normal text-[#181d26] tracking-tight">Create Talentra Account</h1>
@@ -79,7 +79,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Card containing register forms */}
-        <Card className="p-8 border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-6">
+        <Card className="p-8 border-[#E2E5EA] bg-white rounded-[12px] shadow-xs space-y-6">
           {error && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-[6px] text-xs font-medium text-rose-600">
               {error}
@@ -124,7 +124,7 @@ export default function RegisterPage() {
                   className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
                     role === Role.FREELANCER
                       ? "border-[#181d26] bg-[#181d26] text-white"
-                      : "border-[#dddddd] bg-[#f8fafc] text-[#333840] hover:bg-slate-100"
+                      : "border-[#E2E5EA] bg-[#F7F8FA] text-[#333840] hover:bg-[#EDEFF2]"
                   }`}
                   disabled={loading}
                 >
@@ -138,7 +138,7 @@ export default function RegisterPage() {
                   className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
                     role === Role.COMPANY
                       ? "border-[#181d26] bg-[#181d26] text-white"
-                      : "border-[#dddddd] bg-[#f8fafc] text-[#333840] hover:bg-slate-100"
+                      : "border-[#E2E5EA] bg-[#F7F8FA] text-[#333840] hover:bg-[#EDEFF2]"
                   }`}
                   disabled={loading}
                 >
@@ -162,7 +162,7 @@ export default function RegisterPage() {
         {/* Link back or login */}
         <p className="text-center text-xs text-[#333840] font-normal">
           Already have an account?{" "}
-          <Link href="/login" className="text-[#1b61c9] hover:underline font-medium">
+          <Link href="/login" className="text-[#1968E5] hover:underline font-medium">
             Log In
           </Link>
         </p>

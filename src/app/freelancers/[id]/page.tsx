@@ -96,7 +96,7 @@ export default async function PublicFreelancerProfilePage({ params }: PageProps)
 
   // Unauthenticated – show with public Navbar
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+    <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
       <Navbar />
       <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-10">
         <FreelancerProfileDetail

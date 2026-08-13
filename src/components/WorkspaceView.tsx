@@ -386,9 +386,9 @@ function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean 
   // Dynamic styling based on sender/receiver (isMe)
   const buttonBgClass = isMe
     ? "bg-white/20 hover:bg-white/30 text-white"
-    : "bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300/40";
-  const iconClass = isMe ? "text-white fill-white" : "text-slate-700 fill-slate-700";
-  const textClass = isMe ? "text-white/85" : "text-slate-600";
+    : "bg-[#E2E5EA] hover:bg-[#C7CCD4] text-[#181D26] border border-[#C7CCD4]/40";
+  const iconClass = isMe ? "text-white fill-white" : "text-[#333840] fill-[#333840]";
+  const textClass = isMe ? "text-white/85" : "text-[#5A6472]";
 
   return (
     <div className="flex items-center gap-3.5 min-w-[200px]">
@@ -398,7 +398,7 @@ function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean 
         className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 cursor-pointer border-none transition-colors ${buttonBgClass}`}
       >
         {isPlaying ? (
-          <Pause className={`h-4 w-4 ${isMe ? "fill-white text-white" : "fill-slate-700 text-slate-700"}`} />
+          <Pause className={`h-4 w-4 ${isMe ? "fill-white text-white" : "fill-[#333840] text-[#333840]"}`} />
         ) : (
           <Play className={`h-4 w-4 ${iconClass}`} />
         )}
@@ -409,7 +409,7 @@ function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean 
             const isPlayed = i <= activeBarsCount && progress > 0;
             const barBgClass = isMe
               ? isPlayed ? "bg-white" : "bg-white/30"
-              : isPlayed ? "bg-[#181d26]" : "bg-slate-300";
+              : isPlayed ? "bg-[#181d26]" : "bg-[#C7CCD4]";
             return (
               <div
                 key={i}
@@ -1133,7 +1133,7 @@ export function WorkspaceView({
   });
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#f4f8ff] text-slate-800 font-sans overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-[#f4f8ff] text-[#181D26] font-sans overflow-hidden">
 
       {/* ── COMPLETION REVIEW MODAL ── */}
       {showReviewModal && reviewStatus && (
@@ -1152,7 +1152,7 @@ export function WorkspaceView({
       )}
       
       {/* Workspace Top Header — professional single-bar layout */}
-      <header className="bg-white border-b border-[#dddddd] px-4 md:px-6 h-16 flex items-center justify-between gap-4 shrink-0 z-30">
+      <header className="bg-white border-b border-[#E2E5EA] px-4 md:px-6 h-16 flex items-center justify-between gap-4 shrink-0 z-30">
 
         {/* LEFT — project identity */}
         <div className="flex items-center gap-3 min-w-0">
@@ -1167,28 +1167,28 @@ export function WorkspaceView({
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-sm font-semibold text-[#181d26] tracking-tight leading-snug">{projectTitle}</h1>
               {projectStatus === "COMPLETED" ? (
-                <span className="hidden sm:flex items-center gap-1 bg-[#f0fdf4] border border-[#39bf45]/40 text-[#006400] text-[10px] font-medium py-0.5 px-2 rounded-full shrink-0">
+                <span className="hidden sm:flex items-center gap-1 bg-[#DEF7EB] border border-[#05C165]/40 text-[#0F9D58] text-[10px] font-medium py-0.5 px-2 rounded-full shrink-0">
                   <CheckCircle2 className="h-3 w-3" /> Completed
                 </span>
               ) : (
-                <span className="hidden sm:flex items-center gap-1 bg-[#f8fafc] border border-[#dddddd] text-[#181d26] text-[10px] font-medium py-0.5 px-2 rounded-full shrink-0">
+                <span className="hidden sm:flex items-center gap-1 bg-[#F7F8FA] border border-[#E2E5EA] text-[#181d26] text-[10px] font-medium py-0.5 px-2 rounded-full shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#181d26] animate-pulse" />
                   Live
                 </span>
               )}
             </div>
-            <p className="text-[10px] font-medium text-[#41454d] uppercase tracking-wider hidden sm:block mt-0.5">{companyName} · Workspace</p>
+            <p className="text-[10px] font-medium text-[#5A6472] uppercase tracking-wider hidden sm:block mt-0.5">{companyName} · Workspace</p>
           </div>
         </div>
 
         {/* DIVIDER */}
-        <div className="hidden md:block h-6 w-px bg-[#dddddd] shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-[#E2E5EA] shrink-0" />
 
         {/* CENTER — team avatars + budget/deadline chips (hidden on small mobile) */}
         <div className="hidden sm:flex items-center gap-3 flex-1 justify-center">
           {/* Team stack */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-medium text-[#41454d] uppercase tracking-wider">Team</span>
+            <span className="text-[10px] font-medium text-[#5A6472] uppercase tracking-wider">Team</span>
             <div className="flex -space-x-2">
               <div
                 onClick={() => router.push(`/companies/${companyUser.companyId}`)}
@@ -1210,18 +1210,18 @@ export function WorkspaceView({
             </div>
           </div>
 
-          <div className="h-4 w-px bg-[#dddddd]" />
+          <div className="h-4 w-px bg-[#E2E5EA]" />
 
           {/* Budget chip */}
-          <div className="flex items-center gap-1.5 bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-2.5 py-1">
-            <span className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">Budget</span>
+          <div className="flex items-center gap-1.5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[6px] px-2.5 py-1">
+            <span className="text-[9px] font-medium text-[#5A6472] uppercase tracking-wider">Budget</span>
             <span className="text-xs font-semibold text-[#181d26]">${projectBudget.toLocaleString()}</span>
           </div>
 
           {/* Deadline chip */}
           {role === "COMPANY" ? (
-            <div className="flex items-center gap-1.5 bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-2.5 py-1 relative group">
-              <span className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">Due</span>
+            <div className="flex items-center gap-1.5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[6px] px-2.5 py-1 relative group">
+              <span className="text-[9px] font-medium text-[#5A6472] uppercase tracking-wider">Due</span>
               <input
                 type="date"
                 value={projectDueDate ? new Date(projectDueDate).toISOString().split("T")[0] : ""}
@@ -1230,8 +1230,8 @@ export function WorkspaceView({
               />
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-2.5 py-1">
-              <span className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">Due</span>
+            <div className="flex items-center gap-1.5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[6px] px-2.5 py-1">
+              <span className="text-[9px] font-medium text-[#5A6472] uppercase tracking-wider">Due</span>
               <span className="text-xs font-semibold text-[#181d26]">
                 {projectDueDate ? new Date(projectDueDate).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "No Due Date"}
               </span>
@@ -1240,7 +1240,7 @@ export function WorkspaceView({
         </div>
 
         {/* DIVIDER */}
-        <div className="hidden md:block h-6 w-px bg-[#dddddd] shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-[#E2E5EA] shrink-0" />
 
         {/* RIGHT — current user avatar + quick actions */}
         <div className="flex items-center gap-2.5 shrink-0">
@@ -1280,16 +1280,16 @@ export function WorkspaceView({
             {showQuickActions && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowQuickActions(false)} />
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#dddddd] rounded-[12px] shadow-lg py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 pb-1.5 border-b border-[#dddddd] mb-1">
-                    <p className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">Quick Actions</p>
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#E2E5EA] rounded-[12px] shadow-lg py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 pb-1.5 border-b border-[#E2E5EA] mb-1">
+                    <p className="text-[9px] font-medium text-[#5A6472] uppercase tracking-wider">Quick Actions</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setShowQuickActions(false); setShowAddTaskModal(true); }}
-                    className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc] font-medium transition-all flex items-center gap-2.5 cursor-pointer"
+                    className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#F7F8FA] font-medium transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <div className="h-6 w-6 rounded-[6px] bg-[#f8fafc] flex items-center justify-center shrink-0 border border-[#dddddd]">
+                    <div className="h-6 w-6 rounded-[6px] bg-[#F7F8FA] flex items-center justify-center shrink-0 border border-[#E2E5EA]">
                       <CheckSquare className="h-3.5 w-3.5 text-[#181d26]" />
                     </div>
                     Create Task
@@ -1297,9 +1297,9 @@ export function WorkspaceView({
                   <button
                     type="button"
                     onClick={() => { setShowQuickActions(false); deliverableFileInputRef.current?.click(); }}
-                    className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc] font-medium transition-all flex items-center gap-2.5 cursor-pointer"
+                    className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#F7F8FA] font-medium transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <div className="h-6 w-6 rounded-[6px] bg-[#f8fafc] flex items-center justify-center shrink-0 border border-[#dddddd]">
+                    <div className="h-6 w-6 rounded-[6px] bg-[#F7F8FA] flex items-center justify-center shrink-0 border border-[#E2E5EA]">
                       <Paperclip className="h-3.5 w-3.5 text-[#181d26]" />
                     </div>
                     Share Deliverable
@@ -1308,9 +1308,9 @@ export function WorkspaceView({
                     <button
                       type="button"
                       onClick={() => { setShowQuickActions(false); setShowAddMilestoneModal(true); }}
-                      className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc] font-medium transition-all flex items-center gap-2.5 cursor-pointer border-t border-[#dddddd]"
+                      className="w-full text-left px-4 py-2 text-xs text-[#333840] hover:text-[#181d26] hover:bg-[#F7F8FA] font-medium transition-all flex items-center gap-2.5 cursor-pointer border-t border-[#E2E5EA]"
                     >
-                      <div className="h-6 w-6 rounded-[6px] bg-[#f8fafc] flex items-center justify-center shrink-0 border border-[#dddddd]">
+                      <div className="h-6 w-6 rounded-[6px] bg-[#F7F8FA] flex items-center justify-center shrink-0 border border-[#E2E5EA]">
                         <Sparkles className="h-3.5 w-3.5 text-[#181d26]" />
                       </div>
                       Add Milestone
@@ -1327,10 +1327,10 @@ export function WorkspaceView({
 
       {/* All milestones done → Company can mark project complete */}
       {role === "COMPANY" && (projectStatus === "IN_PROGRESS" || projectStatus === "OPEN") && allMilestoneDone && (
-        <div className="shrink-0 bg-[#0a2e0e] px-6 py-3 flex items-center justify-between gap-4 z-20">
+        <div className="shrink-0 bg-[#0B1C32] px-6 py-3 flex items-center justify-between gap-4 z-20">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-white/10 rounded-[6px] border border-white/20">
-              <CheckCircle2 className="h-4 w-4 text-[#a8d8c4]" />
+              <CheckCircle2 className="h-4 w-4 text-[#DEF7EB]" />
             </div>
             <div>
               <p className="text-xs font-semibold text-white">All Milestones Completed!</p>
@@ -1340,7 +1340,7 @@ export function WorkspaceView({
           <button
             onClick={handleCompleteProject}
             disabled={isCompletingProject}
-            className="shrink-0 px-5 py-2 bg-white text-[#0a2e0e] text-xs font-medium rounded-[12px] hover:bg-slate-100 transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+            className="shrink-0 px-5 py-2 bg-white text-[#0B1C32] text-xs font-medium rounded-[12px] hover:bg-[#EDEFF2] transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed shadow-sm"
           >
             {isCompletingProject ? "Completing..." : "Mark Project Complete →"}
           </button>
@@ -1352,7 +1352,7 @@ export function WorkspaceView({
         <div className="shrink-0 bg-[#181d26] px-6 py-3 flex items-center justify-between gap-4 z-20">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-white/10 rounded-[6px] border border-white/20">
-              <Star className="h-4 w-4 text-[#fcab79]" />
+              <Star className="h-4 w-4 text-[#FFC700]" />
             </div>
             <div>
               <p className="text-xs font-semibold text-white">Project Completed — Leave a Review</p>
@@ -1368,7 +1368,7 @@ export function WorkspaceView({
           {role === "COMPANY" && reviewStatus.reviewedByCompany.length < reviewStatus.hiredFreelancers.length && (
             <button
               onClick={() => setShowReviewModal(true)}
-              className="shrink-0 px-5 py-2 bg-white text-[#181d26] text-xs font-medium rounded-[12px] hover:bg-slate-100 transition-colors cursor-pointer shadow-sm"
+              className="shrink-0 px-5 py-2 bg-white text-[#181d26] text-xs font-medium rounded-[12px] hover:bg-[#EDEFF2] transition-colors cursor-pointer shadow-sm"
             >
               Review Freelancers →
             </button>
@@ -1376,7 +1376,7 @@ export function WorkspaceView({
           {role === "FREELANCER" && !reviewStatus.currentUserReviewedCompany && (
             <button
               onClick={() => setShowReviewModal(true)}
-              className="shrink-0 px-5 py-2 bg-white text-[#181d26] text-xs font-medium rounded-[12px] hover:bg-slate-100 transition-colors cursor-pointer shadow-sm"
+              className="shrink-0 px-5 py-2 bg-white text-[#181d26] text-xs font-medium rounded-[12px] hover:bg-[#EDEFF2] transition-colors cursor-pointer shadow-sm"
             >
               Review Company →
             </button>
@@ -1398,7 +1398,7 @@ export function WorkspaceView({
       )}
 
       {/* Top Navigation Tabs */}
-      <nav className="bg-white border-b border-[#dddddd] px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">
+      <nav className="bg-white border-b border-[#E2E5EA] px-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 z-20">
         {[
           { id: "overview", label: "Overview", icon: LayoutDashboard },
           { id: "milestones", label: "Funding / Payments", icon: Sparkles },
@@ -1413,7 +1413,7 @@ export function WorkspaceView({
           let tabBadge: React.ReactNode = null;
           if (item.id === "messages" && messages.length > 0) {
             tabBadge = (
-              <span className="bg-[#f8fafc] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#dddddd]">
+              <span className="bg-[#F7F8FA] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#E2E5EA]">
                 {messages.length}
               </span>
             );
@@ -1421,7 +1421,7 @@ export function WorkspaceView({
             const pendingTasks = tasks.filter(t => t.status !== "DONE").length;
             if (pendingTasks > 0) {
               tabBadge = (
-                <span className="bg-[#f8fafc] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#dddddd]">
+                <span className="bg-[#F7F8FA] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#E2E5EA]">
                   {pendingTasks}
                 </span>
               );
@@ -1430,14 +1430,14 @@ export function WorkspaceView({
             const pendingMilestones = updates.filter(u => u.status !== "COMPLETED").length;
             if (pendingMilestones > 0) {
               tabBadge = (
-                <span className="bg-[#f8fafc] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#dddddd]">
+                <span className="bg-[#F7F8FA] text-[#181d26] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#E2E5EA]">
                   {pendingMilestones}
                 </span>
               );
             }
           } else if (item.id === "deliverables" && files.length > 0) {
             tabBadge = (
-              <span className="bg-[#f8fafc] text-[#41454d] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#dddddd]">
+              <span className="bg-[#F7F8FA] text-[#5A6472] text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[#E2E5EA]">
                 {files.length}
               </span>
             );
@@ -1451,10 +1451,10 @@ export function WorkspaceView({
               className={`flex items-center gap-2 px-4 py-3.5 border-b-2 font-medium text-xs uppercase tracking-wider transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                 isActive
                   ? "border-[#181d26] text-[#181d26] font-semibold"
-                  : "border-transparent text-[#41454d] hover:text-[#181d26] hover:border-[#dddddd]"
+                  : "border-transparent text-[#5A6472] hover:text-[#181d26] hover:border-[#E2E5EA]"
               }`}
             >
-              <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-[#181d26]" : "text-[#41454d]"}`} />
+              <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-[#181d26]" : "text-[#5A6472]"}`} />
               <span>{item.label}</span>
               {tabBadge}
             </button>
@@ -1482,7 +1482,7 @@ export function WorkspaceView({
                 <div className="space-y-6">
                   
                   {/* Banner header card in Signature Dark Navy */}
-                  <div className="bg-[#181d26] border border-[#dddddd] rounded-[12px] p-6 text-white relative overflow-hidden shadow-sm">
+                  <div className="bg-[#181d26] border border-[#E2E5EA] rounded-[12px] p-6 text-white relative overflow-hidden shadow-sm">
                     <div className="relative space-y-4">
                       <div className="flex justify-between items-start">
                         <div>
@@ -1490,31 +1490,31 @@ export function WorkspaceView({
                             Freelance Project Portal
                           </Badge>
                           <h1 className="text-2xl font-normal tracking-tight">{projectTitle}</h1>
-                          <p className="text-slate-300 text-xs mt-1.5 max-w-xl leading-relaxed">
+                          <p className="text-[#C7CCD4] text-xs mt-1.5 max-w-xl leading-relaxed">
                             Welcome to your workspace. Sync on tasks, track milestone disbursements, upload final deliverables, and ask our AI assistant for reports.
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Milestones completed</p>
-                          <p className="text-3xl font-normal text-[#fcab79] mt-0.5">{milestonePercentage}%</p>
+                          <p className="text-[9px] font-medium text-[#8A94A3] uppercase tracking-wider">Milestones completed</p>
+                          <p className="text-3xl font-normal text-[#FFC700] mt-0.5">{milestonePercentage}%</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/10 text-xs">
                         <div>
-                          <span className="text-slate-400 block text-[9px] font-medium uppercase tracking-wider">Total Contract Value</span>
+                          <span className="text-[#8A94A3] block text-[9px] font-medium uppercase tracking-wider">Total Contract Value</span>
                           <span className="font-semibold text-white text-sm mt-0.5 block">${projectBudget.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[9px] font-medium uppercase tracking-wider">Funds Paid to Date</span>
-                          <span className="font-semibold text-[#a8d8c4] text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
+                          <span className="text-[#8A94A3] block text-[9px] font-medium uppercase tracking-wider">Funds Paid to Date</span>
+                          <span className="font-semibold text-[#DEF7EB] text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[9px] font-medium uppercase tracking-wider">Secured in Escrow</span>
+                          <span className="text-[#8A94A3] block text-[9px] font-medium uppercase tracking-wider">Secured in Escrow</span>
                           <span className="font-semibold text-sky-200 text-sm mt-0.5 block">${fundsEscrowed.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[9px] font-medium uppercase tracking-wider">Contract Deadline</span>
+                          <span className="text-[#8A94A3] block text-[9px] font-medium uppercase tracking-wider">Contract Deadline</span>
                           <span className="font-semibold text-amber-200 text-sm mt-0.5 block">Dec 28, 2026</span>
                         </div>
                       </div>
@@ -1528,29 +1528,29 @@ export function WorkspaceView({
                     <div className="lg:col-span-2 space-y-6">
                       
                       {/* Upcoming Milestone Spotlight */}
-                      <Card className="border border-[#dddddd] p-5 shadow-xs relative overflow-hidden bg-white rounded-[12px]">
-                        <div className="absolute top-0 right-0 bg-[#f8fafc] text-[#181d26] font-medium text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-[8px] border-l border-b border-[#dddddd]">
+                      <Card className="border border-[#E2E5EA] p-5 shadow-xs relative overflow-hidden bg-white rounded-[12px]">
+                        <div className="absolute top-0 right-0 bg-[#F7F8FA] text-[#181d26] font-medium text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-[8px] border-l border-b border-[#E2E5EA]">
                           Milestone Phase
                         </div>
-                        <h3 className="text-xs font-medium uppercase text-[#41454d] tracking-wider">Upcoming Milestone</h3>
+                        <h3 className="text-xs font-medium uppercase text-[#5A6472] tracking-wider">Upcoming Milestone</h3>
                         
                         {updates.length === 0 ? (
                           /* No milestones exist yet. Previously this fell through to the
                              "all delivered" branch, so a 0%-progress project claimed to be
                              finished. An empty plan is a starting point, not a completion. */
                           <div className="py-6 space-y-2 text-xs">
-                            <p className="text-[#41454d] font-medium">
+                            <p className="text-[#5A6472] font-medium">
                               No milestones set yet.
                             </p>
-                            <p className="text-[#9297a0] text-[11px] leading-relaxed">
+                            <p className="text-[#C7CCD4] text-[11px] leading-relaxed">
                               {role === "COMPANY"
                                 ? "Add a milestone phase to break this contract into deliverable stages and start tracking progress."
                                 : "The client hasn't broken this contract into phases yet."}
                             </p>
                           </div>
                         ) : updates.filter(u => u.status !== "COMPLETED").length === 0 ? (
-                          <div className="py-6 flex items-center gap-3 text-[#41454d] text-xs font-medium">
-                            <CheckCircle2 className="h-5 w-5 text-[#006400]" />
+                          <div className="py-6 flex items-center gap-3 text-[#5A6472] text-xs font-medium">
+                            <CheckCircle2 className="h-5 w-5 text-[#0F9D58]" />
                             All milestones successfully delivered and completed!
                           </div>
                         ) : (
@@ -1568,7 +1568,7 @@ export function WorkspaceView({
                                 <p className="text-xs text-[#333840] leading-relaxed max-w-xl">
                                   {nextMilestone.description || "No description provided."}
                                 </p>
-                                <div className="flex justify-between items-center pt-3 border-t border-[#dddddd] text-xs">
+                                <div className="flex justify-between items-center pt-3 border-t border-[#E2E5EA] text-xs">
                                   <span className="font-medium text-[#333840]">Milestone Value: <span className="font-semibold text-[#181d26]">${amount.toLocaleString()}</span></span>
                                   {role === "COMPANY" && nextMilestone.status === "PENDING" && (
                                     <Button
@@ -1598,10 +1598,10 @@ export function WorkspaceView({
                       </Card>
 
                       {/* Recent Activity Feed */}
-                      <Card className="border border-[#dddddd] p-5 shadow-xs bg-white rounded-[12px]">
-                        <div className="flex justify-between items-center pb-3 border-b border-[#dddddd]">
-                          <h3 className="text-xs font-medium uppercase text-[#41454d] tracking-wider">Recent Workspace Activity</h3>
-                          <span className="text-[10px] text-[#41454d] font-medium">Auto Synced</span>
+                      <Card className="border border-[#E2E5EA] p-5 shadow-xs bg-white rounded-[12px]">
+                        <div className="flex justify-between items-center pb-3 border-b border-[#E2E5EA]">
+                          <h3 className="text-xs font-medium uppercase text-[#5A6472] tracking-wider">Recent Workspace Activity</h3>
+                          <span className="text-[10px] text-[#5A6472] font-medium">Auto Synced</span>
                         </div>
                         <div className="mt-4 space-y-4 max-h-[280px] overflow-y-auto pr-1">
                           
@@ -1617,22 +1617,22 @@ export function WorkspaceView({
 
                             if (logs.length === 0) {
                               return (
-                                <p className="text-xs text-[#41454d] py-6 text-center">No activity logged in this workspace yet.</p>
+                                <p className="text-xs text-[#5A6472] py-6 text-center">No activity logged in this workspace yet.</p>
                               );
                             }
  
                             return logs.slice(0, 6).map((log, idx) => (
                               <div key={`${log.id}-${idx}`} className="flex gap-3 text-xs leading-relaxed items-start">
-                                <div className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center bg-[#f8fafc] border border-[#dddddd] text-[#181d26]">
+                                <div className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center bg-[#F7F8FA] border border-[#E2E5EA] text-[#181d26]">
                                   {log.type === "milestone" && <Sparkles className="h-3 w-3" />}
                                   {log.type === "task" && <CheckSquare className="h-3 w-3" />}
                                   {log.type === "file" && <Archive className="h-3 w-3" />}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="font-semibold text-[#181d26] leading-tight">{log.title}</p>
-                                  <p className="text-[#41454d] text-[10px] mt-0.5 truncate">{log.desc}</p>
+                                  <p className="text-[#5A6472] text-[10px] mt-0.5 truncate">{log.desc}</p>
                                 </div>
-                                <span className="text-[9px] font-medium text-[#41454d] shrink-0 whitespace-nowrap">
+                                <span className="text-[9px] font-medium text-[#5A6472] shrink-0 whitespace-nowrap">
                                   {log.date.toLocaleDateString([], { month: "short", day: "numeric" })}
                                 </span>
                               </div>
@@ -1645,13 +1645,13 @@ export function WorkspaceView({
 
                     {/* Right: Quick circular progress summary */}
                     <div className="space-y-6">
-                      <Card className="border border-[#dddddd] p-6 shadow-xs flex flex-col items-center justify-center text-center bg-white rounded-[12px]">
-                        <h3 className="text-xs font-medium uppercase text-[#41454d] tracking-wider mb-6">Contract Status</h3>
+                      <Card className="border border-[#E2E5EA] p-6 shadow-xs flex flex-col items-center justify-center text-center bg-white rounded-[12px]">
+                        <h3 className="text-xs font-medium uppercase text-[#5A6472] tracking-wider mb-6">Contract Status</h3>
                         
                         {/* Circular progress container */}
                         <div className="relative h-28 w-28 flex items-center justify-center">
                           <svg className="absolute h-full w-full transform -rotate-90">
-                            <circle cx="56" cy="56" r="48" stroke="#f8fafc" strokeWidth="8" fill="transparent" />
+                            <circle cx="56" cy="56" r="48" stroke="#F7F8FA" strokeWidth="8" fill="transparent" />
                             <circle cx="56" cy="56" r="48" stroke="#181d26" strokeWidth="8" fill="transparent"
                               strokeDasharray={301.6}
                               strokeDashoffset={301.6 - (301.6 * milestonePercentage) / 100}
@@ -1660,21 +1660,21 @@ export function WorkspaceView({
                           </svg>
                           <div className="text-center">
                             <p className="text-2xl font-bold text-[#181d26] leading-none">{milestonePercentage}%</p>
-                            <p className="text-[8px] font-medium text-[#41454d] uppercase tracking-wider mt-1">Paid</p>
+                            <p className="text-[8px] font-medium text-[#5A6472] uppercase tracking-wider mt-1">Paid</p>
                           </div>
                         </div>
 
                         <p className="text-xs font-semibold text-[#181d26] mt-6 leading-tight">
                           {completedMilestones} of {updates.length} Milestone Phases Done
                         </p>
-                        <p className="text-[10px] text-[#41454d] mt-1">
+                        <p className="text-[10px] text-[#5A6472] mt-1">
                           Funds are released automatically upon final client milestone approval.
                         </p>
                       </Card>
 
                       {/* Workspace team profiles short preview */}
-                      <Card className="border border-[#dddddd] p-5 shadow-xs bg-white rounded-[12px] space-y-3">
-                        <h3 className="text-xs font-medium uppercase text-[#41454d] tracking-wider">Collaborators</h3>
+                      <Card className="border border-[#E2E5EA] p-5 shadow-xs bg-white rounded-[12px] space-y-3">
+                        <h3 className="text-xs font-medium uppercase text-[#5A6472] tracking-wider">Collaborators</h3>
                         
                         <div className="space-y-3 pt-1 text-xs">
                           <div className="flex items-center gap-2">
@@ -1695,11 +1695,11 @@ export function WorkspaceView({
                                 onClick={() => {
                                   router.push(`/companies/${companyUser.companyId}`);
                                 }}
-                                className="font-semibold text-[#181d26] truncate cursor-pointer hover:underline hover:text-[#1b61c9]"
+                                className="font-semibold text-[#181d26] truncate cursor-pointer hover:underline hover:text-[#1968E5]"
                               >
                                 {companyName}
                               </p>
-                              <p className="text-[8px] font-medium text-[#41454d] uppercase leading-none mt-0.5">Client</p>
+                              <p className="text-[8px] font-medium text-[#5A6472] uppercase leading-none mt-0.5">Client</p>
                             </div>
                           </div>
                           {/* Freelancers */}
@@ -1722,11 +1722,11 @@ export function WorkspaceView({
                                   onClick={() => {
                                     router.push(`/freelancers/${f.freelancerId}`);
                                   }}
-                                  className="font-semibold text-[#181d26] truncate cursor-pointer hover:underline hover:text-[#1b61c9]"
+                                  className="font-semibold text-[#181d26] truncate cursor-pointer hover:underline hover:text-[#1968E5]"
                                 >
                                   {f.name}
                                 </p>
-                                <p className="text-[8px] font-medium text-[#41454d] uppercase leading-none mt-0.5">Freelancer</p>
+                                <p className="text-[8px] font-medium text-[#5A6472] uppercase leading-none mt-0.5">Freelancer</p>
                               </div>
                             </div>
                           ))}
@@ -1743,9 +1743,9 @@ export function WorkspaceView({
               {activeView === "messages" && (
                 <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[400px]">
                     {/* Left: Sub-sidebar for channels and DMs */}
-                  <div className={`w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[12px] p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-xs ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                  <div className={`w-full lg:w-[280px] shrink-0 bg-white border border-[#E2E5EA] rounded-[12px] p-4 space-y-5 flex flex-col justify-start overflow-y-auto shadow-xs ${showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     {/* Channels section */}
-                    <div className="space-y-1 bg-[#f8fafc] p-3.5 rounded-[8px] border border-[#dddddd]">
+                    <div className="space-y-1 bg-[#F7F8FA] p-3.5 rounded-[8px] border border-[#E2E5EA]">
                       <h4 className="text-[9px] font-medium text-[#181d26] uppercase tracking-wider pl-1 mb-2">Channels</h4>
                       <button
                         type="button"
@@ -1794,7 +1794,7 @@ export function WorkspaceView({
                     </div>
 
                     {/* Direct Messages section */}
-                    <div className="space-y-1 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 flex-1 overflow-y-auto">
+                    <div className="space-y-1 bg-[#F7F8FA] p-3.5 rounded-2xl border border-[#EDEFF2] flex-1 overflow-y-auto">
                       <h4 className="text-[9px] font-semibold text-[#181d26] uppercase tracking-widest pl-1 mb-2">Direct Messages</h4>
                       
                       {role === "FREELANCER" && (
@@ -1806,11 +1806,11 @@ export function WorkspaceView({
                           }}
                           className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-all cursor-pointer border ${
                             activeChannel === getDMChannelKey(companyUser.id)
-                              ? "bg-[#f8fafc] border-[#dddddd] text-[#181d26]"
-                              : "text-[#41454d] hover:bg-slate-100 hover:text-[#181d26] border-transparent"
+                              ? "bg-[#F7F8FA] border-[#E2E5EA] text-[#181d26]"
+                              : "text-[#5A6472] hover:bg-[#EDEFF2] hover:text-[#181d26] border-transparent"
                           }`}
                         >
-                          <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-semibold text-xs text-[#181d26] shrink-0 overflow-hidden relative">
+                          <div className="h-8 w-8 rounded-full bg-[#E2E5EA] flex items-center justify-center font-semibold text-xs text-[#181d26] shrink-0 overflow-hidden relative">
                             {companyUser.image ? (
                               <img src={companyUser.image} className="h-full w-full object-cover" />
                             ) : (
@@ -1820,7 +1820,7 @@ export function WorkspaceView({
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-xs truncate">{companyName}</p>
-                            <p className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-0.5">Client Representative</p>
+                            <p className="text-[9px] text-[#5A6472] font-medium uppercase tracking-wider mt-0.5">Client Representative</p>
                           </div>
                         </button>
                       )}
@@ -1838,8 +1838,8 @@ export function WorkspaceView({
                                 }}
                                 className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-all cursor-pointer mt-1 border ${
                                   activeChannel === getDMChannelKey(f.id)
-                                    ? "bg-[#f8fafc] border-[#dddddd] text-[#181d26]"
-                                    : "text-[#41454d] hover:bg-slate-100 hover:text-[#181d26] border-transparent"
+                                    ? "bg-[#F7F8FA] border-[#E2E5EA] text-[#181d26]"
+                                    : "text-[#5A6472] hover:bg-[#EDEFF2] hover:text-[#181d26] border-transparent"
                                 }`}
                               >
                                 <div className="h-8 w-8 rounded-full bg-[#181d26] flex items-center justify-center font-semibold text-xs text-white shrink-0 overflow-hidden relative">
@@ -1852,7 +1852,7 @@ export function WorkspaceView({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="font-semibold text-xs truncate">{f.name}</p>
-                                  <p className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
+                                  <p className="text-[9px] text-[#5A6472] font-medium uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
                                 </div>
                               </button>
                             ))
@@ -1866,8 +1866,8 @@ export function WorkspaceView({
                                 }}
                               className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-all cursor-pointer mt-1 border ${
                                 activeChannel === getDMChannelKey(f.id)
-                                  ? "bg-[#f8fafc] border-[#dddddd] text-[#181d26]"
-                                  : "text-[#41454d] hover:bg-slate-100 hover:text-[#181d26] border-transparent"
+                                  ? "bg-[#F7F8FA] border-[#E2E5EA] text-[#181d26]"
+                                  : "text-[#5A6472] hover:bg-[#EDEFF2] hover:text-[#181d26] border-transparent"
                               }`}
                             >
                               <div className="h-8 w-8 rounded-full bg-[#181d26] flex items-center justify-center font-semibold text-xs text-white shrink-0 overflow-hidden relative">
@@ -1880,7 +1880,7 @@ export function WorkspaceView({
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="font-semibold text-xs truncate">{f.name}</p>
-                                <p className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
+                                <p className="text-[9px] text-[#5A6472] font-medium uppercase tracking-wider mt-0.5">{f.role.toLowerCase()}</p>
                               </div>
                             </button>
                           ))}
@@ -1888,17 +1888,17 @@ export function WorkspaceView({
                   </div>
 
                   {/* Right Chat Interface */}
-                  <div className={`flex-1 flex flex-col bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xs relative ${!showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
+                  <div className={`flex-1 flex flex-col bg-white border border-[#E2E5EA]/60 rounded-3xl overflow-hidden shadow-xs relative ${!showMobileChatSidebar ? "flex" : "hidden lg:flex"}`}>
                     
                     {/* Chat Header */}
-                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                    <div className="px-5 py-3 border-b border-[#EDEFF2] bg-[#F7F8FA]/50 flex justify-between items-center shrink-0">
                       <div className="flex items-center min-w-0 gap-3">
                         {/* WhatsApp mobile back button */}
                         {!showMobileChatSidebar && (
                           <button
                             type="button"
                             onClick={() => setShowMobileChatSidebar(true)}
-                            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all lg:hidden cursor-pointer flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shrink-0"
+                            className="p-1.5 text-[#5A6472] hover:text-[#181D26] rounded-xl bg-[#EDEFF2] hover:bg-[#E2E5EA] transition-all lg:hidden cursor-pointer flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shrink-0"
                           >
                             &larr; Chats
                           </button>
@@ -1935,7 +1935,7 @@ export function WorkspaceView({
                                   detail: "Client Representative",
                                   image: companyUser.image,
                                   isGroup: false,
-                                  bg: "bg-slate-200",
+                                  bg: "bg-[#E2E5EA]",
                                   initial: companyName[0].toUpperCase()
                                 };
                               }
@@ -1993,13 +1993,13 @@ export function WorkspaceView({
                               <div className="min-w-0">
                                 <h3
                                    onClick={handleHeaderClick}
-                                   className={`text-sm font-black text-slate-800 truncate ${
-                                     isClickableDM ? "cursor-pointer hover:underline hover:text-[#1b61c9]" : ""
+                                   className={`text-sm font-black text-[#181D26] truncate ${
+                                     isClickableDM ? "cursor-pointer hover:underline hover:text-[#1968E5]" : ""
                                    }`}
                                  >
                                   {headerInfo.name}
                                 </h3>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
+                                <p className="text-[9px] text-[#8A94A3] font-bold uppercase tracking-wider mt-0.5 truncate">
                                   {headerInfo.detail}
                                 </p>
                               </div>
@@ -2015,7 +2015,7 @@ export function WorkspaceView({
                         className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 ${
                           showAIAssistant 
                             ? "bg-[#181d26] border-[#181d26] text-white shadow-sm"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            : "bg-white border-[#E2E5EA] text-[#333840] hover:bg-[#F7F8FA]"
                         }`}
                       >
                         <Bot className="h-3.5 w-3.5" />
@@ -2034,8 +2034,8 @@ export function WorkspaceView({
                       </div>
 
                       {messages.filter((m) => m.channel === activeChannel).length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-2 p-8">
-                          <MessageSquare className="h-8 w-8 text-slate-400" />
+                        <div className="h-full flex flex-col items-center justify-center text-center text-[#8A94A3] space-y-2 p-8">
+                          <MessageSquare className="h-8 w-8 text-[#8A94A3]" />
                           <p className="text-xs font-bold">Workspace thread is quiet.</p>
                           <p className="text-[10px]">Send a greeting message or files to begin collaboration.</p>
                         </div>
@@ -2086,21 +2086,21 @@ export function WorkspaceView({
                               </div>
 
                               <div className="space-y-1 min-w-0">
-                                <div className={`flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase ${isMe ? "justify-end" : ""}`}>
+                                <div className={`flex items-center gap-1.5 text-[9px] font-bold text-[#8A94A3] uppercase ${isMe ? "justify-end" : ""}`}>
                                   <span
                                      onClick={handleSenderClick}
-                                     className={isFreelancerSender || msg.senderId === companyUser.id ? "cursor-pointer hover:underline hover:text-[#1b61c9]" : ""}
+                                     className={isFreelancerSender || msg.senderId === companyUser.id ? "cursor-pointer hover:underline hover:text-[#1968E5]" : ""}
                                    >
                                      {msg.sender.name}
                                    </span>
-                                  <span className="text-[7px] bg-slate-100 text-slate-500 px-1 rounded tracking-wider">{msg.sender.role.toLowerCase()}</span>
+                                  <span className="text-[7px] bg-[#EDEFF2] text-[#5A6472] px-1 rounded tracking-wider">{msg.sender.role.toLowerCase()}</span>
                                 </div>
 
                                 {/* Bubble content */}
                                 <div className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs break-words ${
                                   isMe
                                     ? "bg-gradient-to-r from-[#181d26] to-[#004282] text-white rounded-tr-none"
-                                    : "bg-slate-200 text-slate-800 rounded-tl-none border border-slate-200/50"
+                                    : "bg-[#E2E5EA] text-[#181D26] rounded-tl-none border border-[#E2E5EA]/50"
                                 }`}>
                                   {isVoice ? (
                                     <VoiceMessagePlayer content={msg.content} isMe={isMe} />
@@ -2126,8 +2126,8 @@ export function WorkspaceView({
                                         rel="noreferrer"
                                         className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 mt-1.5 rounded-xl text-[10px] font-black uppercase transition-all shadow-xs cursor-pointer ${
                                           isMe 
-                                            ? "bg-white text-[#181d26] hover:bg-slate-50" 
-                                            : "bg-[#181d26] text-white hover:bg-[#001f3f]"
+                                            ? "bg-white text-[#181d26] hover:bg-[#F7F8FA]" 
+                                            : "bg-[#181d26] text-white hover:bg-[#134FB0]"
                                         }`}
                                       >
                                         <Download className="h-3 w-3" />
@@ -2139,8 +2139,8 @@ export function WorkspaceView({
                                   )}
                                 </div>
 
-                                <div className={`text-[8px] text-slate-400 flex items-center gap-1.5 mt-1 ${isMe ? "justify-end" : ""}`}>
-                                  <Clock className="h-2.5 w-2.5 text-slate-400" />
+                                <div className={`text-[8px] text-[#8A94A3] flex items-center gap-1.5 mt-1 ${isMe ? "justify-end" : ""}`}>
+                                  <Clock className="h-2.5 w-2.5 text-[#8A94A3]" />
                                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                   {isMe && (
                                     <>
@@ -2155,15 +2155,15 @@ export function WorkspaceView({
                                       <span className="ml-1 flex items-center">
                                         {msg.seen ? (
                                           <div className="flex animate-fade-in" title="Seen by recipient">
-                                            <svg className="h-3 w-3 text-[#1b61c9]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                            <svg className="h-3 w-3 text-[#1968E5]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                             </svg>
-                                            <svg className="h-3 w-3 text-[#1b61c9] -ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                            <svg className="h-3 w-3 text-[#1968E5] -ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                             </svg>
                                           </div>
                                         ) : (
-                                          <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                          <svg className="h-3 w-3 text-[#8A94A3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                                             <title>Sent</title>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                           </svg>
@@ -2183,25 +2183,25 @@ export function WorkspaceView({
 
                     {/* Voice Recording Simulation Visual Overlay */}
                     {isRecordingVoice && (
-                      <div className="absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-md text-slate-800 p-5 flex flex-col items-center justify-center gap-3 border-t border-slate-200 z-20">
+                      <div className="absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-md text-[#181D26] p-5 flex flex-col items-center justify-center gap-3 border-t border-[#E2E5EA] z-20">
                         <div className="flex items-center gap-3">
                           <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
-                          <span className="text-xs font-black uppercase tracking-wider text-slate-700">Recording Voice Message</span>
+                          <span className="text-xs font-black uppercase tracking-wider text-[#333840]">Recording Voice Message</span>
                         </div>
                         <div className="flex items-end gap-1.5 h-8">
                           {voiceWave.map((h, i) => (
                             <div
                               key={i}
-                              className="w-1.5 bg-[#1b61c9] rounded-full transition-all duration-300 shadow-md shadow-sky-500/20"
+                              className="w-1.5 bg-[#1968E5] rounded-full transition-all duration-300 shadow-md shadow-sky-500/20"
                               style={{ height: `${h}px` }}
                             />
                           ))}
                         </div>
-                        <span className="text-xs font-extrabold text-slate-500">
+                        <span className="text-xs font-extrabold text-[#5A6472]">
                           {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60) < 10 ? "0" : ""}{recordingSeconds % 60}
                         </span>
                         <div className="flex gap-3 mt-1.5 text-xs">
-                          <Button size="sm" variant="ghost" onClick={cancelVoiceRecording} className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
+                          <Button size="sm" variant="ghost" onClick={cancelVoiceRecording} className="text-[#5A6472] hover:text-[#181D26] hover:bg-[#EDEFF2] cursor-pointer">
                             Cancel
                           </Button>
                           <Button size="sm" variant="secondary" onClick={stopAndSendVoice} className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
@@ -2212,7 +2212,7 @@ export function WorkspaceView({
                     )}
 
                     {/* Chat Input form bar */}
-                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 items-center shrink-0">
+                    <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-[#F7F8FA] border-t border-[#EDEFF2] flex gap-2 items-center shrink-0">
                       <input
                         type="file"
                         ref={chatFileInputRef}
@@ -2223,7 +2223,7 @@ export function WorkspaceView({
                         type="button"
                         onClick={() => chatFileInputRef.current?.click()}
                         disabled={isUploadingChatFile}
-                        className="p-2.5 bg-white hover:bg-slate-100 text-slate-500 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
+                        className="p-2.5 bg-white hover:bg-[#EDEFF2] text-[#5A6472] border border-[#E2E5EA]/80 rounded-xl cursor-pointer transition-all"
                         title="Upload file attachment"
                       >
                         <Paperclip className="h-4 w-4" />
@@ -2232,7 +2232,7 @@ export function WorkspaceView({
                         type="button"
                         onClick={startVoiceRecording}
                         disabled={isRecordingVoice}
-                        className="p-2.5 bg-white hover:bg-slate-100 text-rose-600 border border-slate-200/80 rounded-xl cursor-pointer transition-all"
+                        className="p-2.5 bg-white hover:bg-[#EDEFF2] text-rose-600 border border-[#E2E5EA]/80 rounded-xl cursor-pointer transition-all"
                         title="Record simulated voice message"
                       >
                         <Mic className="h-4 w-4" />
@@ -2243,12 +2243,12 @@ export function WorkspaceView({
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type message here..."
                         disabled={isSendingMessage || isUploadingFile}
-                        className="flex-1 bg-white text-xs border-slate-200/80 text-slate-800"
+                        className="flex-1 bg-white text-xs border-[#E2E5EA]/80 text-[#181D26]"
                       />
                       <Button
                         type="submit"
                         disabled={isSendingMessage || !newMessage.trim() || isUploadingFile}
-                        className="bg-[#181d26] hover:bg-[#001f3f] text-white font-bold text-xs h-9 cursor-pointer flex items-center gap-1"
+                        className="bg-[#181d26] hover:bg-[#134FB0] text-white font-bold text-xs h-9 cursor-pointer flex items-center gap-1"
                       >
                         <Send className="h-3.5 w-3.5" />
                         <span>Send</span>
@@ -2262,14 +2262,14 @@ export function WorkspaceView({
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
-                      className="w-full lg:w-[320px] bg-[#f0f6ff]/95 lg:bg-[#f0f6ff]/70 border border-slate-200/60 rounded-3xl p-4 flex flex-col h-full shadow-md lg:shadow-xs absolute lg:relative inset-0 lg:inset-auto z-20 lg:z-auto"
+                      className="w-full lg:w-[320px] bg-[#f0f6ff]/95 lg:bg-[#f0f6ff]/70 border border-[#E2E5EA]/60 rounded-3xl p-4 flex flex-col h-full shadow-md lg:shadow-xs absolute lg:relative inset-0 lg:inset-auto z-20 lg:z-auto"
                     >
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                      <div className="flex justify-between items-center pb-2 border-b border-[#E2E5EA]/60">
                         <div className="flex items-center gap-2">
                           <Bot className="h-4 w-4 text-[#181d26]" />
-                          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Talentra AI Chat</h3>
+                          <h3 className="text-xs font-black text-[#181D26] uppercase tracking-wider">Talentra AI Chat</h3>
                         </div>
-                        <button type="button" onClick={() => setShowAIAssistant(false)} className="text-slate-400 hover:text-slate-700">
+                        <button type="button" onClick={() => setShowAIAssistant(false)} className="text-[#8A94A3] hover:text-[#333840]">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -2278,12 +2278,12 @@ export function WorkspaceView({
                       <div ref={aiScrollRef} className="flex-1 overflow-y-auto py-3 space-y-3 text-[11px] leading-relaxed">
                         {aiConversation.map((msg, idx) => (
                           <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
-                            <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+                            <span className="text-[8px] text-[#8A94A3] font-bold uppercase tracking-wider mb-0.5">
                               {msg.sender === "user" ? "You" : "Talentra Assistant"}
                             </span>
                             <div className={`p-3 rounded-2xl max-w-[90%] shadow-xs leading-relaxed whitespace-pre-line ${
                               msg.sender === "user"
-                                ? "bg-white text-slate-800 border border-slate-200/60 rounded-tr-none"
+                                ? "bg-white text-[#181D26] border border-[#E2E5EA]/60 rounded-tr-none"
                                 : "bg-gradient-to-tr from-[#181d26] to-[#004282] text-white rounded-tl-none"
                             }`}>
                               {msg.text}
@@ -2291,8 +2291,8 @@ export function WorkspaceView({
                           </div>
                         ))}
                         {isAITyping && (
-                          <div className="flex items-center gap-1.5 py-1 text-slate-400 font-bold uppercase text-[9px]">
-                            <Sparkles className="h-3.5 w-3.5 animate-spin text-[#1b61c9]" />
+                          <div className="flex items-center gap-1.5 py-1 text-[#8A94A3] font-bold uppercase text-[9px]">
+                            <Sparkles className="h-3.5 w-3.5 animate-spin text-[#1968E5]" />
                             <span>AI is processing project state...</span>
                           </div>
                         )}
@@ -2321,10 +2321,10 @@ export function WorkspaceView({
               {activeView === "deliverables" && (
                 <div className="space-y-6">
                   
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                  <div className="flex justify-between items-center pb-3 border-b border-[#E2E5EA]/60">
                     <div>
-                      <h2 className="text-base font-black text-slate-800">Workspace Deliverables</h2>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <h2 className="text-base font-black text-[#181D26]">Workspace Deliverables</h2>
+                      <p className="text-[10px] text-[#8A94A3] font-bold uppercase tracking-wider">
                         Upload final files, track version iterations, and request revisions.
                       </p>
                     </div>
@@ -2339,7 +2339,7 @@ export function WorkspaceView({
                         <Button
                           onClick={() => { setDeliverableVersionTargetId(null); deliverableFileInputRef.current?.click(); }}
                           disabled={isUploadingFile}
-                          className="bg-[#181d26] hover:bg-[#001f3f] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
+                          className="bg-[#181d26] hover:bg-[#134FB0] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           <span>Submit Deliverable</span>
@@ -2349,11 +2349,11 @@ export function WorkspaceView({
                   </div>
 
                   {files.length === 0 ? (
-                    <div className="py-20 text-center text-slate-400 space-y-3">
-                      <div className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                    <div className="py-20 text-center text-[#8A94A3] space-y-3">
+                      <div className="h-12 w-12 rounded-full bg-[#EDEFF2] border border-[#E2E5EA] flex items-center justify-center mx-auto text-[#8A94A3]">
                         <Archive className="h-5 w-5" />
                       </div>
-                      <p className="text-xs font-extrabold text-slate-700">No deliverables shared yet.</p>
+                      <p className="text-xs font-extrabold text-[#333840]">No deliverables shared yet.</p>
                       <p className="text-[10px] max-w-xs mx-auto">
                         Freelancers can submit final documents or files here for review, revision tracking, and final budget release.
                       </p>
@@ -2363,11 +2363,11 @@ export function WorkspaceView({
                       {files.map((file) => {
                         const meta = parseDeliverableMeta(file.fileSize);
                         return (
-                          <Card key={file.id} className="border border-slate-200/60 p-5 bg-white relative hover:shadow-md transition-all flex flex-col justify-between gap-4">
+                          <Card key={file.id} className="border border-[#E2E5EA]/60 p-5 bg-white relative hover:shadow-md transition-all flex flex-col justify-between gap-4">
                             
                             {/* Version and status header */}
                             <div className="flex justify-between items-center text-xs">
-                              <span className="font-extrabold text-[#181d26] bg-[#1b61c9]/20 px-2 py-0.5 rounded-lg border border-[#1b61c9]/30 text-[9px] uppercase tracking-wider">
+                              <span className="font-extrabold text-[#181d26] bg-[#1968E5]/20 px-2 py-0.5 rounded-lg border border-[#1968E5]/30 text-[9px] uppercase tracking-wider">
                                 Version v{meta.version}
                               </span>
                               <Badge
@@ -2404,22 +2404,22 @@ export function WorkspaceView({
 
                             {/* File Name & details */}
                             <div className="min-w-0 py-2">
-                              <h4 className="font-extrabold text-slate-800 truncate text-sm" title={file.fileName}>
+                              <h4 className="font-extrabold text-[#181D26] truncate text-sm" title={file.fileName}>
                                 {file.fileName}
                               </h4>
-                              <p className="text-[10px] text-slate-400 mt-1">
+                              <p className="text-[10px] text-[#8A94A3] mt-1">
                                 Size: {meta.size} • Shared: {new Date(file.uploadedAt).toLocaleDateString()}
                               </p>
                               {meta.feedback && (
-                                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] leading-relaxed text-slate-600 max-h-[80px] overflow-y-auto">
-                                  <strong className="block text-slate-700 font-bold uppercase text-[8px] tracking-wider mb-0.5">Feedback:</strong>
+                                <div className="mt-3 p-2.5 rounded-xl bg-[#F7F8FA] border border-[#EDEFF2] text-[10px] leading-relaxed text-[#5A6472] max-h-[80px] overflow-y-auto">
+                                  <strong className="block text-[#333840] font-bold uppercase text-[8px] tracking-wider mb-0.5">Feedback:</strong>
                                   {meta.feedback}
                                 </div>
                               )}
                             </div>
 
                             {/* Actions bar */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs mt-auto">
+                            <div className="pt-3 border-t border-[#EDEFF2] flex items-center justify-between text-xs mt-auto">
                               
                               <div className="flex items-center gap-1.5">
                                 {/* Download */}
@@ -2428,7 +2428,7 @@ export function WorkspaceView({
                                   download={file.fileName}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-[#181d26] transition-all cursor-pointer inline-flex items-center justify-center"
+                                  className="p-1.5 rounded-lg border border-[#E2E5EA] bg-white hover:bg-[#F7F8FA] text-[#5A6472] hover:text-[#181d26] transition-all cursor-pointer inline-flex items-center justify-center"
                                   title="Download File"
                                 >
                                   <Download className="h-3.5 w-3.5" />
@@ -2436,7 +2436,7 @@ export function WorkspaceView({
                                 {/* Preview */}
                                 <button
                                   onClick={() => setSelectedPreviewFile(file)}
-                                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-[#181d26] transition-all cursor-pointer inline-flex items-center justify-center"
+                                  className="p-1.5 rounded-lg border border-[#E2E5EA] bg-white hover:bg-[#F7F8FA] text-[#5A6472] hover:text-[#181d26] transition-all cursor-pointer inline-flex items-center justify-center"
                                   title="Preview File"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
@@ -2445,7 +2445,7 @@ export function WorkspaceView({
                                 {(role === "COMPANY" || file.uploadedById === currentUserId) && (
                                   <button
                                     onClick={() => handleDeleteFile(file.id)}
-                                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all cursor-pointer inline-flex items-center justify-center"
+                                    className="p-1.5 rounded-lg border border-[#E2E5EA] bg-white hover:bg-rose-50 text-[#8A94A3] hover:text-rose-600 transition-all cursor-pointer inline-flex items-center justify-center"
                                     title="Delete Deliverable"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -2492,13 +2492,13 @@ export function WorkspaceView({
                   {selectedPreviewFile && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
                       <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }} />
-                      <div className="relative w-full max-w-2xl bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+                      <div className="relative w-full max-w-2xl bg-white border border-[#E2E5EA] shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
                         <div className="h-1.5 bg-[#181d26]" />
                         
                         <div className="p-6 space-y-4 text-left">
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[8px] bg-[#f8fafc] text-[#181d26] border border-[#dddddd] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider">
+                              <span className="text-[8px] bg-[#F7F8FA] text-[#181d26] border border-[#E2E5EA] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider">
                                 File Previewer Lightbox
                               </span>
                               <h3 className="font-semibold text-[#181d26] text-base truncate mt-1 max-w-[400px]">
@@ -2507,18 +2507,18 @@ export function WorkspaceView({
                             </div>
                             <button
                               onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }}
-                              className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                              className="text-[#8A94A3] hover:text-[#333840] cursor-pointer"
                             >
                               <X className="h-4 w-4" />
                             </button>
                           </div>
 
                           {/* Simulated Sandbox File Previewer */}
-                          <div className="h-[240px] bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center">
+                          <div className="h-[240px] bg-[#F7F8FA] border border-[#EDEFF2] rounded-2xl overflow-hidden flex items-center justify-center">
                             {selectedPreviewFile.fileName.endsWith(".png") || selectedPreviewFile.fileName.endsWith(".jpg") || selectedPreviewFile.fileName.endsWith(".jpeg") ? (
                               <img src={selectedPreviewFile.fileUrl} className="h-full w-full object-contain" alt="Preview Image" />
                             ) : selectedPreviewFile.fileName.endsWith(".js") || selectedPreviewFile.fileName.endsWith(".ts") || selectedPreviewFile.fileName.endsWith(".tsx") || selectedPreviewFile.fileName.endsWith(".html") || selectedPreviewFile.fileName.endsWith(".json") ? (
-                              <div className="w-full h-full p-4 font-mono text-[9px] text-slate-200 leading-normal overflow-y-auto whitespace-pre bg-[#181d26] border-none text-left">
+                              <div className="w-full h-full p-4 font-mono text-[9px] text-[#E2E5EA] leading-normal overflow-y-auto whitespace-pre bg-[#181d26] border-none text-left">
                                 <span className="text-emerald-400 font-bold block">// talentra workspace deliverable sandbox viewer</span>
                                 <span className="text-purple-400">import</span> React <span className="text-purple-400">from</span> <span className="text-amber-300">"react"</span>;{"\n"}
                                 <span className="text-purple-400">export default function</span> Component() &#123;{"\n"}
@@ -2531,15 +2531,15 @@ export function WorkspaceView({
                               </div>
                             ) : (
                               <div className="text-center p-6 space-y-2">
-                                <Archive className="h-10 w-10 text-slate-300 mx-auto" />
-                                <p className="text-xs font-bold text-slate-700">Document Sandbox Viewer</p>
-                                <p className="text-[10px] text-slate-400">
+                                <Archive className="h-10 w-10 text-[#C7CCD4] mx-auto" />
+                                <p className="text-xs font-bold text-[#333840]">Document Sandbox Viewer</p>
+                                <p className="text-[10px] text-[#8A94A3]">
                                   File: {selectedPreviewFile.fileName} ({parseDeliverableMeta(selectedPreviewFile.fileSize).size})
                                 </p>
                                 <a
                                   href={selectedPreviewFile.fileUrl}
                                   download
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[#181d26] font-bold text-[10px] mt-2 cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#EDEFF2] hover:bg-[#E2E5EA] border border-[#E2E5EA] text-[#181d26] font-bold text-[10px] mt-2 cursor-pointer"
                                 >
                                   <Download className="h-3 w-3" /> Download to view contents
                                 </a>
@@ -2549,8 +2549,8 @@ export function WorkspaceView({
 
                           {/* Client review feedback form details */}
                           {role === "COMPANY" && parseDeliverableMeta(selectedPreviewFile.fileSize).status === "PENDING" ? (
-                            <div className="space-y-3 pt-3 border-t border-slate-200">
-                              <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                            <div className="space-y-3 pt-3 border-t border-[#E2E5EA]">
+                              <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">
                                 Audit Review Feedback (Required)
                               </label>
                               <textarea
@@ -2558,7 +2558,7 @@ export function WorkspaceView({
                                 onChange={(e) => setReviewFeedback(e.target.value)}
                                 placeholder="State review approval remarks or specific revision requests guidelines..."
                                 rows={2.5}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-slate-800 bg-white"
+                                className="w-full px-3 py-2 rounded-xl border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-[#181D26] bg-white"
                               />
                               <div className="flex justify-between items-center gap-2 pt-1 text-xs">
                                 {(() => {
@@ -2609,7 +2609,7 @@ export function WorkspaceView({
                             <div className="flex justify-end pt-2 text-xs">
                               <Button
                                 onClick={() => { setSelectedPreviewFile(null); setReviewFeedback(""); }}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 cursor-pointer"
+                                className="bg-[#EDEFF2] hover:bg-[#E2E5EA] text-[#333840] font-bold px-4 cursor-pointer"
                               >
                                 Close
                               </Button>
@@ -2629,13 +2629,13 @@ export function WorkspaceView({
                 <div className="space-y-6">
                   
                   {/* Kanban toolbar */}
-                  <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-3.5 border-b border-slate-200/60">
+                  <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-3.5 border-b border-[#E2E5EA]/60">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <div>
-                        <h2 className="text-base font-black text-slate-800">
+                        <h2 className="text-base font-black text-[#181D26]">
                           {taskViewMode === "board" ? "Kanban Board" : "Freelancer Work Ledger"}
                         </h2>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        <p className="text-[10px] text-[#8A94A3] font-bold uppercase tracking-wider">
                           {taskViewMode === "board" 
                             ? "Coordinate execution cycles and audit progress indicators." 
                             : "Observe completed tasks chronologically by completion date."}
@@ -2643,14 +2643,14 @@ export function WorkspaceView({
                       </div>
 
                       {/* View Switcher Toggle */}
-                      <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl w-fit shrink-0">
+                      <div className="flex items-center gap-1.5 bg-[#EDEFF2]/80 p-1 rounded-xl w-fit shrink-0">
                         <button
                           type="button"
                           onClick={() => setTaskViewMode("board")}
                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                             taskViewMode === "board"
                               ? "bg-white text-[#181d26] shadow-xs"
-                              : "text-slate-500 hover:text-slate-800"
+                              : "text-[#5A6472] hover:text-[#181D26]"
                           }`}
                         >
                           Kanban Board
@@ -2661,7 +2661,7 @@ export function WorkspaceView({
                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                             taskViewMode === "timeline"
                               ? "bg-white text-[#181d26] shadow-xs"
-                              : "text-slate-500 hover:text-slate-800"
+                              : "text-[#5A6472] hover:text-[#181D26]"
                           }`}
                         >
                           Work Timeline
@@ -2671,18 +2671,18 @@ export function WorkspaceView({
 
                     <div className="flex flex-wrap sm:flex-nowrap gap-2 text-xs items-center justify-between sm:justify-end w-full md:w-auto">
                       <div className="relative w-full sm:w-48 shrink-0">
-                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#8A94A3]" />
                         <Input
                           type="text"
                           value={taskSearch}
                           onChange={(e) => setTaskSearch(e.target.value)}
                           placeholder="Search tasks..."
-                          className="pl-8 bg-white h-8 text-[11px] border-slate-200/80"
+                          className="pl-8 bg-white h-8 text-[11px] border-[#E2E5EA]/80"
                         />
                       </div>
                       <Button
                         onClick={() => setShowAddTaskModal(true)}
-                        className="bg-[#181d26] hover:bg-[#001f3f] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
+                        className="bg-[#181d26] hover:bg-[#134FB0] text-white font-bold text-xs h-8 flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Create Task</span>
@@ -2698,11 +2698,11 @@ export function WorkspaceView({
                       {(["TODO", "IN_PROGRESS", "DONE"] as const).map((col) => {
                         const colTasks = filteredTasksList.filter(t => t.status === col);
                         return (
-                          <div key={col} className="bg-slate-100/40 border border-slate-200/40 rounded-2xl p-4 flex flex-col min-h-[440px]">
+                          <div key={col} className="bg-[#EDEFF2]/40 border border-[#E2E5EA]/40 rounded-2xl p-4 flex flex-col min-h-[440px]">
                             
                             {/* Column Header */}
-                            <div className="flex items-center justify-between pb-3.5 border-b border-slate-200/50 mb-3.5">
-                              <span className="text-xs font-semibold uppercase text-slate-700 tracking-wider">
+                            <div className="flex items-center justify-between pb-3.5 border-b border-[#E2E5EA]/50 mb-3.5">
+                              <span className="text-xs font-semibold uppercase text-[#333840] tracking-wider">
                                 {col === "TODO" && "To Do"}
                                 {col === "IN_PROGRESS" && "In Progress"}
                                 {col === "DONE" && "Done"}
@@ -2713,7 +2713,7 @@ export function WorkspaceView({
                             {/* Task Cards Container */}
                             <div className="flex-1 space-y-3.5">
                               {colTasks.length === 0 ? (
-                                <div className="border border-dashed border-slate-200 rounded-2xl py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                <div className="border border-dashed border-[#E2E5EA] rounded-2xl py-12 text-center text-[#8A94A3] text-[10px] font-bold uppercase tracking-wider">
                                   Empty Column
                                 </div>
                               ) : (
@@ -2721,10 +2721,10 @@ export function WorkspaceView({
                                   <div
                                     key={task.id}
                                     onClick={() => { setSelectedTask(task); setShowTaskDetailModal(true); }}
-                                    className="bg-white border border-slate-200/60 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-[#1b61c9]/50 transition-all cursor-pointer group flex flex-col gap-3"
+                                    className="bg-white border border-[#E2E5EA]/60 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-[#1968E5]/50 transition-all cursor-pointer group flex flex-col gap-3"
                                   >
                                     <div className="flex justify-between items-start gap-2.5">
-                                      <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#181d26] transition-colors leading-snug line-clamp-2">
+                                      <h4 className="text-xs font-bold text-[#181D26] group-hover:text-[#181d26] transition-colors leading-snug line-clamp-2">
                                         {task.title}
                                       </h4>
                                       <Badge
@@ -2742,13 +2742,13 @@ export function WorkspaceView({
                                     </div>
 
                                     {task.description && (
-                                      <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
+                                      <p className="text-[10px] text-[#8A94A3] line-clamp-2 leading-relaxed">
                                         {task.description}
                                       </p>
                                     )}
 
                                     {/* Card Footer: details and status cycles */}
-                                    <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-[9px] text-slate-400">
+                                    <div className="flex justify-between items-center pt-3 border-t border-[#EDEFF2] text-[9px] text-[#8A94A3]">
                                       
                                       <div className="flex items-center gap-1">
                                         {task.dueDate ? (
@@ -2766,7 +2766,7 @@ export function WorkspaceView({
                                         {col !== "TODO" && (
                                           <button
                                             onClick={() => handleUpdateTaskStatus(task.id, col === "DONE" ? "IN_PROGRESS" : "TODO")}
-                                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                            className="p-1 rounded bg-[#EDEFF2] hover:bg-[#E2E5EA] text-[#5A6472] transition-all"
                                             title="Move Left"
                                           >
                                             &larr;
@@ -2775,7 +2775,7 @@ export function WorkspaceView({
                                         {col !== "DONE" && (
                                           <button
                                             onClick={() => handleUpdateTaskStatus(task.id, col === "TODO" ? "IN_PROGRESS" : "DONE")}
-                                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all font-bold"
+                                            className="p-1 rounded bg-[#EDEFF2] hover:bg-[#E2E5EA] text-[#5A6472] transition-all font-bold"
                                             title="Move Right"
                                           >
                                             &rarr;
@@ -2785,22 +2785,22 @@ export function WorkspaceView({
 
                                       {/* Assignee info */}
                                       {task.assignedTo ? (
-                                        <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 border border-slate-100/60 rounded-full py-0.5 pl-0.5 pr-2">
-                                          <div className="h-5 w-5 rounded-full bg-[#181d26] border border-slate-200 flex items-center justify-center font-bold text-[8px] overflow-hidden text-white shrink-0">
+                                        <div className="flex items-center gap-1.5 shrink-0 bg-[#F7F8FA] border border-[#EDEFF2]/60 rounded-full py-0.5 pl-0.5 pr-2">
+                                          <div className="h-5 w-5 rounded-full bg-[#181d26] border border-[#E2E5EA] flex items-center justify-center font-bold text-[8px] overflow-hidden text-white shrink-0">
                                             {task.assignedTo.image ? (
                                               <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
                                             ) : (
                                               task.assignedTo.name ? task.assignedTo.name[0].toUpperCase() : "U"
                                             )}
                                           </div>
-                                          <span className="text-[8px] font-black text-slate-600 truncate max-w-[70px]">
+                                          <span className="text-[8px] font-black text-[#5A6472] truncate max-w-[70px]">
                                             {task.assignedTo.name?.split(" ")[0] || "User"}
                                           </span>
                                         </div>
                                       ) : (
-                                        <div className="flex items-center gap-1 text-[8.5px] font-black text-slate-400 uppercase tracking-wider">
-                                          <div className="h-5 w-5 rounded-full border border-dashed border-slate-200 flex items-center justify-center shrink-0 bg-white">
-                                            <User className="h-2.5 w-2.5 text-slate-300" />
+                                        <div className="flex items-center gap-1 text-[8.5px] font-black text-[#8A94A3] uppercase tracking-wider">
+                                          <div className="h-5 w-5 rounded-full border border-dashed border-[#E2E5EA] flex items-center justify-center shrink-0 bg-white">
+                                            <User className="h-2.5 w-2.5 text-[#C7CCD4]" />
                                           </div>
                                           <span>Unassigned</span>
                                         </div>
@@ -2821,7 +2821,7 @@ export function WorkspaceView({
                     /* Date-wise completed timeline done by freelancers */
                     <div className="space-y-6">
                       {/* Freelancer Filter Dashboard */}
-                      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="bg-white border border-[#E2E5EA]/80 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1 flex-1">
                           <span className="text-[9px] font-black text-[#181d26] uppercase tracking-wider block">Freelancer Activity Dashboard</span>
                           <div className="flex flex-wrap items-center gap-2">
@@ -2832,12 +2832,12 @@ export function WorkspaceView({
                               className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                                 selectedFreelancerFilter === "all"
                                   ? "bg-[#181d26] border-[#181d26] text-white shadow-sm font-black"
-                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  : "bg-[#F7F8FA] border-[#E2E5EA] text-[#5A6472] hover:bg-[#EDEFF2]"
                               }`}
                             >
                               <span>All Freelancers</span>
                               <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black ${
-                                selectedFreelancerFilter === "all" ? "bg-white/20 text-white" : "bg-slate-200/60 text-slate-700"
+                                selectedFreelancerFilter === "all" ? "bg-white/20 text-white" : "bg-[#E2E5EA]/60 text-[#333840]"
                               }`}>
                                 {tasks.filter(t => t.status === "DONE").length}
                               </span>
@@ -2854,10 +2854,10 @@ export function WorkspaceView({
                                   className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                                     selectedFreelancerFilter === freelancer.id
                                       ? "bg-[#181d26]/10 border-[#181d26]/40 text-[#181d26] font-black ring-1 ring-[#181d26]/30 shadow-xs"
-                                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                      : "bg-[#F7F8FA] border-[#E2E5EA] text-[#5A6472] hover:bg-[#EDEFF2]"
                                   }`}
                                 >
-                                  <div className="h-4 w-4 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-300">
+                                  <div className="h-4 w-4 rounded-full bg-[#E2E5EA] overflow-hidden shrink-0 border border-[#C7CCD4]">
                                     {freelancer.image ? (
                                       <img src={freelancer.image} alt={freelancer.name || ""} className="h-full w-full object-cover" />
                                     ) : (
@@ -2868,7 +2868,7 @@ export function WorkspaceView({
                                   </div>
                                   <span>{freelancer.name || "Freelancer"}</span>
                                   <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black ${
-                                    selectedFreelancerFilter === freelancer.id ? "bg-[#181d26]/20 text-[#181d26]" : "bg-slate-200/60 text-slate-700"
+                                    selectedFreelancerFilter === freelancer.id ? "bg-[#181d26]/20 text-[#181d26]" : "bg-[#E2E5EA]/60 text-[#333840]"
                                   }`}>
                                     {freelancerDoneCount}
                                   </span>
@@ -2879,16 +2879,16 @@ export function WorkspaceView({
                         </div>
 
                         {/* Summary metrics */}
-                        <div className="flex items-center gap-4 border-t md:border-t-0 pt-3 md:pt-0 md:border-l border-slate-200 md:pl-4">
+                        <div className="flex items-center gap-4 border-t md:border-t-0 pt-3 md:pt-0 md:border-l border-[#E2E5EA] md:pl-4">
                           <div className="text-center md:text-left shrink-0">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Total Logged Work</span>
+                            <span className="text-[8px] font-black text-[#8A94A3] uppercase tracking-widest block">Total Logged Work</span>
                             <span className="text-lg font-black text-[#181d26]">{completedTasks.length} Done</span>
                           </div>
                           {(selectedFreelancerFilter !== "all" || taskSearch) && (
                             <button
                               type="button"
                               onClick={() => { setSelectedFreelancerFilter("all"); setTaskSearch(""); }}
-                              className="text-[9px] font-bold text-[#181d26] hover:text-[#001f3f] underline cursor-pointer shrink-0"
+                              className="text-[9px] font-bold text-[#181d26] hover:text-[#134FB0] underline cursor-pointer shrink-0"
                             >
                               Reset Filter
                             </button>
@@ -2898,11 +2898,11 @@ export function WorkspaceView({
 
                       {/* Display results */}
                       {completedTasks.length === 0 ? (
-                        <div className="py-20 text-center text-slate-400 space-y-3 bg-white border border-slate-200/60 rounded-3xl p-8 shadow-xs">
-                          <div className="h-12 w-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                        <div className="py-20 text-center text-[#8A94A3] space-y-3 bg-white border border-[#E2E5EA]/60 rounded-3xl p-8 shadow-xs">
+                          <div className="h-12 w-12 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center mx-auto text-[#8A94A3]">
                             <CheckSquare className="h-5 w-5" />
                           </div>
-                          <p className="text-xs font-extrabold text-slate-700">No completed tasks match your criteria.</p>
+                          <p className="text-xs font-extrabold text-[#333840]">No completed tasks match your criteria.</p>
                           <p className="text-[10px] max-w-xs mx-auto">
                             {tasks.filter(t => t.status === "DONE").length === 0 
                               ? "Freelancer work progress will be logged here chronologically as soon as tasks are moved to the \"Done\" column."
@@ -2913,7 +2913,7 @@ export function WorkspaceView({
                             <Button
                               type="button"
                               onClick={() => { setSelectedFreelancerFilter("all"); setTaskSearch(""); }}
-                              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 h-8 cursor-pointer mt-2"
+                              className="text-xs bg-[#EDEFF2] hover:bg-[#E2E5EA] text-[#333840] h-8 cursor-pointer mt-2"
                             >
                               Reset Active Filters
                             </Button>
@@ -2921,18 +2921,18 @@ export function WorkspaceView({
                         </div>
                       ) : (
                         <div className="space-y-4">
-                        <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[#dddddd] bg-white p-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Jump to date</span>
-                          <input type="date" value={timelineDate} onChange={(e) => setTimelineDate(e.target.value)} className="rounded-[8px] border border-[#dddddd] px-3 py-1.5 text-xs focus:outline-none" />
+                        <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[#E2E5EA] bg-white p-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A94A3]">Jump to date</span>
+                          <input type="date" value={timelineDate} onChange={(e) => setTimelineDate(e.target.value)} className="rounded-[8px] border border-[#E2E5EA] px-3 py-1.5 text-xs focus:outline-none" />
                           {timelineDate && (
-                            <button type="button" onClick={() => setTimelineDate("")} className="cursor-pointer rounded-[8px] border border-[#dddddd] px-3 py-1.5 text-[11px] font-semibold text-[#41454d] hover:bg-[#f8fafc]">Show all dates</button>
+                            <button type="button" onClick={() => setTimelineDate("")} className="cursor-pointer rounded-[8px] border border-[#E2E5EA] px-3 py-1.5 text-[11px] font-semibold text-[#5A6472] hover:bg-[#F7F8FA]">Show all dates</button>
                           )}
                           <span className="ml-auto text-[11px] font-semibold text-[#181d26]">{sortedDates.reduce((t, d) => t + groupedTimeline[d].length, 0)} updates</span>
                         </div>
                         {sortedDates.length === 0 ? (
-                          <p className="rounded-[12px] border border-dashed border-[#dddddd] bg-white p-6 text-center text-xs font-semibold text-slate-400">No task updates on this date.</p>
+                          <p className="rounded-[12px] border border-dashed border-[#E2E5EA] bg-white p-6 text-center text-xs font-semibold text-[#8A94A3]">No task updates on this date.</p>
                         ) : (
-                        <div className="relative border-l-2 border-slate-200 ml-4 pl-6 py-2 space-y-8">
+                        <div className="relative border-l-2 border-[#E2E5EA] ml-4 pl-6 py-2 space-y-8">
                           {sortedDates.map((dateStr) => (
                             <div key={dateStr} className="relative space-y-4 animate-in fade-in slide-in-from-left-4 duration-200">
                               {/* Timeline dot */}
@@ -2951,11 +2951,11 @@ export function WorkspaceView({
                                   <Card
                                     key={task.id}
                                     onClick={() => { setSelectedTask(task); setShowTaskDetailModal(true); }}
-                                    className="p-4 bg-white border border-slate-200 hover:border-[#181d26]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 group"
+                                    className="p-4 bg-white border border-[#E2E5EA] hover:border-[#181d26]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 group"
                                   >
                                     <div className="space-y-1.5">
                                       <div className="flex justify-between items-start gap-2">
-                                        <h4 className="font-extrabold text-slate-800 text-xs group-hover:text-[#181d26] transition-colors leading-tight line-clamp-1">
+                                        <h4 className="font-extrabold text-[#181D26] text-xs group-hover:text-[#181d26] transition-colors leading-tight line-clamp-1">
                                           {task.title}
                                         </h4>
                                         <Badge
@@ -2972,17 +2972,17 @@ export function WorkspaceView({
                                         </Badge>
                                       </div>
                                       {task.description && (
-                                        <p className="text-[10px] text-slate-500 leading-relaxed font-medium line-clamp-2">
+                                        <p className="text-[10px] text-[#5A6472] leading-relaxed font-medium line-clamp-2">
                                           {task.description}
                                         </p>
                                       )}
                                     </div>
 
-                                    <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-[10px]">
+                                    <div className="flex justify-between items-center pt-2.5 border-t border-[#EDEFF2] text-[10px]">
                                       <div className="flex items-center gap-2">
                                         {task.assignedTo ? (
                                           <>
-                                            <div className="h-6.5 w-6.5 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
+                                            <div className="h-6.5 w-6.5 rounded-full bg-[#F7F8FA] border border-[#EDEFF2] flex items-center justify-center font-bold text-[9px] overflow-hidden shrink-0">
                                               {task.assignedTo.image ? (
                                                 <img src={task.assignedTo.image} alt={task.assignedTo.name || ""} className="h-full w-full object-cover" />
                                               ) : (
@@ -2990,26 +2990,26 @@ export function WorkspaceView({
                                               )}
                                             </div>
                                             <div className="min-w-0">
-                                              <p className="font-extrabold text-slate-700 truncate leading-tight">{task.assignedTo.name || "User"}</p>
-                                              <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Completed By</p>
+                                              <p className="font-extrabold text-[#333840] truncate leading-tight">{task.assignedTo.name || "User"}</p>
+                                              <p className="text-[7.5px] font-black text-[#8A94A3] uppercase tracking-widest leading-none mt-0.5">Completed By</p>
                                             </div>
                                           </>
                                         ) : (
                                           <>
-                                            <div className="h-6.5 w-6.5 rounded-full border border-dashed border-slate-200 flex items-center justify-center bg-white shrink-0">
-                                              <User className="h-3.5 w-3.5 text-slate-300" />
+                                            <div className="h-6.5 w-6.5 rounded-full border border-dashed border-[#E2E5EA] flex items-center justify-center bg-white shrink-0">
+                                              <User className="h-3.5 w-3.5 text-[#C7CCD4]" />
                                             </div>
                                             <div className="min-w-0">
-                                              <p className="font-extrabold text-slate-500 truncate leading-tight">Unassigned Task</p>
-                                              <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Completed</p>
+                                              <p className="font-extrabold text-[#5A6472] truncate leading-tight">Unassigned Task</p>
+                                              <p className="text-[7.5px] font-black text-[#8A94A3] uppercase tracking-widest leading-none mt-0.5">Completed</p>
                                             </div>
                                           </>
                                         )}
                                       </div>
 
-                                      <div className="text-right text-slate-400">
-                                        <span className="text-[8px] font-black uppercase block tracking-wider text-slate-400">Time Logged</span>
-                                        <span className="font-extrabold text-slate-700">
+                                      <div className="text-right text-[#8A94A3]">
+                                        <span className="text-[8px] font-black uppercase block tracking-wider text-[#8A94A3]">Time Logged</span>
+                                        <span className="font-extrabold text-[#333840]">
                                           {task.updatedAt 
                                             ? new Date(task.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                             : new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -3051,8 +3051,8 @@ export function WorkspaceView({
                 <div className="space-y-6">
                   
                   <div>
-                    <h2 className="text-base font-black text-slate-800">Team Directory</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <h2 className="text-base font-black text-[#181D26]">Team Directory</h2>
+                    <p className="text-[10px] text-[#8A94A3] font-bold uppercase tracking-wider">
                       Collaborator profiles, reputation indices, and verified professional skills.
                     </p>
                   </div>
@@ -3061,7 +3061,7 @@ export function WorkspaceView({
                     
                     {/* Freelancer Profile card */}
                     {hiredFreelancers.map((freelancer) => (
-                      <Card key={freelancer.id} className="border border-slate-200/60 p-6 bg-white shadow-xs relative overflow-hidden">
+                      <Card key={freelancer.id} className="border border-[#E2E5EA]/60 p-6 bg-white shadow-xs relative overflow-hidden">
                         <div className="absolute top-0 right-0 bg-emerald-500/10 text-emerald-700 font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-emerald-500/10">
                           Active Contractor
                         </div>
@@ -3071,7 +3071,7 @@ export function WorkspaceView({
                              onClick={() => {
                                router.push(`/freelancers/${freelancer.freelancerId}`);
                              }}
-                             className="h-16 w-16 rounded-full bg-[#181d26]/10 border border-slate-200 flex items-center justify-center font-bold text-xl text-[#181d26] overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                             className="h-16 w-16 rounded-full bg-[#181d26]/10 border border-[#E2E5EA] flex items-center justify-center font-bold text-xl text-[#181d26] overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                            >
                             {freelancer.image ? <img src={freelancer.image} className="h-full w-full object-cover" /> : freelancer.name?.[0].toUpperCase()}
                           </div>
@@ -3081,7 +3081,7 @@ export function WorkspaceView({
                                onClick={() => {
                                  router.push(`/freelancers/${freelancer.freelancerId}`);
                                }}
-                               className="font-extrabold text-slate-800 text-base truncate cursor-pointer hover:underline hover:text-[#181d26]"
+                               className="font-extrabold text-[#181D26] text-base truncate cursor-pointer hover:underline hover:text-[#181d26]"
                             >
                                {freelancer.name}
                             </h3>
@@ -3089,9 +3089,9 @@ export function WorkspaceView({
                             
                             <div className="flex items-center gap-2 pt-1">
                               <div className="flex items-center text-[#181d26] font-semibold text-xs">
-                                <Star className="h-3 w-3 fill-[#fcab79] text-[#fcab79] mr-1" /> 4.9 <span className="text-[#41454d] font-medium ml-1">(24 reviews)</span>
+                                <Star className="h-3 w-3 fill-[#FFC700] text-[#FFC700] mr-1" /> 4.9 <span className="text-[#5A6472] font-medium ml-1">(24 reviews)</span>
                               </div>
-                              <span className="text-slate-300">•</span>
+                              <span className="text-[#C7CCD4]">•</span>
                               <div className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
                                 98% Reputation Score
                               </div>
@@ -3099,9 +3099,9 @@ export function WorkspaceView({
                           </div>
                         </div>
 
-                        <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-600 font-medium">
+                        <div className="mt-5 pt-4 border-t border-[#EDEFF2] space-y-3.5 text-xs text-[#5A6472] font-medium">
                           <div>
-                            <strong className="block text-slate-700 font-bold uppercase text-[9px] tracking-wider mb-1.5">Verified Professional Skills:</strong>
+                            <strong className="block text-[#333840] font-bold uppercase text-[9px] tracking-wider mb-1.5">Verified Professional Skills:</strong>
                             <div className="flex flex-wrap gap-1.5">
                               {["React", "TypeScript", "NextJS", "Prisma ORM", "TailwindCSS", "PostgreSQL"].map((sk, idx) => (
                                 <Badge key={idx} variant="primary" className="text-[8px] font-black uppercase tracking-wider py-0.5 px-2">
@@ -3113,12 +3113,12 @@ export function WorkspaceView({
                           
                           <div className="grid grid-cols-2 gap-4 text-[10px] font-medium pt-1.5">
                             <div>
-                              <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Avg Response Time</span>
-                              <span className="text-slate-800 font-extrabold mt-0.5 block">Under 12 Hours</span>
+                              <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">Avg Response Time</span>
+                              <span className="text-[#181D26] font-extrabold mt-0.5 block">Under 12 Hours</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">On-Time Delivery</span>
-                              <span className="text-slate-800 font-extrabold mt-0.5 block">100% Satisfaction</span>
+                              <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">On-Time Delivery</span>
+                              <span className="text-[#181D26] font-extrabold mt-0.5 block">100% Satisfaction</span>
                             </div>
                           </div>
                         </div>
@@ -3127,7 +3127,7 @@ export function WorkspaceView({
                     ))}
 
                     {/* Client Profile Card */}
-                    <Card className="border border-slate-200/60 p-6 bg-white shadow-xs relative overflow-hidden">
+                    <Card className="border border-[#E2E5EA]/60 p-6 bg-white shadow-xs relative overflow-hidden">
                       <div className="absolute top-0 right-0 bg-[#181d26]/10 text-[#181d26] font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl border-l border-b border-[#181d26]/10">
                         Employer Owner
                       </div>
@@ -3137,7 +3137,7 @@ export function WorkspaceView({
                           onClick={() => {
                             router.push(`/companies/${companyUser.companyId}`);
                           }}
-                          className="h-16 w-16 rounded-full bg-[#181d26] border border-slate-200 flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                          className="h-16 w-16 rounded-full bg-[#181d26] border border-[#E2E5EA] flex items-center justify-center font-bold text-xl text-white overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                         >
                           {companyUser.image ? <img src={companyUser.image} className="h-full w-full object-cover" /> : "C"}
                         </div>
@@ -3147,18 +3147,18 @@ export function WorkspaceView({
                             onClick={() => {
                               router.push(`/companies/${companyUser.companyId}`);
                             }}
-                            className="font-extrabold text-slate-800 text-base truncate cursor-pointer hover:underline hover:text-[#181d26]"
+                            className="font-extrabold text-[#181D26] text-base truncate cursor-pointer hover:underline hover:text-[#181d26]"
                           >
                             {companyName}
                           </h3>
                           <p className="text-[11px] font-bold text-[#181d26] uppercase tracking-wide">Client Organization</p>
                           
                           <div className="flex items-center text-[#181d26] font-semibold text-xs">
-                            <Star className="h-3 w-3 fill-[#fcab79] text-[#fcab79] mr-1" /> 4.8 <span className="text-[#41454d] font-medium ml-1">(12 reviews)</span>
+                            <Star className="h-3 w-3 fill-[#FFC700] text-[#FFC700] mr-1" /> 4.8 <span className="text-[#5A6472] font-medium ml-1">(12 reviews)</span>
                           </div>
                           
                           <div className="flex items-center gap-2 pt-1">
-                            <span className="text-slate-300">•</span>
+                            <span className="text-[#C7CCD4]">•</span>
                             <div className="text-[10px] text-[#181d26] font-black uppercase tracking-wider">
                               99% Payment Reliability
                             </div>
@@ -3166,22 +3166,22 @@ export function WorkspaceView({
                         </div>
                       </div>
 
-                      <div className="mt-5 pt-4 border-t border-slate-100 space-y-3.5 text-xs text-slate-600 font-medium">
+                      <div className="mt-5 pt-4 border-t border-[#EDEFF2] space-y-3.5 text-xs text-[#5A6472] font-medium">
                         <div className="grid grid-cols-2 gap-4 text-[10px] font-medium">
                           <div>
-                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Company Size</span>
-                            <span className="text-slate-800 font-extrabold mt-0.5 block">10-50 Employees</span>
+                            <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">Company Size</span>
+                            <span className="text-[#181D26] font-extrabold mt-0.5 block">10-50 Employees</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Location</span>
-                            <span className="text-slate-800 font-extrabold mt-0.5 block">San Francisco, CA</span>
+                            <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">Location</span>
+                            <span className="text-[#181D26] font-extrabold mt-0.5 block">San Francisco, CA</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Founded Year</span>
-                            <span className="text-slate-800 font-extrabold mt-0.5 block">2021</span>
+                            <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">Founded Year</span>
+                            <span className="text-[#181D26] font-extrabold mt-0.5 block">2021</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Trust Score</span>
+                            <span className="text-[#8A94A3] block text-[9px] uppercase tracking-wider font-bold">Trust Score</span>
                             <span className="text-emerald-600 font-extrabold mt-0.5 block">95/100 Verified</span>
                           </div>
                         </div>
@@ -3232,8 +3232,8 @@ export function WorkspaceView({
                   {/* Header Row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-base font-black text-slate-800">Project Milestones & Escrow</h2>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <h2 className="text-base font-black text-[#181D26]">Project Milestones & Escrow</h2>
+                      <p className="text-[10px] text-[#8A94A3] font-bold uppercase tracking-wider">
                         Track progress, secure funds, and release payments for completed phases.
                       </p>
                     </div>
@@ -3241,7 +3241,7 @@ export function WorkspaceView({
                       <Button
                         type="button"
                         onClick={() => setShowAddMilestoneModal(true)}
-                        className="bg-[#181d26] hover:bg-[#001f3f] text-white font-bold text-xs h-9 px-4 cursor-pointer flex items-center gap-1.5 rounded-xl shadow-xs"
+                        className="bg-[#181d26] hover:bg-[#134FB0] text-white font-bold text-xs h-9 px-4 cursor-pointer flex items-center gap-1.5 rounded-xl shadow-xs"
                       >
                         <Plus className="h-4 w-4" />
                         <span>Add Milestone Phase</span>
@@ -3252,7 +3252,7 @@ export function WorkspaceView({
                   {/* Milestone money lives in the funding ledger above, which is the
                       single source of truth. The legacy escrow tiles are removed so the
                       same balance is never shown twice with different numbers. */}
-                  <div className="rounded-[12px] border border-[#dddddd] bg-[#f8fafc] px-4 py-3 text-[11px] font-semibold text-[#41454d]">
+                  <div className="rounded-[12px] border border-[#E2E5EA] bg-[#F7F8FA] px-4 py-3 text-[11px] font-semibold text-[#5A6472]">
                     Funding, release and per-freelancer balances for these milestones are shown in
                     <span className="text-[#181d26]"> Milestone Funding </span>
                     above. The list below keeps the milestone details and workflow.
@@ -3261,12 +3261,12 @@ export function WorkspaceView({
                   {/* Milestones list card */}
                   <div className="space-y-4">
                     {updates.length === 0 ? (
-                      <Card className="p-12 text-center bg-white border border-slate-200/60 rounded-3xl space-y-3">
-                        <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                      <Card className="p-12 text-center bg-white border border-[#E2E5EA]/60 rounded-3xl space-y-3">
+                        <div className="h-12 w-12 rounded-2xl bg-[#F7F8FA] border border-[#EDEFF2] flex items-center justify-center mx-auto text-[#8A94A3]">
                           <Sparkles className="h-6 w-6" />
                         </div>
-                        <p className="text-sm font-bold text-slate-700">No milestone phases created.</p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-sm font-bold text-[#333840]">No milestone phases created.</p>
+                        <p className="text-xs text-[#8A94A3]">
                           {role === "COMPANY" 
                             ? "Create milestone phases to distribute payments across deliverables."
                             : "Awaiting client to create project milestones."}
@@ -3280,16 +3280,16 @@ export function WorkspaceView({
                             key={milestone.id} 
                             className={`border rounded-3xl p-5 bg-white shadow-xs relative overflow-hidden transition-all ${
                               milestone.status === "COMPLETED" ? "border-emerald-100/60 shadow-emerald-500/5 bg-emerald-50/5" :
-                              milestone.status === "IN_PROGRESS" ? "border-sky-100/60 shadow-sky-500/5 bg-sky-50/5 animate-pulse-slow" : "border-slate-200/60"
+                              milestone.status === "IN_PROGRESS" ? "border-sky-100/60 shadow-sky-500/5 bg-sky-50/5 animate-pulse-slow" : "border-[#E2E5EA]/60"
                             }`}
                           >
                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2.5 flex-wrap">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-md">
+                                  <span className="text-[10px] font-black text-[#8A94A3] uppercase tracking-widest bg-[#EDEFF2] px-2 py-0.5 rounded-md">
                                     Phase #{updates.length - idx}
                                   </span>
-                                  <h4 className="font-extrabold text-slate-800 text-sm">{cleanTitle}</h4>
+                                  <h4 className="font-extrabold text-[#181D26] text-sm">{cleanTitle}</h4>
                                   <Badge 
                                     variant={
                                       milestone.status === "COMPLETED" ? "success" :
@@ -3300,20 +3300,20 @@ export function WorkspaceView({
                                      milestone.status === "IN_PROGRESS" ? "In Escrow" : "Pending Funding"}
                                   </Badge>
                                 </div>
-                                <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+                                <p className="text-xs text-[#5A6472] leading-relaxed max-w-2xl">
                                   {milestone.description || "No deliverable description specified."}
                                 </p>
                               </div>
                               <div className="text-left sm:text-right shrink-0">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Phase Value</span>
+                                <span className="text-[8px] font-black text-[#8A94A3] uppercase tracking-widest block">Phase Value</span>
                                 <span className="text-base font-black text-[#181d26] mt-0.5 block">${amount.toLocaleString()}</span>
                               </div>
                             </div>
 
                             {/* Actions block */}
-                            <div className="mt-4 pt-3.5 border-t border-slate-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
-                                <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <div className="mt-4 pt-3.5 border-t border-[#EDEFF2]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 text-[10px] font-bold text-[#8A94A3] uppercase">
+                                <Clock className="h-3.5 w-3.5 text-[#8A94A3] shrink-0" />
                                 <span>Created on {new Date(milestone.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</span>
                               </div>
 
@@ -3328,7 +3328,7 @@ export function WorkspaceView({
                                       Fund & Start Phase
                                     </Button>
                                   ) : (
-                                    <span className="text-[9px] font-black text-slate-400 bg-slate-50 border border-slate-200/50 py-1 px-3 rounded-full uppercase tracking-wider">
+                                    <span className="text-[9px] font-black text-[#8A94A3] bg-[#F7F8FA] border border-[#E2E5EA]/50 py-1 px-3 rounded-full uppercase tracking-wider">
                                       Awaiting client funding to activate
                                     </span>
                                   )
@@ -3375,46 +3375,46 @@ export function WorkspaceView({
       {showAddTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowAddTaskModal(false)} />
-          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
-            <div className="h-1.5 bg-gradient-to-r from-[#181d26] to-[#1b61c9]" />
+          <div className="relative w-full max-w-md bg-white border border-[#E2E5EA] shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            <div className="h-1.5 bg-gradient-to-r from-[#181d26] to-[#1968E5]" />
             <form onSubmit={handleCreateTask} className="p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center">
                 <h3 className="font-extrabold text-[#181d26] text-base">Create Kanban Task</h3>
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className="text-slate-400 hover:text-slate-700">
+                <button type="button" onClick={() => setShowAddTaskModal(false)} className="text-[#8A94A3] hover:text-[#333840]">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Task Title</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Task Title</label>
                 <Input
                   type="text"
                   required
                   placeholder="e.g. Implement user dashboard checkout button"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="bg-white border-slate-200 text-xs"
+                  className="bg-white border-[#E2E5EA] text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Description</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Description</label>
                 <textarea
                   placeholder="Provide checklist details or specific task guidelines..."
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
                   rows={3}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-slate-800 bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-[#181D26] bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Priority</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Priority</label>
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E5EA] bg-white focus:outline-none text-xs text-[#181D26]"
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -3422,22 +3422,22 @@ export function WorkspaceView({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Due Date</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Due Date</label>
                   <Input
                     type="date"
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="bg-white border-slate-200 text-xs"
+                    className="bg-white border-[#E2E5EA] text-xs"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Assignee</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Assignee</label>
                 <select
                   value={newTaskAssignee}
                   onChange={(e) => setNewTaskAssignee(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E2E5EA] bg-white focus:outline-none text-xs text-[#181D26]"
                 >
                   <option value="">Unassigned</option>
                   <option value={companyUser.id}>{companyUser.name} (Client Manager)</option>
@@ -3451,7 +3451,7 @@ export function WorkspaceView({
                 <Button onClick={() => setShowAddTaskModal(false)} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmittingTask || !newTaskTitle.trim()} className="bg-[#181d26] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                <Button type="submit" disabled={isSubmittingTask || !newTaskTitle.trim()} className="bg-[#181d26] text-white hover:bg-[#134FB0] text-xs font-bold px-4 cursor-pointer">
                   {isSubmittingTask ? "Creating..." : "Create Task"}
                 </Button>
               </div>
@@ -3464,44 +3464,44 @@ export function WorkspaceView({
       {showTaskDetailModal && selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} />
-          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md bg-white border border-[#E2E5EA] shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
             <div className="h-1.5 bg-[#181d26]" />
             <form onSubmit={handleUpdateTaskDetails} className="p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center">
                 <h3 className="font-extrabold text-[#181d26] text-base">Task Details</h3>
-                <button type="button" onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} className="text-slate-400 hover:text-slate-700">
+                <button type="button" onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} className="text-[#8A94A3] hover:text-[#333840]">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Task Title</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Task Title</label>
                 <Input
                   type="text"
                   required
                   value={selectedTask.title}
                   onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
-                  className="bg-white border-slate-200 text-xs"
+                  className="bg-white border-[#E2E5EA] text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Description</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Description</label>
                 <textarea
                   value={selectedTask.description || ""}
                   onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-slate-800 bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-[#181D26] bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Priority</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Priority</label>
                   <select
                     value={selectedTask.priority}
                     onChange={(e) => setSelectedTask({ ...selectedTask, priority: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E5EA] bg-white focus:outline-none text-xs text-[#181D26]"
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -3509,23 +3509,23 @@ export function WorkspaceView({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Due Date</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Due Date</label>
                   <Input
                     type="date"
                     value={selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString().split("T")[0] : ""}
                     onChange={(e) => setSelectedTask({ ...selectedTask, dueDate: e.target.value ? new Date(e.target.value) : null })}
-                    className="bg-white border-slate-200 text-xs"
+                    className="bg-white border-[#E2E5EA] text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Assignee</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Assignee</label>
                   <select
                     value={selectedTask.assignedToId || ""}
                     onChange={(e) => setSelectedTask({ ...selectedTask, assignedToId: e.target.value || null })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E5EA] bg-white focus:outline-none text-xs text-[#181D26]"
                   >
                     <option value="">Unassigned</option>
                     <option value={companyUser.id}>{companyUser.name} (Client Manager)</option>
@@ -3535,11 +3535,11 @@ export function WorkspaceView({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Status Board</label>
+                  <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Status Board</label>
                   <select
                     value={selectedTask.status}
                     onChange={(e) => handleUpdateTaskStatus(selectedTask.id, e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none text-xs text-slate-800"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E5EA] bg-white focus:outline-none text-xs text-[#181D26]"
                   >
                     <option value="TODO">To Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
@@ -3560,7 +3560,7 @@ export function WorkspaceView({
                   <Button onClick={() => { setShowTaskDetailModal(false); setSelectedTask(null); }} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isUpdatingTask || !selectedTask.title.trim()} className="bg-[#181d26] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                  <Button type="submit" disabled={isUpdatingTask || !selectedTask.title.trim()} className="bg-[#181d26] text-white hover:bg-[#134FB0] text-xs font-bold px-4 cursor-pointer">
                     {isUpdatingTask ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
@@ -3574,48 +3574,48 @@ export function WorkspaceView({
       {showAddMilestoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowAddMilestoneModal(false)} />
-          <div className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
-            <div className="h-1.5 bg-gradient-to-r from-[#181d26] to-[#1b61c9]" />
+          <div className="relative w-full max-w-md bg-white border border-[#E2E5EA] shadow-2xl rounded-3xl overflow-y-auto max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            <div className="h-1.5 bg-gradient-to-r from-[#181d26] to-[#1968E5]" />
             <form onSubmit={handleCreateMilestone} className="p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center">
                 <h3 className="font-extrabold text-[#181d26] text-base">Create Milestone Phase</h3>
-                <button type="button" onClick={() => setShowAddMilestoneModal(false)} className="text-slate-400 hover:text-slate-700">
+                <button type="button" onClick={() => setShowAddMilestoneModal(false)} className="text-[#8A94A3] hover:text-[#333840]">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestone Name</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Milestone Name</label>
                 <Input
                   type="text"
                   required
                   placeholder="e.g. Core landing page layout designs"
                   value={newMilestoneTitle}
                   onChange={(e) => setNewMilestoneTitle(e.target.value)}
-                  className="bg-white border-slate-200 text-xs"
+                  className="bg-white border-[#E2E5EA] text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Milestone Budget Value ($)</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Milestone Budget Value ($)</label>
                 <Input
                   type="text"
                   required
                   placeholder="e.g. 1500"
                   value={newMilestoneValue}
                   onChange={(e) => setNewMilestoneValue(e.target.value)}
-                  className="bg-white border-slate-200 text-xs"
+                  className="bg-white border-[#E2E5EA] text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Deliverable Criteria Description</label>
+                <label className="block text-[9px] font-black text-[#8A94A3] uppercase tracking-wider">Deliverable Criteria Description</label>
                 <textarea
                   placeholder="Explain exactly what criteria the freelancer needs to satisfy to release this payment amount..."
                   value={newMilestoneDesc}
                   onChange={(e) => setNewMilestoneDesc(e.target.value)}
                   rows={3}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-slate-800 bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20 focus:border-[#181d26] text-xs text-[#181D26] bg-white"
                 />
               </div>
 
@@ -3623,7 +3623,7 @@ export function WorkspaceView({
                 <Button onClick={() => setShowAddMilestoneModal(false)} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmittingMilestone || !newMilestoneTitle.trim() || !newMilestoneValue.trim()} className="bg-[#181d26] text-white hover:bg-[#001f3f] text-xs font-bold px-4 cursor-pointer">
+                <Button type="submit" disabled={isSubmittingMilestone || !newMilestoneTitle.trim() || !newMilestoneValue.trim()} className="bg-[#181d26] text-white hover:bg-[#134FB0] text-xs font-bold px-4 cursor-pointer">
                   {isSubmittingMilestone ? "Creating..." : "Fund Milestone Phase"}
                 </Button>
               </div>

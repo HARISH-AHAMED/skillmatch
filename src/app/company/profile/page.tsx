@@ -49,7 +49,7 @@ export default async function CompanyProfilePage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           Company Profile Settings
         </h1>
-        <p className="text-xs text-[#41454d] mt-1 font-normal">
+        <p className="text-xs text-[#5A6472] mt-1 font-normal">
           Configure your company profile, location, website, and description so freelancers know more about you
         </p>
       </div>
@@ -65,20 +65,20 @@ export default async function CompanyProfilePage() {
               <Briefcase className="h-4 w-4" /> Completed Projects ({completedProjects.length})
             </h3>
             {completedProjects.length === 0 ? (
-              <Card className="p-6 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
+              <Card className="p-6 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
                 No completed projects yet.
               </Card>
             ) : (
               completedProjects.map((project) => {
                 const freelancerName = project.applications[0]?.freelancer?.user?.name || "Unknown Freelancer";
                 return (
-                  <Card key={project.id} className="p-5 bg-white border border-[#dddddd] rounded-[12px] space-y-2">
+                  <Card key={project.id} className="p-5 bg-white border border-[#E2E5EA] rounded-[12px] space-y-2">
                     <div>
                       <h4 className="text-xs font-semibold text-[#181d26]">{project.title}</h4>
-                      <p className="text-[10px] text-[#41454d] font-normal mt-0.5">
+                      <p className="text-[10px] text-[#5A6472] font-normal mt-0.5">
                         Freelancer: <span className="text-[#181d26] font-medium">{freelancerName}</span>
                       </p>
-                      <p className="text-[10px] text-[#41454d] mt-0.5">
+                      <p className="text-[10px] text-[#5A6472] mt-0.5">
                         Budget: {formatProjectBudget(project)}
                       </p>
                     </div>

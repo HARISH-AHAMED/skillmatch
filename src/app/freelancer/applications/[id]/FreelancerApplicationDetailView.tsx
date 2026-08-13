@@ -244,7 +244,7 @@ export function FreelancerApplicationDetailView({
         <button
           type="button"
           onClick={() => router.push("/freelancer/applications")}
-          className="inline-flex items-center gap-2 text-xs font-medium text-[#181d26] hover:underline cursor-pointer transition-colors bg-white border border-[#dddddd] px-3.5 py-2 rounded-[12px]"
+          className="inline-flex items-center gap-2 text-xs font-medium text-[#181d26] hover:underline cursor-pointer transition-colors bg-white border border-[#E2E5EA] px-3.5 py-2 rounded-[12px]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Applications List
@@ -260,31 +260,31 @@ export function FreelancerApplicationDetailView({
       </div>
 
       {/* Main Header Card */}
-      <Card className="p-6 md:p-8 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#dddddd] pb-5">
+      <Card className="p-6 md:p-8 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#E2E5EA] pb-5">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={isHired ? "forest" : isRejected ? "neutral" : isShortlisted ? "primary" : "mint"}>
                 {isHired ? "Hired — Active Project" : isRejected ? "Application Rejected" : isShortlisted ? "Shortlisted Candidate" : "Under Review"}
               </Badge>
-              <span className="text-xs text-[#41454d]">Applied on {new Date(application.createdAt).toLocaleDateString()}</span>
+              <span className="text-xs text-[#5A6472]">Applied on {new Date(application.createdAt).toLocaleDateString()}</span>
             </div>
             <h1 className="text-xl md:text-2xl font-semibold text-[#181d26] tracking-tight">
               {application.project.title}
             </h1>
-            <div className="flex items-center gap-3 text-xs text-[#41454d] font-normal flex-wrap">
+            <div className="flex items-center gap-3 text-xs text-[#5A6472] font-normal flex-wrap">
               <span className="flex items-center gap-1 text-[#181d26] font-medium">
-                <Building className="h-3.5 w-3.5 text-[#41454d]" />
+                <Building className="h-3.5 w-3.5 text-[#5A6472]" />
                 {application.project.company.companyName}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-[#41454d]" />
+                <MapPin className="h-3.5 w-3.5 text-[#5A6472]" />
                 {application.project.company.location || "Remote"}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5 text-[#41454d]" />
+                <DollarSign className="h-3.5 w-3.5 text-[#5A6472]" />
                 Budget: ${application.project.budget}
               </span>
             </div>
@@ -301,7 +301,7 @@ export function FreelancerApplicationDetailView({
 
         {/* Visual Pipeline Stepper */}
         <div className="pt-2">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-[#41454d] mb-3">Application Pipeline Stage</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-[#5A6472] mb-3">Application Pipeline Stage</p>
           <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
             {pipelineSteps.map((step, idx) => {
               const isPassed = idx <= currentPipelineIdx && !isRejected;
@@ -314,8 +314,8 @@ export function FreelancerApplicationDetailView({
                     isCurrent
                       ? "bg-[#181d26] text-white border-[#181d26]"
                       : isPassed
-                      ? "bg-[#f8fafc] text-[#181d26] border-[#dddddd] font-medium"
-                      : "bg-white text-[#41454d] border-[#dddddd] opacity-50"
+                      ? "bg-[#F7F8FA] text-[#181d26] border-[#E2E5EA] font-medium"
+                      : "bg-white text-[#5A6472] border-[#E2E5EA] opacity-50"
                   }`}
                 >
                   <p className="text-[9px] uppercase tracking-wider font-semibold opacity-75">Step 0{idx + 1}</p>
@@ -328,12 +328,12 @@ export function FreelancerApplicationDetailView({
       </Card>
 
       {/* Tabs Navigation Bar */}
-      <div className="flex gap-2 bg-[#f8fafc] border border-[#dddddd] p-1.5 rounded-[12px] w-fit flex-wrap">
+      <div className="flex gap-2 bg-[#F7F8FA] border border-[#E2E5EA] p-1.5 rounded-[12px] w-fit flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab("overview")}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-            activeTab === "overview" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"
+            activeTab === "overview" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"
           }`}
         >
           <FileText className="h-3.5 w-3.5" /> Proposal Overview
@@ -343,7 +343,7 @@ export function FreelancerApplicationDetailView({
           type="button"
           onClick={() => setActiveTab("interviews")}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-            activeTab === "interviews" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"
+            activeTab === "interviews" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"
           }`}
         >
           <Video className="h-3.5 w-3.5" /> Interview Rounds ({interviewRounds.length})
@@ -354,10 +354,10 @@ export function FreelancerApplicationDetailView({
             type="button"
             onClick={() => setActiveTab("offer")}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "offer" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"
+              activeTab === "offer" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"
             }`}
           >
-            <Gift className="h-3.5 w-3.5 text-[#fcab79]" /> Job Offer & Contract
+            <Gift className="h-3.5 w-3.5 text-[#FFC700]" /> Job Offer & Contract
           </button>
         )}
 
@@ -366,7 +366,7 @@ export function FreelancerApplicationDetailView({
             type="button"
             onClick={() => setActiveTab("chat")}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "chat" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"
+              activeTab === "chat" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" /> DM Recruiter Chat
@@ -378,30 +378,30 @@ export function FreelancerApplicationDetailView({
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Submitted Proposal / Cover Letter */}
-          <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-3.5">
-            <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#dddddd] pb-3">
+          <Card className="p-6 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-3.5">
+            <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#E2E5EA] pb-3">
               <FileText className="h-4 w-4 text-[#181d26]" /> My Submitted Proposal & Cover Letter
             </h3>
-            <p className="text-xs text-[#333840] bg-[#f8fafc] p-4 border border-[#dddddd] rounded-[10px] italic leading-relaxed whitespace-pre-wrap font-normal">
+            <p className="text-xs text-[#333840] bg-[#F7F8FA] p-4 border border-[#E2E5EA] rounded-[10px] italic leading-relaxed whitespace-pre-wrap font-normal">
               &quot;{coverLetterText || "No custom cover letter written."}&quot;
             </p>
           </Card>
 
           {/* Questionnaire Answers */}
           {hasAnswers && (
-            <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-4">
-              <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#dddddd] pb-3">
+            <Card className="p-6 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-4">
+              <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#E2E5EA] pb-3">
                 Questionnaire Responses
               </h3>
-              <div className="space-y-3 divide-y divide-[#dddddd]">
+              <div className="space-y-3 divide-y divide-[#E2E5EA]">
                 {Object.entries(appMeta.screeningAnswers).map(([qid, ans]: any) => {
                   const qObj = screeningQuestions.find((q: any) => q.id === qid);
                   const questionText = qObj?.question || `Question (${qid})`;
                   return (
                     <div key={qid} className="pt-3 first:pt-0 space-y-1">
                       <p className="text-xs font-semibold text-[#181d26]">{questionText}</p>
-                      <div className="text-xs text-[#333840] font-normal bg-[#f8fafc] p-3 rounded-[8px] border border-[#dddddd]">
-                        Ans: {ans || <span className="text-[#41454d] italic">(No answer provided)</span>}
+                      <div className="text-xs text-[#333840] font-normal bg-[#F7F8FA] p-3 rounded-[8px] border border-[#E2E5EA]">
+                        Ans: {ans || <span className="text-[#5A6472] italic">(No answer provided)</span>}
                       </div>
                     </div>
                   );
@@ -411,23 +411,23 @@ export function FreelancerApplicationDetailView({
           )}
 
           {/* Pipeline History Timeline */}
-          <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-4">
-            <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#dddddd] pb-3">
+          <Card className="p-6 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-4">
+            <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#E2E5EA] pb-3">
               <History className="h-4 w-4 text-[#181d26]" /> Application History Timeline
             </h3>
-            <div className="space-y-3 bg-[#f8fafc] p-4 rounded-[10px] border border-[#dddddd]">
+            <div className="space-y-3 bg-[#F7F8FA] p-4 rounded-[10px] border border-[#E2E5EA]">
               <div className="text-xs text-[#333840] border-l-2 border-[#181d26] pl-3">
                 <span className="font-semibold text-[#181d26] block">Application Submitted</span>
-                <span className="text-[#41454d] text-[9px] block mt-0.5">{new Date(application.createdAt).toLocaleString()}</span>
+                <span className="text-[#5A6472] text-[9px] block mt-0.5">{new Date(application.createdAt).toLocaleString()}</span>
               </div>
               {appMeta.pipelineHistory?.map((h: any, idx: number) => (
                 <div key={idx} className="text-xs text-[#333840] border-l-2 border-[#181d26] pl-3">
                   <span className="font-semibold text-[#181d26] block">{h.stage}</span>
-                  <span className="text-[#41454d] text-[9px] block mt-0.5">
+                  <span className="text-[#5A6472] text-[9px] block mt-0.5">
                     {new Date(h.timestamp).toLocaleString()} by {h.recruiterName || "Recruiter"}
                   </span>
                   {h.notes && (
-                    <p className="text-[10px] text-[#41454d] italic mt-1 font-normal bg-white p-2 rounded border border-[#dddddd]">
+                    <p className="text-[10px] text-[#5A6472] italic mt-1 font-normal bg-white p-2 rounded border border-[#E2E5EA]">
                       &quot;{h.notes}&quot;
                     </p>
                   )}
@@ -440,13 +440,13 @@ export function FreelancerApplicationDetailView({
 
       {/* ═══ TAB 2: INTERVIEWS ═══ */}
       {activeTab === "interviews" && (
-        <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-4">
-          <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#dddddd] pb-3">
+        <Card className="p-6 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-4">
+          <h3 className="text-sm font-semibold text-[#181d26] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#E2E5EA] pb-3">
             <Video className="h-4 w-4 text-[#181d26]" /> Scheduled Interview Meetings
           </h3>
 
           {interviewRounds.length === 0 ? (
-            <p className="text-xs text-[#41454d] italic py-8 text-center">
+            <p className="text-xs text-[#5A6472] italic py-8 text-center">
               No interview rounds scheduled yet. When the recruiter schedules a meeting, details and join links will appear here.
             </p>
           ) : (
@@ -458,7 +458,7 @@ export function FreelancerApplicationDetailView({
                 return (
                   <div
                     key={round.roundNumber}
-                    className="p-5 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] space-y-3"
+                    className="p-5 rounded-[10px] border border-[#E2E5EA] bg-[#F7F8FA] space-y-3"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -474,7 +474,7 @@ export function FreelancerApplicationDetailView({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
                       <div>
-                        <span className="text-[10px] text-[#41454d] block font-medium uppercase">Date & Time</span>
+                        <span className="text-[10px] text-[#5A6472] block font-medium uppercase">Date & Time</span>
                         <span className="text-xs font-semibold text-[#181d26] mt-0.5 block">
                           {round.interviewDate
                             ? new Date(round.interviewDate).toLocaleString("en-IN", {
@@ -490,12 +490,12 @@ export function FreelancerApplicationDetailView({
 
                       {round.meetingLink && (
                         <div>
-                          <span className="text-[10px] text-[#41454d] block font-medium uppercase">Join Link</span>
+                          <span className="text-[10px] text-[#5A6472] block font-medium uppercase">Join Link</span>
                           <a
                             href={round.meetingLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold text-[#1b61c9] hover:underline flex items-center gap-1 mt-0.5 truncate"
+                            className="text-xs font-semibold text-[#1968E5] hover:underline flex items-center gap-1 mt-0.5 truncate"
                           >
                             {round.meetingLink} <ExternalLink className="h-3 w-3 shrink-0" />
                           </a>
@@ -512,26 +512,26 @@ export function FreelancerApplicationDetailView({
 
       {/* ═══ TAB 3: OFFER LETTER & CONTRACT ═══ */}
       {activeTab === "offer" && hasOffer && (
-        <Card className="p-6 bg-white border border-[#dddddd] rounded-[12px] shadow-xs space-y-6">
-          <div className="border-b border-[#dddddd] pb-4 space-y-1">
+        <Card className="p-6 bg-white border border-[#E2E5EA] rounded-[12px] shadow-xs space-y-6">
+          <div className="border-b border-[#E2E5EA] pb-4 space-y-1">
             <h3 className="text-base font-semibold text-[#181d26] flex items-center gap-2">
-              <Gift className="h-5 w-5 text-[#fcab79]" /> Official Hiring Offer Letter
+              <Gift className="h-5 w-5 text-[#FFC700]" /> Official Hiring Offer Letter
             </h3>
-            <p className="text-xs text-[#41454d]">Review terms and accept or decline the project contract.</p>
+            <p className="text-xs text-[#5A6472]">Review terms and accept or decline the project contract.</p>
           </div>
 
           {/* Offer Letter Text Block */}
-          <div className="bg-[#f8fafc] border border-[#dddddd] p-5 rounded-[10px] space-y-3 text-xs text-[#333840]">
+          <div className="bg-[#F7F8FA] border border-[#E2E5EA] p-5 rounded-[10px] space-y-3 text-xs text-[#333840]">
             <p className="font-semibold text-[#181d26] uppercase text-[10px] tracking-wider">Offer Statement</p>
             <p className="leading-relaxed font-normal whitespace-pre-wrap">&quot;{offerLetter!.offerText}&quot;</p>
 
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#dddddd]">
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#E2E5EA]">
               <div>
-                <span className="text-[10px] text-[#41454d] uppercase font-medium block">Agreed Stipend</span>
+                <span className="text-[10px] text-[#5A6472] uppercase font-medium block">Agreed Stipend</span>
                 <span className="text-base font-semibold text-[#181d26] mt-0.5 block">₹{offerLetter!.stipendAmount}</span>
               </div>
               <div>
-                <span className="text-[10px] text-[#41454d] uppercase font-medium block">Offer Status</span>
+                <span className="text-[10px] text-[#5A6472] uppercase font-medium block">Offer Status</span>
                 <span className="text-xs font-semibold text-[#181d26] capitalize mt-0.5 block">{offerLetter!.status.toLowerCase()}</span>
               </div>
             </div>
@@ -541,7 +541,7 @@ export function FreelancerApplicationDetailView({
           {offerLetter!.milestones?.length > 0 && (
             <div className="space-y-3">
               <h4 className="text-xs font-semibold text-[#181d26] uppercase tracking-wider">Payment Milestone Schedule</h4>
-              <div className="border border-[#dddddd] rounded-[10px] divide-y divide-[#dddddd]">
+              <div className="border border-[#E2E5EA] rounded-[10px] divide-y divide-[#E2E5EA]">
                 {offerLetter!.milestones.map((m: any, idx: number) => (
                   <div key={idx} className="p-3.5 flex justify-between items-center text-xs">
                     <span className="font-medium text-[#181d26]">{m.title}</span>
@@ -554,7 +554,7 @@ export function FreelancerApplicationDetailView({
 
           {/* Action Buttons for Pending Offer */}
           {offerPending && (
-            <div className="pt-2 border-t border-[#dddddd] space-y-3">
+            <div className="pt-2 border-t border-[#E2E5EA] space-y-3">
               {!isDeclining ? (
                 <div className="flex gap-3">
                   <Button
@@ -569,7 +569,7 @@ export function FreelancerApplicationDetailView({
                     onClick={() => setIsDeclining(true)}
                     variant="outline"
                     disabled={offerLoading !== null}
-                    className="border-[#dddddd] text-rose-600 hover:bg-rose-50 font-medium text-xs px-5 py-2.5 cursor-pointer rounded-[12px]"
+                    className="border-[#E2E5EA] text-rose-600 hover:bg-rose-50 font-medium text-xs px-5 py-2.5 cursor-pointer rounded-[12px]"
                   >
                     Decline Offer
                   </Button>
@@ -607,12 +607,12 @@ export function FreelancerApplicationDetailView({
 
           {/* Digital Contract status if accepted */}
           {offerAccepted && appMeta.digitalContract && (
-            <div className="p-5 bg-[#f8fafc] border border-[#dddddd] rounded-[10px] space-y-2">
+            <div className="p-5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[10px] space-y-2">
               <h4 className="text-xs font-semibold text-[#181d26] flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-[#181d26]" /> Active Digital Work Contract
               </h4>
               <p className="text-xs text-[#333840] font-normal leading-relaxed">{appMeta.digitalContract.contractText}</p>
-              <p className="text-[10px] text-[#41454d] font-medium pt-1">
+              <p className="text-[10px] text-[#5A6472] font-medium pt-1">
                 Contract status: <strong className="text-[#181d26]">Active</strong> · Signed on {appMeta.digitalContract.freelancerSignedAt ? new Date(appMeta.digitalContract.freelancerSignedAt).toLocaleDateString() : "Agreed"}
               </p>
             </div>
@@ -622,20 +622,20 @@ export function FreelancerApplicationDetailView({
 
       {/* ═══ TAB 4: DM CHAT WITH RECRUITER ═══ */}
       {activeTab === "chat" && isShortlisted && (
-        <Card className="p-0 border border-[#dddddd] bg-white rounded-[12px] shadow-xs overflow-hidden flex flex-col h-[520px]">
+        <Card className="p-0 border border-[#E2E5EA] bg-white rounded-[12px] shadow-xs overflow-hidden flex flex-col h-[520px]">
           {/* Header */}
-          <div className="p-4 border-b border-[#dddddd] bg-[#f8fafc] flex justify-between items-center">
+          <div className="p-4 border-b border-[#E2E5EA] bg-[#F7F8FA] flex justify-between items-center">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-[#181d26]" />
               <h3 className="text-xs font-semibold text-[#181d26]">Recruiter Direct Message Chat</h3>
             </div>
-            <span className="text-[10px] text-[#41454d] font-medium">Private 1-on-1 Channel</span>
+            <span className="text-[10px] text-[#5A6472] font-medium">Private 1-on-1 Channel</span>
           </div>
 
           {/* Messages Feed */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-white">
             {dmMessages.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-[#41454d] italic">
+              <div className="h-full flex items-center justify-center text-xs text-[#5A6472] italic">
                 No messages yet. Send a message to start communicating directly with the client manager.
               </div>
             ) : (
@@ -645,7 +645,7 @@ export function FreelancerApplicationDetailView({
 
                 return (
                   <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                    <div className="flex items-center gap-1.5 mb-0.5 text-[9px] text-[#41454d]">
+                    <div className="flex items-center gap-1.5 mb-0.5 text-[9px] text-[#5A6472]">
                       <span className="font-semibold text-[#181d26]">{msg.sender?.name || "User"}</span>
                       <span>•</span>
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
@@ -653,14 +653,14 @@ export function FreelancerApplicationDetailView({
 
                     <div
                       className={`max-w-[75%] p-3 rounded-[10px] text-xs leading-relaxed ${
-                        isMe ? "bg-[#181d26] text-white" : "bg-[#f8fafc] text-[#181d26] border border-[#dddddd]"
+                        isMe ? "bg-[#181d26] text-white" : "bg-[#F7F8FA] text-[#181d26] border border-[#E2E5EA]"
                       }`}
                     >
                       <p className="whitespace-pre-wrap font-normal">{msg.content}</p>
                     </div>
 
                     {isMe && (
-                      <div className="flex gap-2 text-[9px] text-[#41454d] mt-1">
+                      <div className="flex gap-2 text-[9px] text-[#5A6472] mt-1">
                         <button
                           onClick={() => {
                             setEditingMessageId(msg.id);
@@ -684,7 +684,7 @@ export function FreelancerApplicationDetailView({
           </div>
 
           {/* DM Input Bar */}
-          <div className="p-3 border-t border-[#dddddd] bg-[#f8fafc] flex gap-2 items-center">
+          <div className="p-3 border-t border-[#E2E5EA] bg-[#F7F8FA] flex gap-2 items-center">
             {editingMessageId && (
               <span className="text-[10px] text-[#181d26] font-medium">Editing:</span>
             )}
@@ -699,7 +699,7 @@ export function FreelancerApplicationDetailView({
                 }
               }}
               placeholder={editingMessageId ? "Edit your message..." : "Type a message to recruiter..."}
-              className="flex-1 h-9 px-3.5 rounded-[6px] border border-[#dddddd] bg-white text-xs text-[#181d26] focus:border-[#458fff] focus:outline-none"
+              className="flex-1 h-9 px-3.5 rounded-[6px] border border-[#E2E5EA] bg-white text-xs text-[#181d26] focus:border-[#1968E5] focus:outline-none"
             />
             <Button
               size="sm"

@@ -365,7 +365,7 @@ export function FreelancerSearch({
             className={`flex items-center gap-2 rounded-[10px] border px-5 py-2.5 text-xs font-medium transition-all cursor-pointer ${
               activeTab === "search"
                 ? "border-[#181d26] bg-[#181d26] text-white"
-                : "border-[#dddddd] bg-white text-[#41454d] hover:text-[#181d26]"
+                : "border-[#E2E5EA] bg-white text-[#5A6472] hover:text-[#181d26]"
             }`}
           >
             <Search className="h-3.5 w-3.5" />
@@ -376,7 +376,7 @@ export function FreelancerSearch({
             className={`flex items-center gap-2 rounded-[10px] border px-5 py-2.5 text-xs font-medium transition-all cursor-pointer ${
               activeTab === "saved"
                 ? "border-[#181d26] bg-[#181d26] text-white"
-                : "border-[#dddddd] bg-white text-[#41454d] hover:text-[#181d26]"
+                : "border-[#E2E5EA] bg-white text-[#5A6472] hover:text-[#181d26]"
             }`}
           >
             <Heart className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-danger text-danger" : "text-muted"}`} />
@@ -388,9 +388,9 @@ export function FreelancerSearch({
       {activeTab === "search" && (
         <div className="space-y-4">
           {/* Sticky search header — results scroll underneath, never behind it */}
-          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#dddddd] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
+          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#E2E5EA] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
           {/* Search Bar + Sort + Filter toggle row */}
-          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-[12px] border border-[#dddddd] shadow-xs">
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-[12px] border border-[#E2E5EA] shadow-xs">
             {/* Keyword search */}
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
@@ -400,7 +400,7 @@ export function FreelancerSearch({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && commitSearch({ q: e.currentTarget.value })}
-                className="w-full pl-10 pr-10 py-2 rounded-[6px] text-xs bg-white border border-[#dddddd] text-ink focus:border-focus transition-all focus:outline-none"
+                className="w-full pl-10 pr-10 py-2 rounded-[6px] text-xs bg-white border border-[#E2E5EA] text-ink focus:border-focus transition-all focus:outline-none"
               />
               {q && (
                 <button
@@ -417,7 +417,7 @@ export function FreelancerSearch({
               <select
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); commitSearch({ sortBy: e.target.value }); }}
-                className="w-full lg:w-auto pl-4 pr-9 py-2 rounded-[6px] text-xs font-medium bg-white border border-[#dddddd] text-ink focus:border-focus cursor-pointer appearance-none focus:outline-none min-w-[160px]"
+                className="w-full lg:w-auto pl-4 pr-9 py-2 rounded-[6px] text-xs font-medium bg-white border border-[#E2E5EA] text-ink focus:border-focus cursor-pointer appearance-none focus:outline-none min-w-[160px]"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -450,7 +450,7 @@ export function FreelancerSearch({
             <button
               onClick={() => commitSearch()}
               disabled={isPending}
-              className="px-6 py-2.5 rounded-[10px] text-xs font-semibold bg-[#1b61c9] hover:bg-[#1751a8] text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
+              className="px-6 py-2.5 rounded-[10px] text-xs font-semibold bg-[#1968E5] hover:bg-[#1751a8] text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
             >
               <Search className="h-3.5 w-3.5" />
               {isPending ? "Searching..." : "Search"}
@@ -459,7 +459,7 @@ export function FreelancerSearch({
 
           {/* Expanded filter panel */}
           {showFilters && (
-            <div className="bg-white border border-[#dddddd] rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-white border border-[#E2E5EA] rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-ink" />
@@ -486,7 +486,7 @@ export function FreelancerSearch({
                     <select
                       value={domain}
                       onChange={(e) => { setDomain(e.target.value); commitSearch({ domain: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {DOMAIN_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -509,7 +509,7 @@ export function FreelancerSearch({
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitSearch({ skills: e.currentTarget.value })}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10"
                     />
                   </div>
                 </div>
@@ -524,7 +524,7 @@ export function FreelancerSearch({
                     <select
                       value={expRange}
                       onChange={(e) => { setExpRange(e.target.value); commitSearch({ expRange: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {EXP_OPTIONS.map((opt) => (
                         <option
@@ -549,7 +549,7 @@ export function FreelancerSearch({
                     <select
                       value={minRating}
                       onChange={(e) => { setMinRating(e.target.value); commitSearch({ minRating: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {RATING_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -569,7 +569,7 @@ export function FreelancerSearch({
                     <select
                       value={minCompleted}
                       onChange={(e) => { setMinCompleted(e.target.value); commitSearch({ minCompleted: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {COMPLETED_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -589,7 +589,7 @@ export function FreelancerSearch({
                     <select
                       value={availability}
                       onChange={(e) => { setAvailability(e.target.value); commitSearch({ availability: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#dddddd] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {AVAILABILITY_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -626,7 +626,7 @@ export function FreelancerSearch({
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
                   domain === opt.value
                     ? "bg-[#181d26] text-white border-[#181d26] shadow-sm"
-                    : "bg-white text-[#41454d] border-hairline hover:border-[#181d26]/30 hover:text-[#181d26]"
+                    : "bg-white text-[#5A6472] border-hairline hover:border-[#181d26]/30 hover:text-[#181d26]"
                 }`}
               >
                 {opt.label}
@@ -1079,7 +1079,7 @@ function FreelancerCard({
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
 
   return (
-    <div className="bg-white border border-[#dddddd] rounded-3xl shadow-xs hover:shadow-md hover:border-link/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
+    <div className="bg-white border border-[#E2E5EA] rounded-3xl shadow-xs hover:shadow-md hover:border-link/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
       {/* Premium accent bar at top */}
       <div className="relative h-1 w-full bg-gradient-to-r from-ink to-link" />
 
@@ -1091,7 +1091,7 @@ function FreelancerCard({
             type="button"
             onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
             disabled={!freelancer.user.image}
-            className={`h-14 w-14 rounded-2xl bg-ink/5 border border-[#dddddd] flex items-center justify-center font-semibold text-ink text-xl shrink-0 overflow-hidden shadow-2xs relative ${
+            className={`h-14 w-14 rounded-2xl bg-ink/5 border border-[#E2E5EA] flex items-center justify-center font-semibold text-ink text-xl shrink-0 overflow-hidden shadow-2xs relative ${
               freelancer.user.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
             }`}
             title={freelancer.user.image ? "Click to expand image" : undefined}
@@ -1235,7 +1235,7 @@ function FreelancerCard({
               suppressHydrationWarning
               onClick={onInvite}
               title="Invite this freelancer to one of your open projects"
-              className="flex-1 py-2.5 text-xs font-bold bg-white hover:bg-surface-soft text-ink border border-[#dddddd] rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 py-2.5 text-xs font-bold bg-white hover:bg-surface-soft text-ink border border-[#E2E5EA] rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
             >
               <Send className="h-3.5 w-3.5" />
               Invite
@@ -1245,7 +1245,7 @@ function FreelancerCard({
                 href={freelancer.resumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2.5 text-xs font-bold bg-surface-strong hover:bg-surface-strong text-body rounded-xl transition-all cursor-pointer flex items-center justify-center border border-[#dddddd] shadow-2xs shrink-0"
+                className="px-3 py-2.5 text-xs font-bold bg-surface-strong hover:bg-surface-strong text-body rounded-xl transition-all cursor-pointer flex items-center justify-center border border-[#E2E5EA] shadow-2xs shrink-0"
                 title="View Resume"
               >
                 <FileText className="h-3.5 w-3.5 text-muted" />

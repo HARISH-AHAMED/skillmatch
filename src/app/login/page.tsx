@@ -86,7 +86,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#181d26] items-center justify-center text-white">
+          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#FFC700] items-center justify-center text-[#181D26]">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <h1 className="text-2xl font-normal text-[#181d26] tracking-tight">Welcome to Talentra</h1>
@@ -94,7 +94,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card containing login forms */}
-        <Card className="p-8 border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-6">
+        <Card className="p-8 border-[#E2E5EA] bg-white rounded-[12px] shadow-xs space-y-6">
           {error && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-[6px] text-xs font-medium text-rose-600">
               {error}
@@ -132,17 +132,17 @@ export default function LoginPage() {
           </form>
 
           {/* OR divider */}
-          <div className="flex items-center gap-4 text-xs font-medium text-[#41454d]">
-            <div className="h-[1px] bg-[#dddddd] flex-1" />
+          <div className="flex items-center gap-4 text-xs font-medium text-[#5A6472]">
+            <div className="h-[1px] bg-[#E2E5EA] flex-1" />
             <span>OR CONTINUE WITH</span>
-            <div className="h-[1px] bg-[#dddddd] flex-1" />
+            <div className="h-[1px] bg-[#E2E5EA] flex-1" />
           </div>
 
           {/* Google Login Button */}
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
-            className="w-full gap-2 border-[#dddddd] hover:bg-[#f8fafc] text-[#181d26] cursor-pointer"
+            className="w-full gap-2 border-[#E2E5EA] hover:bg-[#F7F8FA] text-[#181d26] cursor-pointer"
             disabled={!!loading}
           >
             {loading === "google" ? (
@@ -161,9 +161,9 @@ export default function LoginPage() {
           </Button>
 
           {/* Quick Demo Testing Drawer */}
-          <div className="border-t border-[#dddddd] pt-6 space-y-3">
+          <div className="border-t border-[#E2E5EA] pt-6 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-medium text-[#41454d] tracking-wider uppercase">
+              <span className="text-[10px] font-medium text-[#5A6472] tracking-wider uppercase">
                 Developer Demo Portals
               </span>
               <Badge variant="secondary" className="text-[9px]">
@@ -178,7 +178,7 @@ export default function LoginPage() {
                   handleQuickLogin("admin@skillmatch.ai", "admin123", "admin")
                 }
                 disabled={!!loading}
-                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#dddddd] bg-[#f8fafc] hover:bg-slate-100 text-[#181d26] transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#E2E5EA] bg-[#F7F8FA] hover:bg-[#EDEFF2] text-[#181d26] transition-all cursor-pointer"
               >
                 <ShieldCheck className="h-4.5 w-4.5 text-[#181d26] mb-1" />
                 <span className="text-[9px] font-medium">Admin</span>
@@ -190,7 +190,7 @@ export default function LoginPage() {
                   handleQuickLogin("company.quantum@skillmatch.ai", "company123", "company")
                 }
                 disabled={!!loading}
-                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#dddddd] bg-[#f8fafc] hover:bg-slate-100 text-[#181d26] transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#E2E5EA] bg-[#F7F8FA] hover:bg-[#EDEFF2] text-[#181d26] transition-all cursor-pointer"
               >
                 <Briefcase className="h-4.5 w-4.5 text-[#181d26] mb-1" />
                 <span className="text-[9px] font-medium">Company</span>
@@ -202,7 +202,7 @@ export default function LoginPage() {
                   handleQuickLogin("freelancer.jane@skillmatch.ai", "freelancer123", "freelancer")
                 }
                 disabled={!!loading}
-                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#dddddd] bg-[#f8fafc] hover:bg-slate-100 text-[#181d26] transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center p-2.5 rounded-[6px] border border-[#E2E5EA] bg-[#F7F8FA] hover:bg-[#EDEFF2] text-[#181d26] transition-all cursor-pointer"
               >
                 <UserCircle className="h-4.5 w-4.5 text-[#181d26] mb-1" />
                 <span className="text-[9px] font-medium">Freelancer</span>
@@ -214,7 +214,7 @@ export default function LoginPage() {
         {/* Link back or registration */}
         <p className="text-center text-xs text-[#333840] font-normal">
           Do not have an account?{" "}
-          <Link href="/register" className="text-[#1b61c9] hover:underline font-medium">
+          <Link href="/register" className="text-[#1968E5] hover:underline font-medium">
             Create Account
           </Link>
         </p>

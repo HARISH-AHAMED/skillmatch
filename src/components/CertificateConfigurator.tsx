@@ -72,16 +72,16 @@ function Signatory({ name, designation, color }: { name: string; designation: st
   return (
     <div className="min-w-0 flex-1 text-center">
       <p
-        className="truncate pb-1 text-[clamp(0.7rem,1.7vw,1.15rem)] italic leading-none text-slate-800"
+        className="truncate pb-1 text-[clamp(0.7rem,1.7vw,1.15rem)] italic leading-none text-[#181D26]"
         style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
       >
         {name || " "}
       </p>
       <div className="mx-auto h-px w-full" style={{ backgroundColor: color }} />
-      <p className="mt-1 truncate text-[clamp(0.5rem,0.95vw,0.75rem)] font-bold text-slate-800">
+      <p className="mt-1 truncate text-[clamp(0.5rem,0.95vw,0.75rem)] font-bold text-[#181D26]">
         {name || "—"}
       </p>
-      <p className="truncate text-[clamp(0.42rem,0.8vw,0.62rem)] text-slate-500">{designation || ""}</p>
+      <p className="truncate text-[clamp(0.42rem,0.8vw,0.62rem)] text-[#5A6472]">{designation || ""}</p>
     </div>
   );
 }
@@ -147,7 +147,7 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
             {c.title}
           </h1>
           <p
-            className="text-[clamp(0.6rem,1.9vw,1.25rem)] font-semibold uppercase tracking-[0.42em] text-slate-700"
+            className="text-[clamp(0.6rem,1.9vw,1.25rem)] font-semibold uppercase tracking-[0.42em] text-[#333840]"
             style={{ marginLeft: c.textAlign === "CENTER" ? "0.42em" : 0 }}
           >
             {c.subtitle}
@@ -156,7 +156,7 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
 
         {/* Recipient */}
         <div className="w-full space-y-[1.5%]">
-          <p className="text-[clamp(0.55rem,1.35vw,0.95rem)] text-slate-600">{c.achievementText}</p>
+          <p className="text-[clamp(0.55rem,1.35vw,0.95rem)] text-[#5A6472]">{c.achievementText}</p>
 
           <p
             className="truncate text-[clamp(1.35rem,5vw,3.1rem)] italic leading-tight"
@@ -169,14 +169,14 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
             style={{ backgroundColor: `${accent}88` }}
           />
 
-          <p className="text-[clamp(0.55rem,1.35vw,0.95rem)] leading-snug text-slate-700">
+          <p className="text-[clamp(0.55rem,1.35vw,0.95rem)] leading-snug text-[#333840]">
             for successfully completing <strong>{data.projectName}</strong> as {data.role}
             <br />
             on {data.completionDate}
           </p>
 
           {data.skills.length > 0 && (
-            <p className="text-[clamp(0.45rem,1vw,0.7rem)] text-slate-500">
+            <p className="text-[clamp(0.45rem,1vw,0.7rem)] text-[#5A6472]">
               Skills: {data.skills.join(" • ")}
             </p>
           )}
@@ -202,7 +202,7 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
         </div>
 
         {/* Footer: verification data + Talentra branding */}
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 text-[clamp(0.4rem,0.8vw,0.6rem)] text-slate-500">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 text-[clamp(0.4rem,0.8vw,0.6rem)] text-[#5A6472]">
           <span className="truncate">{c.footerText}</span>
           <span className="font-mono font-semibold tracking-wider">ID: {data.certificateId}</span>
           <span className="inline-flex items-center gap-1">
@@ -313,13 +313,13 @@ export function CertificateControls({ value, onChange, disabled }: DesignerProps
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-700">Accent Color</label>
+        <label className="mb-1 block text-xs font-semibold text-[#333840]">Accent Color</label>
         <input
           type="color"
           value={cfg.accentColor}
           onChange={(e) => set("accentColor", e.target.value)}
           disabled={disabled}
-          className="h-9 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1"
+          className="h-9 w-full cursor-pointer rounded-xl border border-[#E2E5EA] bg-white p-1"
         />
       </div>
     </div>

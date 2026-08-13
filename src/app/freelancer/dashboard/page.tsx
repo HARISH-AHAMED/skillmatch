@@ -40,8 +40,8 @@ export default async function FreelancerDashboard() {
   if (!freelancer || !freelancer.verificationBadges.includes("ONBOARDING_COMPLETED")) {
     return (
       <div className="space-y-6 max-w-2xl mx-auto text-center py-10">
-        <div className="p-10 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-6">
-          <div className="h-14 w-14 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center mx-auto text-[#181d26]">
+        <div className="p-10 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] space-y-6">
+          <div className="h-14 w-14 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center mx-auto text-[#181d26]">
             <Sparkles className="h-7 w-7 text-[#181d26]" />
           </div>
           <div className="space-y-2">
@@ -130,7 +130,7 @@ export default async function FreelancerDashboard() {
       {/* Welcome header */}
       <div className="flex justify-between items-center bg-transparent">
         <div>
-          <span className="text-[10px] font-medium text-[#41454d] tracking-wider uppercase">
+          <span className="text-[10px] font-medium text-[#5A6472] tracking-wider uppercase">
             Freelancer Dashboard
           </span>
           <h1 className="text-3xl font-normal text-[#181d26] tracking-tight mt-0.5">
@@ -140,7 +140,7 @@ export default async function FreelancerDashboard() {
         
         {/* Profile Circle */}
         <div className="relative">
-          <div className="h-12 w-12 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-base border border-[#dddddd] shadow-xs">
+          <div className="h-12 w-12 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-base border border-[#E2E5EA] shadow-xs">
             {session?.user?.name ? session.user.name[0].toUpperCase() : "A"}
           </div>
           <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
@@ -148,7 +148,7 @@ export default async function FreelancerDashboard() {
       </div>
 
       {/* Top Match Hero Card */}
-      <Card className="p-6 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+      <Card className="p-6 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export default async function FreelancerDashboard() {
                   cx="56"
                   cy="56"
                   r="48"
-                  stroke="#f8fafc"
+                  stroke="#F7F8FA"
                   strokeWidth="8"
                   fill="transparent"
                 />
@@ -198,7 +198,7 @@ export default async function FreelancerDashboard() {
               </svg>
               <div className="text-center z-10">
                 <span className="text-3xl font-normal text-[#181d26]">{topMatchScore}</span>
-                <p className="text-[9px] font-medium text-[#41454d] uppercase tracking-wider">% Match</p>
+                <p className="text-[9px] font-medium text-[#5A6472] uppercase tracking-wider">% Match</p>
               </div>
             </div>
           </div>
@@ -207,55 +207,55 @@ export default async function FreelancerDashboard() {
 
       {/* Grid summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <FileCheck className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+12%</span>
+            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+12%</span>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{totalApps || 24}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Applications</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Applications</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <Eye className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+5</span>
+            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+5</span>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{shortlistedApps * 15 + 142}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Profile Views</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Profile Views</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-medium text-[#006400] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#39bf45]/30">+2</span>
+            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+2</span>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{freelancer.completedProjects || 8}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Completed Gigs</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Completed Gigs</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <Star className="h-5 w-5 text-[#181d26]" />
             </div>
-            <span className="text-[10px] font-medium text-[#1b61c9] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#dddddd]">Top Rate</span>
+            <span className="text-[10px] font-medium text-[#1968E5] bg-[#F7F8FA] px-2 py-0.5 rounded-full border border-[#E2E5EA]">Top Rate</span>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{freelancer.rating || "5.0"}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Rating Score</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Rating Score</p>
           </div>
         </Card>
       </div>
@@ -273,11 +273,11 @@ export default async function FreelancerDashboard() {
             {pendingInvites.map((inv) => (
               <div
                 key={inv.projectId + inv.invitedAt}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#f8fafc] border border-[#dddddd] rounded-[12px]"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-[12px]"
               >
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-[#181d26] truncate">{inv.projectTitle}</p>
-                  <p className="text-[11px] text-[#41454d]">
+                  <p className="text-[11px] text-[#5A6472]">
                     Invited by {inv.companyName}
                     {inv.roleName ? " · " + (inv.isApprentice ? "Apprentice on " : "") + inv.roleName : ""}
                   </p>
@@ -314,7 +314,7 @@ export default async function FreelancerDashboard() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Active Applications</h2>
-              <Link href="/freelancer/applications" className="text-xs font-medium text-[#1b61c9] hover:underline">
+              <Link href="/freelancer/applications" className="text-xs font-medium text-[#1968E5] hover:underline">
                 VIEW ALL
               </Link>
             </div>
@@ -323,7 +323,7 @@ export default async function FreelancerDashboard() {
               {activeApplications.length === 0 ? (
                 /* Mock applications showing structure */
                 <>
-                  <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <Card className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center text-white font-medium text-sm">
                         <Briefcase className="h-5 w-5 text-white" />
@@ -348,7 +348,7 @@ export default async function FreelancerDashboard() {
                     </div>
                   </Card>
 
-                  <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <Card className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center text-white font-medium text-sm">
                         <Briefcase className="h-5 w-5 text-white" />
@@ -367,7 +367,7 @@ export default async function FreelancerDashboard() {
                 </>
               ) : (
                 activeApplications.map((app) => (
-                  <Card key={app.id} className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <Card key={app.id} className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-[#181d26] flex items-center justify-center shrink-0">
                         <Briefcase className="h-5 w-5 text-white" />
@@ -377,7 +377,7 @@ export default async function FreelancerDashboard() {
                         <p className="text-xs text-[#333840] truncate">{app.project.title}</p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-t-0 border-[#dddddd] pt-3 sm:pt-0">
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-t-0 border-[#E2E5EA] pt-3 sm:pt-0">
                       <Badge variant="mint" className="uppercase text-[9px] py-0.5">
                         HIRED & ACTIVE
                       </Badge>
@@ -399,12 +399,12 @@ export default async function FreelancerDashboard() {
             <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Recommended for You</h2>
             <div className="space-y-4">
               {recommendations.length === 0 ? (
-                <Card className="p-8 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
+                <Card className="p-8 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
                   No matching projects found yet. Try updating your skills profile!
                 </Card>
               ) : (
                 recommendations.map((rec) => (
-                  <Card key={rec.id} className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#9297a0] transition-all">
+                  <Card key={rec.id} className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#C7CCD4] transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Badge variant="cream">AI Score: {rec.score}%</Badge>
@@ -427,9 +427,9 @@ export default async function FreelancerDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-[#dddddd] pt-3 md:pt-0">
+                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-[#E2E5EA] pt-3 md:pt-0">
                       <div className="text-right pr-2">
-                        <p className="text-[10px] text-[#41454d] uppercase font-medium tracking-wider">Est. Budget</p>
+                        <p className="text-[10px] text-[#5A6472] uppercase font-medium tracking-wider">Est. Budget</p>
                         <p className="text-sm font-semibold text-[#181d26]">${rec.project.budget}</p>
                       </div>
                       <Link href="/freelancer/projects">
@@ -453,7 +453,7 @@ export default async function FreelancerDashboard() {
           <AnalyticsChart title="Market Statistics" subtitle="Monthly Matching Index" data={chartData} type="line" />
 
           {/* Profile Level Up Card */}
-          <Card className="p-6 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-4">
+          <Card className="p-6 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] space-y-4">
             <h4 className="text-base font-normal tracking-tight flex items-center gap-2 text-[#181d26]">
               <Sparkles className="h-4.5 w-4.5 text-[#181d26]" />
               Level up your profile
@@ -471,20 +471,20 @@ export default async function FreelancerDashboard() {
           </Card>
 
           {/* Secondary stats lists */}
-          <Card className="p-5 bg-white border border-[#dddddd] shadow-xs rounded-[12px] space-y-4">
-            <h3 className="text-sm font-semibold text-[#181d26] border-b border-[#dddddd] pb-2">Skill Match Index</h3>
+          <Card className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] space-y-4">
+            <h3 className="text-sm font-semibold text-[#181d26] border-b border-[#E2E5EA] pb-2">Skill Match Index</h3>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-[#333840] font-normal">AI Match Score</span>
-                <span className="text-[#006400] font-semibold">92%</span>
+                <span className="text-[#0F9D58] font-semibold">92%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[#333840] font-normal">Fintech Market Growth</span>
-                <span className="text-[#006400] font-semibold">+ 12%</span>
+                <span className="text-[#0F9D58] font-semibold">+ 12%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[#333840] font-normal">Fintech Dev Demand</span>
-                <span className="text-[#1b61c9] font-semibold">+ 8%</span>
+                <span className="text-[#1968E5] font-semibold">+ 8%</span>
               </div>
             </div>
           </Card>

@@ -78,7 +78,7 @@ export default async function FreelancerProfilePage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           My Profile Settings
         </h1>
-        <p className="text-xs text-[#41454d] mt-1 font-normal">
+        <p className="text-xs text-[#5A6472] mt-1 font-normal">
           Add skills, experience, and bios to update your matching scores against open projects
         </p>
       </div>
@@ -94,30 +94,30 @@ export default async function FreelancerProfilePage() {
               <Briefcase className="h-4 w-4" /> Completed Projects ({completedProjects.length})
             </h3>
             {completedProjects.length === 0 ? (
-              <Card className="p-6 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
+              <Card className="p-6 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
                 No platform projects completed yet.
               </Card>
             ) : (
               completedProjects.map((project) => {
                 const projectReview = project.reviews[0];
                 return (
-                  <Card key={project.id} className="p-5 bg-white border border-[#dddddd] rounded-[12px] space-y-3">
+                  <Card key={project.id} className="p-5 bg-white border border-[#E2E5EA] rounded-[12px] space-y-3">
                     <div>
                       <h4 className="text-xs font-semibold text-[#181d26]">{project.title}</h4>
-                      <p className="text-[10px] text-[#41454d] font-normal">
+                      <p className="text-[10px] text-[#5A6472] font-normal">
                         {project.company.companyName} • {formatProjectBudget(project)}
                       </p>
                     </div>
                     {projectReview && (
-                      <div className="pt-2.5 border-t border-[#dddddd]">
-                        <div className="flex items-center gap-1 mb-1 text-[#fcab79]">
-                          <Star className="h-3 w-3 fill-[#fcab79]" />
+                      <div className="pt-2.5 border-t border-[#E2E5EA]">
+                        <div className="flex items-center gap-1 mb-1 text-[#FFC700]">
+                          <Star className="h-3 w-3 fill-[#FFC700]" />
                           <span className="text-[10px] font-medium text-[#181d26]">{projectReview.rating}/5</span>
                         </div>
                         <p className="text-[10px] text-[#333840] italic leading-normal line-clamp-3">
                           &quot;{projectReview.comment}&quot;
                         </p>
-                        <p className="text-[9px] text-[#41454d] text-right mt-1">— {projectReview.reviewer.name}</p>
+                        <p className="text-[9px] text-[#5A6472] text-right mt-1">— {projectReview.reviewer.name}</p>
                       </div>
                     )}
                   </Card>

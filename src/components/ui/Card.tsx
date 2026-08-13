@@ -10,7 +10,7 @@ export function Card({ children, className, hoverable = true, ...props }: CardPr
   return (
     <div
       className={cn(
-        hasBg ? "rounded-[12px] p-6 border border-[#dddddd]" : "glass-panel rounded-[12px] p-6",
+        hasBg ? "rounded-[8px] p-4 border border-[#E2E5EA]" : "glass-panel rounded-[8px] p-4",
         "transition-all duration-200",
         hoverable && !hasBg && "glass-panel-hover",
         className

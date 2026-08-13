@@ -38,22 +38,22 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-semibold text-slate-700">{label}</label>
+      <label className="block text-xs font-semibold text-[#333840]">{label}</label>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+      <div className="relative w-full overflow-hidden rounded-2xl border border-dashed border-[#C7CCD4] bg-[#F7F8FA]">
         {value ? (
           <img src={value} alt="Project banner preview" className="h-44 w-full object-cover sm:h-56" />
         ) : (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-2 text-slate-500 transition-colors hover:bg-slate-100 sm:h-56"
+            className="flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-2 text-[#5A6472] transition-colors hover:bg-[#EDEFF2] sm:h-56"
           >
             {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
             <span className="text-xs font-medium">
               {uploading ? "Uploading..." : "Click to add a cover image"}
             </span>
-            <span className="text-[10px] text-slate-400">PNG, JPG or WEBP • up to 5MB • can be skipped</span>
+            <span className="text-[10px] text-[#8A94A3]">PNG, JPG or WEBP • up to 5MB • can be skipped</span>
           </button>
         )}
       </div>
@@ -64,7 +64,7 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:border-slate-400 disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[#E2E5EA] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#333840] hover:border-[#8A94A3] disabled:opacity-50"
           >
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Replace

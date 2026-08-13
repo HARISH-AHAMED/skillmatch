@@ -149,14 +149,14 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
   return (
     <div className="max-w-3xl mx-auto py-4 space-y-6 text-left">
       {/* Header section with profile progress bar */}
-      <div className="bg-white border border-[#dddddd] p-6 rounded-[12px] shadow-xs space-y-4">
+      <div className="bg-white border border-[#E2E5EA] p-6 rounded-[12px] shadow-xs space-y-4">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold text-[#181d26]">Configure Your Business Hub</h1>
-            <p className="text-xs text-[#41454d] mt-1 font-normal">Host jobs and recruit top freelancers for free</p>
+            <p className="text-xs text-[#5A6472] mt-1 font-normal">Host jobs and recruit top freelancers for free</p>
           </div>
           <div className="text-right">
-            <span className="text-xs font-medium text-[#41454d] uppercase tracking-wider">Completeness</span>
+            <span className="text-xs font-medium text-[#5A6472] uppercase tracking-wider">Completeness</span>
             <p className="text-xl font-semibold text-[#181d26]">{calculateCompleteness()}%</p>
           </div>
         </div>
@@ -175,9 +175,9 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
             return (
               <div key={s.id} className="space-y-1">
                 <div className={`h-1.5 rounded-full transition-all duration-300 ${
-                  isPassed ? "bg-[#181d26]" : isCurrent ? "bg-[#181d26]" : "bg-[#e0e2e6]"
+                  isPassed ? "bg-[#181d26]" : isCurrent ? "bg-[#181d26]" : "bg-[#EDEFF2]"
                 }`} />
-                <div className="hidden sm:flex items-center gap-1 mt-1 text-[10px] font-medium text-[#41454d]">
+                <div className="hidden sm:flex items-center gap-1 mt-1 text-[10px] font-medium text-[#5A6472]">
                   <Icon className="h-3 w-3" />
                   <span>{s.label}</span>
                 </div>
@@ -195,21 +195,21 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
       )}
 
       {success && (
-        <Card className="p-8 text-center bg-white border border-[#dddddd] rounded-[12px] space-y-3">
-          <div className="p-3 bg-[#f8fafc] text-[#181d26] rounded-full w-fit mx-auto border border-[#dddddd]">
+        <Card className="p-8 text-center bg-white border border-[#E2E5EA] rounded-[12px] space-y-3">
+          <div className="p-3 bg-[#F7F8FA] text-[#181d26] rounded-full w-fit mx-auto border border-[#E2E5EA]">
             <CheckCircle className="h-8 w-8" />
           </div>
           <h3 className="text-lg font-semibold text-[#181d26]">Onboarding Completed!</h3>
-          <p className="text-xs text-[#41454d]">Your Recruiter and Business profile is now verified. Unlocking your Dashboard...</p>
+          <p className="text-xs text-[#5A6472]">Your Recruiter and Business profile is now verified. Unlocking your Dashboard...</p>
         </Card>
       )}
 
       {!success && (
-        <Card className="p-8 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-8 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           {/* Step 1: Business Verification */}
           {step === 1 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-[#181d26] border-b border-[#dddddd] pb-2">
+              <h2 className="text-lg font-semibold text-[#181d26] border-b border-[#E2E5EA] pb-2">
                 Step 1: Business Registry Verification
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -278,7 +278,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 2: Recruiter Profile & Company Info */}
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
                 Step 2: Recruiter Profile & Company Details
               </h2>
               
@@ -299,10 +299,10 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                 />
 
                 <div className="space-y-1.5 col-span-1">
-                  <label className="block text-xs font-semibold text-slate-600">Mobile Number *</label>
+                  <label className="block text-xs font-semibold text-[#5A6472]">Mobile Number *</label>
                   <div className="flex gap-2">
                     <select
-                      className="px-2 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none"
+                      className="px-2 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none"
                       value={countryCode}
                       onChange={(e) => setCountryCode(e.target.value)}
                       disabled={loading}
@@ -313,7 +313,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                     </select>
                     <input
                       type="text"
-                      className="flex-grow px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
+                      className="flex-grow px-4 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                       placeholder="9876543210"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
@@ -345,9 +345,9 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-600">About Company</label>
+                <label className="block text-xs font-semibold text-[#5A6472]">About Company</label>
                 <textarea
-                  className="w-full min-h-[90px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
+                  className="w-full min-h-[90px] px-4 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                   placeholder="Tell potential candidates about your company mission and services..."
                   value={about}
                   onChange={(e) => setAbout(e.target.value)}
@@ -410,18 +410,18 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 3: Document Verification */}
           {step === 3 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
                 Step 3: Upload Certificate of Incorporation & ID
               </h2>
 
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              <p className="text-xs text-[#5A6472] font-semibold leading-relaxed">
                 To prevent fraud and maintain the integrity of our freelancing network, all recruiters must provide a mock certificate of incorporation or tax certificate, and a representative government photo ID.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                <div className="space-y-2 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <span className="block text-xs font-bold text-slate-700">Certificate of Incorporation *</span>
-                  <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                <div className="space-y-2 border-2 border-dashed border-[#E2E5EA] rounded-2xl p-6 text-center bg-[#F7F8FA]/50 hover:bg-[#F7F8FA] transition-colors">
+                  <span className="block text-xs font-bold text-[#333840]">Certificate of Incorporation *</span>
+                  <p className="text-[10px] text-[#8A94A3] mt-1">PDF, JPG, PNG up to 5MB</p>
                   <input
                     type="file"
                     className="hidden"
@@ -430,15 +430,15 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                   />
                   <label
                     htmlFor="cert-file"
-                    className="mt-4 inline-block px-4 py-2 bg-white border border-slate-200 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-50"
+                    className="mt-4 inline-block px-4 py-2 bg-white border border-[#E2E5EA] text-xs font-semibold rounded-xl cursor-pointer hover:bg-[#F7F8FA]"
                   >
                     {bizCert || "Choose File"}
                   </label>
                 </div>
 
-                <div className="space-y-2 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <span className="block text-xs font-bold text-slate-700">Representative Government ID *</span>
-                  <p className="text-[10px] text-slate-400 mt-1">Passport, Aadhaar Card, or Driver's license</p>
+                <div className="space-y-2 border-2 border-dashed border-[#E2E5EA] rounded-2xl p-6 text-center bg-[#F7F8FA]/50 hover:bg-[#F7F8FA] transition-colors">
+                  <span className="block text-xs font-bold text-[#333840]">Representative Government ID *</span>
+                  <p className="text-[10px] text-[#8A94A3] mt-1">Passport, Aadhaar Card, or Driver's license</p>
                   <input
                     type="file"
                     className="hidden"
@@ -447,7 +447,7 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
                   />
                   <label
                     htmlFor="id-file"
-                    className="mt-4 inline-block px-4 py-2 bg-white border border-slate-200 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-50"
+                    className="mt-4 inline-block px-4 py-2 bg-white border border-[#E2E5EA] text-xs font-semibold rounded-xl cursor-pointer hover:bg-[#F7F8FA]"
                   >
                     {govId || "Choose File"}
                   </label>
@@ -499,16 +499,16 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
           {/* Step 4: Team Seats */}
           {step === 4 && (
             <div className="space-y-6">
-              <h2 className="text-lg font-black text-[#181d26] border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
                 Step 4: Manage Team & Invite Recruiter Seats
               </h2>
 
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              <p className="text-xs text-[#5A6472] font-semibold leading-relaxed">
                 Add other recruiters, HR associates, or finance admins to your company account. Assign roles to lock down permissions.
               </p>
 
               {/* Add Team Member form */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end p-4 bg-slate-50 rounded-2xl border border-slate-200/60">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end p-4 bg-[#F7F8FA] rounded-2xl border border-[#E2E5EA]/60">
                 <Input
                   label="Member Name"
                   placeholder="Sarah Green"
@@ -541,13 +541,13 @@ export function CompanyOnboardingWizard({ company }: CompanyOnboardingWizardProp
               {/* Team list */}
               {teamMembers.length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Invited HR Seats</h3>
-                  <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden bg-white">
+                  <h3 className="text-xs font-bold text-[#5A6472] uppercase tracking-wider">Invited HR Seats</h3>
+                  <div className="divide-y divide-[#EDEFF2] border border-[#E2E5EA]/80 rounded-2xl overflow-hidden bg-white">
                     {teamMembers.map((m, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 text-xs">
                         <div>
-                          <p className="font-bold text-[#181d26]">{m.name} <span className="font-normal text-slate-500">({m.email})</span></p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">{m.designation || "HR Specialist"} • Role: <strong className="text-[#181d26]">{m.role}</strong></p>
+                          <p className="font-bold text-[#181d26]">{m.name} <span className="font-normal text-[#5A6472]">({m.email})</span></p>
+                          <p className="text-[10px] text-[#5A6472] mt-0.5">{m.designation || "HR Specialist"} • Role: <strong className="text-[#181d26]">{m.role}</strong></p>
                         </div>
                         <button
                           onClick={() => handleRemoveMember(idx)}

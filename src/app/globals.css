@@ -1,63 +1,95 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #181d26;
-  --color-primary-active: #0d1218;
-  --color-ink: #181d26;
+  /* ── Unstop design system tokens (DESIGN-unstop.md) ───────────────────── */
+  --color-primary: #1968E5;
+  --color-primary-active: #134FB0;
+  --color-primary-tint: #EDF5FD;
+  --color-primary-tint-strong: #DEEDFC;
+  --color-ink: #181D26;
   --color-body: #333840;
-  --color-muted: #41454d;
-  --color-hairline: #dddddd;
-  --color-border-strong: #9297a0;
-  --color-canvas: #ffffff;
-  --color-surface-soft: #f8fafc;
-  --color-surface-strong: #e0e2e6;
-  --color-surface-dark: #181d26;
-  --color-signature-coral: #aa2d00;
-  --color-signature-forest: #0a2e0e;
-  --color-signature-cream: #f5e9d4;
-  --color-signature-peach: #fcab79;
-  --color-signature-mint: #a8d8c4;
-  --color-signature-yellow: #f4d35e;
-  --color-signature-mustard: #d9a441;
-  --color-link: #1b61c9;
-  --color-link-active: #1a3866;
+  --color-muted: #5A6472;
+  --color-placeholder: #8A94A3;
+  --color-hairline: #E2E5EA;
+  --color-border-strong: #C7CCD4;
+  --color-canvas: #FFFFFF;
+  --color-surface-page: #F7F8FA;
+  --color-surface-soft: #F2F8FE;
+  --color-surface-strong: #EDEFF2;
+  --color-surface-dark: #0B1C32;
+  --color-navy-deep: #0B1C32;
+  --color-navy-deep-elevated: #10396B;
+  --color-navy-panel-hover: #19457B;
+  --color-on-navy: #FFFFFF;
+  --color-on-navy-muted: #9FB3CC;
+  --color-signature-yellow: #FFC700;
+  --color-signature-yellow-deep: #E8A800;
+  --color-signature-yellow-tint: #FFF7DA;
+  --color-gold-lock: #C58138;
+  --color-link: #1968E5;
+  --color-link-active: #134FB0;
+  --color-on-primary: #FFFFFF;
+  --color-disabled-bg: #EDEFF2;
+  --color-disabled-ink: #A6ACB6;
 
-  /* Semantic status tokens — values taken from the existing Badge variants so
-     success/warning/danger stop depending on raw Tailwind palette colours. */
-  --color-success: #006400;
-  --color-success-surface: #ecfdf5;
-  --color-success-border: #39bf45;
-  --color-warning: #78350f;
-  --color-warning-surface: #fffbeb;
-  --color-warning-border: #fde68a;
-  --color-danger: #aa2d00;
-  --color-danger-surface: #fff1f2;
-  --color-danger-border: #fecdd3;
+  /* Marketing surface (DESIGN-unstop-marketing.md) */
+  --color-page-wash: #F2F8FE;
+  --color-accent-pink: #F48AAD;
+  --color-accent-pink-tint: #FCE6EE;
+  --color-accent-pink-deep: #EC5D8E;
+  --color-accent-violet: #7C63F1;
+  --color-accent-violet-tint: #D5CDFA;
+  --color-accent-mint: #2ACA7C;
+  --color-accent-mint-tint: #D8F7E7;
+  --color-accent-marigold-deep: #FFD233;
+  --color-footer-ink: #1C4980;
 
-  /* Focus ring — previously hardcoded as #458fff in Button and .glass-input */
-  --color-focus: #458fff;
+  /* Status */
+  --color-success: #0F9D58;
+  --color-success-surface: #DEF7EB;
+  --color-success-border: #05C165;
+  --color-warning: #8A6116;
+  --color-warning-surface: #FFF4D6;
+  --color-warning-border: #FFF4D6;
+  --color-danger: #B3401E;
+  --color-danger-surface: #FDEDEA;
+  --color-danger-border: #FDEDEA;
+  --color-info-surface: #EAF3FF;
+  --color-tag-orange-bg: #FDEEDC;
+  --color-tag-orange-ink: #B4630E;
+  --color-tag-blue-bg: #E6F0FE;
+  --color-tag-blue-ink: #1968E5;
+  --color-kpi-lavender: #EDEAFB;
+  --color-kpi-sky: #E3F0FE;
+  --color-kpi-blush: #FCE9EF;
 
-  /* Rating star fill */
-  --color-star: #f59e0b;
+  --color-focus: #1968E5;
+  --color-star: #FFC700;
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #E2E5EA;
 
-  --color-card-bg: #ffffff;
-  --color-card-border: #dddddd;
+  /* Radius scale — rounded.xs/sm/md/lg/xl */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #181d26;
-  --primary: #181d26;
+  --background: #FFFFFF;
+  --foreground: #181D26;
+  --primary: #1968E5;
   --body: #333840;
-  --muted: #41454d;
-  --hairline: #dddddd;
-  --link: #1b61c9;
+  --muted: #5A6472;
+  --hairline: #E2E5EA;
+  --link: #1968E5;
 }
 
 body {
   background-color: var(--background);
   color: var(--body);
-  font-family: 'Haas', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', 'Helvetica Neue', Arial, system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
@@ -67,21 +99,21 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f8fafc;
+  background: #F7F8FA;
 }
 ::-webkit-scrollbar-thumb {
-  background: #dddddd;
+  background: #C7CCD4;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9297a0;
+  background: #C7CCD4;
 }
 
 /* Clean Editorial Card & Navbar utility classes */
 .glass-panel {
   background: #ffffff;
-  border: 1px solid #dddddd;
-  box-shadow: 0 1px 3px rgba(24, 29, 38, 0.04);
+  border: 1px solid #E2E5EA;
+  box-shadow: none;
 }
 
 .glass-panel-hover {
@@ -89,26 +121,26 @@ body {
 }
 .glass-panel-hover:hover {
   background: #ffffff;
-  border-color: #9297a0;
+  border-color: #C7CCD4;
   box-shadow: 0 4px 12px rgba(24, 29, 38, 0.06);
 }
 
 .glass-navbar {
   background: #ffffff;
-  border-bottom: 1px solid #dddddd;
+  border-bottom: 1px solid #E2E5EA;
 }
 
 .glass-input {
   background: #ffffff;
-  border: 1px solid #dddddd;
+  border: 1px solid #E2E5EA;
   color: #181d26;
   transition: all 0.2s;
 }
 .glass-input:focus {
-  border-color: #458fff;
+  border-color: #1968E5;
   background: #ffffff;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(69, 143, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(25, 104, 229, 0.18);
 }
 
 /* Hide scrollbar */

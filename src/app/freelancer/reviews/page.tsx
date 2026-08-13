@@ -65,7 +65,7 @@ export default async function FreelancerReviewsPage() {
       <Star
         key={i}
         className={`h-4.5 w-4.5 ${
-          i < rating ? "text-amber-400 fill-amber-400/20" : "text-slate-300"
+          i < rating ? "text-amber-400 fill-amber-400/20" : "text-[#C7CCD4]"
         }`}
       />
     ));
@@ -78,7 +78,7 @@ export default async function FreelancerReviewsPage() {
           <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
             Client Feedback & Reviews
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#5A6472] mt-1">
             Review comments and ratings submitted by companies after project completion
           </p>
         </div>
@@ -98,8 +98,8 @@ export default async function FreelancerReviewsPage() {
                 <Card key={proj.id} className="p-4 bg-amber-50/40 border-amber-200/80 shadow-sm flex flex-col justify-between gap-3">
                   <div>
                     <h3 className="text-xs font-bold text-[#181d26]">{proj.title}</h3>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Client: <strong className="text-slate-700">{proj.company.companyName}</strong>
+                    <p className="text-[10px] text-[#5A6472] mt-1">
+                      Client: <strong className="text-[#333840]">{proj.company.companyName}</strong>
                     </p>
                     <p className="text-[9px] text-amber-700 font-semibold mt-1">
                       Please leave a review for the company to close out the workspace.
@@ -107,7 +107,7 @@ export default async function FreelancerReviewsPage() {
                   </div>
                   <Link
                     href={`/workspace/${app.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#181d26] hover:bg-[#001f3f] text-white text-[10px] font-black rounded-lg w-fit transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#181d26] hover:bg-[#134FB0] text-white text-[10px] font-black rounded-lg w-fit transition-colors"
                   >
                     Go to Workspace & Review <ArrowRight className="h-3 w-3" />
                   </Link>
@@ -123,16 +123,16 @@ export default async function FreelancerReviewsPage() {
           Feedback History
         </h2>
         {reviews.length === 0 ? (
-          <Card className="p-8 text-center text-xs text-slate-500">
+          <Card className="p-8 text-center text-xs text-[#5A6472]">
             No feedback reviews received yet. Completed contracts will populate reviews here.
           </Card>
         ) : (
           reviews.map((rev) => (
-            <Card key={rev.id} className="p-6 border-slate-100 bg-white shadow-sm space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <Card key={rev.id} className="p-6 border-[#EDEFF2] bg-white shadow-sm space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-[#E2E5EA]">
                 <div className="space-y-1">
                   <h3 className="text-sm font-bold text-[#181d26]">{rev.project.title}</h3>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-[#5A6472]">
                     Reviewed by {rev.reviewer.name} ({rev.project.company.companyName})
                   </p>
                 </div>
@@ -143,7 +143,7 @@ export default async function FreelancerReviewsPage() {
 
               <div className="flex gap-3.5 items-start">
                 <MessageSquareQuote className="h-5 w-5 text-[#181d26]/70 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-600 italic leading-relaxed">
+                <p className="text-xs text-[#5A6472] italic leading-relaxed">
                   &quot;{rev.comment}&quot;
                 </p>
               </div>

@@ -27,11 +27,11 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
     <div className="flex h-screen bg-[#ffffff] text-[#181d26] overflow-hidden relative">
       
       {/* Mobile Top Navigation Header */}
-      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-[#dddddd] px-4 py-3 flex items-center justify-between z-30">
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-[#E2E5EA] px-4 py-3 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-1.5 text-[#333840] hover:text-[#181d26] rounded-md hover:bg-[#f8fafc] cursor-pointer flex items-center justify-center shrink-0"
+            className="p-1.5 text-[#333840] hover:text-[#181d26] rounded-md hover:bg-[#F7F8FA] cursor-pointer flex items-center justify-center shrink-0"
             title="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
@@ -59,7 +59,7 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-white bg-[#181d26] border border-[#dddddd] rounded-md cursor-pointer flex items-center justify-center shadow-lg"
+                className="p-2 text-white bg-[#181d26] border border-[#E2E5EA] rounded-md cursor-pointer flex items-center justify-center shadow-lg"
                 title="Close navigation menu"
               >
                 <X className="h-5 w-5" />

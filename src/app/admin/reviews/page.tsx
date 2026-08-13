@@ -38,7 +38,7 @@ export default async function AdminReviewsPage() {
       <Star
         key={i}
         className={`h-4.5 w-4.5 ${
-          i < rating ? "text-amber-400 fill-amber-400/20" : "text-slate-300"
+          i < rating ? "text-amber-400 fill-amber-400/20" : "text-[#C7CCD4]"
         }`}
       />
     ));
@@ -50,23 +50,23 @@ export default async function AdminReviewsPage() {
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Review Moderation
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#5A6472] mt-1">
           Review written feedback entries and remove ratings violating guidelines
         </p>
       </div>
 
       <div className="space-y-4">
         {reviews.length === 0 ? (
-          <Card className="p-8 text-center text-xs text-slate-500">
+          <Card className="p-8 text-center text-xs text-[#5A6472]">
             No feedback entries recorded on the platform yet.
           </Card>
         ) : (
           reviews.map((rev) => (
-            <Card key={rev.id} className="p-6 border-slate-100 bg-white shadow-sm space-y-4">
-              <div className="flex justify-between items-start border-b border-slate-200 pb-3">
+            <Card key={rev.id} className="p-6 border-[#EDEFF2] bg-white shadow-sm space-y-4">
+              <div className="flex justify-between items-start border-b border-[#E2E5EA] pb-3">
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-bold text-[#181d26]">{rev.project.title}</h4>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-[#5A6472]">
                     Reviewer: {rev.reviewer.name} ({rev.reviewer.email}) • Reviewee: {rev.reviewee.name}
                   </p>
                 </div>
@@ -89,7 +89,7 @@ export default async function AdminReviewsPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-700 italic leading-relaxed bg-slate-50 p-4 border border-slate-100 rounded-xl">
+              <p className="text-xs text-[#333840] italic leading-relaxed bg-[#F7F8FA] p-4 border border-[#EDEFF2] rounded-xl">
                 &quot;{rev.comment}&quot;
               </p>
             </Card>

@@ -53,7 +53,7 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
   };
 
   return (
-    <div className="mt-4 bg-slate-50/50 border border-slate-100 rounded-xl p-4 space-y-3.5 text-xs text-left">
+    <div className="mt-4 bg-[#F7F8FA]/50 border border-[#EDEFF2] rounded-xl p-4 space-y-3.5 text-xs text-left">
       <div className="flex items-center gap-1.5 text-[#181d26]">
         <MessageSquare className="h-4 w-4" />
         <span className="text-[10px] font-medium uppercase tracking-wider block">
@@ -67,14 +67,14 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
           const currentReplyVal = replyText[q.originalIndex] || "";
           
           return (
-            <div key={q.originalIndex} className="p-3 bg-white border border-slate-200/50 rounded-xl space-y-2">
-              <div className="font-semibold text-slate-800">
+            <div key={q.originalIndex} className="p-3 bg-white border border-[#E2E5EA]/50 rounded-xl space-y-2">
+              <div className="font-semibold text-[#181D26]">
                 {q.question}
               </div>
 
               {q.answer && !isEditing ? (
                 <div className="pl-3.5 border-l-2 border-emerald-500 bg-emerald-50/30 p-2 rounded-r-lg space-y-1">
-                  <p className="text-slate-600 italic">&quot;{q.answer}&quot;</p>
+                  <p className="text-[#5A6472] italic">&quot;{q.answer}&quot;</p>
                   <button
                     onClick={() => {
                       setReplyText((prev) => ({ ...prev, [q.originalIndex]: q.answer }));
@@ -93,7 +93,7 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
                     onChange={(e) => setReplyText((prev) => ({ ...prev, [q.originalIndex]: e.target.value }))}
                     placeholder="Type your response to this freelancer query..."
                     disabled={submitting[q.originalIndex]}
-                    className="flex-1 h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] focus:ring-1 focus:ring-[#181d26] focus:outline-none"
+                    className="flex-1 h-8 px-3 rounded-lg border border-[#E2E5EA] bg-[#F7F8FA] text-[11px] focus:ring-1 focus:ring-[#181d26] focus:outline-none"
                   />
                   <Button
                     size="sm"
@@ -112,7 +112,7 @@ export function CompanyDiscussionBoard({ projectId, faqList }: CompanyDiscussion
                   {isEditing && (
                     <button
                       onClick={() => setEditingIndex(null)}
-                      className="text-[10px] text-slate-400 font-bold hover:underline cursor-pointer"
+                      className="text-[10px] text-[#8A94A3] font-bold hover:underline cursor-pointer"
                     >
                       Cancel
                     </button>

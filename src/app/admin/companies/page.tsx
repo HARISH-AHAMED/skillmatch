@@ -23,50 +23,50 @@ export default async function AdminCompaniesPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           Company Directory
         </h1>
-        <p className="text-xs text-[#41454d] font-normal mt-1">
+        <p className="text-xs text-[#5A6472] font-normal mt-1">
           Monitor company industry targets, domains, locations, and posted projects
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {companies.length === 0 ? (
-          <Card className="p-8 text-center text-[#41454d] text-xs md:col-span-2 border border-[#dddddd] rounded-[12px]">
+          <Card className="p-8 text-center text-[#5A6472] text-xs md:col-span-2 border border-[#E2E5EA] rounded-[12px]">
             No company profiles registered yet.
           </Card>
         ) : (
           companies.map((c) => (
-            <Card key={c.id} className="p-6 border border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-4">
-              <div className="flex justify-between items-start border-b border-[#dddddd] pb-3">
+            <Card key={c.id} className="p-6 border border-[#E2E5EA] bg-white rounded-[12px] shadow-xs space-y-4">
+              <div className="flex justify-between items-start border-b border-[#E2E5EA] pb-3">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold text-[#181d26] flex items-center gap-1.5">
-                    <Building2 className="h-4.5 w-4.5 text-[#1b61c9]" />
+                    <Building2 className="h-4.5 w-4.5 text-[#1968E5]" />
                     {c.companyName}
                   </h3>
-                  <p className="text-[10px] text-slate-500">Contact: {c.user.name} ({c.user.email})</p>
+                  <p className="text-[10px] text-[#5A6472]">Contact: {c.user.name} ({c.user.email})</p>
                 </div>
                 <Badge variant="primary">{c.industry || "General"}</Badge>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-[#5A6472] leading-relaxed">
                 {c.description || "No description provided."}
               </p>
 
-              <div className="grid grid-cols-3 gap-2.5 text-[10px] text-slate-600 pt-1">
+              <div className="grid grid-cols-3 gap-2.5 text-[10px] text-[#5A6472] pt-1">
                 <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                  <MapPin className="h-3.5 w-3.5 text-[#5A6472]" />
                   <span>{c.location || "Remote"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 col-span-2">
-                  <Globe className="h-3.5 w-3.5 text-slate-500" />
-                  <a href={c.website || "#"} target="_blank" rel="noopener noreferrer" className="hover:text-[#1b61c9] text-[#181d26] font-medium truncate">
+                  <Globe className="h-3.5 w-3.5 text-[#5A6472]" />
+                  <a href={c.website || "#"} target="_blank" rel="noopener noreferrer" className="hover:text-[#1968E5] text-[#181d26] font-medium truncate">
                     {c.website || "No website"}
                   </a>
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-xs">
-                <span className="text-slate-500">Total Posted Gigs</span>
-                <strong className="text-slate-800 font-semibold">{c._count.projects} Listings</strong>
+              <div className="border-t border-[#E2E5EA] pt-3 flex justify-between items-center text-xs">
+                <span className="text-[#5A6472]">Total Posted Gigs</span>
+                <strong className="text-[#181D26] font-semibold">{c._count.projects} Listings</strong>
               </div>
             </Card>
           ))

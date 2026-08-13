@@ -408,7 +408,7 @@ export function defaultCertificateConfig(): CertificateConfig {
     layout: "CLASSIC",
     logoPosition: "CENTER",
     textAlign: "CENTER",
-    accentColor: "#1b61c9",
+    accentColor: "#1968E5",
     borderStyle: "SOLID",
     certificateIdPrefix: generateCertificateIdPrefix(),
   };

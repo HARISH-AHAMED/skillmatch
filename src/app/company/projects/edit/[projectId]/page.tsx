@@ -69,7 +69,7 @@ export default async function EditProjectPage({ params }: PageProps) {
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Edit Project Gig
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#5A6472] mt-1">
           Modify your project request listing spec. Matches will recalculate automatically.
         </p>
       </div>

@@ -242,7 +242,7 @@ function MemberRow({
         <span className="text-[9px] text-muted">
           ★ {member.rating.toFixed(1)} · {member.completedProjects} gigs
           {member.isApprentice && (
-            <span className="text-[#d9a441] ml-1.5">
+            <span className="text-[#E8A800] ml-1.5">
               {(member.apprenticeReviews ?? 0) > 0
                 ? "· apprentice " + (member.apprenticeRating ?? 0).toFixed(1) + "★ (" + member.apprenticeReviews + ")"
                 : "· apprentice: unrated"}

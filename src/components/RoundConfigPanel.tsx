@@ -23,15 +23,15 @@ export function RoundConfigPanel({
   const set = (patch: Partial<NonNullable<RecruitmentRound["config"]>>) =>
     onChange({ ...cfg, ...patch });
 
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1";
+  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-[#5A6472] mb-1";
   const inputCls =
-    "w-full px-3 py-2 rounded-xl text-xs bg-white border border-slate-200 text-slate-800 focus:outline-none focus:border-[#1b61c9]";
+    "w-full px-3 py-2 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26] focus:outline-none focus:border-[#1968E5]";
 
   return (
-    <div className="space-y-3 border-t border-slate-100 pt-4 text-left">
+    <div className="space-y-3 border-t border-[#EDEFF2] pt-4 text-left">
       <div>
         <h4 className="text-xs font-black text-[#181d26]">Configure: {entry.label}</h4>
-        <p className="text-[10px] text-slate-500 font-semibold">{entry.description}</p>
+        <p className="text-[10px] text-[#5A6472] font-semibold">{entry.description}</p>
       </div>
 
       {entry.fields.includes("instructions") && (
@@ -86,7 +86,7 @@ export function RoundConfigPanel({
             value={cfg.referenceUrl || ""}
             onChange={(e) => set({ referenceUrl: e.target.value })}
           />
-          <p className="mt-1 text-[10px] text-slate-400">
+          <p className="mt-1 text-[10px] text-[#8A94A3]">
             Candidates may also upload work samples using the existing application upload flow.
           </p>
         </div>
@@ -123,7 +123,7 @@ export function RoundConfigPanel({
       )}
 
       {entry.fields.includes("reuseProfileVerification") && (
-        <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
+        <label className="flex items-center gap-2 text-[11px] font-semibold text-[#5A6472]">
           <input
             type="checkbox"
             checked={!!cfg.reuseProfileVerification}
@@ -134,7 +134,7 @@ export function RoundConfigPanel({
       )}
 
       {entry.fields.includes("useTeamMatchConfirmation") && (
-        <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
+        <label className="flex items-center gap-2 text-[11px] font-semibold text-[#5A6472]">
           <input
             type="checkbox"
             checked={cfg.useTeamMatchConfirmation !== false}

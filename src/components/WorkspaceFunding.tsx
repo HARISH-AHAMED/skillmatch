@@ -40,10 +40,10 @@ interface WorkspaceFundingProps {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <Card className="border border-[#dddddd] bg-white p-4 shadow-2xs rounded-[12px]">
-      <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
+    <Card className="border border-[#E2E5EA] bg-white p-4 shadow-2xs rounded-[12px]">
+      <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">{label}</span>
       <span className="mt-1.5 block text-lg font-extrabold text-[#181d26]">{value}</span>
-      {hint && <span className="mt-1 block text-[8px] font-semibold text-slate-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-[8px] font-semibold text-[#8A94A3]">{hint}</span>}
     </Card>
   );
 }
@@ -189,15 +189,15 @@ export function WorkspaceFunding({
   if (type === "UNPAID") {
     return (
       <div className="space-y-4">
-        <Card className="flex flex-col items-center gap-2 border border-[#dddddd] bg-white p-10 text-center shadow-2xs rounded-[12px]">
+        <Card className="flex flex-col items-center gap-2 border border-[#E2E5EA] bg-white p-10 text-center shadow-2xs rounded-[12px]">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f1f3f6]">
             <HeartHandshake className="h-6 w-6 text-[#181d26]" />
           </span>
           <h2 className="text-base font-black text-[#181d26]">Volunteer / Unpaid Project</h2>
-          <p className="text-xs font-semibold text-slate-500">No monetary compensation</p>
+          <p className="text-xs font-semibold text-[#5A6472]">No monetary compensation</p>
         </Card>
         {meta.certificateIncluded && (
-          <Card className="border border-[#dddddd] bg-white p-4 text-center shadow-2xs rounded-[12px]">
+          <Card className="border border-[#E2E5EA] bg-white p-4 text-center shadow-2xs rounded-[12px]">
             <p className="text-xs font-semibold text-[#181d26]">
               A certificate of completion is included for this project.
             </p>
@@ -214,7 +214,7 @@ export function WorkspaceFunding({
       </span>
       <div>
         <h2 className="text-base font-black text-[#181d26]">{title}</h2>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{sub}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A94A3]">{sub}</p>
       </div>
     </div>
   );
@@ -264,7 +264,7 @@ export function WorkspaceFunding({
           {canManageStages && teamOptions.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {[{ applicationId: "ALL", name: "All freelancers" }, ...teamOptions].map((t) => (
-                <button key={t.applicationId} type="button" onClick={() => setSelectedApp(t.applicationId)} className={selectedApp === t.applicationId ? "cursor-pointer rounded-full border border-[#181d26] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white" : "cursor-pointer rounded-full border border-[#dddddd] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#41454d] hover:text-[#181d26]"}>
+                <button key={t.applicationId} type="button" onClick={() => setSelectedApp(t.applicationId)} className={selectedApp === t.applicationId ? "cursor-pointer rounded-full border border-[#181d26] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white" : "cursor-pointer rounded-full border border-[#E2E5EA] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#5A6472] hover:text-[#181d26]"}>
                   {t.name}
                 </button>
               ))}
@@ -272,12 +272,12 @@ export function WorkspaceFunding({
           )}
 
           {canManageStages && projectId && selectedApp !== "ALL" && (
-            <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
+            <Card className="space-y-3 border border-[#E2E5EA] bg-white p-4 rounded-[12px]">
               <p className="text-xs font-bold text-[#181d26]">
                 Release payment — remaining payable {money(Math.max(approvedHours * rate - paidFor(selectedApp), 0))}
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <input type="number" placeholder="Amount to release" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="w-48 rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none" />
+                <input type="number" placeholder="Amount to release" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="w-48 rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none" />
                 <Button type="button" onClick={() => runPayAction(() => releaseHourlyPayment(projectId, selectedApp, Number(payAmount)))} className="h-8 cursor-pointer bg-[#181d26] text-[11px] text-white hover:bg-[#333840]">Release Payment</Button>
               </div>
             </Card>
@@ -298,11 +298,11 @@ export function WorkspaceFunding({
           )}
 
           {showLogForm && canSubmitStages && (
-            <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
+            <Card className="space-y-3 border border-[#E2E5EA] bg-white p-4 rounded-[12px]">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <input type="date" value={logForm.date} onChange={(e) => setLogForm({ ...logForm, date: e.target.value })} className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none" />
-                <input type="number" step="0.25" placeholder="Hours worked" value={logForm.hours} onChange={(e) => setLogForm({ ...logForm, hours: e.target.value })} className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none" />
-                <input placeholder="What did you work on?" value={logForm.description} onChange={(e) => setLogForm({ ...logForm, description: e.target.value })} className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none" />
+                <input type="date" value={logForm.date} onChange={(e) => setLogForm({ ...logForm, date: e.target.value })} className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none" />
+                <input type="number" step="0.25" placeholder="Hours worked" value={logForm.hours} onChange={(e) => setLogForm({ ...logForm, hours: e.target.value })} className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none" />
+                <input placeholder="What did you work on?" value={logForm.description} onChange={(e) => setLogForm({ ...logForm, description: e.target.value })} className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => { setShowLogForm(false); setLogError(null); }} className="h-8 cursor-pointer text-[11px]">Cancel</Button>
@@ -312,14 +312,14 @@ export function WorkspaceFunding({
           )}
 
           {visibleLogs.length === 0 ? (
-            <Card className="border border-dashed border-[#dddddd] bg-white p-6 text-center text-xs font-semibold text-slate-400 rounded-[12px]">
+            <Card className="border border-dashed border-[#E2E5EA] bg-white p-6 text-center text-xs font-semibold text-[#8A94A3] rounded-[12px]">
               No work logged yet.
             </Card>
           ) : (
-            <Card className="overflow-x-auto border border-[#dddddd] bg-white p-0 shadow-2xs rounded-[12px]">
+            <Card className="overflow-x-auto border border-[#E2E5EA] bg-white p-0 shadow-2xs rounded-[12px]">
               <table className="w-full min-w-[720px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#dddddd] text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-[#E2E5EA] text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">
                     <th className="px-4 py-3">Freelancer</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Work</th>
@@ -329,14 +329,14 @@ export function WorkspaceFunding({
                     {(canManageStages || canSubmitStages) && <th className="px-4 py-3 text-right">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#dddddd]">
+                <tbody className="divide-y divide-[#E2E5EA]">
                   {visibleLogs.map((log: any) => (
-                    <tr key={log.id} className="hover:bg-[#f8fafc]">
+                    <tr key={log.id} className="hover:bg-[#F7F8FA]">
                       <td className="px-4 py-3 font-bold text-[#181d26]">{log.freelancerName}</td>
-                      <td className="px-4 py-3 text-slate-600">{log.date}</td>
-                      <td className="px-4 py-3 text-slate-600">{log.description}</td>
+                      <td className="px-4 py-3 text-[#5A6472]">{log.date}</td>
+                      <td className="px-4 py-3 text-[#5A6472]">{log.description}</td>
                       <td className="px-4 py-3 text-right font-bold text-[#181d26]">{log.hours} h</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{money((log.hours || 0) * rate)}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">{money((log.hours || 0) * rate)}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="neutral" className="text-[9px] capitalize">{(log.status || "PENDING").toLowerCase()}</Badge>
                       </td>
@@ -346,11 +346,11 @@ export function WorkspaceFunding({
                             {canManageStages && projectId && log.status === "PENDING" && (
                               <>
                                 <button type="button" onClick={() => runLogAction(() => reviewWorkLog(projectId, log.id, true))} className="cursor-pointer rounded-[6px] bg-[#181d26] px-2.5 py-1 text-[10px] font-bold text-white hover:bg-[#333840]">Approve</button>
-                                <button type="button" onClick={() => runLogAction(() => reviewWorkLog(projectId, log.id, false))} className="cursor-pointer rounded-[6px] border border-[#dddddd] px-2.5 py-1 text-[10px] font-bold text-[#41454d] hover:bg-[#f8fafc]">Reject</button>
+                                <button type="button" onClick={() => runLogAction(() => reviewWorkLog(projectId, log.id, false))} className="cursor-pointer rounded-[6px] border border-[#E2E5EA] px-2.5 py-1 text-[10px] font-bold text-[#5A6472] hover:bg-[#F7F8FA]">Reject</button>
                               </>
                             )}
                             {canSubmitStages && projectId && log.status === "PENDING" && (
-                              <button type="button" onClick={() => runLogAction(() => deleteWorkLog(projectId, log.id))} title="Remove log" className="cursor-pointer rounded-[6px] border border-[#dddddd] p-1.5 text-rose-600 hover:bg-rose-50">
+                              <button type="button" onClick={() => runLogAction(() => deleteWorkLog(projectId, log.id))} title="Remove log" className="cursor-pointer rounded-[6px] border border-[#E2E5EA] p-1.5 text-rose-600 hover:bg-rose-50">
                                 <Trash2 className="h-3 w-3" />
                               </button>
                             )}
@@ -402,7 +402,7 @@ export function WorkspaceFunding({
                 className={
                   selectedApp === t.applicationId
                     ? "cursor-pointer rounded-full border border-[#181d26] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white"
-                    : "cursor-pointer rounded-full border border-[#dddddd] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#41454d] hover:text-[#181d26]"
+                    : "cursor-pointer rounded-full border border-[#E2E5EA] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#5A6472] hover:text-[#181d26]"
                 }
               >
                 {t.name}
@@ -452,7 +452,7 @@ export function WorkspaceFunding({
         )}
 
         {canManageStages && projectId && scopedApp && (
-          <Card className="flex flex-wrap items-center justify-between gap-3 border border-[#dddddd] bg-white p-4 shadow-2xs rounded-[12px]">
+          <Card className="flex flex-wrap items-center justify-between gap-3 border border-[#E2E5EA] bg-white p-4 shadow-2xs rounded-[12px]">
             <p className="text-xs font-bold text-[#181d26]">
               Release {money(amount)} for period {nextPeriod(scopedApp)}
             </p>
@@ -477,10 +477,10 @@ export function WorkspaceFunding({
           </div>
 
           {canManageStages && !scopedApp ? (
-            <Card className="overflow-x-auto border border-[#dddddd] bg-white p-0 shadow-2xs rounded-[12px]">
+            <Card className="overflow-x-auto border border-[#E2E5EA] bg-white p-0 shadow-2xs rounded-[12px]">
               <table className="w-full min-w-[560px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#dddddd] text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-[#E2E5EA] text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">
                     <th className="px-4 py-3">Freelancer</th>
                     <th className="px-4 py-3 text-center">Periods Paid</th>
                     <th className="px-4 py-3 text-right">Stipend</th>
@@ -488,14 +488,14 @@ export function WorkspaceFunding({
                     <th className="px-4 py-3 text-right">Remaining Payable</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#dddddd]">
+                <tbody className="divide-y divide-[#E2E5EA]">
                   {teamOptions.map((t) => (
-                    <tr key={t.applicationId} className="hover:bg-[#f8fafc]">
+                    <tr key={t.applicationId} className="hover:bg-[#F7F8FA]">
                       <td className="px-4 py-3 font-bold text-[#181d26]">{t.name}</td>
-                      <td className="px-4 py-3 text-center text-slate-600">{periodsPaidFor(t.applicationId)}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{money(amount)}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{money(paidAmount(t.applicationId))}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">
+                      <td className="px-4 py-3 text-center text-[#5A6472]">{periodsPaidFor(t.applicationId)}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">{money(amount)}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">{money(paidAmount(t.applicationId))}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">
                         {totalPeriods === 1
                           ? money(Math.max(amount - paidAmount(t.applicationId), 0))
                           : money(amount)}
@@ -506,26 +506,26 @@ export function WorkspaceFunding({
               </table>
             </Card>
           ) : payFor(scopedApp).length === 0 ? (
-            <Card className="border border-dashed border-[#dddddd] bg-white p-6 text-center text-xs font-semibold text-slate-400 rounded-[12px]">
+            <Card className="border border-dashed border-[#E2E5EA] bg-white p-6 text-center text-xs font-semibold text-[#8A94A3] rounded-[12px]">
               No stipend payments recorded yet.
             </Card>
           ) : (
-            <Card className="overflow-x-auto border border-[#dddddd] bg-white p-0 shadow-2xs rounded-[12px]">
+            <Card className="overflow-x-auto border border-[#E2E5EA] bg-white p-0 shadow-2xs rounded-[12px]">
               <table className="w-full min-w-[560px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#dddddd] text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-[#E2E5EA] text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">
                     <th className="px-4 py-3">Freelancer</th>
                     <th className="px-4 py-3 text-center">Period</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3 text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#dddddd]">
+                <tbody className="divide-y divide-[#E2E5EA]">
                   {payFor(scopedApp).map((p: any) => (
-                    <tr key={p.id} className="hover:bg-[#f8fafc]">
+                    <tr key={p.id} className="hover:bg-[#F7F8FA]">
                       <td className="px-4 py-3 font-bold text-[#181d26]">{p.freelancerName}</td>
-                      <td className="px-4 py-3 text-center text-slate-600">{p.periodIndex}</td>
-                      <td className="px-4 py-3 text-slate-600">{new Date(p.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-center text-[#5A6472]">{p.periodIndex}</td>
+                      <td className="px-4 py-3 text-[#5A6472]">{new Date(p.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right font-bold text-[#181d26]">{money(p.amount)}</td>
                     </tr>
                   ))}
@@ -568,16 +568,16 @@ export function WorkspaceFunding({
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {[{ applicationId: "ALL", name: "All freelancers" }, ...teamOptions].map((t) => (
-                <button key={t.applicationId} type="button" onClick={() => setSelectedApp(t.applicationId)} className={selectedApp === t.applicationId ? "cursor-pointer rounded-full border border-[#181d26] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white" : "cursor-pointer rounded-full border border-[#dddddd] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#41454d] hover:text-[#181d26]"}>
+                <button key={t.applicationId} type="button" onClick={() => setSelectedApp(t.applicationId)} className={selectedApp === t.applicationId ? "cursor-pointer rounded-full border border-[#181d26] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white" : "cursor-pointer rounded-full border border-[#E2E5EA] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#5A6472] hover:text-[#181d26]"}>
                   {t.name}
                 </button>
               ))}
             </div>
             {selectedApp === "ALL" && (
-              <Card className="overflow-x-auto border border-[#dddddd] bg-white p-0 shadow-2xs rounded-[12px]">
+              <Card className="overflow-x-auto border border-[#E2E5EA] bg-white p-0 shadow-2xs rounded-[12px]">
                 <table className="w-full min-w-[640px] border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#dddddd] text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-[#E2E5EA] text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">
                       <th className="px-4 py-3">Freelancer</th>
                       <th className="px-4 py-3 text-right">Allocated</th>
                       <th className="px-4 py-3 text-right">Funded</th>
@@ -586,20 +586,20 @@ export function WorkspaceFunding({
                       <th className="px-4 py-3 text-right">Remaining to Release</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#dddddd]">
+                  <tbody className="divide-y divide-[#E2E5EA]">
                     {teamOptions.map((t) => {
                       const own = stages.filter((s: any) => s.applicationId === t.applicationId);
                       const alloc = sumBy(own, "amount");
                       const fnd = sumBy(own, "funded");
                       const rel = sumBy(own, "released");
                       return (
-                        <tr key={t.applicationId} className="hover:bg-[#f8fafc]">
+                        <tr key={t.applicationId} className="hover:bg-[#F7F8FA]">
                           <td className="px-4 py-3 font-bold text-[#181d26]">{t.name}</td>
                           <td className="px-4 py-3 text-right font-bold text-[#181d26]">{money(alloc)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{money(fnd)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{money(rel)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{money(Math.max(alloc - fnd, 0))}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{money(Math.max(fnd - rel, 0))}</td>
+                          <td className="px-4 py-3 text-right text-[#5A6472]">{money(fnd)}</td>
+                          <td className="px-4 py-3 text-right text-[#5A6472]">{money(rel)}</td>
+                          <td className="px-4 py-3 text-right text-[#5A6472]">{money(Math.max(alloc - fnd, 0))}</td>
+                          <td className="px-4 py-3 text-right text-[#5A6472]">{money(Math.max(fnd - rel, 0))}</td>
                         </tr>
                       );
                     })}
@@ -623,7 +623,7 @@ export function WorkspaceFunding({
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-[#181d26]" />
           <h3 className="text-xs font-black uppercase tracking-wider text-[#181d26]">{type === "MILESTONE" ? "Milestone Funding" : "Payment Stages"}</h3>
-          <span className="text-[10px] font-semibold text-slate-400">Optional — separate from milestones</span>
+          <span className="text-[10px] font-semibold text-[#8A94A3]">Optional — separate from milestones</span>
           {canManageStages && projectId && (
             <Button
               type="button"
@@ -642,7 +642,7 @@ export function WorkspaceFunding({
         )}
 
         {fundingStage && (
-          <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
+          <Card className="space-y-3 border border-[#E2E5EA] bg-white p-4 rounded-[12px]">
             <p className="text-xs font-bold text-[#181d26]">
               Fund “{fundingStage.title}” — remaining {money((fundingStage.amount || 0) - (fundingStage.funded || 0))}
             </p>
@@ -652,7 +652,7 @@ export function WorkspaceFunding({
                 placeholder="Amount to fund"
                 value={fundAmount}
                 onChange={(e) => setFundAmount(e.target.value)}
-                className="w-48 rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none"
+                className="w-48 rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none"
               />
               <Button type="button" onClick={async () => { if (!projectId) return; await runStageAction(() => fundPaymentStage(projectId, fundingStage.id, Number(fundAmount))); setFundingStage(null); setFundAmount(""); }} className="h-8 cursor-pointer bg-[#181d26] text-[11px] text-white hover:bg-[#333840]">Confirm Funding</Button>
               <Button type="button" variant="outline" onClick={() => { setFundingStage(null); setFundAmount(""); }} className="h-8 cursor-pointer text-[11px]">Cancel</Button>
@@ -661,14 +661,14 @@ export function WorkspaceFunding({
         )}
 
         {submittingStage && (
-          <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
+          <Card className="space-y-3 border border-[#E2E5EA] bg-white p-4 rounded-[12px]">
             <p className="text-xs font-bold text-[#181d26]">Submit “{submittingStage.title}” for review</p>
             <textarea
               rows={3}
               placeholder="Submission note (optional)"
               value={submitNote}
               onChange={(e) => setSubmitNote(e.target.value)}
-              className="w-full rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none"
+              className="w-full rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none"
             />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => { setSubmittingStage(null); setSubmitNote(""); }} className="h-8 cursor-pointer text-[11px]">Cancel</Button>
@@ -678,21 +678,21 @@ export function WorkspaceFunding({
         )}
 
         {canManageStages && showStageForm && (
-          <Card className="space-y-3 border border-[#dddddd] bg-white p-4 rounded-[12px]">
+          <Card className="space-y-3 border border-[#E2E5EA] bg-white p-4 rounded-[12px]">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <input
                 placeholder="Stage name (e.g. UI Design)"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none"
+                className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none"
               />
               <input
                 placeholder="Description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none"
+                className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none"
               />
-              <select disabled={!!editing && Math.max(editing.funded || 0, editing.released || 0) > 0} value={form.applicationId} onChange={(e) => setForm({ ...form, applicationId: e.target.value })} className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none">
+              <select disabled={!!editing && Math.max(editing.funded || 0, editing.released || 0) > 0} value={form.applicationId} onChange={(e) => setForm({ ...form, applicationId: e.target.value })} className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none">
                 <option value="">Unassigned</option>
                 {teamOptions.map((t) => (<option key={t.applicationId} value={t.applicationId}>{t.name}</option>))}
               </select>
@@ -701,7 +701,7 @@ export function WorkspaceFunding({
                 placeholder="Amount"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="rounded-[8px] border border-[#dddddd] px-3 py-2 text-xs focus:outline-none"
+                className="rounded-[8px] border border-[#E2E5EA] px-3 py-2 text-xs focus:outline-none"
               />
             </div>
             <div className="flex justify-end gap-2">
@@ -712,14 +712,14 @@ export function WorkspaceFunding({
         )}
 
         {stages.length === 0 ? (
-          <Card className="border border-dashed border-[#dddddd] bg-white p-6 text-center text-xs font-semibold text-slate-400 rounded-[12px]">
+          <Card className="border border-dashed border-[#E2E5EA] bg-white p-6 text-center text-xs font-semibold text-[#8A94A3] rounded-[12px]">
             No payment stages defined. The fixed budget is funded and released as a single amount.
           </Card>
         ) : (
-          <Card className="overflow-x-auto border border-[#dddddd] bg-white p-0 shadow-2xs rounded-[12px]">
+          <Card className="overflow-x-auto border border-[#E2E5EA] bg-white p-0 shadow-2xs rounded-[12px]">
             <table className="w-full min-w-[640px] border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-[#dddddd] text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-[#E2E5EA] text-[9px] font-bold uppercase tracking-wider text-[#8A94A3]">
                   <th className="px-4 py-3">Stage</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-right">Amount</th>
@@ -729,19 +729,19 @@ export function WorkspaceFunding({
                   {(canManageStages || canSubmitStages) && <th className="px-4 py-3 text-right">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#dddddd]">
+              <tbody className="divide-y divide-[#E2E5EA]">
                 {scoped.map((stage: any, idx: number) => {
                   const funded = stage.funded ?? 0;
                   const released = stage.released ?? 0;
                   return (
-                    <tr key={stage.id || idx} className="hover:bg-[#f8fafc]">
+                    <tr key={stage.id || idx} className="hover:bg-[#F7F8FA]">
                       <td className="px-4 py-3">
                         <span className="block font-bold text-[#181d26]">{stage.title}</span>
-                        {stage.freelancerName && <span className="mt-0.5 block text-[10px] font-semibold text-[#1b61c9]">{stage.freelancerName}</span>}
-                        {stage.description && <span className="mt-0.5 block text-[10px] text-slate-500">{stage.description}</span>}
+                        {stage.freelancerName && <span className="mt-0.5 block text-[10px] font-semibold text-[#1968E5]">{stage.freelancerName}</span>}
+                        {stage.description && <span className="mt-0.5 block text-[10px] text-[#5A6472]">{stage.description}</span>}
                         {stage.submissionNote && (stage.status === "SUBMITTED" || stage.status === "APPROVED" || stage.status === "RELEASED") && (
-                          <span className="mt-1.5 block rounded-[8px] border border-[#dddddd] bg-[#f8fafc] px-2 py-1.5 text-[10px] text-[#41454d]">
-                            <b className="block text-[9px] uppercase tracking-wider text-slate-400">Submission Note</b>
+                          <span className="mt-1.5 block rounded-[8px] border border-[#E2E5EA] bg-[#F7F8FA] px-2 py-1.5 text-[10px] text-[#5A6472]">
+                            <b className="block text-[9px] uppercase tracking-wider text-[#8A94A3]">Submission Note</b>
                             “{stage.submissionNote}”
                           </span>
                         )}
@@ -752,9 +752,9 @@ export function WorkspaceFunding({
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-[#181d26]">{money(stage.amount || 0)}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{money(funded)}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{money(released)}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">
+                      <td className="px-4 py-3 text-right text-[#5A6472]">{money(funded)}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">{money(released)}</td>
+                      <td className="px-4 py-3 text-right text-[#5A6472]">
                         {money(Math.max((stage.amount || 0) - released, 0))}
                       </td>
                       {(canManageStages || canSubmitStages) && (
@@ -769,7 +769,7 @@ export function WorkspaceFunding({
                             {canManageStages && projectId && stage.status === "SUBMITTED" && (
                               <>
                                 <button type="button" onClick={() => runStageAction(() => reviewPaymentStage(projectId, stage.id, true))} className="cursor-pointer rounded-[6px] bg-[#181d26] px-2.5 py-1 text-[10px] font-bold text-white hover:bg-[#333840]">Approve</button>
-                                <button type="button" onClick={() => runStageAction(() => reviewPaymentStage(projectId, stage.id, false))} className="cursor-pointer rounded-[6px] border border-[#dddddd] px-2.5 py-1 text-[10px] font-bold text-[#41454d] hover:bg-[#f8fafc]">Request Changes</button>
+                                <button type="button" onClick={() => runStageAction(() => reviewPaymentStage(projectId, stage.id, false))} className="cursor-pointer rounded-[6px] border border-[#E2E5EA] px-2.5 py-1 text-[10px] font-bold text-[#5A6472] hover:bg-[#F7F8FA]">Request Changes</button>
                               </>
                             )}
                             {canManageStages && projectId && stage.status === "APPROVED" && (
@@ -777,10 +777,10 @@ export function WorkspaceFunding({
                             )}
                             {canManageStages && (
                             <>
-                            <button type="button" onClick={() => openStageForm(stage)} title="Edit stage" className="cursor-pointer rounded-[6px] border border-[#dddddd] p-1.5 text-[#181d26] hover:bg-[#f8fafc]">
+                            <button type="button" onClick={() => openStageForm(stage)} title="Edit stage" className="cursor-pointer rounded-[6px] border border-[#E2E5EA] p-1.5 text-[#181d26] hover:bg-[#F7F8FA]">
                               <Pencil className="h-3 w-3" />
                             </button>
-                            <button type="button" onClick={() => removeStage(stage.id)} title="Delete stage" className="cursor-pointer rounded-[6px] border border-[#dddddd] p-1.5 text-rose-600 hover:bg-rose-50">
+                            <button type="button" onClick={() => removeStage(stage.id)} title="Delete stage" className="cursor-pointer rounded-[6px] border border-[#E2E5EA] p-1.5 text-rose-600 hover:bg-rose-50">
                               <Trash2 className="h-3 w-3" />
                             </button>
                             </>

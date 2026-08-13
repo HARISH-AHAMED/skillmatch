@@ -20,23 +20,23 @@ export default async function AdminFreelancersPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
           Freelancer Directory
         </h1>
-        <p className="text-xs text-[#41454d] font-normal mt-1">
+        <p className="text-xs text-[#5A6472] font-normal mt-1">
           Monitor freelancer bio credentials, active skills indices, and rating averages
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {freelancers.length === 0 ? (
-          <Card className="p-8 text-center text-[#41454d] text-xs md:col-span-2 border border-[#dddddd] rounded-[12px]">
+          <Card className="p-8 text-center text-[#5A6472] text-xs md:col-span-2 border border-[#E2E5EA] rounded-[12px]">
             No freelancer profiles registered yet.
           </Card>
         ) : (
           freelancers.map((f) => (
-            <Card key={f.id} className="p-6 border border-[#dddddd] bg-white rounded-[12px] shadow-xs space-y-4">
-              <div className="flex justify-between items-start border-b border-[#dddddd] pb-3">
+            <Card key={f.id} className="p-6 border border-[#E2E5EA] bg-white rounded-[12px] shadow-xs space-y-4">
+              <div className="flex justify-between items-start border-b border-[#E2E5EA] pb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-[#181d26]">{f.user.name}</h3>
-                  <p className="text-[10px] font-mono text-[#41454d]">{f.user.email}</p>
+                  <p className="text-[10px] font-mono text-[#5A6472]">{f.user.email}</p>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-amber-400">
                   <Star className="h-4 w-4 fill-amber-400/20" />
@@ -44,21 +44,21 @@ export default async function AdminFreelancersPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed italic">
+              <p className="text-xs text-[#5A6472] leading-relaxed italic">
                 &quot;{f.bio || "No professional bio provided."}&quot;
               </p>
 
-              <div className="grid grid-cols-3 gap-2.5 text-[10px] text-slate-600 bg-slate-50 p-3.5 border border-slate-100 rounded-xl">
+              <div className="grid grid-cols-3 gap-2.5 text-[10px] text-[#5A6472] bg-[#F7F8FA] p-3.5 border border-[#EDEFF2] rounded-xl">
                 <div>
-                  <span className="text-slate-500 block">Experience</span>
-                  <span className="font-semibold text-slate-800">{f.experienceYears} Years</span>
+                  <span className="text-[#5A6472] block">Experience</span>
+                  <span className="font-semibold text-[#181D26]">{f.experienceYears} Years</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Completed</span>
-                  <span className="font-semibold text-slate-800">{f.completedProjects} Jobs</span>
+                  <span className="text-[#5A6472] block">Completed</span>
+                  <span className="font-semibold text-[#181D26]">{f.completedProjects} Jobs</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Completion</span>
+                  <span className="text-[#5A6472] block">Completion</span>
                   <span className="font-semibold text-emerald-700">{f.completionRate}%</span>
                 </div>
               </div>

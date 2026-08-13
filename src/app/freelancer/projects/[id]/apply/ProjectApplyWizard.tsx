@@ -164,22 +164,22 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                       isActive
                         ? "bg-[#181d26] text-white ring-4 ring-[#181d26]/20"
                         : isCompleted
-                        ? "bg-[#1b61c9] text-white"
-                        : "bg-slate-200 text-slate-500"
+                        ? "bg-[#1968E5] text-white"
+                        : "bg-[#E2E5EA] text-[#5A6472]"
                     }`}
                   >
                     {s.num}
                   </div>
                   <span
                     className={`text-xs font-bold ${
-                      isActive ? "text-[#181d26]" : "text-slate-400"
+                      isActive ? "text-[#181d26]" : "text-[#8A94A3]"
                     }`}
                   >
                     {s.label}
                   </span>
                 </div>
                 {idx < arr.length - 1 && (
-                  <div className="flex-1 h-[2px] bg-slate-200 mx-4" />
+                  <div className="flex-1 h-[2px] bg-[#E2E5EA] mx-4" />
                 )}
               </React.Fragment>
             );
@@ -195,26 +195,26 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
       {/* STEP 1: Specs and Guidelines */}
       {step === 1 && (
-        <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
-          <div className="border-b border-slate-100 pb-4 space-y-1">
+        <Card className="p-6 md:p-8 space-y-6 bg-white border border-[#E2E5EA] shadow-lg rounded-3xl text-left">
+          <div className="border-b border-[#EDEFF2] pb-4 space-y-1">
             <h2 className="text-xl font-black text-[#181d26]">Step 1: Review Project Specifications & Requirements</h2>
-            <p className="text-xs text-slate-400 font-medium">Verify the scope and parameters of the gig assignment.</p>
+            <p className="text-xs text-[#8A94A3] font-medium">Verify the scope and parameters of the gig assignment.</p>
           </div>
 
           {/* Company details */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-[#F7F8FA] rounded-2xl border border-[#EDEFF2] grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Recruiting Company</span>
+              <span className="text-[10px] text-[#8A94A3] font-extrabold uppercase tracking-wider block">Recruiting Company</span>
               <div className="flex items-center gap-2 mt-1">
                 <Building className="h-4 w-4 text-[#181d26]" />
                 <span className="font-extrabold text-sm text-[#181d26]">{project.company.companyName}</span>
               </div>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Engagement Location</span>
+              <span className="text-[10px] text-[#8A94A3] font-extrabold uppercase tracking-wider block">Engagement Location</span>
               <div className="flex items-center gap-2 mt-1">
-                <MapPin className="h-4 w-4 text-[#1b61c9]" />
-                <span className="font-semibold text-xs text-slate-600">{project.company.location || "Remote Workspace"}</span>
+                <MapPin className="h-4 w-4 text-[#1968E5]" />
+                <span className="font-semibold text-xs text-[#5A6472]">{project.company.location || "Remote Workspace"}</span>
               </div>
             </div>
           </div>
@@ -222,7 +222,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
           {/* Project description brief */}
           <div className="space-y-2">
             <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Opportunity Brief</h3>
-            <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{cleanDescription}</p>
+            <p className="text-xs text-[#5A6472] leading-relaxed whitespace-pre-wrap">{cleanDescription}</p>
           </div>
 
           {/* deliverables and specs */}
@@ -230,7 +230,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
             {meta.deliverables && meta.deliverables.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Key Deliverables</h4>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500 font-medium">
+                <ul className="list-disc pl-5 space-y-1 text-xs text-[#5A6472] font-medium">
                   {meta.deliverables.map((d: string, idx: number) => (
                     <li key={idx}>{d}</li>
                   ))}
@@ -240,22 +240,22 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
             
             <div className="space-y-2">
               <h4 className="text-xs font-black text-[#181d26] uppercase tracking-wider">Parameters & Schedule</h4>
-              <div className="space-y-2.5 text-xs text-slate-600">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-400">Compensation Budget:</span>
+              <div className="space-y-2.5 text-xs text-[#5A6472]">
+                <div className="flex justify-between items-center border-b border-[#EDEFF2] pb-1.5">
+                  <span className="font-bold text-[#8A94A3]">Compensation Budget:</span>
                   <span className="font-black text-[#181d26]">{formatProjectBudget(project)} Total</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-400">Working Timings:</span>
-                  <span className="font-extrabold text-slate-700">{meta.timingType || "Full Time"} ({meta.workingDays || "5 Days/Week"})</span>
+                <div className="flex justify-between items-center border-b border-[#EDEFF2] pb-1.5">
+                  <span className="font-bold text-[#8A94A3]">Working Timings:</span>
+                  <span className="font-extrabold text-[#333840]">{meta.timingType || "Full Time"} ({meta.workingDays || "5 Days/Week"})</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                  <span className="font-bold text-slate-400">Project Duration:</span>
-                  <span className="font-extrabold text-slate-700">{meta.duration || "3 Months"}</span>
+                <div className="flex justify-between items-center border-b border-[#EDEFF2] pb-1.5">
+                  <span className="font-bold text-[#8A94A3]">Project Duration:</span>
+                  <span className="font-extrabold text-[#333840]">{meta.duration || "3 Months"}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-400">Required Experience:</span>
-                  <span className="font-extrabold text-slate-700">{project.experienceRequired} Years</span>
+                  <span className="font-bold text-[#8A94A3]">Required Experience:</span>
+                  <span className="font-extrabold text-[#333840]">{project.experienceRequired} Years</span>
                 </div>
               </div>
             </div>
@@ -263,10 +263,10 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
           {/* Role selection — only when this listing actually defines role slots */}
           {projectRoles.length > 0 && (
-            <div className="pt-4 border-t border-slate-100 text-left space-y-2.5">
+            <div className="pt-4 border-t border-[#EDEFF2] text-left space-y-2.5">
               <div>
-                <span className="text-xs font-bold text-slate-600 block">Which role are you applying for?</span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-xs font-bold text-[#5A6472] block">Which role are you applying for?</span>
+                <span className="text-[11px] text-[#5A6472]">
                   This is a team project — pick the position you want to fill.
                 </span>
               </div>
@@ -280,9 +280,9 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                       key={role.id}
                       className={`flex items-start gap-2.5 p-3 border rounded-[12px] transition-colors ${
                         selectedRoleId === role.id
-                          ? "border-[#181d26] bg-[#f8fafc]"
-                          : "border-[#dddddd] bg-white"
-                      } ${selectable ? "cursor-pointer hover:border-[#9297a0]" : "opacity-60 cursor-not-allowed"}`}
+                          ? "border-[#181d26] bg-[#F7F8FA]"
+                          : "border-[#E2E5EA] bg-white"
+                      } ${selectable ? "cursor-pointer hover:border-[#C7CCD4]" : "opacity-60 cursor-not-allowed"}`}
                     >
                       <input
                         type="radio"
@@ -303,8 +303,8 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                           <span
                             className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                               isFull
-                                ? "bg-[#f8fafc] text-[#41454d] border-[#dddddd]"
-                                : "bg-emerald-50 text-[#006400] border-emerald-200"
+                                ? "bg-[#F7F8FA] text-[#5A6472] border-[#E2E5EA]"
+                                : "bg-emerald-50 text-[#0F9D58] border-emerald-200"
                             }`}
                           >
                             {filled} / {role.slots} filled
@@ -316,7 +316,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                           )}
                         </div>
                         {role.description && (
-                          <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{role.description}</p>
+                          <p className="text-[11px] text-[#5A6472] mt-1 leading-relaxed">{role.description}</p>
                         )}
                         {isFull && role.allowApprentice && (
                           <p className="text-[11px] text-amber-700 mt-1">
@@ -332,7 +332,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
               {/* Apprentice opt-in, when the role still has room but allows shadowing */}
               {selectedRole?.allowApprentice && !selectedRoleIsFull && (
-                <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-[11px] text-[#5A6472] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={applyAsApprentice}
@@ -340,7 +340,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                     className="accent-[#181d26]"
                   />
                   Apply as an apprentice (shadow this role) rather than as the primary hire
-                  <span className="block text-[10px] text-slate-500 font-normal mt-0.5">
+                  <span className="block text-[10px] text-[#5A6472] font-normal mt-0.5">
                     Apprentices assist the primary freelancer, are scored separately from primary work,
                     and can be promoted to primary if the primary cannot continue.
                   </span>
@@ -356,7 +356,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
           )}
 
           {/* Agreement Checkbox */}
-          <div className="pt-4 border-t border-slate-100 text-left">
+          <div className="pt-4 border-t border-[#EDEFF2] text-left">
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -364,7 +364,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="mt-1 accent-[#181d26] h-4 w-4"
               />
-              <div className="text-xs font-semibold text-slate-600 select-none">
+              <div className="text-xs font-semibold text-[#5A6472] select-none">
                 I verify that I have reviewed the qualifications, skill set requirements, deadlines, and responsibilities for this opportunity, and I possess the capability to fulfill them.
               </div>
             </label>
@@ -384,10 +384,10 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
       {/* STEP 2: Screening Questionnaire */}
       {step === 2 && allQuestions.length > 0 && (
-        <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
-          <div className="border-b border-slate-100 pb-4 space-y-1">
+        <Card className="p-6 md:p-8 space-y-6 bg-white border border-[#E2E5EA] shadow-lg rounded-3xl text-left">
+          <div className="border-b border-[#EDEFF2] pb-4 space-y-1">
             <h2 className="text-xl font-black text-[#181d26]">Step 2: Screening Questionnaire Assessments</h2>
-            <p className="text-xs text-[#9297a0] font-medium">Please answer the questions below required for the screening phase.</p>
+            <p className="text-xs text-[#C7CCD4] font-medium">Please answer the questions below required for the screening phase.</p>
           </div>
 
           <div className="space-y-6">
@@ -397,7 +397,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                 setAnswers((prev) => ({ ...prev, [q.id]: val }));
 
               return (
-                <div key={q.id} className="p-4 bg-slate-50/50 border border-slate-200/50 rounded-2xl space-y-2.5">
+                <div key={q.id} className="p-4 bg-[#F7F8FA]/50 border border-[#E2E5EA]/50 rounded-2xl space-y-2.5">
                   <label className="block text-xs font-bold text-[#181d26] leading-relaxed">
                     Q{index + 1}: {q.question} {q.required && <span className="text-rose-500 font-bold">*</span>}
                   </label>
@@ -405,7 +405,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                   {q.type === "YES_NO" && (
                     <div className="flex gap-6 pl-1 pt-0.5">
                       {["Yes", "No"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer font-bold">
+                        <label key={opt} className="flex items-center gap-2 text-xs text-[#333840] cursor-pointer font-bold">
                           <input
                             type="radio"
                             name={q.id}
@@ -432,7 +432,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                             className={`p-3 text-xs text-left rounded-xl border font-semibold transition-all ${
                               isSelected
                                 ? "bg-[#181d26]/5 border-[#181d26] text-[#181d26] ring-2 ring-[#181d26]/5"
-                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                : "bg-white border-[#E2E5EA] text-[#333840] hover:border-[#C7CCD4] hover:bg-[#F7F8FA]"
                             }`}
                           >
                             {opt}
@@ -448,7 +448,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                       value={ansVal}
                       onChange={(e) => setAnswer(e.target.value)}
                       placeholder="Type your comprehensive response details here..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-[#181d26] focus:border-[#181d26]"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E2E5EA] bg-white text-xs text-[#181D26] focus:ring-1 focus:ring-[#181d26] focus:border-[#181d26]"
                     />
                   )}
 
@@ -475,7 +475,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
             })}
           </div>
 
-          <div className="flex justify-between pt-4 border-t border-slate-100">
+          <div className="flex justify-between pt-4 border-t border-[#EDEFF2]">
             <Button variant="outline" onClick={handleBackStep} className="cursor-pointer gap-1 text-xs">
               <ChevronLeft className="h-4 w-4" /> Back to specifications
             </Button>
@@ -489,10 +489,10 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
       {/* STEP 3: Cover Pitch and Submit */}
       {step === 3 && (
         <form onSubmit={handleFormSubmit}>
-          <Card className="p-6 md:p-8 space-y-6 bg-white border border-slate-200 shadow-lg rounded-3xl text-left">
-            <div className="border-b border-slate-100 pb-4 space-y-1">
+          <Card className="p-6 md:p-8 space-y-6 bg-white border border-[#E2E5EA] shadow-lg rounded-3xl text-left">
+            <div className="border-b border-[#EDEFF2] pb-4 space-y-1">
               <h2 className="text-xl font-black text-[#181d26]">Step 3: Cover Letter & Final Submission</h2>
-              <p className="text-xs text-slate-400 font-medium">Tell the recruiters why you are the perfect fit for this engagement assignment.</p>
+              <p className="text-xs text-[#8A94A3] font-medium">Tell the recruiters why you are the perfect fit for this engagement assignment.</p>
             </div>
 
             <div className="space-y-4">
@@ -500,11 +500,11 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
                 <label className="block text-xs font-black text-[#181d26] uppercase tracking-wider">
                   Cover Letter Pitch Letter *
                 </label>
-                <p className="text-[10px] text-slate-400 font-semibold mb-1">
+                <p className="text-[10px] text-[#8A94A3] font-semibold mb-1">
                   Introduce yourself, state your background experience aligning with the role, and briefly state how you plan to tackle key deliverables.
                 </p>
                 <textarea
-                  className="w-full min-h-[160px] px-4 py-3 rounded-2xl text-xs transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                  className="w-full min-h-[160px] px-4 py-3 rounded-2xl text-xs transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20"
                   placeholder="Explain why you are the perfect fit for this project. Highlight relevant skills and past projects..."
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
@@ -515,15 +515,15 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
 
               {/* Summary overview of questionnaire */}
               {allQuestions.length > 0 && (
-                <div className="space-y-2 border-t border-slate-100 pt-4">
+                <div className="space-y-2 border-t border-[#EDEFF2] pt-4">
                   <span className="text-[10px] font-black text-[#181d26] uppercase tracking-wider block">
                     Completed Questionnaire Review
                   </span>
-                  <div className="bg-slate-50 rounded-2xl p-4 space-y-3.5 border border-slate-100 text-xs">
+                  <div className="bg-[#F7F8FA] rounded-2xl p-4 space-y-3.5 border border-[#EDEFF2] text-xs">
                     {allQuestions.map((q: any) => (
                       <div key={q.id} className="space-y-1">
-                        <p className="font-bold text-slate-700">{q.question}</p>
-                        <p className="text-slate-500 bg-white border border-slate-100 rounded-lg p-2.5 font-semibold text-[11px] leading-relaxed">
+                        <p className="font-bold text-[#333840]">{q.question}</p>
+                        <p className="text-[#5A6472] bg-white border border-[#EDEFF2] rounded-lg p-2.5 font-semibold text-[11px] leading-relaxed">
                           {answers[q.id] || "No answer provided"}
                         </p>
                       </div>
@@ -533,7 +533,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
               )}
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-slate-100">
+            <div className="flex justify-between pt-4 border-t border-[#EDEFF2]">
               <Button
                 type="button"
                 variant="outline"
@@ -546,7 +546,7 @@ export function ProjectApplyWizard({ project, freelancer }: ProjectApplyWizardPr
               <Button
                 type="submit"
                 disabled={loading || !coverLetter.trim()}
-                className="cursor-pointer gap-1.5 font-bold bg-[#181d26] text-white hover:bg-[#001f3f]"
+                className="cursor-pointer gap-1.5 font-bold bg-[#181d26] text-white hover:bg-[#134FB0]"
               >
                 {loading ? (
                   "Submitting Proposal..."

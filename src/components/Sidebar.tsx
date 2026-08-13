@@ -120,22 +120,25 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
   };
 
   const menuItems = getNavItems();
+  // Organizer console (company/admin) uses the dark navy rail; candidates keep
+  // the light rail with pill-highlighted active rows.
+  const isOrganizer = role === "COMPANY" || role === "ADMIN";
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/login" });
   };
 
   return (
-    <aside className={cn("w-64 border-r border-[#dddddd] bg-white h-screen sticky top-0 flex flex-col p-6 z-30", className)}>
+    <aside className={cn("w-64 h-screen sticky top-0 flex flex-col p-6 z-30 border-r", isOrganizer ? "bg-[#0B1C32] border-[#10396B]" : "bg-white border-[#E2E5EA]", className)}>
       {/* Logo + notifications — always visible at top */}
       <div className="flex items-center justify-between mb-8 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-[#181d26] flex items-center justify-center">
+          <div className={cn("h-8 w-8 rounded-[8px] flex items-center justify-center", isOrganizer ? "bg-[#1968E5]" : "bg-[#181D26]")}>
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="font-medium text-[#181d26] tracking-tight text-base leading-none">Talentra</h1>
-            <span className="text-[10px] text-[#41454d] font-medium tracking-wider uppercase mt-1 inline-block">
+            <h1 className={cn("font-semibold tracking-tight text-base leading-none", isOrganizer ? "text-white" : "text-[#181D26]")}>Talentra</h1>
+            <span className={cn("text-[10px] font-medium tracking-wider uppercase mt-1 inline-block", isOrganizer ? "text-[#9FB3CC]" : "text-[#5A6472]")}>
               {role} Space
             </span>
           </div>
@@ -158,25 +161,29 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
               return (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between px-3 py-2.5 text-sm font-normal rounded-md opacity-50 cursor-not-allowed text-[#9297a0]"
+                  className="flex items-center justify-between px-3 py-2.5 text-sm font-normal rounded-md opacity-50 cursor-not-allowed text-[#C7CCD4]"
                   title="Complete onboarding to unlock this section"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 shrink-0 text-[#9297a0]" />
+                    <Icon className="h-4 w-4 shrink-0 text-[#C7CCD4]" />
                     <span>{item.name}</span>
                   </div>
-                  <Lock className="h-3.5 w-3.5 text-[#9297a0]" />
+                  <Lock className="h-3.5 w-3.5 text-[#C7CCD4]" />
                 </div>
               );
             }
 
             const itemClasses = cn(
               "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors duration-150 cursor-pointer",
-              isActive
-                ? "bg-[#f8fafc] text-[#181d26] font-semibold border-l-2 border-[#181d26]"
-                : "text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc]"
+              isOrganizer
+                ? isActive
+                  ? "bg-[#19457B] text-white font-semibold"
+                  : "text-[#9FB3CC] hover:text-white hover:bg-[#10396B]"
+                : isActive
+                ? "bg-[#EDF5FD] text-[#1968E5] font-semibold"
+                : "text-[#333840] hover:text-[#181D26] hover:bg-[#F7F8FA]"
             );
-            const iconClasses = cn("h-4 w-4 shrink-0", isActive ? "text-[#181d26]" : "text-[#41454d]");
+            const iconClasses = cn("h-4 w-4 shrink-0", isOrganizer ? (isActive ? "text-white" : "text-[#9FB3CC]") : isActive ? "text-[#1968E5]" : "text-[#5A6472]");
 
             // Workspaces are long-lived per-project surfaces — offer a launcher
             // so each project can live in its own tab.
@@ -193,7 +200,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
                     rel="noopener noreferrer"
                     title="Open workspace in a new tab"
                     aria-label="Open workspace in a new tab"
-                    className="absolute right-1.5 p-1.5 rounded-md text-[#41454d] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-[#181d26] hover:bg-[#e0e2e6] transition-all cursor-pointer"
+                    className="absolute right-1.5 p-1.5 rounded-md text-[#5A6472] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-[#181d26] hover:bg-[#EDEFF2] transition-all cursor-pointer"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -212,10 +219,10 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
 
         {/* Active Workspaces Section */}
         {workspaces.length > 0 && isOnboarded && (
-          <div className="mt-6 pt-4 border-t border-[#dddddd]">
-            <span className="text-[10px] font-semibold text-[#41454d] uppercase tracking-wider block px-3 mb-2">
+          <div className="mt-6 pt-4 border-t border-[#E2E5EA]">
+            <span className="text-[10px] font-semibold text-[#5A6472] uppercase tracking-wider block px-3 mb-2">
               Active Workspaces
-              <span className="normal-case tracking-normal font-normal text-[#9297a0] block mt-0.5">
+              <span className="normal-case tracking-normal font-normal text-[#C7CCD4] block mt-0.5">
                 Each opens in its own tab
               </span>
             </span>
@@ -234,14 +241,14 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
                     className={cn(
                       "group flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-md transition-colors duration-150 cursor-pointer",
                       isActive
-                        ? "bg-[#f8fafc] text-[#181d26] font-semibold border-l-2 border-[#181d26]"
-                        : "text-[#333840] hover:text-[#181d26] hover:bg-[#f8fafc]"
+                        ? "bg-[#F7F8FA] text-[#181d26] font-semibold border-l-2 border-[#181d26]"
+                        : "text-[#333840] hover:text-[#181d26] hover:bg-[#F7F8FA]"
                     )}
                     title={`${ws.label} — opens in a new tab`}
                   >
-                    <FolderCheck className={cn("h-4 w-4 shrink-0", isActive ? "text-[#181d26]" : "text-[#41454d]")} />
+                    <FolderCheck className={cn("h-4 w-4 shrink-0", isActive ? "text-[#181d26]" : "text-[#5A6472]")} />
                     <span className="truncate flex-1 min-w-0">{ws.label}</span>
-                    <ExternalLink className="h-3 w-3 shrink-0 text-[#9297a0] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
+                    <ExternalLink className="h-3 w-3 shrink-0 text-[#C7CCD4] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
                   </Link>
                 );
               })}
@@ -251,11 +258,11 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
       </div>
 
       {/* Profile summary & Logout */}
-      <div className="border-t border-[#dddddd] pt-4 space-y-3">
+      <div className="border-t border-[#E2E5EA] pt-4 space-y-3">
         {profileHref ? (
           <Link
             href={profileHref}
-            className="flex items-center gap-3 px-2 py-1.5 hover:bg-[#f8fafc] rounded-md transition-colors cursor-pointer group"
+            className="flex items-center gap-3 px-2 py-1.5 hover:bg-[#F7F8FA] rounded-md transition-colors cursor-pointer group"
           >
             <div className="h-8 w-8 rounded-full bg-[#181d26] flex items-center justify-center font-medium text-white text-xs shrink-0 overflow-hidden">
               {profileImage ? (
@@ -266,7 +273,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-medium text-[#181d26] truncate">{userName || "User Profile"}</p>
-              <p className="text-[10px] text-[#41454d] capitalize truncate">{role.toLowerCase()}</p>
+              <p className="text-[10px] text-[#5A6472] capitalize truncate">{role.toLowerCase()}</p>
             </div>
           </Link>
         ) : (
@@ -280,7 +287,7 @@ export function Sidebar({ role, userName, notifications = [], className }: Sideb
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-medium text-[#181d26] truncate">{userName || "User Profile"}</p>
-              <p className="text-[10px] text-[#41454d] capitalize truncate">{role.toLowerCase()}</p>
+              <p className="text-[10px] text-[#5A6472] capitalize truncate">{role.toLowerCase()}</p>
             </div>
           </div>
         )}

@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable}`}>
-      <body className="min-h-screen text-slate-800 antialiased selection:bg-sky-500/30">
+      <body className="min-h-screen text-[#181D26] antialiased selection:bg-sky-500/30">
         <SessionProvider>
           {children}
           <RealtimeNotifications />

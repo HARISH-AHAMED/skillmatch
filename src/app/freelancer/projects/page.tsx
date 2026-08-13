@@ -87,8 +87,8 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Browse Projects
         </h1>
-        <div className="p-8 text-center bg-white border border-slate-100 shadow-sm rounded-2xl">
-          <p className="text-slate-600 text-sm">
+        <div className="p-8 text-center bg-white border border-[#EDEFF2] shadow-sm rounded-2xl">
+          <p className="text-[#5A6472] text-sm">
             Please complete your profile details first to browse open projects.
           </p>
         </div>
@@ -119,7 +119,7 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Browse Matching Gigs
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#5A6472] mt-1">
           Apply to open project requests matching your expertise
         </p>
       </div>

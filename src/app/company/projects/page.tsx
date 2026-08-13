@@ -19,7 +19,7 @@ export default async function CompanyProjectsPage() {
 
   if (!company) {
     return (
-      <div className="p-8 text-center bg-white border border-slate-100 shadow-sm rounded-2xl text-slate-500 text-xs">
+      <div className="p-8 text-center bg-white border border-[#EDEFF2] shadow-sm rounded-2xl text-[#5A6472] text-xs">
         Please complete your profile to manage listings.
       </div>
     );

@@ -35,16 +35,16 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
 
   return (
     <div className="space-y-4">
-      <div className="pb-2 border-b border-slate-100">
-        <h4 className="text-xs font-bold text-slate-700">Certificates</h4>
-        <p className="text-[10px] text-slate-500">
+      <div className="pb-2 border-b border-[#EDEFF2]">
+        <h4 className="text-xs font-bold text-[#333840]">Certificates</h4>
+        <p className="text-[10px] text-[#5A6472]">
           Certificates companies issued to you on completed projects. Choose which ones show on
           your public profile.
         </p>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-slate-400 italic text-center p-6 bg-slate-50 rounded-2xl">
+        <p className="text-xs text-[#8A94A3] italic text-center p-6 bg-[#F7F8FA] rounded-2xl">
           No certificates yet. They appear here once a company completes a project you worked on.
         </p>
       ) : (
@@ -52,7 +52,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
           {items.map((cert) => (
             <div
               key={cert.id}
-              className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm flex flex-wrap justify-between items-center gap-3 hover:border-slate-200 transition-colors"
+              className="p-4 bg-white border border-[#EDEFF2] rounded-2xl shadow-sm flex flex-wrap justify-between items-center gap-3 hover:border-[#E2E5EA] transition-colors"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="p-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 shrink-0">
@@ -60,7 +60,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-xs font-bold text-[#181d26] truncate">{cert.projectTitle}</h4>
-                  <p className="text-[10px] text-slate-500 font-semibold truncate">
+                  <p className="text-[10px] text-[#5A6472] font-semibold truncate">
                     {cert.roleTitle} • {cert.issuerName} •{" "}
                     {new Date(cert.issuedAt).toLocaleDateString()}
                   </p>
@@ -70,7 +70,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
               <div className="flex items-center gap-2">
                 <Link
                   href={`/freelancer/certificates/${cert.publicId}`}
-                  className="px-3 py-1.5 text-[10px] font-bold text-[#1b61c9] border border-slate-200 rounded-xl hover:bg-slate-50 inline-flex items-center gap-1"
+                  className="px-3 py-1.5 text-[10px] font-bold text-[#1968E5] border border-[#E2E5EA] rounded-xl hover:bg-[#F7F8FA] inline-flex items-center gap-1"
                 >
                   View / Download <ExternalLink className="h-3 w-3" />
                 </Link>
@@ -80,7 +80,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
                   disabled={pending === cert.id}
                   className={`px-3 py-1.5 text-[10px] font-bold rounded-xl border inline-flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 ${
                     cert.hidden
-                      ? "text-slate-500 border-slate-200 hover:bg-slate-50"
+                      ? "text-[#5A6472] border-[#E2E5EA] hover:bg-[#F7F8FA]"
                       : "text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
                   }`}
                   title={cert.hidden ? "Show on public profile" : "Hide from public profile"}

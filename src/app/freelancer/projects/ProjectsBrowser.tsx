@@ -125,17 +125,17 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
   return (
     <div className="space-y-6">
       {/* Search & Filters form */}
-      <Card className="p-4 sm:p-6 bg-white border border-[#dddddd] shadow-md sticky top-0 z-40">
+      <Card className="p-4 sm:p-6 bg-white border border-[#E2E5EA] shadow-md sticky top-0 z-40">
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow relative">
-              <Search className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-500" />
+              <Search className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[#5A6472]" />
               <input
                 type="text"
                 placeholder="Search skills, titles, or descriptions..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10.5 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-slate-200 text-slate-800 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                className="w-full pl-10.5 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20"
               />
             </div>
             <div className="flex gap-2">
@@ -169,14 +169,14 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
                   domain === d
                     ? "bg-[#181d26] text-white border-[#181d26]"
-                    : "bg-white text-[#41454d] border-[#dddddd] hover:border-[#181d26]/40 hover:text-[#181d26]"
+                    : "bg-white text-[#5A6472] border-[#E2E5EA] hover:border-[#181d26]/40 hover:text-[#181d26]"
                 }`}
               >
                 {d === "ALL" ? "All Domains" : d}
               </button>
             ))}
           </div>
-          <div className={`${showFilters ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 border-t border-slate-200 pt-4`}>
+          <div className={`${showFilters ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 border-t border-[#E2E5EA] pt-4`}>
             {/* Domain chips live above, outside the filter grid */}
 
             <Input
@@ -223,7 +223,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
       </Card>
 
       {/* All vs Saved */}
-      <div className="flex w-fit gap-1 rounded-[12px] border border-[#dddddd] bg-white p-1">
+      <div className="flex w-fit gap-1 rounded-[12px] border border-[#E2E5EA] bg-white p-1">
         {(["all", "saved"] as const).map((t) => (
           <button
             key={t}
@@ -232,7 +232,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
             className={
               listTab === t
                 ? "cursor-pointer rounded-[8px] bg-[#181d26] px-4 py-1.5 text-[11px] font-semibold text-white"
-                : "cursor-pointer rounded-[8px] px-4 py-1.5 text-[11px] font-semibold text-[#41454d] hover:text-[#181d26]"
+                : "cursor-pointer rounded-[8px] px-4 py-1.5 text-[11px] font-semibold text-[#5A6472] hover:text-[#181d26]"
             }
           >
             {t === "all" ? `All Projects (${projects.length})` : `Saved (${savedProjectIds.length})`}
@@ -243,7 +243,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
       {/* Projects list */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {visibleProjects.length === 0 ? (
-          <Card className="p-10 text-center text-xs text-slate-500 lg:col-span-2">
+          <Card className="p-10 text-center text-xs text-[#5A6472] lg:col-span-2">
             {listTab === "saved" ? "No saved projects yet. Use the bookmark icon to save projects." : "No projects matched your criteria. Try adjusting your filters."}
           </Card>
         ) : (
@@ -254,7 +254,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
             return (
               <Card
                 key={project.id}
-                className="mx-auto flex w-full max-w-2xl flex-col overflow-hidden lg:max-w-none border-slate-100 bg-white p-0 transition-all hover:shadow-md"
+                className="mx-auto flex w-full max-w-2xl flex-col overflow-hidden lg:max-w-none border-[#EDEFF2] bg-white p-0 transition-all hover:shadow-md"
               >
                 {/* Post header */}
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
@@ -263,7 +263,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                       <img
                         src={project.company.logoUrl}
                         alt={project.company.companyName}
-                        className="h-10 w-10 rounded-full border border-slate-200 object-cover"
+                        className="h-10 w-10 rounded-full border border-[#E2E5EA] object-cover"
                       />
                     ) : (
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#181d26] text-sm font-black text-white">
@@ -280,9 +280,9 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                       >
                         {project.company.companyName}
                       </Link>
-                      <BadgeCheck className="h-4 w-4 shrink-0 text-[#1b61c9]" aria-label="Company account" />
+                      <BadgeCheck className="h-4 w-4 shrink-0 text-[#1968E5]" aria-label="Company account" />
                     </div>
-                    <p className="truncate text-[11px] text-slate-500">
+                    <p className="truncate text-[11px] text-[#5A6472]">
                       {project.company.location || "Remote"}
                       {project.domain ? ` • ${project.domain}` : ""}
                     </p>
@@ -304,10 +304,10 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                     className="aspect-[4/3] w-full object-cover sm:aspect-[16/9]"
                   />
                 ) : (
-                  <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 sm:aspect-[21/9]">
+                  <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-[#EDEFF2] via-[#F7F8FA] to-[#E2E5EA] sm:aspect-[21/9]">
                     <div className="px-6 text-center">
-                      <Compass className="mx-auto h-7 w-7 text-slate-400" />
-                      <p className="mt-2 line-clamp-2 text-sm font-black text-slate-600">{project.title}</p>
+                      <Compass className="mx-auto h-7 w-7 text-[#8A94A3]" />
+                      <p className="mt-2 line-clamp-2 text-sm font-black text-[#5A6472]">{project.title}</p>
                     </div>
                   </div>
                 )}
@@ -333,7 +333,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
 
                   <h3 className="text-base font-bold leading-snug text-[#181d26]">{project.title}</h3>
 
-                  <p className="line-clamp-3 text-xs leading-relaxed text-slate-600">
+                  <p className="line-clamp-3 text-xs leading-relaxed text-[#5A6472]">
                     {getProjectDescriptionText(project.description)}
                   </p>
 
@@ -347,7 +347,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-3 sm:px-5">
+                <div className="flex items-center gap-2 border-t border-[#E2E5EA] px-4 py-3 sm:px-5">
                   <button
                     onClick={async () => {
                       try {
@@ -360,7 +360,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                     className={`shrink-0 cursor-pointer rounded-xl border p-2 transition-all ${
                       savedProjectIds.includes(project.id)
                         ? "border-amber-300 bg-amber-50 text-amber-600"
-                        : "border-slate-200 bg-white text-slate-400 hover:border-slate-400 hover:text-slate-600"
+                        : "border-[#E2E5EA] bg-white text-[#8A94A3] hover:border-[#8A94A3] hover:text-[#5A6472]"
                     }`}
                     title={savedProjectIds.includes(project.id) ? "Unsave Project" : "Save Project"}
                   >

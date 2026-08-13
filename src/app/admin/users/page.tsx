@@ -15,7 +15,7 @@ export default async function AdminUsersPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
             User Directory
           </h1>
-          <p className="text-xs text-[#41454d] font-normal mt-1">
+          <p className="text-xs text-[#5A6472] font-normal mt-1">
             Review, promote, or remove accounts registered on the Talentra platform
           </p>
         </div>

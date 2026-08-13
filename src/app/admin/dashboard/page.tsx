@@ -46,7 +46,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       {/* Greeting Header */}
       <div className="bg-transparent">
-        <span className="text-[10px] font-medium text-[#41454d] tracking-wider uppercase">
+        <span className="text-[10px] font-medium text-[#5A6472] tracking-wider uppercase">
           Administration
         </span>
         <h1 className="text-3xl font-normal text-[#181d26] tracking-tight mt-0.5">
@@ -59,63 +59,63 @@ export default async function AdminDashboardPage() {
 
       {/* Grid summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <Users className="h-5 w-5 text-[#181d26]" />
             </div>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{totalUsers}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Total Users</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Total Users</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <UserSquare2 className="h-5 w-5 text-[#181d26]" />
             </div>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{totalFreelancers}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Freelancers</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Freelancers</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <Building2 className="h-5 w-5 text-[#181d26]" />
             </div>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{totalCompanies}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Companies</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Companies</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <FolderKanban className="h-5 w-5 text-[#181d26]" />
             </div>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{openProjects}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Active Gigs</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Active Gigs</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#dddddd] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#f8fafc] border border-[#dddddd] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
               <FolderKanban className="h-5 w-5 text-[#181d26]" />
             </div>
           </div>
           <div>
             <p className="text-3xl font-normal text-[#181d26] leading-none">{completedProjects}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#41454d] uppercase mt-2">Completed contracts</p>
+            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Completed contracts</p>
           </div>
         </Card>
       </div>
@@ -137,13 +137,13 @@ export default async function AdminDashboardPage() {
 
           <div className="space-y-3">
             {logs.length === 0 ? (
-              <Card className="p-5 text-center text-xs text-[#41454d] bg-white border border-[#dddddd] rounded-[12px]">
+              <Card className="p-5 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
                 No system activity logs recorded yet.
               </Card>
             ) : (
               logs.map((log) => (
-                <Card key={log.id} className="p-4 border-[#dddddd] bg-white text-xs space-y-2 shadow-xs rounded-[10px]">
-                  <div className="flex justify-between items-center text-[10px] text-[#41454d] font-medium uppercase">
+                <Card key={log.id} className="p-4 border-[#E2E5EA] bg-white text-xs space-y-2 shadow-xs rounded-[10px]">
+                  <div className="flex justify-between items-center text-[10px] text-[#5A6472] font-medium uppercase">
                     <span>{log.admin.name}</span>
                     <span>
                       {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

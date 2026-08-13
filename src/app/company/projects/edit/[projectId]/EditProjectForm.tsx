@@ -390,7 +390,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
   };
 
   return (
-    <Card className="p-8 bg-white border border-slate-100 shadow-md rounded-3xl">
+    <Card className="p-8 bg-white border border-[#EDEFF2] shadow-md rounded-3xl">
       {error && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800 mb-6">
           {error}
@@ -398,7 +398,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
       )}
 
       {/* Tabs Toolbar */}
-      <div className="flex border-b border-slate-100 pb-3 mb-6 gap-2 overflow-x-auto">
+      <div className="flex border-b border-[#EDEFF2] pb-3 mb-6 gap-2 overflow-x-auto">
         {[
           { key: "core", label: "1. Core Details", icon: Award },
           { key: "scope", label: "2. Scope & Skills", icon: ClipboardList },
@@ -414,7 +414,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === tab.key
                   ? "bg-[#181d26] text-white shadow-sm"
-                  : "bg-slate-50 border border-slate-100 text-slate-500 hover:bg-slate-100"
+                  : "bg-[#F7F8FA] border border-[#EDEFF2] text-[#5A6472] hover:bg-[#EDEFF2]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -553,7 +553,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#333840] font-bold">Scope Overview / Objectives Text *</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
                 placeholder="Detailed objectives, business targets, and engineering stacks..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -565,7 +565,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Required Skills */}
               <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-slate-600">Required Primary Skills *</label>
+                <label className="block text-xs font-bold text-[#5A6472]">Required Primary Skills *</label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type and press Add (e.g. react, typescript)"
@@ -584,20 +584,20 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                     variant="outline"
                     onClick={() => handleAddRequiredSkill(newReqSkill)}
                     disabled={loading}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-slate-50"
+                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F7F8FA]"
                   >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {requiredSkills.length === 0 ? (
-                    <span className="text-[10px] text-slate-400 italic">No required skills added.</span>
+                    <span className="text-[10px] text-[#8A94A3] italic">No required skills added.</span>
                   ) : (
                     requiredSkills.map((s) => (
                       <Badge
                         key={s}
                         variant="primary"
-                        className="bg-[#1b61c9]/10 text-[#181d26] border border-[#1b61c9]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#1968E5]/10 text-[#181d26] border border-[#1968E5]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
                       >
                         {s}
                         <button
@@ -615,7 +615,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
 
               {/* Preferred Skills */}
               <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-slate-600">Preferred Secondary Skills</label>
+                <label className="block text-xs font-bold text-[#5A6472]">Preferred Secondary Skills</label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type and press Add (e.g. docker, aws)"
@@ -634,20 +634,20 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                     variant="outline"
                     onClick={() => handleAddPreferredSkill(newPrefSkill)}
                     disabled={loading}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-slate-50"
+                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F7F8FA]"
                   >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {preferredSkills.length === 0 ? (
-                    <span className="text-[10px] text-slate-400 italic">No preferred skills added.</span>
+                    <span className="text-[10px] text-[#8A94A3] italic">No preferred skills added.</span>
                   ) : (
                     preferredSkills.map((s) => (
                       <Badge
                         key={s}
                         variant="neutral"
-                        className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#EDEFF2] text-[#333840] border border-[#E2E5EA] px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
                       >
                         {s}
                         <button
@@ -667,7 +667,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             {/* Sub builders for Lists */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-600">Objectives List</span>
+                <span className="block text-xs font-bold text-[#5A6472]">Objectives List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Integrate Neon Cloud database"
@@ -691,7 +691,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 </div>
                 <div className="space-y-1.5">
                   {objectives.map((o, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
                       <span className="truncate">{o}</span>
                       <button type="button" onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -702,7 +702,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-600">Key Deliverables List</span>
+                <span className="block text-xs font-bold text-[#5A6472]">Key Deliverables List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. React code cleanups"
@@ -726,7 +726,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 </div>
                 <div className="space-y-1.5">
                   {deliverables.map((d, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
                       <span className="truncate">{d}</span>
                       <button type="button" onClick={() => setDeliverables(deliverables.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -737,7 +737,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-600">Daily Responsibilities List</span>
+                <span className="block text-xs font-bold text-[#5A6472]">Daily Responsibilities List</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Write clean code"
@@ -761,7 +761,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 </div>
                 <div className="space-y-1.5">
                   {responsibilities.map((r, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
                       <span className="truncate">{r}</span>
                       <button type="button" onClick={() => setResponsibilities(responsibilities.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -772,7 +772,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-slate-600">Daily Routine Tasks</span>
+                <span className="block text-xs font-bold text-[#5A6472]">Daily Routine Tasks</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Standup updates"
@@ -796,7 +796,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 </div>
                 <div className="space-y-1.5">
                   {dailyTasks.map((t, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
                       <span className="truncate">{t}</span>
                       <button type="button" onClick={() => setDailyTasks(dailyTasks.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -847,7 +847,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                     onChange={(e) => setEstimatedHours(Number(e.target.value))}
                     disabled={loading}
                   />
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] px-3 py-2 text-xs text-[#5A6472]">
                     Estimated Total:{" "}
                     <strong className="text-[#181d26]">
                       {getCurrencySymbol(currency)}
@@ -876,38 +876,38 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 </>
               )}
               {compensationType === "FIXED" && (
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <label className="flex items-center gap-2 text-xs font-medium text-[#333840]">
                   <input
                     type="checkbox"
                     checked={budgetNegotiable}
                     onChange={(e) => setBudgetNegotiable(e.target.checked)}
                     disabled={loading}
-                    className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                    className="h-4 w-4 cursor-pointer rounded border-[#C7CCD4]"
                   />
                   Budget is negotiable
                 </label>
               )}
               {compensationType === "MILESTONE" && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] px-3 py-2 text-xs text-[#5A6472]">
                   Total is derived from the milestone values defined for this project.
                 </div>
               )}
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+              <label className="flex items-center gap-2 text-xs font-medium text-[#333840]">
                 <input
                   type="checkbox"
                   checked={certificateIncluded}
                   onChange={(e) => setCertificateIncluded(e.target.checked)}
                     disabled={loading}
-                  className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                  className="h-4 w-4 cursor-pointer rounded border-[#C7CCD4]"
                 />
                 Certificate Included
               </label>
               {certificateIncluded && (
-                <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-600">
+                <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#E2E5EA] bg-[#F7F8FA] px-4 py-3 text-[11px] text-[#5A6472]">
                   <span>Your certificate can be customized on the certificate design page.</span>
                   <Link
                     href={`/company/projects/${project.id}/certificate`}
-                    className="font-semibold text-[#1b61c9] hover:underline"
+                    className="font-semibold text-[#1968E5] hover:underline"
                   >
                     Design Certificate →
                   </Link>
@@ -999,7 +999,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             </div>
 
             {/* TIMELINES AS SELECTABLE HTML DATES */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#EDEFF2] pt-4">
               <Input
                 label="Application Deadline Date *"
                 type="date"
@@ -1026,13 +1026,13 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         )}        {/* Tab 4: Recruitment Rounds Builder */}
         {activeTab === "questions" && (
           <div className="space-y-6 text-left">
-            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+            <p className="text-xs text-[#5A6472] font-semibold leading-relaxed">
               Organize the hiring process for this project. Define evaluation steps such as CV screening, questionnaire tests, and coding challenges. Drag rounds to reorder them.
             </p>
 
             {/* Rounds List (HTML5 drag-and-drop) */}
             <div className="space-y-3.5 text-left">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recruitment Pipeline Timeline</h3>
+              <h3 className="text-xs font-bold text-[#5A6472] uppercase tracking-wider">Recruitment Pipeline Timeline</h3>
               <div className="space-y-2">
                 {rounds.map((round, index) => {
                   const isScreening = round.type === "SCREENING_QUESTIONS";
@@ -1048,12 +1048,12 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                       onDrop={(e) => handleDrop(e, index)}
                       className={`p-4 bg-white border rounded-2xl flex items-center justify-between gap-4 transition-all duration-200 ${
                         isSelected
-                          ? "border-[#1b61c9] shadow-md ring-1 ring-[#1b61c9]/20 bg-slate-50/10"
-                          : "border-slate-200 hover:border-slate-300 shadow-sm"
+                          ? "border-[#1968E5] shadow-md ring-1 ring-[#1968E5]/20 bg-[#F7F8FA]/10"
+                          : "border-[#E2E5EA] hover:border-[#C7CCD4] shadow-sm"
                       } cursor-grab active:cursor-grabbing`}
                     >
                       <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <div className="text-slate-400 shrink-0">
+                        <div className="text-[#8A94A3] shrink-0">
                           <GripVertical className="h-5 w-5" />
                         </div>
                         <div className="h-8 w-8 rounded-full bg-[#181d26]/5 text-[#181d26] flex items-center justify-center font-bold text-xs shrink-0">
@@ -1066,10 +1066,10 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                               {round.type.replace("_", " ")}
                             </Badge>
                             {isScreening && (
-                              <span className="text-[10px] text-slate-500 font-semibold">({questionCount} Questions)</span>
+                              <span className="text-[10px] text-[#5A6472] font-semibold">({questionCount} Questions)</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#9297a0] truncate mt-0.5">{round.description}</p>
+                          <p className="text-[10px] text-[#C7CCD4] truncate mt-0.5">{round.description}</p>
                         </div>
                       </div>
 
@@ -1108,9 +1108,9 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
             </div>
 
             {/* Form to add a new round */}
-            <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-left">
+            <div className="space-y-4 p-4.5 bg-[#F7F8FA] border border-[#E2E5EA]/60 rounded-2xl text-left">
               <h4 className="text-xs font-black text-[#181d26] flex items-center gap-1.5 font-bold">
-                <Plus className="h-4 w-4 text-[#1b61c9]" /> Add Custom Recruitment Round Step
+                <Plus className="h-4 w-4 text-[#1968E5]" /> Add Custom Recruitment Round Step
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -1140,7 +1140,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                   type="button"
                   onClick={handleAddRound}
                   disabled={loading || !newRoundName.trim()}
-                  className="cursor-pointer text-xs font-bold bg-[#181d26] hover:bg-[#001f3f] text-white"
+                  className="cursor-pointer text-xs font-bold bg-[#181d26] hover:bg-[#134FB0] text-white"
                 >
                   Create Round Step
                 </Button>
@@ -1167,28 +1167,28 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 if (!activeRound || activeRound.type !== "SCREENING_QUESTIONS") return null;
 
                 return (
-                  <div className="space-y-5 border-t border-slate-100 pt-5 text-left">
+                  <div className="space-y-5 border-t border-[#EDEFF2] pt-5 text-left">
                     <div className="space-y-1">
                       <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">
                         Configure Questions for round: &quot;{activeRound.name}&quot;
                       </h3>
-                      <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                      <p className="text-[10px] text-[#5A6472] font-semibold leading-relaxed">
                         Add evaluation questions specifically for this round. Candidates must answer these during application.
                       </p>
                     </div>
 
                     {/* Questions inside active round */}
-                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+                    <div className="divide-y divide-[#EDEFF2] border border-[#E2E5EA] rounded-2xl overflow-hidden bg-[#F7F8FA]/50">
                       {(!activeRound.questions || activeRound.questions.length === 0) ? (
-                        <p className="text-xs text-slate-400 italic p-4 text-center">No questions added yet. Add screening questions below.</p>
+                        <p className="text-xs text-[#8A94A3] italic p-4 text-center">No questions added yet. Add screening questions below.</p>
                       ) : (
                         activeRound.questions.map((q, idx) => (
                           <div key={q.id} className="flex justify-between items-center p-3.5 text-xs bg-white">
                             <div>
                               <p className="font-bold text-[#181d26]">Q{idx + 1}: {q.question}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
+                              <p className="text-[10px] text-[#5A6472] mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
                               {q.options && q.options.length > 0 && (
-                                <p className="text-[9px] text-[#1b61c9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
+                                <p className="text-[9px] text-[#1968E5] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
                               )}
                             </div>
                             <button
@@ -1205,7 +1205,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                     </div>
 
                     {/* Question Builder */}
-                    <div className="space-y-4 p-4.5 bg-slate-50 border border-slate-200/60 rounded-2xl">
+                    <div className="space-y-4 p-4.5 bg-[#F7F8FA] border border-[#E2E5EA]/60 rounded-2xl">
                       <h4 className="text-xs font-bold text-[#181d26]">Add Question to &quot;{activeRound.name}&quot;</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
@@ -1234,7 +1234,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
 
                       {newQuestionType === "MULTIPLE_CHOICE" && (
                         <div className="space-y-3">
-                          <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-bold">MCQ Options (Provide at least 2)</span>
+                          <span className="block text-xs font-bold text-[#5A6472] uppercase tracking-wider font-bold">MCQ Options (Provide at least 2)</span>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
                               label="Option 1 *"
@@ -1273,7 +1273,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                           type="button"
                           onClick={handleAddQuestionToRound}
                           disabled={loading || !newQuestionText.trim()}
-                          className="cursor-pointer text-xs font-bold bg-white text-[#181d26] border border-[#181d26]/25 hover:bg-slate-50"
+                          className="cursor-pointer text-xs font-bold bg-white text-[#181d26] border border-[#181d26]/25 hover:bg-[#F7F8FA]"
                         >
                           Add Question
                         </Button>
@@ -1287,7 +1287,7 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
         )}
 
         {/* Global Action controls */}
-        <div className="flex gap-4 pt-4 border-t border-slate-100 justify-end">
+        <div className="flex gap-4 pt-4 border-t border-[#EDEFF2] justify-end">
           <Button
             variant="outline"
             type="button"

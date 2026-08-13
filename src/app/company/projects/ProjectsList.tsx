@@ -98,19 +98,19 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
   return (
     <div className="space-y-6 text-left">
       {/* Header controls toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white border border-[#dddddd] p-6 rounded-[12px] shadow-xs">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white border border-[#E2E5EA] p-6 rounded-[12px] shadow-xs">
         <div className="text-left">
           <h1 className="text-2xl font-semibold text-[#181d26] tracking-tight">
             Manage Projects
           </h1>
-          <p className="text-xs text-[#41454d] font-normal mt-1">
+          <p className="text-xs text-[#5A6472] font-normal mt-1">
             Track, monitor, and edit active job requests posted by your team
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3.5">
           {/* View mode toggle */}
-          <div className="flex bg-[#f8fafc] border border-[#dddddd] p-1 rounded-[12px] gap-0.5 self-center">
+          <div className="flex bg-[#F7F8FA] border border-[#E2E5EA] p-1 rounded-[12px] gap-0.5 self-center">
             <button
               type="button"
               onClick={() => setViewMode("card")}
@@ -118,7 +118,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                 "px-3 py-1.5 rounded-[8px] transition-all duration-150 cursor-pointer flex items-center gap-1 text-xs font-medium",
                 viewMode === "card"
                   ? "bg-[#181d26] text-white"
-                  : "text-[#41454d] hover:text-[#181d26]"
+                  : "text-[#5A6472] hover:text-[#181d26]"
               )}
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Cards
@@ -130,7 +130,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                 "px-3 py-1.5 rounded-[8px] transition-all duration-150 cursor-pointer flex items-center gap-1 text-xs font-medium",
                 viewMode === "table"
                   ? "bg-[#181d26] text-white"
-                  : "text-[#41454d] hover:text-[#181d26]"
+                  : "text-[#5A6472] hover:text-[#181d26]"
               )}
             >
               <Table className="h-3.5 w-3.5" /> Table
@@ -146,15 +146,15 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
       {/* Projects List body */}
       <div className="space-y-4">
         {projects.length === 0 ? (
-          <Card className="p-8 text-center text-xs text-slate-500">
+          <Card className="p-8 text-center text-xs text-[#5A6472]">
             No projects posted yet. Use the button above to add one.
           </Card>
         ) : viewMode === "table" ? (
           /* Table View mode */
-          <Card className="overflow-x-auto border border-[#dddddd] bg-white shadow-xs p-5 rounded-[12px]">
+          <Card className="overflow-x-auto border border-[#E2E5EA] bg-white shadow-xs p-5 rounded-[12px]">
             <table className="w-full min-w-[860px] table-fixed border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
+                <tr className="border-b border-[#EDEFF2] text-[10px] text-[#8A94A3] font-extrabold uppercase tracking-wider">
                   <th className="w-[26%] pb-3.5 pl-2 pt-1">Project</th>
                   <th className="w-[12%] pb-3.5 pt-1 text-center">Status</th>
                   <th className="w-[11%] pb-3.5 pt-1 text-center">Visibility</th>
@@ -164,19 +164,19 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                   <th className="w-[18%] pb-3.5 pt-1 pr-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-[#EDEFF2] font-medium">
                 {projects.map((project) => {
                   const isVisLoading = loadingId === `${project.id}-visibility`;
                   return (
-                    <tr key={project.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={project.id} className="hover:bg-[#F7F8FA]/50 transition-colors">
                       {/* Title & Date */}
                       <td className="py-4 align-middle pl-2 text-left pr-3">
                         <Link href={`/company/projects/${project.id}`}>
-                          <button className="font-bold text-[#181d26] hover:text-[#41454d] hover:underline cursor-pointer block text-left truncate max-w-[200px]">
+                          <button className="font-bold text-[#181d26] hover:text-[#5A6472] hover:underline cursor-pointer block text-left truncate max-w-[200px]">
                             {project.title}
                           </button>
                         </Link>
-                        <span className="text-[9px] text-slate-400 block font-semibold">Posted {new Date(project.createdAt).toLocaleDateString()}</span>
+                        <span className="text-[9px] text-[#8A94A3] block font-semibold">Posted {new Date(project.createdAt).toLocaleDateString()}</span>
                       </td>
 
                       {/* Status */}
@@ -190,7 +190,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                           {project.isVisible ? (
                             <Badge variant="neutral" className="bg-[#181d26] text-white border-[#181d26] py-0 px-2 text-[9px]">Public</Badge>
                           ) : (
-                            <Badge variant="neutral" className="bg-slate-100 text-slate-500 border-slate-200 py-0 px-2 text-[9px]">Private</Badge>
+                            <Badge variant="neutral" className="bg-[#EDEFF2] text-[#5A6472] border-[#E2E5EA] py-0 px-2 text-[9px]">Private</Badge>
                           )}
                           <button
                             disabled={loadingId !== null}
@@ -203,7 +203,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                       </td>
 
                       {/* Budget */}
-                      <td className="py-4 align-middle text-center font-bold text-slate-700">
+                      <td className="py-4 align-middle text-center font-bold text-[#333840]">
                         {formatProjectBudget(project)}
                       </td>
 
@@ -253,7 +253,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {projects.map((project) => (
               <Link key={project.id} href={`/company/projects/${project.id}`} className="group block">
-                <Card className="flex h-full flex-col overflow-hidden border border-[#dddddd] bg-white p-0 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1b61c9]/40 hover:shadow-lg rounded-[12px]">
+                <Card className="flex h-full flex-col overflow-hidden border border-[#E2E5EA] bg-white p-0 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1968E5]/40 hover:shadow-lg rounded-[12px]">
                   {/* Banner */}
                   <div className="relative">
                     {project.bannerUrl ? (
@@ -263,10 +263,10 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                         className="aspect-[16/9] w-full object-cover"
                       />
                     ) : (
-                      <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200">
+                      <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-[#EDEFF2] via-[#F7F8FA] to-[#E2E5EA]">
                         <div className="px-6 text-center">
-                          <FileText className="mx-auto h-6 w-6 text-slate-400" />
-                          <p className="mt-2 line-clamp-2 text-xs font-bold text-slate-600">{project.title}</p>
+                          <FileText className="mx-auto h-6 w-6 text-[#8A94A3]" />
+                          <p className="mt-2 line-clamp-2 text-xs font-bold text-[#5A6472]">{project.title}</p>
                         </div>
                       </div>
                     )}
@@ -275,7 +275,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                       {project.isVisible ? (
                         <Badge variant="success" className="bg-sky-50 text-sky-700 border-sky-200">Public</Badge>
                       ) : (
-                        <Badge variant="neutral" className="bg-white/90 text-slate-500 border-slate-200">Hidden</Badge>
+                        <Badge variant="neutral" className="bg-white/90 text-[#5A6472] border-[#E2E5EA]">Hidden</Badge>
                       )}
                     </div>
                   </div>
@@ -283,31 +283,31 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                   {/* Body */}
                   <div className="flex flex-1 flex-col gap-3 p-5 text-left">
                     <div>
-                      <h3 className="truncate text-sm font-semibold text-[#181d26] group-hover:text-[#41454d]">
+                      <h3 className="truncate text-sm font-semibold text-[#181d26] group-hover:text-[#5A6472]">
                         {project.title}
                       </h3>
-                      <p className="mt-0.5 text-[10px] font-medium text-[#41454d]">
+                      <p className="mt-0.5 text-[10px] font-medium text-[#5A6472]">
                         Posted {new Date(project.createdAt).toLocaleDateString()}
                       </p>
                     </div>
 
-                    <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                    <p className="line-clamp-2 text-xs leading-relaxed text-[#5A6472]">
                       {getProjectDescriptionText(project.description)}
                     </p>
 
-                    <div className="grid grid-cols-3 gap-2 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-3 py-2.5 text-[10px]">
+                    <div className="grid grid-cols-3 gap-2 rounded-[10px] border border-[#E2E5EA] bg-[#F7F8FA] px-3 py-2.5 text-[10px]">
                       <div className="min-w-0">
-                        <span className="block font-semibold uppercase tracking-wider text-slate-400">Budget</span>
+                        <span className="block font-semibold uppercase tracking-wider text-[#8A94A3]">Budget</span>
                         <span className="block truncate font-bold text-[#181d26]">{formatProjectBudget(project)}</span>
                       </div>
-                      <div className="min-w-0 border-l border-[#dddddd] pl-2">
-                        <span className="block font-semibold uppercase tracking-wider text-slate-400">Hired</span>
+                      <div className="min-w-0 border-l border-[#E2E5EA] pl-2">
+                        <span className="block font-semibold uppercase tracking-wider text-[#8A94A3]">Hired</span>
                         <span className="block font-bold text-[#181d26]">
                           {project.applications.length} / {project.freelancersLimit}
                         </span>
                       </div>
-                      <div className="min-w-0 border-l border-[#dddddd] pl-2">
-                        <span className="block font-semibold uppercase tracking-wider text-slate-400">Applicants</span>
+                      <div className="min-w-0 border-l border-[#E2E5EA] pl-2">
+                        <span className="block font-semibold uppercase tracking-wider text-[#8A94A3]">Applicants</span>
                         <span className="block font-bold text-[#181d26]">{project._count.applications}</span>
                       </div>
                     </div>

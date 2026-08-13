@@ -94,7 +94,7 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-[#41454d] hover:text-[#181d26] rounded-[6px] hover:bg-[#f8fafc] transition-colors focus:outline-none cursor-pointer text-xs font-medium"
+        className="relative p-2 text-[#5A6472] hover:text-[#181d26] rounded-[6px] hover:bg-[#F7F8FA] transition-colors focus:outline-none cursor-pointer text-xs font-medium"
         aria-label="Notifications"
         suppressHydrationWarning={true}
       >
@@ -110,15 +110,15 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
         <>
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           <div className={cn(
-            "fixed inset-x-4 top-16 md:absolute md:top-auto md:mt-2.5 md:w-96 md:max-w-none bg-white border border-[#dddddd] shadow-lg rounded-[12px] p-4 z-40 animate-in fade-in slide-in-from-top-3 duration-150",
+            "fixed inset-x-4 top-16 md:absolute md:top-auto md:mt-2.5 md:w-96 md:max-w-none bg-white border border-[#E2E5EA] shadow-lg rounded-[12px] p-4 z-40 animate-in fade-in slide-in-from-top-3 duration-150",
             align === "left" ? "md:left-0 md:right-auto" : "md:right-0 md:left-auto"
           )}>
-            <div className="flex items-center justify-between border-b border-[#dddddd] pb-2.5 mb-3">
+            <div className="flex items-center justify-between border-b border-[#E2E5EA] pb-2.5 mb-3">
               <h3 className="font-medium text-[#181d26] text-sm">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={handleReadAll}
-                  className="flex items-center gap-1 text-xs text-[#1b61c9] hover:text-[#1a3866] font-medium transition-colors cursor-pointer"
+                  className="flex items-center gap-1 text-xs text-[#1968E5] hover:text-[#1a3866] font-medium transition-colors cursor-pointer"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
                   Mark all read
@@ -128,17 +128,17 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
 
             <div className="max-h-[calc(100vh-12rem)] md:max-h-96 overflow-y-auto space-y-2 pr-1">
               {notifications.length === 0 ? (
-                <p className="text-xs text-[#41454d] text-center py-6">No notifications yet.</p>
+                <p className="text-xs text-[#5A6472] text-center py-6">No notifications yet.</p>
               ) : (
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
                     className={cn(
-                      "p-3 rounded-[8px] border transition-all flex justify-between gap-2.5 items-start cursor-pointer hover:border-[#9297a0] hover:bg-[#f8fafc]",
+                      "p-3 rounded-[8px] border transition-all flex justify-between gap-2.5 items-start cursor-pointer hover:border-[#C7CCD4] hover:bg-[#F7F8FA]",
                       notif.read
-                        ? "bg-[#f8fafc] border-[#dddddd] text-[#41454d] opacity-80"
-                        : "bg-white border-[#dddddd] text-[#181d26]"
+                        ? "bg-[#F7F8FA] border-[#E2E5EA] text-[#5A6472] opacity-80"
+                        : "bg-white border-[#E2E5EA] text-[#181d26]"
                     )}
                   >
                     <div className="flex-1 min-w-0">
@@ -151,7 +151,7 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
                       <p className="text-xs text-[#333840] mt-1 leading-relaxed font-normal break-words">
                         {notif.message}
                       </p>
-                      <p className="text-[9px] text-[#41454d] font-medium uppercase tracking-wider mt-1.5">
+                      <p className="text-[9px] text-[#5A6472] font-medium uppercase tracking-wider mt-1.5">
                         {new Date(notif.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -164,7 +164,7 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
                           e.stopPropagation(); // Prevent card redirect click
                           handleRead(notif.id);
                         }}
-                        className="p-1 rounded bg-[#f8fafc] text-[#181d26] border border-[#dddddd] hover:bg-slate-100 cursor-pointer shrink-0 transition-colors"
+                        className="p-1 rounded bg-[#F7F8FA] text-[#181d26] border border-[#E2E5EA] hover:bg-[#EDEFF2] cursor-pointer shrink-0 transition-colors"
                         title="Mark as read"
                       >
                         <Check className="h-3 w-3" />

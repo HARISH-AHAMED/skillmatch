@@ -14,7 +14,7 @@ export default function FeaturesPage() {
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
             How Talentra Redefines Hiring
           </h1>
-          <p className="text-slate-400 text-sm mt-3 max-w-xl mx-auto">
+          <p className="text-[#8A94A3] text-sm mt-3 max-w-xl mx-auto">
             Leverage advanced mathematical scoring models to instantly bridge the gap between job listings and freelancer skill profiles.
           </p>
         </div>
@@ -25,7 +25,7 @@ export default function FeaturesPage() {
               <BrainCircuit className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Matching Algorithms</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               Analyzes skills (50%), experience requirements (20%), ratings (15%), project completions (10%), and urgency factors (5%) to calculate match percentages.
             </p>
           </Card>
@@ -35,7 +35,7 @@ export default function FeaturesPage() {
               <Laptop className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Tailored Gateways</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               Companies can post listings and evaluate ranked lists, freelancers can track their applications, and admins monitor reviews and platform logs.
             </p>
           </Card>
@@ -45,7 +45,7 @@ export default function FeaturesPage() {
               <Filter className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Granular Filters</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               Quickly locate relevant matches utilizing robust search matrices incorporating skills, rating scale ranges, budgets, and priority tags.
             </p>
           </Card>
@@ -55,7 +55,7 @@ export default function FeaturesPage() {
               <BellRing className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Status Notifications</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               Receive live alerts regarding application status changes, shortlisting decisions, project assignments, and incoming user ratings.
             </p>
           </Card>
@@ -65,7 +65,7 @@ export default function FeaturesPage() {
               <Trophy className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Quality Assured</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               We verify and index freelancer experience and reviews, computing verified average metrics to secure platform capability.
             </p>
           </Card>
@@ -75,7 +75,7 @@ export default function FeaturesPage() {
               <Sparkles className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold">Glassmorphism UI</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#8A94A3] leading-relaxed">
               Enjoy a modern user experience with fully responsive translucent card layouts, glowing overlays, and animations.
             </p>
           </Card>

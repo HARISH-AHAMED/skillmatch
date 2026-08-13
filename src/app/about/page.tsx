@@ -14,7 +14,7 @@ export default function AboutPage() {
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
             Connecting Talent and Tech
           </h1>
-          <p className="text-slate-400 text-sm mt-3 max-w-xl mx-auto">
+          <p className="text-[#8A94A3] text-sm mt-3 max-w-xl mx-auto">
             Our goal is to build an intelligent, frictionless marketplace where freelancers find great projects and companies build faster.
           </p>
         </div>
@@ -26,7 +26,7 @@ export default function AboutPage() {
             </div>
             <div>
               <h3 className="text-lg font-bold">Our Vision</h3>
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              <p className="text-xs text-[#8A94A3] mt-1.5 leading-relaxed">
                 Traditional hiring is broken. Resume screens, search pages, and static filters result in wasted resources and bad matches. We envision a future where skills, ratings, completions, and experience are computed in real-time to curate highly personalized top-10 recommended candidates.
               </p>
             </div>
@@ -40,7 +40,7 @@ export default function AboutPage() {
             </div>
             <div>
               <h3 className="text-lg font-bold">Engineering Philosophy</h3>
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              <p className="text-xs text-[#8A94A3] mt-1.5 leading-relaxed">
                 We design and build systems using Next.js 15, PostgreSQL, and strict type safety, delivering clean, glassmorphic layout modules and fast performance metrics.
               </p>
             </div>

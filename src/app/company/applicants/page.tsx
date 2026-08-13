@@ -108,7 +108,7 @@ export default async function CompanyApplicantsPage({ searchParams }: PageProps)
 
   if (!company) {
     return (
-      <div className="p-8 text-center bg-white border border-slate-100 shadow-sm rounded-2xl text-slate-500 text-xs">
+      <div className="p-8 text-center bg-white border border-[#EDEFF2] shadow-sm rounded-2xl text-[#5A6472] text-xs">
         Complete your company profile to review applicants.
       </div>
     );
@@ -124,7 +124,7 @@ export default async function CompanyApplicantsPage({ searchParams }: PageProps)
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Review Proposals
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#5A6472] mt-1">
           Evaluate applications ranked automatically by our AI recommendation engine
         </p>
       </div>

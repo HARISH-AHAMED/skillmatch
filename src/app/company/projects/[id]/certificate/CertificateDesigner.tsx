@@ -41,7 +41,7 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/company/projects/${projectId}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#181d26]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A6472] hover:text-[#181d26]"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to project
         </Link>
@@ -76,7 +76,7 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
       )}
 
       {fullPreview ? (
-        <Card className="bg-slate-100 p-4 sm:p-8">
+        <Card className="bg-[#EDEFF2] p-4 sm:p-8">
           <CertificatePreview config={config} data={data} />
         </Card>
       ) : (
@@ -88,11 +88,11 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
           </Card>
 
           <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
-            <span className="block text-xs font-semibold text-slate-700">Live Preview</span>
-            <Card className="bg-slate-100 p-3 sm:p-5">
+            <span className="block text-xs font-semibold text-[#333840]">Live Preview</span>
+            <Card className="bg-[#EDEFF2] p-3 sm:p-5">
               <CertificatePreview config={config} data={data} />
             </Card>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#5A6472]">
               Recipient, project, role, skills, completion date, certificate ID and company name are filled
               automatically from Talentra and cannot be typed in manually.
             </p>

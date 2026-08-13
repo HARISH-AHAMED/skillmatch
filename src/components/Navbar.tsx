@@ -13,7 +13,7 @@ export async function Navbar() {
     : "/login";
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#dddddd]">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E2E5EA]">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">

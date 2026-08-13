@@ -84,7 +84,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
     return `flex items-center gap-2 px-6 py-3 border-b-2 font-semibold text-xs transition-all duration-200 cursor-pointer ${
       isActive
         ? "border-[#181d26] text-[#181d26] bg-[#181d26]/5 font-bold"
-        : "border-transparent text-slate-500 hover:text-[#181d26] hover:bg-slate-50"
+        : "border-transparent text-[#5A6472] hover:text-[#181d26] hover:bg-[#F7F8FA]"
     }`;
   };
 
@@ -97,7 +97,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
       )}
 
       {/* Tabs Switcher */}
-      <div className="flex border-b border-slate-200 bg-white rounded-t-xl overflow-hidden shadow-sm">
+      <div className="flex border-b border-[#E2E5EA] bg-white rounded-t-xl overflow-hidden shadow-sm">
         <button
           onClick={() => setActiveTab(Role.FREELANCER)}
           className={tabClass(Role.FREELANCER)}
@@ -106,7 +106,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.FREELANCER 
               ? "bg-[#181d26] text-white" 
-              : "bg-slate-100 text-slate-600"
+              : "bg-[#EDEFF2] text-[#5A6472]"
           }`}>
             {freelancers.length}
           </span>
@@ -119,7 +119,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.COMPANY 
               ? "bg-[#181d26] text-white" 
-              : "bg-slate-100 text-slate-600"
+              : "bg-[#EDEFF2] text-[#5A6472]"
           }`}>
             {companies.length}
           </span>
@@ -132,26 +132,26 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
           <span className={`px-2 py-0.5 rounded-full text-[10px] ${
             activeTab === Role.ADMIN 
               ? "bg-[#181d26] text-white" 
-              : "bg-slate-100 text-slate-600"
+              : "bg-[#EDEFF2] text-[#5A6472]"
           }`}>
             {admins.length}
           </span>
         </button>
       </div>
 
-      <Card className="p-0 overflow-hidden bg-white border border-slate-100 shadow-sm rounded-b-xl rounded-t-none">
+      <Card className="p-0 overflow-hidden bg-white border border-[#EDEFF2] shadow-sm rounded-b-xl rounded-t-none">
         <div className="overflow-x-auto">
           {activeUsers.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
-              <Users className="h-8 w-8 text-slate-300 mb-3" />
-              <p className="text-slate-500 font-medium text-xs">
+              <Users className="h-8 w-8 text-[#C7CCD4] mb-3" />
+              <p className="text-[#5A6472] font-medium text-xs">
                 No users found under this tab.
               </p>
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                <tr className="border-b border-[#E2E5EA] bg-[#F7F8FA] text-[#5A6472] font-bold uppercase tracking-wider">
                   <th className="p-4">Name</th>
                   <th className="p-4">Email</th>
                   <th className="p-4">Registered</th>
@@ -159,9 +159,9 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#EDEFF2]">
                 {activeUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/50 text-slate-600">
+                  <tr key={u.id} className="hover:bg-[#F7F8FA]/50 text-[#5A6472]">
                     <td className="p-4 font-bold text-[#181d26]">
                       {u.name || "Anonymous User"}
                     </td>
@@ -180,7 +180,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
                             onChange={(e) =>
                               handleRoleChange(u.id, e.target.value as Role)
                             }
-                            className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:border-[#181d26] text-slate-800 cursor-pointer disabled:opacity-50"
+                            className="px-2 py-1 bg-white border border-[#E2E5EA] rounded-lg text-[10px] focus:outline-none focus:border-[#181d26] text-[#181D26] cursor-pointer disabled:opacity-50"
                           >
                             <option value="ADMIN">Admin</option>
                             <option value="COMPANY">Company</option>

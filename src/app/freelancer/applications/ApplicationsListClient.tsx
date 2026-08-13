@@ -35,7 +35,7 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
       case "HIRED": return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "SHORTLISTED": return "bg-sky-100 text-sky-800 border-sky-200";
       case "REJECTED": return "bg-rose-100 text-rose-800 border-rose-200";
-      default: return "bg-slate-100 text-slate-600 border-slate-200";
+      default: return "bg-[#EDEFF2] text-[#5A6472] border-[#E2E5EA]";
     }
   };
 
@@ -78,7 +78,7 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
 
   if (applications.length === 0) {
     return (
-      <Card className="p-8 text-center text-xs text-slate-500">
+      <Card className="p-8 text-center text-xs text-[#5A6472]">
         No active project applications submitted yet.
       </Card>
     );
@@ -88,17 +88,17 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
     <div className="space-y-4">
       {/* View toggle toolbar */}
       <div className="flex items-center justify-between text-left">
-        <p className="text-xs text-[#41454d] font-normal">{applications.length} application{applications.length !== 1 ? "s" : ""} found</p>
-        <div className="flex items-center gap-1 bg-[#f8fafc] border border-[#dddddd] p-1 rounded-[12px]">
+        <p className="text-xs text-[#5A6472] font-normal">{applications.length} application{applications.length !== 1 ? "s" : ""} found</p>
+        <div className="flex items-center gap-1 bg-[#F7F8FA] border border-[#E2E5EA] p-1 rounded-[12px]">
           <button
             onClick={() => setViewMode("card")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "card" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "card" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"}`}
           >
             <LayoutGrid className="h-3.5 w-3.5" /> Cards
           </button>
           <button
             onClick={() => setViewMode("table")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "table" ? "bg-[#181d26] text-white" : "text-[#41454d] hover:text-[#181d26]"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${viewMode === "table" ? "bg-[#181d26] text-white" : "text-[#5A6472] hover:text-[#181d26]"}`}
           >
             <List className="h-3.5 w-3.5" /> Table
           </button>
@@ -116,11 +116,11 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
 
       {/* ═══ TABLE VIEW ═══ */}
       {viewMode === "table" && (
-        <Card className="p-0 border-slate-200/60 overflow-hidden">
+        <Card className="p-0 border-[#E2E5EA]/60 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs whitespace-nowrap min-w-[900px]">
               <thead>
-                <tr className="bg-[#f8faff] border-b border-slate-200">
+                <tr className="bg-[#f8faff] border-b border-[#E2E5EA]">
                   <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Project</th>
                   <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Company</th>
                   <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Stage</th>
@@ -132,21 +132,21 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                   <th className="px-4 py-3 text-left font-black text-[#181d26] uppercase tracking-wider text-[10px]">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#EDEFF2]">
                 {applications.map((app) => {
                   const stage = getActiveStage(app);
                   const pendingOffer = hasOffer(app);
                   const scheduledInterview = hasInterview(app);
                   return (
-                    <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={app.id} className="hover:bg-[#F7F8FA]/70 transition-colors">
                       {/* Project */}
                       <td className="px-4 py-3 text-left">
                         <p className="font-bold text-[#181d26] truncate max-w-[160px]">{app.project.title}</p>
                       </td>
                       {/* Company */}
                       <td className="px-4 py-3 text-left">
-                        <p className="font-semibold text-slate-700 truncate max-w-[120px]">{app.project.company.companyName}</p>
-                        <p className="text-[10px] text-slate-400">{app.project.company.location || "Remote"}</p>
+                        <p className="font-semibold text-[#333840] truncate max-w-[120px]">{app.project.company.companyName}</p>
+                        <p className="text-[10px] text-[#8A94A3]">{app.project.company.location || "Remote"}</p>
                       </td>
                       {/* Stage */}
                       <td className="px-4 py-3 text-left">
@@ -162,14 +162,14 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                       </td>
                       {/* Budget */}
                       <td className="px-4 py-3 text-left">
-                        <span className="font-bold text-slate-700">₹{app.project.budget}</span>
+                        <span className="font-bold text-[#333840]">₹{app.project.budget}</span>
                       </td>
                       {/* AI Score */}
                       <td className="px-4 py-3 text-left">
                         <span className="font-black text-[#181d26]">{app.aiScore}%</span>
                       </td>
                       {/* Applied Date */}
-                      <td className="px-4 py-3 text-left text-slate-500">
+                      <td className="px-4 py-3 text-left text-[#5A6472]">
                         {new Date(app.createdAt).toLocaleDateString()}
                       </td>
                       {/* Alerts */}
@@ -205,7 +205,7 @@ export function ApplicationsListClient({ applications, currentUserId }: Applicat
                               href={[...(parseApplicationMetadata(app.coverLetter).pipelineHistory || [])].reverse().find((h: any) => h.meetingLink)?.meetingLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-[#1b61c9] hover:bg-[#154ca0] text-white font-medium rounded-[8px]"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-[#1968E5] hover:bg-[#154ca0] text-white font-medium rounded-[8px]"
                             >
                               <Video className="h-3 w-3" /> Meet
                             </a>

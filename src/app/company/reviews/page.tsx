@@ -65,7 +65,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
 
   if (!company) {
     return (
-      <div className="p-8 text-center bg-white border border-slate-100 shadow-sm rounded-2xl text-slate-500 text-xs">
+      <div className="p-8 text-center bg-white border border-[#EDEFF2] shadow-sm rounded-2xl text-[#5A6472] text-xs">
         Complete your company profile to write feedback reviews.
       </div>
     );
@@ -76,7 +76,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
       <Star
         key={i}
         className={`h-4.5 w-4.5 ${
-          i < rating ? "text-amber-400 fill-amber-400/20" : "text-slate-300"
+          i < rating ? "text-amber-400 fill-amber-400/20" : "text-[#C7CCD4]"
         }`}
       />
     ));
@@ -88,7 +88,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
           Project Reviews & Contracts
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[#5A6472] mt-1">
           Review hired freelancers on completed assignments or ongoing contracts
         </p>
       </div>
@@ -106,16 +106,16 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
           
           <div className="space-y-4">
             {submittedReviews.length === 0 ? (
-              <Card className="p-8 text-center text-xs text-slate-500 bg-white border border-slate-100 shadow-sm">
+              <Card className="p-8 text-center text-xs text-[#5A6472] bg-white border border-[#EDEFF2] shadow-sm">
                 No reviews left for freelancers yet.
               </Card>
             ) : (
               submittedReviews.map((rev) => (
-                <Card key={rev.id} className="p-5 border-slate-100 bg-white shadow-sm">
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-200 mb-3 text-xs">
+                <Card key={rev.id} className="p-5 border-[#EDEFF2] bg-white shadow-sm">
+                  <div className="flex justify-between items-center pb-2.5 border-b border-[#E2E5EA] mb-3 text-xs">
                     <div>
                       <h4 className="font-bold text-[#181d26]">{rev.project.title}</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
+                      <p className="text-[10px] text-[#5A6472] mt-0.5">
                         Reviewed Freelancer: {rev.reviewee.name}
                       </p>
                     </div>
@@ -124,7 +124,7 @@ export default async function CompanyReviewsPage({ searchParams }: PageProps) {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 italic flex gap-2">
+                  <p className="text-xs text-[#5A6472] italic flex gap-2">
                     <MessageSquareQuote className="h-4.5 w-4.5 text-[#181d26]/70 shrink-0 mt-0.5" />
                     &quot;{rev.comment}&quot;
                   </p>

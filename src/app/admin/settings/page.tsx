@@ -11,15 +11,15 @@ export default function AdminSettingsPage() {
         <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26] font-sans">
           Platform Settings
         </h1>
-        <p className="text-xs text-slate-500 mt-1 font-sans">
+        <p className="text-xs text-[#5A6472] mt-1 font-sans">
           Configure matching factors thresholds and core API settings
         </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        <Card className="p-8 bg-white border border-slate-100 shadow-sm space-y-6">
+        <Card className="p-8 bg-white border border-[#EDEFF2] shadow-sm space-y-6">
           <h2 className="text-sm font-bold text-[#181d26] flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-[#1b61c9]" />
+            <Sparkles className="h-4.5 w-4.5 text-[#1968E5]" />
             AI recommendation Weights
           </h2>
 
@@ -36,9 +36,9 @@ export default function AdminSettingsPage() {
           </Button>
         </Card>
 
-        <Card className="p-8 bg-white border border-slate-100 shadow-sm space-y-6">
+        <Card className="p-8 bg-white border border-[#EDEFF2] shadow-sm space-y-6">
           <h2 className="text-sm font-bold text-[#181d26] flex items-center gap-2">
-            <Shield className="h-4.5 w-4.5 text-[#1b61c9]" />
+            <Shield className="h-4.5 w-4.5 text-[#1968E5]" />
             System Configurations
           </h2>
 
