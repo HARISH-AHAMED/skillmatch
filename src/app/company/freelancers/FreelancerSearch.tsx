@@ -4,8 +4,10 @@ import React, { useState, useTransition, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
 import { Input } from "@/components/ui/Input";
 import {
   Search,
@@ -30,7 +32,7 @@ import {
   Video,
   Heart,
   LayoutGrid,
-  Table,
+  Table as TableIcon,
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -200,7 +202,7 @@ function StarRating({ rating }: { rating: number }) {
           }`}
         />
       ))}
-      <span className="text-[10px] font-bold text-body ml-1">{rating.toFixed(1)}</span>
+      <span className="text-[11px] font-bold text-body ml-1">{rating.toFixed(1)}</span>
     </div>
   );
 }
@@ -359,38 +361,35 @@ export function FreelancerSearch({
           <p className="text-xs text-muted font-normal mt-1">Connect with verified top-tier freelancers and remote specialists.</p>
         </div>
         {/* Tabs as sleek pills */}
-        <div className="flex w-fit shrink-0 gap-3">
-          <button
-            onClick={() => setActiveTab("search")}
-            className={`flex items-center gap-2 rounded-[10px] border px-5 py-2.5 text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "search"
-                ? "border-[#181d26] bg-[#181d26] text-white"
-                : "border-[#E2E5EA] bg-white text-[#5A6472] hover:text-[#181d26]"
-            }`}
-          >
-            <Search className="h-3.5 w-3.5" />
-            Search
-          </button>
-          <button
-            onClick={() => setActiveTab("saved")}
-            className={`flex items-center gap-2 rounded-[10px] border px-5 py-2.5 text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "saved"
-                ? "border-[#181d26] bg-[#181d26] text-white"
-                : "border-[#E2E5EA] bg-white text-[#5A6472] hover:text-[#181d26]"
-            }`}
-          >
-            <Heart className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-danger text-danger" : "text-muted"}`} />
-            Bookmarks ({savedList.length})
-          </button>
-        </div>
+        <Tabs
+          label="Talent views"
+          variant="pill"
+          value={activeTab}
+          onChange={(id) => setActiveTab(id as any)}
+          className="w-fit shrink-0"
+          items={[
+            { id: "search", label: "Search", icon: <Search className="h-3.5 w-3.5" aria-hidden="true" /> },
+            {
+              id: "saved",
+              label: "Bookmarks",
+              count: savedList.length,
+              icon: (
+                <Heart
+                  className={`h-3.5 w-3.5 ${activeTab === "saved" ? "fill-current" : ""}`}
+                  aria-hidden="true"
+                />
+              ),
+            },
+          ]}
+        />
       </div>
 
       {activeTab === "search" && (
         <div className="space-y-4">
           {/* Sticky search header — results scroll underneath, never behind it */}
-          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#E2E5EA] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
+          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#E3E5EA] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
           {/* Search Bar + Sort + Filter toggle row */}
-          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-[12px] border border-[#E2E5EA] shadow-xs">
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-lg border border-[#E3E5EA]">
             {/* Keyword search */}
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
@@ -400,7 +399,7 @@ export function FreelancerSearch({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && commitSearch({ q: e.currentTarget.value })}
-                className="w-full pl-10 pr-10 py-2 rounded-[6px] text-xs bg-white border border-[#E2E5EA] text-ink focus:border-focus transition-all focus:outline-none"
+                className="w-full pl-10 pr-10 py-2 rounded-md text-xs bg-white border border-[#C7CBD6] text-ink focus:border-focus transition-all focus:outline-none"
               />
               {q && (
                 <button
@@ -417,7 +416,7 @@ export function FreelancerSearch({
               <select
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); commitSearch({ sortBy: e.target.value }); }}
-                className="w-full lg:w-auto pl-4 pr-9 py-2 rounded-[6px] text-xs font-medium bg-white border border-[#E2E5EA] text-ink focus:border-focus cursor-pointer appearance-none focus:outline-none min-w-[160px]"
+                className="w-full lg:w-auto pl-4 pr-9 py-2 rounded-md text-xs font-medium bg-white border border-[#E3E5EA] text-ink focus:border-focus cursor-pointer appearance-none focus:outline-none min-w-[160px]"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -429,7 +428,7 @@ export function FreelancerSearch({
             {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[12px] text-xs font-medium border transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs font-medium border transition-all cursor-pointer shrink-0 ${
                 showFilters
                   ? "bg-ink text-white border-ink"
                   : "bg-white text-ink border-hairline hover:bg-surface-soft"
@@ -438,7 +437,7 @@ export function FreelancerSearch({
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span>Filters</span>
               {activeFilterCount > 0 && (
-                <span className={`h-4.5 w-4.5 rounded-full text-[9px] font-semibold flex items-center justify-center ${
+                <span className={`h-4.5 w-4.5 rounded-full text-[11px] font-semibold flex items-center justify-center ${
                   showFilters ? "bg-white text-ink" : "bg-ink text-white"
                 }`}>
                   {activeFilterCount}
@@ -450,7 +449,7 @@ export function FreelancerSearch({
             <button
               onClick={() => commitSearch()}
               disabled={isPending}
-              className="px-6 py-2.5 rounded-[10px] text-xs font-semibold bg-[#1968E5] hover:bg-[#1751a8] text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
+              className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#EAF1FE] hover:bg-[#E8F1FE] text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
             >
               <Search className="h-3.5 w-3.5" />
               {isPending ? "Searching..." : "Search"}
@@ -459,7 +458,7 @@ export function FreelancerSearch({
 
           {/* Expanded filter panel */}
           {showFilters && (
-            <div className="bg-white border border-[#E2E5EA] rounded-2xl p-5 shadow-xs space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-white border border-[#E3E5EA] rounded-lg p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-ink" />
@@ -468,7 +467,7 @@ export function FreelancerSearch({
                 {activeFilterCount > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="text-[10px] font-bold text-danger hover:text-danger flex items-center gap-1 cursor-pointer transition-colors border-none bg-transparent"
+                    className="text-[11px] font-bold text-danger hover:text-danger flex items-center gap-1 cursor-pointer transition-colors border-none bg-transparent"
                   >
                     <X className="h-3 w-3" /> Clear all filters
                   </button>
@@ -478,7 +477,7 @@ export function FreelancerSearch({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {/* Domain Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Domain
                   </label>
                   <div className="relative">
@@ -486,7 +485,7 @@ export function FreelancerSearch({
                     <select
                       value={domain}
                       onChange={(e) => { setDomain(e.target.value); commitSearch({ domain: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#E3E5EA] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {DOMAIN_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -498,7 +497,7 @@ export function FreelancerSearch({
 
                 {/* Skills Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Skills (comma-separated)
                   </label>
                   <div className="relative">
@@ -509,14 +508,14 @@ export function FreelancerSearch({
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitSearch({ skills: e.currentTarget.value })}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10"
+                      className="w-full pl-9 pr-3 py-2 rounded-md text-xs transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#C7CBD6] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10"
                     />
                   </div>
                 </div>
 
                 {/* Experience Range */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Experience Range
                   </label>
                   <div className="relative">
@@ -524,7 +523,7 @@ export function FreelancerSearch({
                     <select
                       value={expRange}
                       onChange={(e) => { setExpRange(e.target.value); commitSearch({ expRange: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#E3E5EA] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {EXP_OPTIONS.map((opt) => (
                         <option
@@ -541,7 +540,7 @@ export function FreelancerSearch({
 
                 {/* Minimum Rating */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Minimum Rating
                   </label>
                   <div className="relative">
@@ -549,7 +548,7 @@ export function FreelancerSearch({
                     <select
                       value={minRating}
                       onChange={(e) => { setMinRating(e.target.value); commitSearch({ minRating: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#E3E5EA] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {RATING_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -561,7 +560,7 @@ export function FreelancerSearch({
 
                 {/* Completed Projects */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Completed Projects
                   </label>
                   <div className="relative">
@@ -569,7 +568,7 @@ export function FreelancerSearch({
                     <select
                       value={minCompleted}
                       onChange={(e) => { setMinCompleted(e.target.value); commitSearch({ minCompleted: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#E3E5EA] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {COMPLETED_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -581,7 +580,7 @@ export function FreelancerSearch({
 
                 {/* Availability */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                     Availability Status
                   </label>
                   <div className="relative">
@@ -589,7 +588,7 @@ export function FreelancerSearch({
                     <select
                       value={availability}
                       onChange={(e) => { setAvailability(e.target.value); commitSearch({ availability: e.target.value }); }}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-surface-soft focus:bg-white border border-[#E2E5EA] text-ink focus:border-ink focus:ring-ink/10 cursor-pointer appearance-none"
+                      className="w-full pl-9 pr-8 py-2 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white focus:bg-white border border-[#E3E5EA] text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/10 cursor-pointer appearance-none"
                     >
                       {AVAILABILITY_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -603,7 +602,7 @@ export function FreelancerSearch({
               {/* Active filter pills summary */}
               {activeFilterCount > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2 border-t border-hairline">
-                  <span className="text-[9px] font-semibold text-border-strong uppercase tracking-wider self-center">Active:</span>
+                  <span className="text-[11px] font-semibold text-border-strong uppercase tracking-wider self-center">Active:</span>
                   {q && <FilterPill label={`Keyword: "${q}"`} onRemove={() => { setQ(""); commitSearch({ q: "" }); }} />}
                   {skills && <FilterPill label={`Skills: ${skills}`} onRemove={() => { setSkills(""); commitSearch({ skills: "" }); }} />}
                   {expRange && <FilterPill label={`Exp: ${EXP_OPTIONS.find(o => `${o.min}:${o.max}` === expRange)?.label || expRange}`} onRemove={() => { setExpRange(""); commitSearch({ expRange: "" }); }} />}
@@ -625,8 +624,8 @@ export function FreelancerSearch({
                 onClick={() => { setDomain(opt.value); commitSearch({ domain: opt.value }); }}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
                   domain === opt.value
-                    ? "bg-[#181d26] text-white border-[#181d26] shadow-sm"
-                    : "bg-white text-[#5A6472] border-hairline hover:border-[#181d26]/30 hover:text-[#181d26]"
+                    ? "bg-[#152C55] text-white border-[#1A1D29]"
+                    : "bg-white text-[#5B6272] border-hairline hover:border-[#1A1D29]/30 hover:text-[#1A1D29]"
                 }`}
               >
                 {opt.label}
@@ -650,38 +649,23 @@ export function FreelancerSearch({
             </div>
 
             {/* View Mode Toggle Switch */}
-            <div className="flex bg-surface-strong p-1 rounded-xl gap-0.5 self-center">
-              <button
-                type="button"
-                onClick={() => setViewMode("card")}
-                className={cn(
-                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
-                  viewMode === "card"
-                    ? "bg-white text-ink shadow-xs"
-                    : "text-muted hover:text-ink"
-                )}
-              >
-                <LayoutGrid className="h-3 w-3" /> Cards
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
-                  viewMode === "table"
-                    ? "bg-white text-ink shadow-xs"
-                    : "text-muted hover:text-ink"
-                )}
-              >
-                <Table className="h-3 w-3" /> Table
-              </button>
-            </div>
+            <Tabs
+              label="Result layout"
+              variant="pill"
+              value={viewMode}
+              onChange={(id) => setViewMode(id as any)}
+              className="self-center"
+              items={[
+                { id: "card", label: "Cards", icon: <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> },
+                { id: "table", label: "Table", icon: <TableIcon className="h-3.5 w-3.5" aria-hidden="true" /> },
+              ]}
+            />
           </div>
 
           {/* Freelancer Cards Grid / Table Grid */}
           {freelancers.length === 0 ? (
  <Card className="p-12 text-center space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-surface-strong flex items-center justify-center mx-auto">
+              <div className="h-12 w-12 rounded-lg bg-surface-strong flex items-center justify-center mx-auto">
                 <Search className="h-6 w-6 text-border-strong" />
               </div>
               <p className="text-sm font-bold text-muted">No freelancers match your current filters.</p>
@@ -695,32 +679,32 @@ export function FreelancerSearch({
             </Card>
           ) : viewMode === "table" ? (
  <Card className="overflow-x-auto p-5">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-hairline text-[10px] text-border-strong font-extrabold uppercase tracking-wider">
-                    <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
-                    <th className="pb-3.5 pt-1 text-center">Availability</th>
-                    <th className="pb-3.5 pt-1">Skills</th>
-                    <th className="pb-3.5 pt-1 text-center">Rating</th>
-                    <th className="pb-3.5 pt-1 text-center">Exp</th>
-                    <th className="pb-3.5 pt-1 text-center">Completed</th>
-                    <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline font-medium">
+              <Table className="w-full">
+                <THead>
+                  <TR>
+                    <TH>Freelancer</TH>
+                    <TH align="center">Availability</TH>
+                    <TH>Skills</TH>
+                    <TH align="center">Rating</TH>
+                    <TH align="center">Exp</TH>
+                    <TH align="center">Completed</TH>
+                    <TH align="right">Actions</TH>
+                  </TR>
+                </THead>
+                <TBody>
                   {freelancers.map((f) => {
                     const avail = getAvailabilityConfig(f.availabilityStatus);
                     const isSaved = savedIds.has(f.id);
                     return (
-                      <tr key={f.id} className="hover:bg-surface-soft/50 transition-colors">
-                        <td className="py-4 pl-2 text-left pr-3">
+                      <TR key={f.id}>
+                        <TD>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={() => f.user.image && setLightboxImage(f.user.image)}
                               disabled={!f.user.image}
                               className={cn(
-                                "h-8 w-8 rounded-lg border bg-surface-soft flex items-center justify-center font-bold text-ink text-[10px] shrink-0 overflow-hidden relative",
+                                "h-8 w-8 rounded-full border bg-surface-soft flex items-center justify-center font-bold text-ink text-[11px] shrink-0 overflow-hidden relative",
                                 f.user.image ? "cursor-zoom-in" : ""
                               )}
                             >
@@ -738,77 +722,77 @@ export function FreelancerSearch({
                               >
                                 {f.user.name}
                               </button>
-                              <span className="text-[10px] text-border-strong block truncate max-w-[150px]">
+                              <span className="text-[11px] text-border-strong block truncate max-w-[150px]">
                                 {f.professionalHeadline || "Elite Specialist"}
                               </span>
                             </div>
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center">
-                          <Badge variant="neutral" className={cn("text-[9px] py-0.5 px-2", avail.badge)}>
+                        <TD align="center">
+                          <Badge variant="neutral" className={cn("text-[11px] py-0.5 px-2", avail.badge)}>
                             <span className={cn("h-1.5 w-1.5 rounded-full mr-1 inline-block animate-pulse", avail.dot)} />
                             {avail.label}
                           </Badge>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 pr-3 text-left">
+                        <TD>
                           <div className="flex flex-wrap gap-1 max-w-[240px]">
                             {f.skills.slice(0, 3).map((s) => (
-                              <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
+                              <Badge key={s} variant="neutral" className="text-[11px] py-0 px-1">{s}</Badge>
                             ))}
                             {f.skills.length > 3 && (
-                              <span className="text-[8px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
+                              <span className="text-[11px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
                             )}
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center">
+                        <TD align="center">
                           <div className="inline-flex items-center gap-0.5 font-bold text-body">
                             <Star className="h-3.5 w-3.5 fill-star text-star" />
                             <span>{f.rating.toFixed(1)}</span>
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center font-bold text-body">
+                        <TD align="center">
                           {f.experienceYears}y
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center font-bold text-ink">
+                        <TD align="center">
                           {f.completedProjects} Jobs
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-right pr-2">
+                        <TD align="right">
                           <div className="flex items-center justify-end gap-2.5">
                             <button
                               type="button"
                               onClick={() => handleToggleSave(f)}
-                              className="p-1.5 rounded-lg hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
+                              className="p-1.5 rounded-full hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
                               title={isSaved ? "Remove bookmark" : "Bookmark"}
                             >
                               <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-danger text-danger scale-105" : "text-border-strong hover:text-danger")} />
                             </button>
 
                             <Link href={`/freelancers/${f.id}`}>
-                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[11px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
                                 Profile
                               </Button>
                             </Link>
 
                             {f.resumeUrl && (
                               <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
-                                <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
+                                <Button size="xs" variant="outline" className="cursor-pointer text-[11px] font-bold h-7 py-1 px-2">
                                   <FileText className="h-3.5 w-3.5 text-muted" />
                                 </Button>
                               </a>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </TD>
+                      </TR>
                     );
                   })}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
@@ -837,37 +821,22 @@ export function FreelancerSearch({
             </div>
 
             {/* View Mode Toggle Switch */}
-            <div className="flex bg-surface-strong p-1 rounded-xl gap-0.5 self-center">
-              <button
-                type="button"
-                onClick={() => setViewMode("card")}
-                className={cn(
-                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
-                  viewMode === "card"
-                    ? "bg-white text-ink shadow-xs"
-                    : "text-muted hover:text-ink"
-                )}
-              >
-                <LayoutGrid className="h-3 w-3" /> Cards
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold border-none bg-transparent",
-                  viewMode === "table"
-                    ? "bg-white text-ink shadow-xs"
-                    : "text-muted hover:text-ink"
-                )}
-              >
-                <Table className="h-3 w-3" /> Table
-              </button>
-            </div>
+            <Tabs
+              label="Result layout"
+              variant="pill"
+              value={viewMode}
+              onChange={(id) => setViewMode(id as any)}
+              className="self-center"
+              items={[
+                { id: "card", label: "Cards", icon: <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> },
+                { id: "table", label: "Table", icon: <TableIcon className="h-3.5 w-3.5" aria-hidden="true" /> },
+              ]}
+            />
           </div>
 
           {savedList.length === 0 ? (
  <Card className="p-12 text-center space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-surface-strong flex items-center justify-center mx-auto">
+              <div className="h-12 w-12 rounded-lg bg-surface-strong flex items-center justify-center mx-auto">
                 <Heart className="h-6 w-6 text-border-strong" />
               </div>
               <p className="text-sm font-bold text-muted">No bookmarked freelancers yet.</p>
@@ -881,32 +850,32 @@ export function FreelancerSearch({
             </Card>
           ) : viewMode === "table" ? (
  <Card className="overflow-x-auto p-5">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-hairline text-[10px] text-border-strong font-extrabold uppercase tracking-wider">
-                    <th className="pb-3.5 pl-2 pt-1">Freelancer</th>
-                    <th className="pb-3.5 pt-1 text-center">Availability</th>
-                    <th className="pb-3.5 pt-1">Skills</th>
-                    <th className="pb-3.5 pt-1 text-center">Rating</th>
-                    <th className="pb-3.5 pt-1 text-center">Exp</th>
-                    <th className="pb-3.5 pt-1 text-center">Completed</th>
-                    <th className="pb-3.5 pt-1 text-right pr-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline font-medium">
+              <Table className="w-full">
+                <THead>
+                  <TR>
+                    <TH>Freelancer</TH>
+                    <TH align="center">Availability</TH>
+                    <TH>Skills</TH>
+                    <TH align="center">Rating</TH>
+                    <TH align="center">Exp</TH>
+                    <TH align="center">Completed</TH>
+                    <TH align="right">Actions</TH>
+                  </TR>
+                </THead>
+                <TBody>
                   {savedList.map((f) => {
                     const avail = getAvailabilityConfig(f.availabilityStatus);
                     const isSaved = savedIds.has(f.id);
                     return (
-                      <tr key={f.id} className="hover:bg-surface-soft/50 transition-colors">
-                        <td className="py-4 pl-2 text-left pr-3">
+                      <TR key={f.id}>
+                        <TD>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={() => f.user.image && setLightboxImage(f.user.image)}
                               disabled={!f.user.image}
                               className={cn(
-                                "h-8 w-8 rounded-lg border bg-surface-soft flex items-center justify-center font-bold text-ink text-[10px] shrink-0 overflow-hidden relative",
+                                "h-8 w-8 rounded-full border bg-surface-soft flex items-center justify-center font-bold text-ink text-[11px] shrink-0 overflow-hidden relative",
                                 f.user.image ? "cursor-zoom-in" : ""
                               )}
                             >
@@ -924,77 +893,77 @@ export function FreelancerSearch({
                               >
                                 {f.user.name}
                               </button>
-                              <span className="text-[10px] text-border-strong block truncate max-w-[150px]">
+                              <span className="text-[11px] text-border-strong block truncate max-w-[150px]">
                                 {f.professionalHeadline || "Elite Specialist"}
                               </span>
                             </div>
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center">
-                          <Badge variant="neutral" className={cn("text-[9px] py-0.5 px-2", avail.badge)}>
+                        <TD align="center">
+                          <Badge variant="neutral" className={cn("text-[11px] py-0.5 px-2", avail.badge)}>
                             <span className={cn("h-1.5 w-1.5 rounded-full mr-1 inline-block animate-pulse", avail.dot)} />
                             {avail.label}
                           </Badge>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 pr-3 text-left">
+                        <TD>
                           <div className="flex flex-wrap gap-1 max-w-[240px]">
                             {f.skills.slice(0, 3).map((s) => (
-                              <Badge key={s} variant="neutral" className="text-[8px] py-0 px-1">{s}</Badge>
+                              <Badge key={s} variant="neutral" className="text-[11px] py-0 px-1">{s}</Badge>
                             ))}
                             {f.skills.length > 3 && (
-                              <span className="text-[8px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
+                              <span className="text-[11px] font-semibold text-border-strong self-center">+{f.skills.length - 3}</span>
                             )}
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center">
+                        <TD align="center">
                           <div className="inline-flex items-center gap-0.5 font-bold text-body">
                             <Star className="h-3.5 w-3.5 fill-star text-star" />
                             <span>{f.rating.toFixed(1)}</span>
                           </div>
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center font-bold text-body">
+                        <TD align="center">
                           {f.experienceYears}y
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-center font-bold text-ink">
+                        <TD align="center">
                           {f.completedProjects} Jobs
-                        </td>
+                        </TD>
 
-                        <td className="py-4 text-right pr-2">
+                        <TD align="right">
                           <div className="flex items-center justify-end gap-2.5">
                             <button
                               type="button"
                               onClick={() => handleToggleSave(f)}
-                              className="p-1.5 rounded-lg hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
+                              className="p-1.5 rounded-full hover:bg-surface-soft border border-transparent hover:border-hairline cursor-pointer"
                               title={isSaved ? "Remove bookmark" : "Bookmark"}
                             >
                               <Heart className={cn("h-4 w-4 transition-all duration-150", isSaved ? "fill-danger text-danger scale-105" : "text-border-strong hover:text-danger")} />
                             </button>
 
                             <Link href={`/freelancers/${f.id}`}>
-                              <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
+                              <Button size="xs" variant="outline" className="cursor-pointer text-[11px] font-bold h-7 py-1 px-2.5 border-ink/20 text-ink">
                                 Profile
                               </Button>
                             </Link>
 
                             {f.resumeUrl && (
                               <a href={f.resumeUrl} target="_blank" rel="noopener noreferrer">
-                                <Button size="xs" variant="outline" className="cursor-pointer text-[9px] font-bold h-7 py-1 px-2">
+                                <Button size="xs" variant="outline" className="cursor-pointer text-[11px] font-bold h-7 py-1 px-2">
                                   <FileText className="h-3.5 w-3.5 text-muted" />
                                 </Button>
                               </a>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </TD>
+                      </TR>
                     );
                   })}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
@@ -1026,10 +995,7 @@ export function FreelancerSearch({
 
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div
-            className="absolute inset-0 bg-ink/80 backdrop-blur-sm cursor-zoom-out"
-            onClick={() => setLightboxImage(null)}
-          />
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setLightboxImage(null)} />
           <button
             onClick={() => setLightboxImage(null)}
             className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-ink/70 hover:bg-ink transition-colors cursor-pointer z-10"
@@ -1037,7 +1003,7 @@ export function FreelancerSearch({
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-lg overflow-hidden shadow-lg bg-black flex items-center justify-center">
             <img src={lightboxImage} alt="lightbox preview" className="object-contain max-h-[80vh] max-w-[90vw]" />
           </div>
         </div>
@@ -1050,7 +1016,7 @@ export function FreelancerSearch({
 
 function FilterPill({ label, onRemove }: { label?: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 bg-ink/5 text-ink border border-ink/15 text-[9px] font-bold px-2 py-1 rounded-full">
+    <span className="inline-flex items-center gap-1 bg-ink/5 text-ink border border-ink/15 text-[11px] font-bold px-2 py-1 rounded-full">
       {label}
       <button onClick={onRemove} className="text-ink/50 hover:text-ink cursor-pointer transition-colors">
         <X className="h-2.5 w-2.5" />
@@ -1079,9 +1045,9 @@ function FreelancerCard({
   const avail = getAvailabilityConfig(freelancer.availabilityStatus);
 
   return (
-    <div className="bg-white border border-[#E2E5EA] rounded-3xl shadow-xs hover:shadow-md hover:border-link/50 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group overflow-hidden relative">
+    <div className="bg-white border border-[#E3E5EA] rounded-lg hover:shadow-md hover:border-link/50 transition-all duration-200 flex flex-col group overflow-hidden relative">
       {/* Premium accent bar at top */}
-      <div className="relative h-1 w-full bg-gradient-to-r from-ink to-link" />
+      <div className="relative h-1 w-full bg-[#2E6BEA]" />
 
       <div className="p-6 flex flex-col flex-1 space-y-4">
         {/* Avatar + Name + Headline */}
@@ -1091,7 +1057,7 @@ function FreelancerCard({
             type="button"
             onClick={() => freelancer.user.image && onViewImage(freelancer.user.image)}
             disabled={!freelancer.user.image}
-            className={`h-14 w-14 rounded-2xl bg-ink/5 border border-[#E2E5EA] flex items-center justify-center font-semibold text-ink text-xl shrink-0 overflow-hidden shadow-2xs relative ${
+            className={`h-14 w-14 rounded-full bg-ink/5 border border-[#E3E5EA] flex items-center justify-center font-semibold text-ink text-xl shrink-0 overflow-hidden relative ${
               freelancer.user.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
             }`}
             title={freelancer.user.image ? "Click to expand image" : undefined}
@@ -1100,12 +1066,12 @@ function FreelancerCard({
               <img
                 src={freelancer.user.image}
                 alt={freelancer.user.name || "User"}
-                className="h-full w-full object-cover transition-transform group-hover:scale-105 duration-200"
+                className="h-full w-full object-cover transition-transform group- duration-200"
               />
             ) : (
               freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
             )}
-            <span className={`absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white shadow-sm ${avail.dot}`} />
+            <span className={`absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white ${avail.dot}`} />
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -1123,29 +1089,29 @@ function FreelancerCard({
                   e.stopPropagation();
                   onToggleSave();
                 }}
-                className="p-1.5 rounded-xl hover:bg-surface-soft border border-transparent hover:border-hairline/60 transition-all shrink-0 cursor-pointer -mt-1"
+                className="p-1.5 rounded-full hover:bg-surface-soft border border-transparent hover:border-hairline/60 transition-all shrink-0 cursor-pointer -mt-1"
                 title={isSaved ? "Remove Bookmark" : "Bookmark Freelancer"}
               >
                 <Heart
                   className={`h-4 w-4 transition-all duration-200 ${
                     isSaved
                       ? "fill-danger text-danger scale-110"
-                      : "text-border-strong hover:text-danger/70 hover:scale-105"
+                      : "text-border-strong hover:text-danger/70"
                   }`}
                 />
               </button>
             </div>
             {freelancer.professionalHeadline && (
-              <p className="text-[10px] text-link font-bold truncate leading-tight mt-1">
+              <p className="text-[11px] text-link font-bold truncate leading-tight mt-1">
                 {freelancer.professionalHeadline}
               </p>
             )}
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-full border tracking-wide uppercase shrink-0 ${avail.badge}`}>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border tracking-wide uppercase shrink-0 ${avail.badge}`}>
                 {avail.label}
               </span>
               {isSaved && (
-                <span className="text-[8px] font-semibold text-danger bg-danger-surface border border-danger-border px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-in fade-in zoom-in-95 duration-150">
+                <span className="text-[11px] font-semibold text-danger bg-danger-surface border border-danger-border px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-in fade-in zoom-in-95 duration-150">
                   <Heart className="h-2 w-2 fill-danger text-danger" />
                   Saved
                 </span>
@@ -1155,27 +1121,27 @@ function FreelancerCard({
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 bg-surface-soft/60 border border-hairline/30 rounded-2xl p-3 text-center">
+        <div className="grid grid-cols-3 gap-2 bg-surface-soft/60 border border-hairline/30 rounded-lg p-3 text-center">
           <div>
             <p className="text-sm font-semibold text-ink">{freelancer.experienceYears}y</p>
-            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Exp</p>
+            <p className="text-[11px] text-border-strong font-bold uppercase tracking-widest mt-0.5">Exp</p>
           </div>
           <div className="border-x border-hairline/50">
             <div className="flex items-center justify-center gap-0.5">
               <Star className="h-3 w-3 text-star fill-star" />
               <p className="text-sm font-semibold text-ink">{freelancer.rating.toFixed(1)}</p>
             </div>
-            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Rating</p>
+            <p className="text-[11px] text-border-strong font-bold uppercase tracking-widest mt-0.5">Rating</p>
           </div>
           <div>
             <p className="text-sm font-semibold text-ink">{freelancer.completedProjects}</p>
-            <p className="text-[8px] text-border-strong font-extrabold uppercase tracking-widest mt-0.5">Done</p>
+            <p className="text-[11px] text-border-strong font-bold uppercase tracking-widest mt-0.5">Done</p>
           </div>
         </div>
 
         {/* Bio snippet */}
         {getFreelancerBioText(freelancer.bio) && (
-          <p className="text-[10px] text-muted leading-relaxed font-medium line-clamp-2 italic">
+          <p className="text-[11px] text-muted leading-relaxed font-medium line-clamp-2 italic">
             &quot;{getFreelancerBioText(freelancer.bio)}&quot;
           </p>
         )}
@@ -1185,13 +1151,13 @@ function FreelancerCard({
           {freelancer.skills.slice(0, 4).map((skill) => (
             <span
               key={skill}
-              className="text-[9px] font-bold bg-surface-soft text-body border border-hairline/50 px-2 py-0.5 rounded-lg shadow-2xs"
+              className="text-[11px] font-bold bg-surface-soft text-body border border-hairline/50 px-2 py-0.5 rounded-full"
             >
               {skill}
             </span>
           ))}
           {freelancer.skills.length > 4 && (
-            <span className="text-[8px] font-semibold text-border-strong uppercase tracking-wider self-center pl-0.5">
+            <span className="text-[11px] font-semibold text-border-strong uppercase tracking-wider self-center pl-0.5">
               +{freelancer.skills.length - 4} more
             </span>
           )}
@@ -1199,7 +1165,7 @@ function FreelancerCard({
 
         {/* Bottom Metadata & CTAs */}
         <div className="space-y-3 pt-3 border-t border-hairline mt-auto">
-          <div className="flex items-center justify-between gap-3 text-[10px] text-border-strong font-bold">
+          <div className="flex items-center justify-between gap-3 text-[11px] text-border-strong font-bold">
             {freelancer.responseTime && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-border-strong shrink-0" />
@@ -1209,14 +1175,14 @@ function FreelancerCard({
             {freelancer.verificationBadges && freelancer.verificationBadges.length > 0 && (
               <div className="flex items-center gap-1 ml-auto">
                 <CheckCircle className="h-3 w-3 text-link shrink-0" />
-                <span className="text-[9px] text-link-active font-semibold uppercase tracking-wider">Verified</span>
+                <span className="text-[11px] text-link-active font-semibold uppercase tracking-wider">Verified</span>
               </div>
             )}
           </div>
 
           {inviteStatus && (
             <div className="pb-2">
-              <Badge variant={inviteStatus.variant} className="text-[9px]">
+              <Badge variant={inviteStatus.variant} className="text-[11px]">
                 {inviteStatus.label}
               </Badge>
             </div>
@@ -1226,7 +1192,7 @@ function FreelancerCard({
             <button
               suppressHydrationWarning
               onClick={onViewProfile}
-              className="flex-1 py-2.5 text-xs font-bold bg-ink hover:bg-primary-active text-white rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 py-2.5 text-xs font-bold bg-ink hover:bg-primary-active text-white rounded-full transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <User className="h-3.5 w-3.5" />
               View Profile
@@ -1235,7 +1201,7 @@ function FreelancerCard({
               suppressHydrationWarning
               onClick={onInvite}
               title="Invite this freelancer to one of your open projects"
-              className="flex-1 py-2.5 text-xs font-bold bg-white hover:bg-surface-soft text-ink border border-[#E2E5EA] rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 py-2.5 text-xs font-bold bg-white hover:bg-surface-soft text-ink border border-[#E3E5EA] rounded-full transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Send className="h-3.5 w-3.5" />
               Invite
@@ -1245,7 +1211,7 @@ function FreelancerCard({
                 href={freelancer.resumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2.5 text-xs font-bold bg-surface-strong hover:bg-surface-strong text-body rounded-xl transition-all cursor-pointer flex items-center justify-center border border-[#E2E5EA] shadow-2xs shrink-0"
+                className="px-3 py-2.5 text-xs font-bold bg-surface-strong hover:bg-surface-strong text-body rounded-full transition-all cursor-pointer flex items-center justify-center border border-[#C7CBD6] shrink-0"
                 title="View Resume"
               >
                 <FileText className="h-3.5 w-3.5 text-muted" />

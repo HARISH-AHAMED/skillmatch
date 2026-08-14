@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { updateFreelancerProfile } from "@/actions/profileActions";
 import { submitCompanyReview } from "@/actions/reviewActions";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
+import { EmptyStateAstronaut, StipendChip } from "@/components/ui/AppBlocks";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -340,17 +343,17 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
   const getPortfolioIcon = (type: string) => {
     switch (type) {
       case "IMAGE":
-        return <ImageIcon className="h-5 w-5 text-indigo-500" />;
+        return <ImageIcon className="h-5 w-5 text-[#2159C9]" />;
       case "VIDEO":
-        return <Video className="h-5 w-5 text-amber-500" />;
+        return <Video className="h-5 w-5 text-[#8F5E08]" />;
       case "GITHUB":
-        return <FileCode className="h-5 w-5 text-[#181D26]" />;
+        return <FileCode className="h-5 w-5 text-[#1A1D29]" />;
       case "WEBSITE":
-        return <Globe className="h-5 w-5 text-emerald-600" />;
+        return <Globe className="h-5 w-5 text-[#147A44]" />;
       case "CASE_STUDY":
-        return <FileText className="h-5 w-5 text-sky-500" />;
+        return <FileText className="h-5 w-5 text-[#2159C9]" />;
       default:
-        return <LinkIcon className="h-5 w-5 text-[#8A94A3]" />;
+        return <LinkIcon className="h-5 w-5 text-[#5B6272]" />;
     }
   };
 
@@ -358,10 +361,10 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
     <div className="space-y-6">
       {message && (
         <div
-          className={`p-4 rounded-xl text-xs font-semibold border ${
+          className={`p-4 rounded-lg text-xs font-semibold border ${
             message.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
+              ? "bg-[#E4F7EC] border-[#BFE9D2] text-[#147A44]"
+              : "bg-[#FDEAEA] border-[#F5C2C2] text-[#BC2A2A]"
           }`}
         >
           {message.text}
@@ -369,63 +372,41 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
       )}
 
       {uploadProgress && (
-        <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 rounded-xl text-xs font-semibold animate-pulse flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-sky-500" />
+        <div className="p-3 bg-[#E8F1FE] border border-[#C7CBD6] text-[#2159C9] rounded-lg text-xs font-semibold animate-pulse flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[#2159C9]" />
           {uploadProgress}
         </div>
       )}
 
       {/* Navigation tabs */}
-      <div className="flex border-b border-[#E2E5EA] gap-4 pb-2">
-        <button
-          onClick={() => setActiveTab("platform")}
-          className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
-            activeTab === "platform"
-              ? "border-[#181d26] text-[#181d26]"
-              : "border-transparent text-[#5A6472] hover:text-[#181D26]"
-          }`}
-        >
-          Platform Completed Contracts ({completedProjects.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("portfolio")}
-          className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
-            activeTab === "portfolio"
-              ? "border-[#181d26] text-[#181d26]"
-              : "border-transparent text-[#5A6472] hover:text-[#181D26]"
-          }`}
-        >
-          Portfolio Gallery Projects ({portfolioItems.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("certificates")}
-          className={`text-sm font-bold pb-2 transition-all cursor-pointer border-b-2 px-1 ${
-            activeTab === "certificates"
-              ? "border-[#181d26] text-[#181d26]"
-              : "border-transparent text-[#5A6472] hover:text-[#181D26]"
-          }`}
-        >
-          My Certificates ({certificates.length})
-        </button>
-      </div>
+      <Tabs
+        label="Completed work views"
+        value={activeTab}
+        onChange={(id) => setActiveTab(id as any)}
+        items={[
+          { id: "platform", label: "Platform Completed Contracts", count: completedProjects.length },
+          { id: "portfolio", label: "Portfolio Gallery Projects", count: portfolioItems.length },
+          { id: "certificates", label: "My Certificates", count: certificates.length },
+        ]}
+      />
 
       {/* Certificates earned across every completed contract */}
       {activeTab === "certificates" && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {certificates.length === 0 ? (
-            <Card className="p-10 text-center text-xs text-[#8A94A3] bg-white border border-[#E2E5EA] rounded-[12px] lg:col-span-2">
-              <Award className="h-8 w-8 text-[#C7CCD4] mx-auto mb-3" />
-              No certificates yet. They appear here once a company completes a project you worked on.
+            <Card className="p-10 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg lg:col-span-2">
+              <Award className="h-8 w-8 text-[#2159C9] mx-auto mb-3" />
+              
             </Card>
           ) : (
             certificates.map((cert: any) => (
               <Card
                 key={cert.id}
-                className="overflow-hidden border border-[#E2E5EA] bg-white p-0 rounded-[12px] shadow-xs transition-all hover:shadow-md"
+                className="overflow-hidden border border-[#E3E5EA] bg-white p-0 rounded-lg transition-all hover:shadow-md"
               >
                 {/* Certificate artwork preview */}
                 {/* The real issued certificate, rendered small */}
-                <div className="relative h-[210px] overflow-hidden bg-[#F7F8FA]">
+                <div className="relative h-[210px] overflow-hidden bg-[#F8F9FB]">
                   <div className="pointer-events-none absolute left-0 top-0 w-[1000px] origin-top-left scale-[0.42]">
                     <CertificatePreview
                       config={getProjectMetadataDirect(cert.project?.description).certificate ?? defaultCertificateConfig()}
@@ -442,14 +423,14 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 border-t border-[#E2E5EA] p-4">
+                <div className="flex items-center justify-between gap-3 border-t border-[#C7CBD6] p-4">
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-[#181d26]">{cert.projectTitle}</p>
-                    <p className="truncate text-[10px] text-[#5A6472]">ID {cert.publicId}</p>
+                    <p className="truncate text-xs font-bold text-[#1A1D29]">{cert.projectTitle}</p>
+                    <p className="truncate text-[11px] text-[#5B6272]">ID {cert.publicId}</p>
                   </div>
                   <a
                     href={`/freelancer/certificates/${cert.publicId}`}
-                    className="shrink-0 rounded-[8px] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#333840]"
+                    className="shrink-0 rounded-full bg-[#152C55] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1E3D71]"
                   >
                     View Certificate
                   </a>
@@ -464,9 +445,9 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
       {activeTab === "platform" && (
         <div className="space-y-4">
           {completedProjects.length === 0 ? (
-            <Card className="p-10 text-center text-xs text-[#8A94A3] bg-white border border-[#EDEFF2] rounded-2xl">
-              <Briefcase className="h-8 w-8 text-[#C7CCD4] mx-auto mb-3" />
-              No contracts completed on the Talentra platform yet.
+            <Card className="p-10 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg">
+              <Briefcase className="h-8 w-8 text-[#2159C9] mx-auto mb-3" />
+              
             </Card>
           ) : (
             completedProjects.map((project) => {
@@ -474,12 +455,12 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
               const reviewOfCompany = project.reviews.find((r: any) => r.reviewerId === freelancer.userId);
 
               return (
-                <Card key={project.id} className="p-6 bg-white border border-[#EDEFF2]/80 shadow-sm rounded-2xl space-y-4">
+                <Card key={project.id} className="p-6 bg-white border border-[#E3E5EA]/80 rounded-lg space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-base font-extrabold text-[#181d26]">{project.title}</h3>
-                      <p className="text-xs text-[#5A6472] font-semibold mt-1">
-                        Completed for: <strong className="text-[#181D26]">{project.company.companyName}</strong> • Budget: <strong>{formatProjectBudget(project)}</strong>
+                      <h3 className="text-base font-bold text-[#1A1D29]">{project.title}</h3>
+                      <p className="text-xs text-[#5B6272] font-semibold mt-1">
+                        Completed for: <strong className="text-[#1A1D29]">{project.company.companyName}</strong> • Budget: <strong>{formatProjectBudget(project)}</strong>
                       </p>
                     </div>
                     <Badge variant="success">Platform Completed</Badge>
@@ -488,11 +469,11 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   {/* Certificate earned on this contract — easy to spot and act on */}
                   {project.certificates?.length > 0 && (
                     <div className="flex">
-                      <a href={`/freelancer/certificates/${project.certificates[0].publicId}`} className="rounded-[8px] bg-[#181d26] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#333840]">View Certificate</a>
+                      <a href={`/freelancer/certificates/${project.certificates[0].publicId}`} className="rounded-full bg-[#152C55] px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1E3D71]">View Certificate</a>
                     </div>
                   )}
 
-                  <p className="text-xs text-[#5A6472] leading-relaxed font-medium">
+                  <p className="text-xs text-[#5B6272] leading-relaxed font-medium">
                     {(() => {
                       const cleanDesc = getProjectDescriptionText(project.description);
                       return cleanDesc.length > 250 ? `${cleanDesc.slice(0, 250)}...` : cleanDesc;
@@ -502,53 +483,53 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Display Client's review of Freelancer */}
                     {reviewOfFreelancer ? (
-                      <div className="p-4 bg-[#F7F8FA] border border-[#EDEFF2] rounded-2xl space-y-2">
+                      <div className="p-4 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-[#8A94A3] uppercase tracking-widest flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Client Review of You
+                          <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-widest flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-[#147A44]" /> Client Review of You
                           </span>
-                          <div className="flex items-center gap-0.5 text-amber-500 text-xs">
+                          <div className="flex items-center gap-0.5 text-[#8F5E08] text-xs">
                             {Array.from({ length: reviewOfFreelancer.rating }).map((_, i) => (
-                              <Star key={i} className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                              <Star key={i} className="h-3.5 w-3.5 fill-[#B9790A] text-[#8F5E08]" />
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-[#5A6472] italic font-medium leading-relaxed">
+                        <p className="text-xs text-[#5B6272] italic font-medium leading-relaxed">
                           &quot;{reviewOfFreelancer.comment}&quot;
                         </p>
-                        <p className="text-[10px] text-[#8A94A3] text-right">— {reviewOfFreelancer.reviewer.name}</p>
+                        <p className="text-[11px] text-[#5B6272] text-right">— {reviewOfFreelancer.reviewer.name}</p>
                       </div>
                     ) : (
-                      <div className="p-4 bg-[#F7F8FA]/50 border border-dashed border-[#E2E5EA] rounded-2xl text-center flex flex-col justify-center py-6">
-                        <p className="text-[#8A94A3] text-xs font-medium">Client hasn't reviewed you yet.</p>
+                      <div className="p-4 bg-[#F8F9FB]/50 border border-dashed border-[#E3E5EA] rounded-lg text-center flex flex-col justify-center py-6">
+                        <p className="text-[#5B6272] text-xs font-medium">Client hasn't reviewed you yet.</p>
                       </div>
                     )}
 
                     {/* Display Freelancer's review of Client */}
                     {reviewOfCompany ? (
-                      <div className="p-4 bg-[#f8faff] border border-sky-100 rounded-2xl space-y-2">
+                      <div className="p-4 bg-[#F8F9FB] border border-[#C7CBD6] rounded-lg space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-[#181d26] uppercase tracking-widest flex items-center gap-1.5">
-                            <Star className="h-4 w-4 text-amber-500 fill-amber-500/20" /> Your Review of Client
+                          <span className="text-[11px] font-bold text-[#1A1D29] uppercase tracking-widest flex items-center gap-1.5">
+                            <Star className="h-4 w-4 text-[#8F5E08] fill-[#B9790A]/20" /> Your Review of Client
                           </span>
-                          <div className="flex items-center gap-0.5 text-amber-500 text-xs">
+                          <div className="flex items-center gap-0.5 text-[#8F5E08] text-xs">
                             {Array.from({ length: reviewOfCompany.rating }).map((_, i) => (
-                              <Star key={i} className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                              <Star key={i} className="h-3.5 w-3.5 fill-[#B9790A] text-[#8F5E08]" />
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-[#5A6472] italic font-medium leading-relaxed">
+                        <p className="text-xs text-[#5B6272] italic font-medium leading-relaxed">
                           &quot;{reviewOfCompany.comment}&quot;
                         </p>
-                        <div className="flex justify-between items-center text-[9px] text-[#8A94A3] font-semibold pt-1 border-t border-[#EDEFF2]">
+                        <div className="flex justify-between items-center text-[11px] text-[#5B6272] font-semibold pt-1 border-t border-[#E3E5EA]">
                           <span>Comm: {reviewOfCompany.communicationScore || 5}/5</span>
                           <span>Payment: {reviewOfCompany.paymentReliabilityScore || 5}/5</span>
                           <span>Clarity: {reviewOfCompany.projectClarityScore || 5}/5</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 bg-sky-50/30 border border-dashed border-[#1968E5]/30 rounded-2xl text-center flex flex-col justify-center items-center py-6 gap-2">
-                        <p className="text-[#5A6472] text-xs font-semibold">Share your feedback about the client!</p>
+                      <div className="p-4 bg-[#E8F1FE]/30 border border-dashed border-[#C7CBD6]/30 rounded-lg text-center flex flex-col justify-center items-center py-6 gap-2">
+                        <p className="text-[#5B6272] text-xs font-semibold">Share your feedback about the client!</p>
                         <Button
                           size="sm"
                           onClick={() => setSelectedReviewProject(project)}
@@ -571,22 +552,22 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-[#181d26]">Portfolio Project Showcase</h3>
-              <p className="text-xs text-[#5A6472]">Showcase screenshots, repositories, and custom project highlights.</p>
+              <h3 className="text-sm font-bold text-[#1A1D29]">Portfolio Project Showcase</h3>
+              <p className="text-xs text-[#5B6272]">Showcase screenshots, repositories, and custom project highlights.</p>
             </div>
             <Button
               type="button"
               onClick={() => setShowPortModal(true)}
               size="sm"
-              className="whitespace-nowrap shrink-0 gap-1.5 px-4 py-2 cursor-pointer text-xs flex items-center justify-center font-bold bg-[#181d26] text-white hover:bg-[#003f7a] transition-all duration-200 shadow-sm shadow-[#181d26]/10 rounded-xl"
+              className="whitespace-nowrap shrink-0 gap-1.5 px-4 py-2 cursor-pointer text-xs flex items-center justify-center font-bold bg-[#152C55] text-white hover:bg-[#EAF1FE] transition-all duration-200 shadow-[#152C55]/10 rounded-full"
             >
               <Plus className="h-4 w-4" /> Add Portfolio Item
             </Button>
           </div>
 
           {portfolioItems.length === 0 ? (
-            <Card className="p-10 text-center text-xs text-[#8A94A3] bg-white border border-[#EDEFF2] rounded-2xl">
-              <FolderOpen className="h-8 w-8 text-[#C7CCD4] mx-auto mb-3" />
+            <Card className="p-10 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg">
+              <FolderOpen className="h-8 w-8 text-[#2159C9] mx-auto mb-3" />
               No custom portfolio items created yet. Add one above!
             </Card>
           ) : (
@@ -594,20 +575,20 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
               {portfolioItems.map((item) => (
                 <Card
                   key={item.id}
-                  className="p-6 bg-white border border-[#E2E5EA]/70 shadow-sm rounded-2xl flex flex-col justify-between space-y-4 hover:shadow-md transition-all group"
+                  className="p-6 bg-white border border-[#E3E5EA]/70 rounded-lg flex flex-col justify-between space-y-4 hover:shadow-md transition-all group"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getPortfolioIcon(item.type)}
-                        <h4 className="text-sm font-extrabold text-[#181d26]">{item.title}</h4>
+                        <h4 className="text-sm font-bold text-[#1A1D29]">{item.title}</h4>
                       </div>
-                      <Badge variant="neutral" className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5">
+                      <Badge variant="neutral" className="text-[11px] uppercase font-bold tracking-wider px-2 py-0.5">
                         {item.type.replace("_", " ")}
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-[#5A6472] leading-relaxed font-medium line-clamp-3">
+                    <p className="text-xs text-[#5B6272] leading-relaxed font-medium line-clamp-3">
                       {item.description}
                     </p>
 
@@ -618,9 +599,9 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                           <div
                             key={idx}
                             onClick={() => setZoomedImage(imgUrl)}
-                            className="aspect-video bg-white border border-[#E2E5EA] rounded-xl overflow-hidden cursor-zoom-in group-hover:border-sky-300 transition-colors relative"
+                            className="aspect-video bg-white border border-[#E3E5EA] rounded-lg overflow-hidden cursor-zoom-in group-hover:border-[#C7CBD6] transition-colors relative"
                           >
-                            <img src={imgUrl} alt={`${item.title} screenshot ${idx + 1}`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                            <img src={imgUrl} alt={`${item.title} screenshot ${idx + 1}`} className="h-full w-full object-cover transition-transform duration-300" />
                           </div>
                         ))}
                       </div>
@@ -629,7 +610,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                       item.type === "IMAGE" && (
                         <div
                           onClick={() => setZoomedImage(item.fileUrl!)}
-                          className="aspect-video bg-white border border-[#E2E5EA] rounded-xl overflow-hidden cursor-zoom-in relative mt-2"
+                          className="aspect-video bg-white border border-[#E3E5EA] rounded-lg overflow-hidden cursor-zoom-in relative mt-2"
                         >
                           <img src={item.fileUrl} alt={item.title} className="h-full w-full object-cover" />
                         </div>
@@ -638,20 +619,20 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                     {/* Legacy video player display */}
                     {item.type === "VIDEO" && item.fileUrl && (
-                      <div className="bg-black border border-[#181D26] rounded-xl overflow-hidden aspect-video mt-2">
+                      <div className="bg-black border border-[#1A1D29] rounded-lg overflow-hidden aspect-video mt-2">
                         <video src={item.fileUrl} controls className="h-full w-full object-contain" />
                       </div>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center pt-3.5 border-t border-[#EDEFF2] mt-2">
+                  <div className="flex justify-between items-center pt-3.5 border-t border-[#E3E5EA] mt-2">
                     <div className="flex flex-wrap gap-3">
                       {item.liveLink ? (
                         <a
                           href={item.liveLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-[#181d26] font-extrabold transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-[#147A44] hover:text-[#1A1D29] font-bold transition-colors"
                         >
                           <span>Live Demo</span>
                           <ExternalLink className="h-3 w-3" />
@@ -663,7 +644,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#1968E5] hover:text-[#181d26] font-extrabold transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-[#2159C9] hover:text-[#1A1D29] font-bold transition-colors"
                         >
                           <span>
                             {item.type === "GITHUB" ? "View Code" : "Open Link"}
@@ -673,7 +654,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                       ) : null}
 
                       {!item.liveLink && !item.url ? (
-                        <span className="text-[10px] text-[#8A94A3] italic font-medium">No links available</span>
+                        <span className="text-[11px] text-[#5B6272] italic font-medium">No links available</span>
                       ) : null}
                     </div>
 
@@ -681,7 +662,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                       <button
                         type="button"
                         onClick={() => setEditingItem(item)}
-                        className="p-1.5 text-[#5A6472] hover:bg-[#F7F8FA] rounded-xl transition-colors cursor-pointer"
+                        className="p-1.5 text-[#5B6272] hover:bg-[#F8F9FB] rounded-full transition-colors cursor-pointer"
                         title="Edit Project"
                       >
                         <Pencil className="h-4 w-4" />
@@ -690,7 +671,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                         type="button"
                         onClick={() => handleDeleteItem(item.id)}
                         disabled={loading}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                        className="p-1.5 text-[#BC2A2A] hover:bg-[#FDEAEA] rounded-full transition-colors cursor-pointer"
                         title="Delete Project"
                       >
                         <Trash2 className="h-4.5 w-4.5" />
@@ -704,10 +685,8 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
           {/* Add Portfolio Project modal popup with MULTI-IMAGE support */}
           {showPortModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowPortModal(false)} />
-              <div className="relative w-full max-w-lg bg-white border border-[#EDEFF2] p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-sm font-bold text-[#181d26] border-b border-[#EDEFF2] pb-2">Add Completed Portfolio Project</h3>
+            <Modal open onClose={() => setShowPortModal(false)} size="xl" title="Add Completed Portfolio Project">
+              <div className="space-y-4">
 
                 <form onSubmit={handleAddPortfolioItem} className="space-y-4">
                   <Input
@@ -719,9 +698,9 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   />
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#5A6472]">Project Description</label>
+                    <label className="block text-xs font-semibold text-[#5B6272]">Project Description</label>
                     <textarea
-                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                       placeholder="Outline what features this project has and how you built it..."
                       value={newPort.description}
                       onChange={(e) => setNewPort({ ...newPort, description: e.target.value })}
@@ -730,11 +709,11 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#5A6472]">Project Type</label>
+                    <label className="block text-xs font-semibold text-[#5B6272]">Project Type</label>
                     <select
                       value={newPort.type}
                       onChange={(e) => setNewPort({ ...newPort, type: e.target.value as any })}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                      className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                     >
                       <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
                       <option value="VIDEO">Local Video Demo Showcase</option>
@@ -746,8 +725,8 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                   {newPort.type === "IMAGE" && (
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Upload Project Images (Screenshots)</label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-[#E2E5EA] hover:border-[#8A94A3] p-6 rounded-2xl bg-[#F7F8FA] transition-colors relative cursor-pointer group">
+                      <label className="block text-xs font-semibold text-[#5B6272]">Upload Project Images (Screenshots)</label>
+                      <div className="flex items-center justify-center border-2 border-dashed border-[#E3E5EA] hover:border-[#E3E5EA] p-6 rounded-lg bg-[#F8F9FB] transition-colors relative cursor-pointer group">
                         <input
                           type="file"
                           accept="image/*"
@@ -756,19 +735,19 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                         />
                         <div className="text-center space-y-1">
-                          <Upload className="h-6 w-6 text-[#8A94A3] mx-auto group-hover:scale-105 transition-transform" />
-                          <p className="text-[10px] font-bold text-[#5A6472] uppercase">Select project files</p>
-                          <p className="text-[9px] text-[#8A94A3] font-semibold">Upload multiple screenshots (Max 5MB each)</p>
+                          <Upload className="h-6 w-6 text-[#5B6272] mx-auto group- transition-transform" />
+                          <p className="text-[11px] font-bold text-[#5B6272] uppercase">Select project files</p>
+                          <p className="text-[11px] text-[#5B6272] font-semibold">Upload multiple screenshots (Max 5MB each)</p>
                         </div>
                       </div>
 
                       {/* Display image previews selected */}
                       {selectedFilePreviews.length > 0 && (
                         <div className="space-y-1.5">
-                          <span className="text-[9px] font-bold text-[#8A94A3] uppercase tracking-wide block">Upload Previews ({selectedFilePreviews.length})</span>
+                          <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-wide block">Upload Previews ({selectedFilePreviews.length})</span>
                           <div className="grid grid-cols-4 gap-2">
                             {selectedFilePreviews.map((preview, index) => (
-                              <div key={index} className="aspect-video border border-[#E2E5EA] rounded-xl overflow-hidden bg-white relative">
+                              <div key={index} className="aspect-video border border-[#C7CBD6] rounded-lg overflow-hidden bg-white relative">
                                 <img src={preview} alt="preview" className="h-full w-full object-cover" />
                               </div>
                             ))}
@@ -780,14 +759,14 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                   {newPort.type === "VIDEO" && (
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Upload Demo Video File (Max 20MB)</label>
+                      <label className="block text-xs font-semibold text-[#5B6272]">Upload Demo Video File (Max 20MB)</label>
                       <input
                         type="file"
                         accept="video/*"
                         onChange={(e) => {
                           if (e.target.files) setSelectedFiles(e.target.files);
                         }}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26]"
+                        className="w-full px-4 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] text-[#1A1D29]"
                         required
                       />
                     </div>
@@ -809,7 +788,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                     />
                   )}
 
-                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EDEFF2]">
+                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#E3E5EA]">
                     <Button
                       variant="outline"
                       size="sm"
@@ -828,14 +807,12 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   </div>
                 </form>
               </div>
-            </div>
+            </Modal>
           )}
           {/* Edit Portfolio Project modal popup */}
           {editingItem && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setEditingItem(null); }} />
-              <div className="relative w-full max-w-lg bg-white border border-[#EDEFF2] p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-sm font-bold text-[#181d26] border-b border-[#EDEFF2] pb-2">Edit Completed Portfolio Project</h3>
+            <Modal open onClose={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setEditingItem(null); }} size="xl" title="Edit Completed Portfolio Project">
+              <div className="space-y-4">
 
                 <form onSubmit={handleEditPortfolioItem} className="space-y-4">
                   <Input
@@ -847,9 +824,9 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   />
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#5A6472]">Project Description</label>
+                    <label className="block text-xs font-semibold text-[#5B6272]">Project Description</label>
                     <textarea
-                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                      className="w-full min-h-[90px] px-3.5 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                       placeholder="Outline what features this project has and how you built it..."
                       value={editingItem.description}
                       onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
@@ -858,11 +835,11 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#5A6472]">Project Type</label>
+                    <label className="block text-xs font-semibold text-[#5B6272]">Project Type</label>
                     <select
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                      className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                     >
                       <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
                       <option value="VIDEO">Local Video Demo Showcase</option>
@@ -890,8 +867,8 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                   {editingItem.type === "IMAGE" && (
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Upload New Project Images (Replaces existing)</label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-[#E2E5EA] hover:border-[#8A94A3] p-6 rounded-2xl bg-[#F7F8FA] transition-colors relative cursor-pointer group">
+                      <label className="block text-xs font-semibold text-[#5B6272]">Upload New Project Images (Replaces existing)</label>
+                      <div className="flex items-center justify-center border-2 border-dashed border-[#C7CBD6] hover:border-[#E3E5EA] p-6 rounded-lg bg-[#F8F9FB] transition-colors relative cursor-pointer group">
                         <input
                           type="file"
                           accept="image/*"
@@ -900,18 +877,18 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                         />
                         <div className="text-center space-y-1">
-                          <Upload className="h-6 w-6 text-[#8A94A3] mx-auto group-hover:scale-105 transition-transform" />
-                          <p className="text-[10px] font-bold text-[#5A6472] uppercase">Select project files</p>
-                          <p className="text-[9px] text-[#8A94A3] font-semibold">Upload multiple screenshots (Max 5MB each)</p>
+                          <Upload className="h-6 w-6 text-[#5B6272] mx-auto group- transition-transform" />
+                          <p className="text-[11px] font-bold text-[#5B6272] uppercase">Select project files</p>
+                          <p className="text-[11px] text-[#5B6272] font-semibold">Upload multiple screenshots (Max 5MB each)</p>
                         </div>
                       </div>
 
                       {selectedFilePreviews.length > 0 ? (
                         <div className="space-y-1.5">
-                          <span className="text-[9px] font-bold text-[#8A94A3] uppercase tracking-wide block">Upload Previews ({selectedFilePreviews.length})</span>
+                          <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-wide block">Upload Previews ({selectedFilePreviews.length})</span>
                           <div className="grid grid-cols-4 gap-2">
                             {selectedFilePreviews.map((preview, index) => (
-                              <div key={index} className="aspect-video border border-[#E2E5EA] rounded-xl overflow-hidden bg-white relative">
+                              <div key={index} className="aspect-video border border-[#E3E5EA] rounded-lg overflow-hidden bg-white relative">
                                 <img src={preview} alt="preview" className="h-full w-full object-cover" />
                               </div>
                             ))}
@@ -919,10 +896,10 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                         </div>
                       ) : editingItem.images && editingItem.images.length > 0 && (
                         <div className="space-y-1.5">
-                          <span className="text-[9px] font-bold text-[#8A94A3] uppercase tracking-wide block">Current Images ({editingItem.images.length})</span>
+                          <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-wide block">Current Images ({editingItem.images.length})</span>
                           <div className="grid grid-cols-4 gap-2">
                             {editingItem.images.map((imgUrl, index) => (
-                              <div key={index} className="aspect-video border border-[#E2E5EA] rounded-xl overflow-hidden bg-white relative">
+                              <div key={index} className="aspect-video border border-[#E3E5EA] rounded-lg overflow-hidden bg-white relative">
                                 <img src={imgUrl} alt="existing" className="h-full w-full object-cover" />
                               </div>
                             ))}
@@ -934,19 +911,19 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
                   {editingItem.type === "VIDEO" && (
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Upload New Demo Video File (Max 20MB, Optional)</label>
+                      <label className="block text-xs font-semibold text-[#5B6272]">Upload New Demo Video File (Max 20MB, Optional)</label>
                       <input
                         type="file"
                         accept="video/*"
                         onChange={(e) => {
                           if (e.target.files) setSelectedFiles(e.target.files);
                         }}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26]"
+                        className="w-full px-4 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] text-[#1A1D29]"
                       />
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EDEFF2]">
+                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#E3E5EA]">
                     <Button
                       type="button"
                       variant="outline"
@@ -966,74 +943,67 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                   </div>
                 </form>
               </div>
-            </div>
+            </Modal>
           )}
         </div>
       )}
 
-      {/* Fullscreen Image zoom Modal */}
+      {/* Fullscreen image zoom — an image viewer, not a dialog: no header, no
+          card chrome, sized to the image. Shares the system scrim but stays
+          structurally separate from Modal. */}
       {zoomedImage && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
-          <div className="relative max-w-4xl max-h-[85vh] bg-white border border-[#EDEFF2] rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <button
-              onClick={() => setZoomedImage(null)}
-              className="absolute top-4 right-4 p-1.5 text-[#5A6472] hover:text-[#181D26] bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <img src={zoomedImage} alt="Expanded preview" className="max-w-full max-h-[80vh] object-contain rounded-2xl" />
-          </div>
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setZoomedImage(null)} />
+          <button
+            type="button"
+            onClick={() => setZoomedImage(null)}
+            aria-label="Close image"
+            className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#1A1D29] transition-colors hover:bg-white cursor-pointer"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <img
+            src={zoomedImage}
+            alt="Expanded preview"
+            className="relative z-10 max-h-[85vh] max-w-full rounded-xl object-contain"
+          />
         </div>
       )}
 
       {/* Review Client Modal */}
       {selectedReviewProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm"
-            onClick={() => setSelectedReviewProject(null)}
-          />
-
-          <Card className="relative w-full max-w-lg p-8 z-10 border-[#EDEFF2] bg-white shadow-2xl overflow-y-auto max-h-[90vh] rounded-3xl">
-            <button
-              onClick={() => setSelectedReviewProject(null)}
-              className="absolute top-4 right-4 p-1 text-[#5A6472] hover:text-[#333840] rounded-full hover:bg-[#EDEFF2]"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <h3 className="text-lg font-bold text-[#181d26] mb-1">Review Client</h3>
-            <p className="text-xs text-[#5A6472] mb-6 font-semibold">
-              Project: <span className="text-[#181d26]">{selectedReviewProject.title}</span> • Company: <span className="text-[#181d26]">{selectedReviewProject.company.companyName}</span>
+        <Modal open onClose={() => setSelectedReviewProject(null)} size="xl" title="Review Client">
+          <div className="space-y-4">
+            <p className="text-xs text-[#5B6272] mb-6 font-semibold">
+              Project: <span className="text-[#1A1D29]">{selectedReviewProject.title}</span> • Company: <span className="text-[#1A1D29]">{selectedReviewProject.company.companyName}</span>
             </p>
 
             <form onSubmit={handleCompanyReviewSubmit} className="space-y-4">
               {/* Overall Rating */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#5A6472]">Overall Rating ({reviewRating} Stars)</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">Overall Rating ({reviewRating} Stars)</label>
                 <div className="flex gap-1.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       type="button"
                       key={star}
                       onClick={() => setReviewRating(star)}
-                      className="text-amber-400 hover:scale-110 transition-transform cursor-pointer"
+                      className="text-[#8F5E08] transition-transform cursor-pointer"
                     >
-                      <Star className={`h-7 w-7 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-[#8A94A3]"}`} />
+                      <Star className={`h-7 w-7 ${star <= reviewRating ? "fill-[#B9790A] text-[#8F5E08]" : "text-[#5B6272]"}`} />
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Sub-ratings */}
-              <div className="grid grid-cols-3 gap-3 p-4 bg-[#F7F8FA] rounded-2xl border border-[#EDEFF2]">
+              <div className="grid grid-cols-3 gap-3 p-4 bg-[#F8F9FB] rounded-lg border border-[#E3E5EA]">
                 <div className="space-y-1 text-center">
-                  <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Communication</label>
+                  <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Communication</label>
                   <select
                     value={reviewComm}
                     onChange={(e) => setReviewComm(Number(e.target.value))}
-                    className="w-full text-xs font-semibold px-2 py-1 rounded-lg border border-[#E2E5EA] bg-white cursor-pointer text-[#181D26]"
+                    className="w-full text-xs font-semibold px-2 py-1 rounded-md border border-[#E3E5EA] bg-white cursor-pointer text-[#1A1D29]"
                   >
                     {[5, 4, 3, 2, 1].map((val) => (
                       <option key={val} value={val}>{val} Stars</option>
@@ -1042,11 +1012,11 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                 </div>
 
                 <div className="space-y-1 text-center">
-                  <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Payment Speed</label>
+                  <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Payment Speed</label>
                   <select
                     value={reviewPayment}
                     onChange={(e) => setReviewPayment(Number(e.target.value))}
-                    className="w-full text-xs font-semibold px-2 py-1 rounded-lg border border-[#E2E5EA] bg-white cursor-pointer text-[#181D26]"
+                    className="w-full text-xs font-semibold px-2 py-1 rounded-md border border-[#E3E5EA] bg-white cursor-pointer text-[#1A1D29]"
                   >
                     {[5, 4, 3, 2, 1].map((val) => (
                       <option key={val} value={val}>{val} Stars</option>
@@ -1055,11 +1025,11 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                 </div>
 
                 <div className="space-y-1 text-center">
-                  <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Project Clarity</label>
+                  <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Project Clarity</label>
                   <select
                     value={reviewClarity}
                     onChange={(e) => setReviewClarity(Number(e.target.value))}
-                    className="w-full text-xs font-semibold px-2 py-1 rounded-lg border border-[#E2E5EA] bg-white cursor-pointer text-[#181D26]"
+                    className="w-full text-xs font-semibold px-2 py-1 rounded-md border border-[#E3E5EA] bg-white cursor-pointer text-[#1A1D29]"
                   >
                     {[5, 4, 3, 2, 1].map((val) => (
                       <option key={val} value={val}>{val} Stars</option>
@@ -1070,9 +1040,9 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
 
               {/* Feedback text */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#5A6472]">Review Comments</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">Review Comments</label>
                 <textarea
-                  className="w-full min-h-[100px] px-3.5 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26] focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                  className="w-full min-h-[100px] px-3.5 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] text-[#1A1D29] focus:outline-none focus:ring-2 focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                   placeholder="Describe your collaboration, payment promptness, communication clarity..."
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
@@ -1081,7 +1051,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-2 border-t border-[#EDEFF2]">
+              <div className="flex gap-3 justify-end pt-2 border-t border-[#E3E5EA]">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1096,8 +1066,8 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                 </Button>
               </div>
             </form>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

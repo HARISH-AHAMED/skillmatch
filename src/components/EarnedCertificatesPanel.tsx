@@ -35,16 +35,16 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
 
   return (
     <div className="space-y-4">
-      <div className="pb-2 border-b border-[#EDEFF2]">
-        <h4 className="text-xs font-bold text-[#333840]">Certificates</h4>
-        <p className="text-[10px] text-[#5A6472]">
+      <div className="pb-2 border-b border-[#E3E5EA]">
+        <h4 className="text-xs font-bold text-[#5B6272]">Certificates</h4>
+        <p className="text-[11px] text-[#5B6272]">
           Certificates companies issued to you on completed projects. Choose which ones show on
           your public profile.
         </p>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-[#8A94A3] italic text-center p-6 bg-[#F7F8FA] rounded-2xl">
+        <p className="text-xs text-[#5B6272] italic text-center p-6 bg-[#F8F9FB] rounded-lg">
           No certificates yet. They appear here once a company completes a project you worked on.
         </p>
       ) : (
@@ -52,15 +52,15 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
           {items.map((cert) => (
             <div
               key={cert.id}
-              className="p-4 bg-white border border-[#EDEFF2] rounded-2xl shadow-sm flex flex-wrap justify-between items-center gap-3 hover:border-[#E2E5EA] transition-colors"
+              className="p-4 bg-white border border-[#E3E5EA] rounded-lg flex flex-wrap justify-between items-center gap-3 hover:border-[#E3E5EA] transition-colors"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="p-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 shrink-0">
+                <div className="p-2 bg-[#FFF3DC] border border-[#F5DEB0] rounded-lg text-[#8F5E08] shrink-0">
                   <Award className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-[#181d26] truncate">{cert.projectTitle}</h4>
-                  <p className="text-[10px] text-[#5A6472] font-semibold truncate">
+                  <h4 className="text-xs font-bold text-[#1A1D29] truncate">{cert.projectTitle}</h4>
+                  <p className="text-[11px] text-[#5B6272] font-semibold truncate">
                     {cert.roleTitle} • {cert.issuerName} •{" "}
                     {new Date(cert.issuedAt).toLocaleDateString()}
                   </p>
@@ -70,7 +70,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
               <div className="flex items-center gap-2">
                 <Link
                   href={`/freelancer/certificates/${cert.publicId}`}
-                  className="px-3 py-1.5 text-[10px] font-bold text-[#1968E5] border border-[#E2E5EA] rounded-xl hover:bg-[#F7F8FA] inline-flex items-center gap-1"
+                  className="px-3 py-1.5 text-[11px] font-bold text-[#2159C9] border border-[#E3E5EA] rounded-full hover:bg-[#F8F9FB] inline-flex items-center gap-1"
                 >
                   View / Download <ExternalLink className="h-3 w-3" />
                 </Link>
@@ -78,10 +78,10 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
                   type="button"
                   onClick={() => toggle(cert)}
                   disabled={pending === cert.id}
-                  className={`px-3 py-1.5 text-[10px] font-bold rounded-xl border inline-flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 ${
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-full border inline-flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 ${
                     cert.hidden
-                      ? "text-[#5A6472] border-[#E2E5EA] hover:bg-[#F7F8FA]"
-                      : "text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                      ? "text-[#5B6272] border-[#E3E5EA] hover:bg-[#F8F9FB]"
+                      : "text-[#147A44] border-[#BFE9D2] bg-[#E4F7EC] hover:bg-[#E4F7EC]"
                   }`}
                   title={cert.hidden ? "Show on public profile" : "Hide from public profile"}
                 >

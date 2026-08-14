@@ -65,9 +65,9 @@ export default async function CompletedProjectsPage() {
   if (!freelancer) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">Completed Projects</h1>
-        <Card className="p-8 text-center space-y-4 bg-white border border-[#E2E5EA]">
-          <p className="text-[#5A6472] text-sm">Please complete your freelancer profile first to access Completed Projects features.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">Completed Projects</h1>
+        <Card className="p-8 text-center space-y-4 bg-white border border-[#C7CBD6]">
+          <p className="text-[#5B6272] text-sm">Please complete your freelancer profile first to access Completed Projects features.</p>
           <Link href="/freelancer/profile">
             <Button variant="primary">Complete Profile</Button>
           </Link>
@@ -79,8 +79,8 @@ export default async function CompletedProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">Completed Projects</h1>
-        <p className="text-xs text-[#5A6472] mt-1">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">Completed Projects</h1>
+        <p className="text-xs text-[#5B6272] mt-1">
           Review your completed platform contracts and customize your portfolio gallery showcase.
         </p>
       </div>

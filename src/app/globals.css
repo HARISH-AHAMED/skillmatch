@@ -1,175 +1,315 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — single source of visual truth.
+   Restrained, neutral, productivity-first SaaS system:
+   white/near-white surfaces, colour reserved for action + status,
+   pill controls vs. 8–12px containers, border-based elevation.
+   Do not hardcode hex/px values in components — extend this file instead.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @theme {
-  /* ── Unstop design system tokens (DESIGN-unstop.md) ───────────────────── */
-  --color-primary: #1968E5;
-  --color-primary-active: #134FB0;
-  --color-primary-tint: #EDF5FD;
-  --color-primary-tint-strong: #DEEDFC;
-  --color-ink: #181D26;
-  --color-body: #333840;
-  --color-muted: #5A6472;
-  --color-placeholder: #8A94A3;
-  --color-hairline: #E2E5EA;
-  --color-border-strong: #C7CCD4;
-  --color-canvas: #FFFFFF;
-  --color-surface-page: #F7F8FA;
-  --color-surface-soft: #F2F8FE;
-  --color-surface-strong: #EDEFF2;
-  --color-surface-dark: #0B1C32;
-  --color-navy-deep: #0B1C32;
-  --color-navy-deep-elevated: #10396B;
-  --color-navy-panel-hover: #19457B;
-  --color-on-navy: #FFFFFF;
-  --color-on-navy-muted: #9FB3CC;
-  --color-signature-yellow: #FFC700;
-  --color-signature-yellow-deep: #E8A800;
-  --color-signature-yellow-tint: #FFF7DA;
-  --color-gold-lock: #C58138;
-  --color-link: #1968E5;
-  --color-link-active: #134FB0;
-  --color-on-primary: #FFFFFF;
-  --color-disabled-bg: #EDEFF2;
-  --color-disabled-ink: #A6ACB6;
+  /* ── Canonical palette ─────────────────────────────────────────────────── */
+  --color-bg-app:#F5F6F8;
+  --color-bg-surface:#FFFFFF;
+  --color-bg-surface-alt:#F8F9FB;
+  --color-bg-input-disabled:#F1F2F4;
+  --color-bg-hover:#F0F3F9;
+  --color-bg-selected:#EAF1FE;
 
-  /* Marketing surface (DESIGN-unstop-marketing.md) */
-  --color-page-wash: #F2F8FE;
-  --color-accent-pink: #F48AAD;
-  --color-accent-pink-tint: #FCE6EE;
-  --color-accent-pink-deep: #EC5D8E;
-  --color-accent-violet: #7C63F1;
-  --color-accent-violet-tint: #D5CDFA;
-  --color-accent-mint: #2ACA7C;
-  --color-accent-mint-tint: #D8F7E7;
-  --color-accent-marigold-deep: #FFD233;
-  --color-footer-ink: #1C4980;
+  --color-text-primary:#1A1D29;
+  --color-text-secondary:#5B6272;
+  --color-text-muted:#8A90A0;
+  --color-text-disabled:#B7BBC6;
+  --color-text-inverse:#FFFFFF;
 
-  /* Status */
-  --color-success: #0F9D58;
-  --color-success-surface: #DEF7EB;
-  --color-success-border: #05C165;
-  --color-warning: #8A6116;
-  --color-warning-surface: #FFF4D6;
-  --color-warning-border: #FFF4D6;
-  --color-danger: #B3401E;
-  --color-danger-surface: #FDEDEA;
-  --color-danger-border: #FDEDEA;
-  --color-info-surface: #EAF3FF;
-  --color-tag-orange-bg: #FDEEDC;
-  --color-tag-orange-ink: #B4630E;
-  --color-tag-blue-bg: #E6F0FE;
-  --color-tag-blue-ink: #1968E5;
-  --color-kpi-lavender: #EDEAFB;
-  --color-kpi-sky: #E3F0FE;
-  --color-kpi-blush: #FCE9EF;
+  --color-border-default:#E3E5EA;
+  --color-border-subtle:#EDEEF2;
+  --color-border-emphasis:#C7CBD6;
 
-  --color-focus: #1968E5;
-  --color-star: #FFC700;
-  --color-card-bg: #FFFFFF;
-  --color-card-border: #E2E5EA;
+  --color-brand-navy:#152C55;
+  --color-brand-navy-hover:#1E3D71;
+  --color-brand-blue:#2E6BEA;
+  --color-brand-blue-hover:#245BC9;
+  --color-brand-blue-active:#1B49A8;
+  --color-brand-gold:#F5B942;
 
-  /* Radius scale — rounded.xs/sm/md/lg/xl */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --color-success-bg:#E4F7EC;
+  --color-success-text:#147A44;
+  --color-warning-bg:#FFF3DC;
+  --color-warning-text:#8F5E08;
+  --color-error-bg:#FDEAEA;
+  --color-error-text:#BC2A2A;
+  --color-info-bg:#E8F1FE;
+  --color-info-text:#2159C9;
+  --color-neutral-bg:#F1F2F4;
+  --color-neutral-text:#5B6272;
+
+  /* ── Legacy semantic aliases (kept so existing components restyle in place,
+        remapped onto the palette above — one system, not two) ───────────── */
+  --color-primary:#2E6BEA;
+  --color-primary-active:#245BC9;
+  --color-primary-pressed-dark:#1B49A8;
+  --color-primary-tint:#E8F1FE;
+  --color-primary-tint-strong:#EAF1FE;
+  --color-ink:#1A1D29;
+  --color-body:#1A1D29;
+  --color-muted:#5B6272;
+  --color-placeholder:#8A90A0;
+  --color-hairline:#E3E5EA;
+  /* `border-strong` is used as a *text* colour ~167× — keep it AA-legible. */
+  --color-border-strong:#5B6272;
+  --color-grid-line:#EDEEF2;
+  --color-grid-line-strong:#E3E5EA;
+  --color-canvas:#FFFFFF;
+  --color-surface-page:#F5F6F8;
+  --color-surface-soft:#F8F9FB;
+  --color-surface-strong:#F0F3F9;
+
+  /* Organizer console rail — light variant (white rail, blue selected fill) */
+  --color-rail-bg-light:#FFFFFF;
+  --color-rail-elevated-light:#E3E5EA;
+  --color-rail-hover-light:#F0F3F9;
+  --color-rail-accent-royal:#2E6BEA;
+  --color-rail-accent-royal-active:#245BC9;
+  --color-on-rail-ink:#1A1D29;
+  --color-on-rail-muted:#5B6272;
+
+  /* Premium / locked */
+  --color-signature-yellow:#FFF3DC;
+  --color-signature-yellow-deep:#F5B942;
+  --color-signature-yellow-tint:#FFF9EC;
+  --color-gold-lock:#8F5E08;
+
+  /* Persona accents */
+  --color-persona-talent:#2E6BEA;
+  --color-persona-mentor:#152C55;
+  --color-persona-recruiter:#5B6272;
+
+  /* Status (pastel bg + saturated text — never solid fill) */
+  --color-success:#147A44;
+  --color-success-surface:#E4F7EC;
+  --color-success-border:#BFE9D2;
+  --color-warning:#8F5E08;
+  --color-warning-surface:#FFF3DC;
+  --color-warning-border:#F5DEB0;
+  --color-danger:#BC2A2A;
+  --color-danger-surface:#FDEAEA;
+  --color-danger-border:#F5C2C2;
+  --color-info-surface:#E8F1FE;
+  --color-tag-orange-bg:#FFF3DC;
+  --color-tag-orange-ink:#8F5E08;
+  --color-tag-blue-bg:#E8F1FE;
+  --color-tag-blue-ink:#2159C9;
+
+  /* Data-viz accents — soft, low-saturation only */
+  --color-kpi-lavender:#EAE7FB;
+  --color-kpi-sky:#E8F1FE;
+  --color-kpi-blush:#FBE9EF;
+
+  /* Marketing surfaces (brighter pastels allowed here only) */
+  --color-page-wash:#F5F6F8;
+  --color-footer-wash:#F8F9FB;
+  --color-footer-ink:#1A1D29;
+  --color-accent-pink:#FBE9EF;
+  --color-accent-pink-tint:#FDF4F7;
+  --color-accent-pink-deep:#C2557A;
+  --color-accent-violet:#EAE7FB;
+  --color-accent-violet-tint:#F4F2FD;
+  --color-accent-mint:#E4F7EC;
+  --color-accent-mint-tint:#F1FBF6;
+  --color-accent-marigold-deep:#F5B942;
+  --color-logo-mono:#152C55;
+
+  /* Misc */
+  --color-on-primary:#FFFFFF;
+  --color-link:#2159C9;
+  --color-link-active:#245BC9;
+  --color-disabled-bg:#F1F2F4;
+  --color-disabled-ink:#B7BBC6;
+  --color-focus:#2E6BEA;
+  --color-star:#F5B942;
+  --color-card-bg:#FFFFFF;
+  --color-card-border:#E3E5EA;
+
+  /* ── Radius: pill for controls, 8–12px for containers. Nothing else. ───── */
+  --radius-none:0px;
+  --radius-xs:4px;
+  --radius-sm:6px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --radius-xl:18px;
+  --radius-2xl:18px;
+  --radius-3xl:18px;
+  --radius-full:9999px;
+  --radius-circle:50%;
+
+  /* ── Shadow: border-based elevation; shadows only for true overlays ────── */
+  --shadow-none:none;
+  --shadow-sm:0 1px 2px rgba(16,24,40,0.05);
+  --shadow-md:0 4px 12px rgba(16,24,40,0.08);
+  --shadow-lg:0 12px 32px rgba(16,24,40,0.14);
+  --shadow-xl:0 12px 32px rgba(16,24,40,0.14);
+  --shadow-2xl:0 12px 32px rgba(16,24,40,0.14);
+  --shadow-focus-ring:0 0 0 3px rgba(46,107,234,0.15);
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  --text-display:36px;
+  --text-h1:26px;
+  --text-h2:20px;
+  --text-h3:17px;
+  --text-h4:14px;
+  --text-body-lg:15px;
+  --text-body:14px;
+  --text-body-sm:13px;
+  --text-caption:12px;
+  --text-label:13px;
+  --text-button:14px;
+
+  /* ── Component sizing ──────────────────────────────────────────────────── */
+  --spacing-input-sm:36px;
+  --spacing-input-md:40px;
+  --spacing-input-lg:44px;
+  --spacing-header:60px;
+  --spacing-table-row:56px;
+  --spacing-sidebar-collapsed:68px;
+  --spacing-sidebar-expanded:260px;
+  --spacing-drawer:400px;
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --transition-fast:120ms ease;
+  --transition-base:180ms ease;
+  --transition-slow:260ms ease;
 }
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #181D26;
-  --primary: #1968E5;
-  --body: #333840;
-  --muted: #5A6472;
-  --hairline: #E2E5EA;
-  --link: #1968E5;
+  --background:#F5F6F8;
+  --foreground:#1A1D29;
+
+  /* Legacy palette handles — remapped onto the new system. */
+  --sea:#2E6BEA;
+  --mid:#E3E5EA;
+  --sky:#F0F3F9;
+  --sun:#F5B942;
+
+  --z-dropdown:100;
+  --z-sticky-header:200;
+  --z-drawer:300;
+  --z-modal-overlay:400;
+  --z-modal:410;
+  --z-toast:500;
 }
+
+/* ═══ Global base styles ═══════════════════════════════════════════════════ */
 
 body {
   background-color: var(--background);
-  color: var(--body);
-  font-family: 'Inter', 'Helvetica Neue', Arial, system-ui, -apple-system, sans-serif;
+  color: var(--foreground);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F7F8FA;
-}
-::-webkit-scrollbar-thumb {
-  background: #C7CCD4;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #C7CCD4;
+/* Focus is never removed — only restyled to the system's blue border + glow. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-/* Clean Editorial Card & Navbar utility classes */
+/* Custom scrollbar — neutral, unobtrusive. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F0F3F9; }
+::-webkit-scrollbar-thumb { background: #C7CBD6; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #8A90A0; }
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.no-scrollbar,
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ═══ Surface utilities ════════════════════════════════════════════════════ */
+
 .glass-panel {
-  background: #ffffff;
-  border: 1px solid #E2E5EA;
+  background: #FFFFFF;
+  border: 1px solid #E3E5EA;
+  border-radius: 12px;
   box-shadow: none;
 }
 
-.glass-panel-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.glass-panel-hover { transition: background-color 180ms ease, border-color 180ms ease; }
 .glass-panel-hover:hover {
-  background: #ffffff;
-  border-color: #C7CCD4;
-  box-shadow: 0 4px 12px rgba(24, 29, 38, 0.06);
+  background: #F0F3F9;
+  border-color: #C7CBD6;
+  box-shadow: none;
 }
 
 .glass-navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #E2E5EA;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E3E5EA;
 }
 
 .glass-input {
-  background: #ffffff;
-  border: 1px solid #E2E5EA;
-  color: #181d26;
-  transition: all 0.2s;
+  background: #FFFFFF;
+  border: 1px solid #E3E5EA;
+  border-radius: 8px;
+  color: #1A1D29;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
+.glass-input::placeholder { color: #8A90A0; }
 .glass-input:focus {
-  border-color: #1968E5;
-  background: #ffffff;
+  border-color: #2E6BEA;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(25, 104, 229, 0.18);
+  box-shadow: 0 0 0 3px rgba(46, 107, 234, 0.15);
 }
 
-/* Hide scrollbar */
-.no-scrollbar::-webkit-scrollbar,
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+/* Marketing bands — restrained pastels, dark text throughout. */
+.band-sea { background: #EAF1FE; }
+.band-mid { background: #F5F6F8; }
+.band-sky { background: #E8F1FE; }
+.band-sun { background: #FFF3DC; }
+.band-sea, .band-mid, .band-sky, .band-sun { color: #1A1D29; }
+
+.section-rule { border-bottom: 2px solid #2E6BEA; }
+
+/* ═══ Tables ═══════════════════════════════════════════════════════════════
+   Light header variant, horizontal dividers only, hover row tint.
+   No vertical column borders, no zebra striping.
+   ════════════════════════════════════════════════════════════════════════ */
+
+table thead tr { background: #F8F9FB; }
+table thead th {
+  color: #5B6272;
+  font-weight: 600;
+  border-color: #E3E5EA;
 }
-.no-scrollbar,
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+table tbody tr { border-color: #EDEEF2; }
+table tbody tr:hover { background: #F0F3F9; }
+table td, table th { border-color: #EDEEF2; }
+
+/* ═══ Motion preferences ═══════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
+/* ═══ Print: isolate the certificate sheet on a landscape page ═════════════ */
 
-
-
-/* Certificate download/print: isolate the sheet on a landscape page. */
 @media print {
-  @page {
-    size: A4 landscape;
-    margin: 0;
-  }
-  body * {
-    visibility: hidden;
-  }
+  @page { size: A4 landscape; margin: 0; }
+  body * { visibility: hidden; }
   .certificate-sheet,
-  .certificate-sheet * {
-    visibility: visible;
-  }
+  .certificate-sheet * { visibility: visible; }
   .certificate-sheet {
     position: fixed;
     inset: 0;

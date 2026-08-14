@@ -148,6 +148,7 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
   // Map hired freelancers for components
   const hiredFreelancers = project.applications.map((app) => ({
     id: app.freelancer.user.id,
+    applicationId: app.id,
     name: app.freelancer.user.name,
     image: app.freelancer.user.image,
     role: app.freelancer.user.role,

@@ -9,10 +9,75 @@ import {
   parseFreelancerMetadata,
   serializeFreelancerMetadata,
   getFreelancerBioText,
+  getProjectMetadataDirect,
 } from "@/lib/workflowHelpers";
 import { issueProjectCertificates } from "@/actions/certificateActions";
 
+/**
+ * Whether the project's existing compensation workflow has reached a state that
+ * allows completion. Reads only existing stored state — no new payment rules.
+ */
+export async function getProjectCompletionReadiness(projectId: string) {
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { description: true, status: true },
+  });
+  const hiredApps = await db.application.findMany({
+    where: { projectId, status: "HIRED" },
+    select: { id: true },
+  });
+  const hiredIds = hiredApps.map((x) => x.id);
+  if (!project) return { ready: false, reason: "Project not found." };
+  if (project.status === ProjectStatus.COMPLETED) {
+    return { ready: false, completed: true, reason: "This project is already completed." };
+  }
+
+  const meta = getProjectMetadataDirect(project.description);
+  const type = meta.compensationType || "MILESTONE";
+
+  if (type === "UNPAID") return { ready: true };
+
+  if (type === "FIXED" || type === "MILESTONE") {
+    const stages = meta.paymentStages ?? [];
+    if (stages.length === 0) return { ready: true };
+    const open = stages.filter((s) => s.status !== "RELEASED").length;
+    return open === 0
+      ? { ready: true }
+      : { ready: false, reason: `${open} payment stage(s) are still awaiting release.` };
+  }
+
+  if (type === "HOURLY") {
+    const logs = meta.hourlyLogs ?? [];
+    const pays = meta.hourlyPayments ?? [];
+    const rate = meta.paymentRate ?? 0;
+    const pending = logs.filter((l) => l.status === "PENDING").length;
+    if (pending > 0) return { ready: false, reason: `${pending} work log(s) are still pending review.` };
+    // Every hired freelancer must be settled, not just the selected one.
+    const unpaid = hiredIds.filter((id) => {
+      const approved =
+        logs.filter((l) => l.applicationId === id && l.status === "APPROVED").reduce((t, l) => t + (l.hours || 0), 0) * rate;
+      const paid = pays.filter((p) => p.applicationId === id).reduce((t, p) => t + (p.amount || 0), 0);
+      return approved - paid > 0;
+    }).length;
+    return unpaid === 0
+      ? { ready: true }
+      : { ready: false, reason: `${unpaid} freelancer(s) have unpaid approved hours.` };
+  }
+
+  if (type === "STIPEND") {
+    const paidApps = new Set((meta.stipendPayments ?? []).map((p) => p.applicationId));
+    const unpaid = hiredIds.filter((id) => !paidApps.has(id)).length;
+    if (hiredIds.length === 0) return { ready: true };
+    return unpaid === 0
+      ? { ready: true }
+      : { ready: false, reason: `${unpaid} freelancer(s) have no stipend released yet.` };
+  }
+
+  return { ready: true };
+}
+
 // COMPLETE PROJECT (company-only)
+
 export async function completeProject(projectId: string) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) throw new Error("Unauthorized");
@@ -23,6 +88,9 @@ export async function completeProject(projectId: string) {
   if (!project) throw new Error("Project not found.");
   if (project.company.userId !== session.user.id) throw new Error("Not your project.");
   if (project.status === ProjectStatus.COMPLETED) return { success: true, alreadyDone: true };
+  // Project-level gate: one completion state for the whole project.
+  const readiness = await getProjectCompletionReadiness(projectId);
+  if (!readiness.ready) throw new Error(readiness.reason || "Project cannot be completed yet.");
   await db.project.update({ where: { id: projectId }, data: { status: ProjectStatus.COMPLETED } });
   await Promise.all([
     ...project.applications.map((app) =>

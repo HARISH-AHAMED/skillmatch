@@ -47,29 +47,29 @@ export default async function AdminProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">
           Project Listings Moderator
         </h1>
-        <p className="text-xs text-[#5A6472] mt-1">
+        <p className="text-xs text-[#5B6272] mt-1">
           Monitor posted project specs, applicants counts, and remove listings violating policies
         </p>
       </div>
 
       <div className="space-y-4">
         {projects.length === 0 ? (
-          <Card className="p-8 text-center text-xs text-[#5A6472]">
+          <Card className="p-8 text-center text-xs text-[#5B6272]">
             No projects posted on the platform yet.
           </Card>
         ) : (
           projects.map((project) => (
-            <Card key={project.id} className="p-6 border-[#EDEFF2] bg-white shadow-sm">
-              <div className="flex justify-between items-start pb-3 border-b border-[#E2E5EA] mb-4">
+            <Card key={project.id} className="p-6 border-[#E3E5EA] bg-white">
+              <div className="flex justify-between items-start pb-3 border-b border-[#E3E5EA] mb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-[#181d26]">{project.title}</h3>
+                    <h3 className="text-sm font-bold text-[#1A1D29]">{project.title}</h3>
                     {getStatusBadge(project.status)}
                   </div>
-                  <p className="text-[10px] text-[#5A6472]">
+                  <p className="text-[11px] text-[#5B6272]">
                     Posted by: {project.company.companyName} • Urgency: {project.priority}
                   </p>
                 </div>
@@ -80,28 +80,28 @@ export default async function AdminProjectsPage() {
                     type="submit"
                     size="sm"
                     variant="ghost"
-                    className="text-rose-600 hover:text-rose-500 hover:bg-rose-50 cursor-pointer"
+                    className="text-[#BC2A2A] hover:text-[#BC2A2A] hover:bg-[#FDEAEA] cursor-pointer"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </form>
               </div>
 
-              <p className="text-xs text-[#5A6472] leading-relaxed mb-4">
+              <p className="text-xs text-[#5B6272] leading-relaxed mb-4">
                 {getProjectDescriptionText(project.description)}
               </p>
 
-              <div className="grid grid-cols-3 gap-2.5 text-[10px] text-[#5A6472] border-t border-[#E2E5EA] pt-3.5">
+              <div className="grid grid-cols-3 gap-2.5 text-[11px] text-[#5B6272] border-t border-[#E3E5EA] pt-3.5">
                 <div className="flex items-center gap-1">
-                  <DollarSign className="h-3.5 w-3.5 text-[#5A6472]" />
-                  <span>Budget: <strong className="text-[#181D26]">{formatProjectBudget(project)}</strong></span>
+                  <DollarSign className="h-3.5 w-3.5 text-[#5B6272]" />
+                  <span>Budget: <strong className="text-[#1A1D29]">{formatProjectBudget(project)}</strong></span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-[#5A6472]" />
+                  <Calendar className="h-3.5 w-3.5 text-[#5B6272]" />
                   <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-1 justify-end">
-                  <span>Applications: <strong className="text-[#181D26]">{project._count.applications}</strong></span>
+                  <span>Applications: <strong className="text-[#1A1D29]">{project._count.applications}</strong></span>
                 </div>
               </div>
             </Card>

@@ -139,18 +139,18 @@ export default async function CompanyDashboard() {
       {/* Welcome header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-transparent">
         <div>
-          <span className="text-[10px] font-medium text-[#5A6472] tracking-wider uppercase">
+          <span className="text-[11px] font-medium text-[#5B6272] tracking-wider uppercase">
             Company Portal
           </span>
-          <h1 className="text-3xl font-normal text-[#181d26] tracking-tight mt-0.5">
+          <h1 className="text-3xl font-normal text-[#1A1D29] tracking-tight mt-0.5">
             {company.companyName} Dashboard
           </h1>
-          <p className="text-xs text-[#333840] font-normal mt-1">
+          <p className="text-xs text-[#5B6272] font-normal mt-1">
             Manage your project requests and evaluate AI recommendation profiles
           </p>
         </div>
         <Link href="/company/projects/new">
-          <Button variant="primary" className="gap-2 cursor-pointer rounded-[12px]">
+          <Button variant="primary" className="gap-2 cursor-pointer rounded-full">
             <PlusCircle className="h-4 w-4" />
             Post New Job
           </Button>
@@ -159,55 +159,55 @@ export default async function CompanyDashboard() {
 
       {/* Grid summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#C7CBD6] rounded-lg">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
-              <FolderOpen className="h-5 w-5 text-[#181d26]" />
+            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
+              <FolderOpen className="h-5 w-5 text-[#1A1D29]" />
             </div>
-            <span className="text-[10px] font-medium text-[#1968E5] bg-[#F7F8FA] px-2 py-0.5 rounded-full border border-[#E2E5EA]">Open</span>
+            <span className="text-[11px] font-medium text-[#2159C9] bg-[#F8F9FB] px-2 py-0.5 rounded-full border border-[#E3E5EA]">Open</span>
           </div>
           <div>
-            <p className="text-3xl font-normal text-[#181d26] leading-none">{activeProjectsCount}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Active Jobs</p>
+            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{activeProjectsCount}</p>
+            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Active Jobs</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
-              <Users className="h-5 w-5 text-[#181d26]" />
+            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
+              <Users className="h-5 w-5 text-[#1A1D29]" />
             </div>
-            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+12%</span>
+            <span className="text-[11px] font-medium text-[#1A1D29] bg-[#E8F1FE] px-2 py-0.5 rounded-full border border-[#E3E5EA]/30">+12%</span>
           </div>
           <div>
-            <p className="text-3xl font-normal text-[#181d26] leading-none">{totalApplicantsCount}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Total Applicants</p>
+            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{totalApplicantsCount}</p>
+            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Total Applicants</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
-              <FileCheck className="h-5 w-5 text-[#181d26]" />
+            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
+              <FileCheck className="h-5 w-5 text-[#1A1D29]" />
             </div>
-            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+3</span>
+            <span className="text-[11px] font-medium text-[#1A1D29] bg-[#E8F1FE] px-2 py-0.5 rounded-full border border-[#C7CBD6]/30">+3</span>
           </div>
           <div>
-            <p className="text-3xl font-normal text-[#181d26] leading-none">{hiredCount}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Freelancers Hired</p>
+            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{hiredCount}</p>
+            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Freelancers Hired</p>
           </div>
         </Card>
 
-        <Card className="p-5 space-y-3 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px]">
+        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
           <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-[#E2E5EA] flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-[#181d26]" />
+            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-[#1A1D29]" />
             </div>
-            <span className="text-[10px] font-medium text-[#0F9D58] bg-[#DEF7EB] px-2 py-0.5 rounded-full border border-[#05C165]/30">+1</span>
+            <span className="text-[11px] font-medium text-[#1A1D29] bg-[#F0F3F9] px-2 py-0.5 rounded-full border border-[#E3E5EA]/30">+1</span>
           </div>
           <div>
-            <p className="text-3xl font-normal text-[#181d26] leading-none">{completedProjectsCount}</p>
-            <p className="text-[10px] font-medium tracking-wider text-[#5A6472] uppercase mt-2">Completed contracts</p>
+            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{completedProjectsCount}</p>
+            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Completed contracts</p>
           </div>
         </Card>
       </div>
@@ -217,23 +217,23 @@ export default async function CompanyDashboard() {
         {/* Active projects list */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Active Postings</h2>
-            <Link href="/company/projects" className="text-xs text-[#1968E5] hover:underline font-medium">
+            <h2 className="text-lg font-normal text-[#1A1D29] tracking-tight">Active Postings</h2>
+            <Link href="/company/projects" className="text-xs text-[#2159C9] hover:underline font-medium">
               View all
             </Link>
           </div>
 
           <div className="space-y-4">
             {recentProjects.length === 0 ? (
-              <Card className="p-8 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
+              <Card className="p-8 text-center text-xs text-[#5B6272] bg-white border border-[#C7CBD6] rounded-lg">
                 You haven&apos;t posted any projects yet.
               </Card>
             ) : (
               recentProjects.map((p) => (
-                <Card key={p.id} className="p-5 bg-white border border-[#E2E5EA] shadow-xs rounded-[12px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <Card key={p.id} className="p-5 bg-white border border-[#E3E5EA] rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[#181d26]">{p.title}</span>
+                      <span className="text-sm font-semibold text-[#1A1D29]">{p.title}</span>
                       {p.status === ProjectStatus.OPEN ? (
                         <Badge variant="mint">Open</Badge>
                       ) : p.status === ProjectStatus.IN_PROGRESS ? (
@@ -242,15 +242,15 @@ export default async function CompanyDashboard() {
                         <Badge variant="neutral">Completed</Badge>
                       )}
                     </div>
-                    <p className="text-xs text-[#333840] max-w-sm line-clamp-1">
+                    <p className="text-xs text-[#5B6272] max-w-sm line-clamp-1">
                       {p.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#E2E5EA] pt-3 sm:pt-0">
+                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#E3E5EA] pt-3 sm:pt-0">
                     <div className="text-center sm:text-right pr-2">
-                      <span className="text-[10px] text-[#5A6472] block uppercase font-medium tracking-wider">Applicants</span>
-                      <span className="text-sm font-semibold text-[#181d26]">{p._count.applications}</span>
+                      <span className="text-[11px] text-[#5B6272] block uppercase font-medium tracking-wider">Applicants</span>
+                      <span className="text-sm font-semibold text-[#1A1D29]">{p._count.applications}</span>
                     </div>
                     <Link href={`/company/applicants?projectId=${p.id}`}>
                       <Button size="sm" variant="outline">
@@ -268,35 +268,35 @@ export default async function CompanyDashboard() {
         <div className="space-y-6">
           <DashboardNotifications initialNotifications={notifications} />
           
-          <h2 className="text-lg font-normal text-[#181d26] tracking-tight">Hiring Trends</h2>
+          <h2 className="text-lg font-normal text-[#1A1D29] tracking-tight">Hiring Trends</h2>
           <AnalyticsChart title="Applicant Flow" subtitle="Successful contracts month over month" data={hiringAnalytics} type="bar" />
 
           {/* AI recommendations panel */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[#181d26] flex items-center gap-1.5">
-                <Zap className="h-4.5 w-4.5 text-[#181d26]" />
+              <h3 className="text-sm font-semibold text-[#1A1D29] flex items-center gap-1.5">
+                <Zap className="h-4.5 w-4.5 text-[#1A1D29]" />
                 AI Top Recommendations
               </h3>
             </div>
             
             {topAIRecommendations.length === 0 ? (
-              <Card className="p-5 text-center text-xs text-[#5A6472] bg-white border border-[#E2E5EA] rounded-[12px]">
+              <Card className="p-5 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg">
                 Post an open project to view calculated recommendations.
               </Card>
             ) : (
               <div className="space-y-3">
-                <p className="text-[10px] text-[#5A6472] font-medium mb-1">
-                  Matching for project: <strong className="text-[#181d26]">{latestActiveProject!.title}</strong>
+                <p className="text-[11px] text-[#5B6272] font-medium mb-1">
+                  Matching for project: <strong className="text-[#1A1D29]">{latestActiveProject!.title}</strong>
                 </p>
                 {topAIRecommendations.map((rec) => (
-                  <Card key={rec.id} className="p-3.5 border-[#E2E5EA] bg-[#F7F8FA] hover:bg-white transition-all flex justify-between items-center gap-3 rounded-[10px]">
+                  <Card key={rec.id} className="p-3.5 border-[#E3E5EA] bg-[#F8F9FB] hover:bg-white transition-all flex justify-between items-center gap-3 rounded-lg">
                     <div className="overflow-hidden space-y-0.5">
-                      <p className="text-xs font-semibold text-[#181d26] truncate">{rec.freelancer.user.name}</p>
-                      <p className="text-[10px] text-[#5A6472] font-normal">Exp: {rec.freelancer.experienceYears} Years • Rating: {rec.freelancer.rating}/5</p>
+                      <p className="text-xs font-semibold text-[#1A1D29] truncate">{rec.freelancer.user.name}</p>
+                      <p className="text-[11px] text-[#5B6272] font-normal">Exp: {rec.freelancer.experienceYears} Years • Rating: {rec.freelancer.rating}/5</p>
                     </div>
                     <div className="text-right">
-                      <Badge variant="cream" className="text-[9px]">Match {rec.score}%</Badge>
+                      <Badge variant="cream" className="text-[11px]">Match {rec.score}%</Badge>
                     </div>
                   </Card>
                 ))}

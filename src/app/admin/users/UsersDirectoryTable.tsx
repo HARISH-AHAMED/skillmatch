@@ -6,6 +6,8 @@ import { Role } from "@prisma/client";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { Trash2, ShieldAlert, Users } from "lucide-react";
 import { deleteUser, updateUserRole } from "@/actions/authActions";
 
@@ -79,98 +81,58 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
     });
   };
 
-  const tabClass = (tabRole: Role) => {
-    const isActive = activeTab === tabRole;
-    return `flex items-center gap-2 px-6 py-3 border-b-2 font-semibold text-xs transition-all duration-200 cursor-pointer ${
-      isActive
-        ? "border-[#181d26] text-[#181d26] bg-[#181d26]/5 font-bold"
-        : "border-transparent text-[#5A6472] hover:text-[#181d26] hover:bg-[#F7F8FA]"
-    }`;
-  };
-
   return (
     <div className="space-y-4">
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700 animate-in fade-in duration-150">
+        <div className="p-3 bg-[#FDEAEA] border border-[#F5C2C2] rounded-lg text-xs font-semibold text-[#BC2A2A] animate-in fade-in duration-150">
           {error}
         </div>
       )}
 
       {/* Tabs Switcher */}
-      <div className="flex border-b border-[#E2E5EA] bg-white rounded-t-xl overflow-hidden shadow-sm">
-        <button
-          onClick={() => setActiveTab(Role.FREELANCER)}
-          className={tabClass(Role.FREELANCER)}
-        >
-          Freelancers
-          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-            activeTab === Role.FREELANCER 
-              ? "bg-[#181d26] text-white" 
-              : "bg-[#EDEFF2] text-[#5A6472]"
-          }`}>
-            {freelancers.length}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab(Role.COMPANY)}
-          className={tabClass(Role.COMPANY)}
-        >
-          Companies
-          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-            activeTab === Role.COMPANY 
-              ? "bg-[#181d26] text-white" 
-              : "bg-[#EDEFF2] text-[#5A6472]"
-          }`}>
-            {companies.length}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab(Role.ADMIN)}
-          className={tabClass(Role.ADMIN)}
-        >
-          Admins
-          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-            activeTab === Role.ADMIN 
-              ? "bg-[#181d26] text-white" 
-              : "bg-[#EDEFF2] text-[#5A6472]"
-          }`}>
-            {admins.length}
-          </span>
-        </button>
-      </div>
+      <Tabs
+        label="User directory"
+        value={activeTab}
+        onChange={(id) => setActiveTab(id as Role)}
+        items={[
+          { id: Role.FREELANCER, label: "Freelancers", count: freelancers.length },
+          { id: Role.COMPANY, label: "Companies", count: companies.length },
+          { id: Role.ADMIN, label: "Admins", count: admins.length },
+        ]}
+      />
 
-      <Card className="p-0 overflow-hidden bg-white border border-[#EDEFF2] shadow-sm rounded-b-xl rounded-t-none">
+      <Card className="p-0 overflow-hidden bg-white border border-[#E3E5EA] rounded-b-xl rounded-t-none">
         <div className="overflow-x-auto">
           {activeUsers.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
-              <Users className="h-8 w-8 text-[#C7CCD4] mb-3" />
-              <p className="text-[#5A6472] font-medium text-xs">
+              <Users className="h-8 w-8 text-[#2159C9] mb-3" />
+              <p className="text-[#5B6272] font-medium text-xs">
                 No users found under this tab.
               </p>
             </div>
           ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#E2E5EA] bg-[#F7F8FA] text-[#5A6472] font-bold uppercase tracking-wider">
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Registered</th>
-                  <th className="p-4">Current Role</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EDEFF2]">
+            <Table wrapperClassName="border-0 rounded-none">
+              <THead>
+                <TR className="hover:bg-transparent">
+                  <TH>Name</TH>
+                  <TH>Email</TH>
+                  <TH>Registered</TH>
+                  <TH>Current Role</TH>
+                  <TH align="right">Actions</TH>
+                </TR>
+              </THead>
+              <TBody>
                 {activeUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#F7F8FA]/50 text-[#5A6472]">
-                    <td className="p-4 font-bold text-[#181d26]">
+                  <TR key={u.id}>
+                    <TD className="font-semibold">
                       {u.name || "Anonymous User"}
-                    </td>
-                    <td className="p-4 font-mono">{u.email || "N/A"}</td>
-                    <td className="p-4">
+                    </TD>
+                    <TD className="font-mono text-[#5B6272]">{u.email || "N/A"}</TD>
+                    <TD className="text-[#5B6272]">
                       {new Date(u.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-4">{getRoleBadge(u.role)}</td>
-                    <td className="p-4 text-right">
+                    </TD>
+                    <TD>{getRoleBadge(u.role)}</TD>
+                    <TD align="right">
                       <div className="flex gap-2.5 justify-end items-center">
                         {/* Update Role Selector */}
                         <div className="flex gap-1.5 items-center">
@@ -180,7 +142,7 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
                             onChange={(e) =>
                               handleRoleChange(u.id, e.target.value as Role)
                             }
-                            className="px-2 py-1 bg-white border border-[#E2E5EA] rounded-lg text-[10px] focus:outline-none focus:border-[#181d26] text-[#181D26] cursor-pointer disabled:opacity-50"
+                            className="px-2 py-1 bg-white border border-[#C7CBD6] rounded-md text-[11px] focus:outline-none focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] text-[#1A1D29] cursor-pointer disabled:opacity-50"
                           >
                             <option value="ADMIN">Admin</option>
                             <option value="COMPANY">Company</option>
@@ -194,16 +156,16 @@ export function UsersDirectoryTable({ initialUsers }: UsersDirectoryTableProps) 
                           size="sm"
                           variant="ghost"
                           disabled={isPending}
-                          className="text-rose-600 hover:text-rose-500 hover:bg-rose-50 cursor-pointer disabled:opacity-50"
+                          className="text-[#BC2A2A] hover:text-[#BC2A2A] hover:bg-[#FDEAEA] cursor-pointer disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ))}
-              </tbody>
-            </table>
+              </TBody>
+            </Table>
           )}
         </div>
       </Card>

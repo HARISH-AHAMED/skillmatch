@@ -38,7 +38,7 @@ export default async function AdminReviewsPage() {
       <Star
         key={i}
         className={`h-4.5 w-4.5 ${
-          i < rating ? "text-amber-400 fill-amber-400/20" : "text-[#C7CCD4]"
+          i < rating ? "text-[#8F5E08] fill-[#B9790A]/20" : "text-[#2159C9]"
         }`}
       />
     ));
@@ -47,26 +47,26 @@ export default async function AdminReviewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">
           Review Moderation
         </h1>
-        <p className="text-xs text-[#5A6472] mt-1">
+        <p className="text-xs text-[#5B6272] mt-1">
           Review written feedback entries and remove ratings violating guidelines
         </p>
       </div>
 
       <div className="space-y-4">
         {reviews.length === 0 ? (
-          <Card className="p-8 text-center text-xs text-[#5A6472]">
+          <Card className="p-8 text-center text-xs text-[#5B6272]">
             No feedback entries recorded on the platform yet.
           </Card>
         ) : (
           reviews.map((rev) => (
-            <Card key={rev.id} className="p-6 border-[#EDEFF2] bg-white shadow-sm space-y-4">
-              <div className="flex justify-between items-start border-b border-[#E2E5EA] pb-3">
+            <Card key={rev.id} className="p-6 border-[#E3E5EA] bg-white space-y-4">
+              <div className="flex justify-between items-start border-b border-[#E3E5EA] pb-3">
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-bold text-[#181d26]">{rev.project.title}</h4>
-                  <p className="text-[10px] text-[#5A6472]">
+                  <h4 className="text-sm font-bold text-[#1A1D29]">{rev.project.title}</h4>
+                  <p className="text-[11px] text-[#5B6272]">
                     Reviewer: {rev.reviewer.name} ({rev.reviewer.email}) • Reviewee: {rev.reviewee.name}
                   </p>
                 </div>
@@ -81,7 +81,7 @@ export default async function AdminReviewsPage() {
                       type="submit"
                       size="sm"
                       variant="ghost"
-                      className="text-rose-600 hover:text-rose-500 hover:bg-rose-50 cursor-pointer"
+                      className="text-[#BC2A2A] hover:text-[#BC2A2A] hover:bg-[#FDEAEA] cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -89,7 +89,7 @@ export default async function AdminReviewsPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-[#333840] italic leading-relaxed bg-[#F7F8FA] p-4 border border-[#EDEFF2] rounded-xl">
+              <p className="text-xs text-[#5B6272] italic leading-relaxed bg-[#F8F9FB] p-4 border border-[#E3E5EA] rounded-lg">
                 &quot;{rev.comment}&quot;
               </p>
             </Card>

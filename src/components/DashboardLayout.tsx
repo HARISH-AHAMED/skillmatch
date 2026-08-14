@@ -24,22 +24,23 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
 
 
   return (
-    <div className="flex h-screen bg-[#ffffff] text-[#181d26] overflow-hidden relative">
-      
+    <div className="flex h-screen bg-[#F5F6F8] text-[#1A1D29] overflow-hidden relative">
+
       {/* Mobile Top Navigation Header */}
-      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-[#E2E5EA] px-4 py-3 flex items-center justify-between z-30">
+      <div className="md:hidden fixed top-0 inset-x-0 h-[60px] bg-white border-b border-[#E3E5EA] px-4 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-1.5 text-[#333840] hover:text-[#181d26] rounded-md hover:bg-[#F7F8FA] cursor-pointer flex items-center justify-center shrink-0"
+            className="h-10 w-10 -ml-2 text-[#5B6272] hover:text-[#1A1D29] rounded-full hover:bg-[#F0F3F9] cursor-pointer flex items-center justify-center shrink-0 transition-colors"
             title="Open navigation menu"
+            aria-label="Open navigation menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
-          <div className="h-7 w-7 rounded-md bg-[#181d26] flex items-center justify-center shadow-xs">
-            <Sparkles className="h-4 w-4 text-white" />
+          <div className="h-7 w-7 rounded-lg bg-[#EAF1FE] flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-[#2159C9]" aria-hidden="true" />
           </div>
-          <span className="font-medium text-sm text-[#181d26] tracking-tight">Talentra</span>
+          <span className="font-semibold text-sm text-[#1A1D29] tracking-tight">Talentra</span>
         </div>
       </div>
 
@@ -52,17 +53,19 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-[#181d26]/40 backdrop-blur-xs z-35 md:hidden"
+              transition={{ duration: 0.18 }}
+              className="fixed inset-0 bg-[#1A1D29]/50 z-35 md:hidden"
             />
             {/* Mobile close button positioned outside the sidebar drawer */}
-            <div className="fixed left-[272px] top-4 z-50 md:hidden animate-in fade-in duration-200">
+            <div className="fixed left-[268px] top-4 z-50 md:hidden animate-in fade-in duration-200">
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-white bg-[#181d26] border border-[#E2E5EA] rounded-md cursor-pointer flex items-center justify-center shadow-lg"
+                className="h-10 w-10 text-[#1A1D29] bg-white border border-[#E3E5EA] rounded-full cursor-pointer flex items-center justify-center shadow-md"
                 title="Close navigation menu"
+                aria-label="Close navigation menu"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
           </>
@@ -72,17 +75,17 @@ export function DashboardLayout({ role, userName, children }: DashboardLayoutPro
       {/* Responsive Sidebar container */}
       <div
         className={`
-          fixed inset-y-0 left-0 w-64 bg-white z-40 transform transition-transform duration-300 md:static md:translate-x-0 md:h-screen shrink-0
+          fixed inset-y-0 left-0 w-[260px] z-40 transform transition-transform duration-[260ms] ease-out md:static md:translate-x-0 md:h-screen shrink-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* Render standard Sidebar but pass hidden on mobile class */}
-        <Sidebar role={role} userName={userName} className="border-none w-full" />
+        <Sidebar role={role} userName={userName} className="w-full" />
       </div>
 
       {/* Main content body viewport */}
-      <div className="flex-1 flex flex-col min-w-0 h-full pt-14 md:pt-0">
-        <main className="flex-grow p-4 sm:p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+      <div className="flex-1 flex flex-col min-w-0 h-full pt-[60px] md:pt-0 bg-[#F5F6F8]">
+        <main className="flex-grow p-4 sm:p-6 md:p-8 overflow-y-auto max-w-[1600px] mx-auto w-full">
           {children}
         </main>
       </div>

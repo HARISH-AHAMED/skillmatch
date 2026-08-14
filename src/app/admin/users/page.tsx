@@ -12,10 +12,10 @@ export default async function AdminUsersPage() {
     <div className="space-y-6 text-left">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#181d26]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1D29]">
             User Directory
           </h1>
-          <p className="text-xs text-[#5A6472] font-normal mt-1">
+          <p className="text-xs text-[#5B6272] font-normal mt-1">
             Review, promote, or remove accounts registered on the Talentra platform
           </p>
         </div>

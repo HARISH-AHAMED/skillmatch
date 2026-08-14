@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { X, Send, Briefcase } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { Send, Briefcase } from "lucide-react";
 import { inviteFreelancerToProject, getInvitableProjects } from "@/actions/inviteActions";
 
 interface InvitableRole {
@@ -107,29 +108,24 @@ export function InviteToProjectModal({
   const selectable = projects.filter((p) => !p.alreadyInvited && !p.alreadyApplied);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-xs" onClick={onClose} />
-
-      <Card className="relative w-full max-w-md p-6 z-10 shadow-2xl space-y-4 text-left">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1 text-muted hover:text-ink rounded-full hover:bg-surface-soft cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-muted" />
-            Invite to a Project
-          </h3>
-          <p className="text-xs text-muted">
-            Send <strong className="text-ink">{freelancerName}</strong> a direct invitation to apply
-            to one of your open listings.
-          </p>
-        </div>
-
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title={
+        <span className="flex items-center gap-2">
+          <Briefcase className="h-[18px] w-[18px] text-[#5B6272]" aria-hidden="true" />
+          Invite to a Project
+        </span>
+      }
+      description={
+        <>
+          Send <strong className="font-semibold text-[#1A1D29]">{freelancerName}</strong> a direct
+          invitation to apply to one of your open listings.
+        </>
+      }
+    >
+      <div className="space-y-4 text-left">
         {sent ? (
           <div className="py-6 text-center space-y-1">
             <p className="text-sm font-semibold text-success">Invitation sent</p>
@@ -154,14 +150,14 @@ export function InviteToProjectModal({
         ) : (
           <>
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                 Select Project
               </label>
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
                 disabled={sending}
-                className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none cursor-pointer"
+                className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none cursor-pointer"
               >
                 {projects.map((p) => {
                   const blocked = p.alreadyInvited || p.alreadyApplied;
@@ -177,14 +173,14 @@ export function InviteToProjectModal({
 
             {selectedRoles.length > 0 && (
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                   Role *
                 </label>
                 <select
                   value={roleId}
                   onChange={(e) => setRoleId(e.target.value)}
                   disabled={sending}
-                  className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none cursor-pointer"
+                  className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none cursor-pointer"
                 >
                   <option value="">Select a role…</option>
                   {selectedRoles.map((r) => {
@@ -215,7 +211,7 @@ export function InviteToProjectModal({
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
                 Personal Message (optional)
               </label>
               <textarea
@@ -224,7 +220,7 @@ export function InviteToProjectModal({
                 onChange={(e) => setMessage(e.target.value)}
                 disabled={sending}
                 placeholder="Why you think they're a good fit for this project…"
-                className="w-full px-3 py-2 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none resize-none"
+                className="w-full px-3 py-2 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none resize-none"
               />
             </div>
 
@@ -245,7 +241,7 @@ export function InviteToProjectModal({
             </div>
           </>
         )}
-      </Card>
-    </div>
+      </div>
+    </Modal>
   );
 }

@@ -67,21 +67,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-12 bg-white text-[#181d26]">
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-12 bg-white text-[#1A1D29]">
       <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-10 w-10 rounded-[8px] bg-[#FFC700] items-center justify-center text-[#181D26]">
+          <div className="inline-flex h-10 w-10 rounded-full bg-[#FFF3DC] items-center justify-center text-[#1A1D29]">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-2xl font-normal text-[#181d26] tracking-tight">Create Talentra Account</h1>
-          <p className="text-xs text-[#333840]">Join our marketplace and start collaborating today</p>
+          <h1 className="text-2xl font-normal text-[#1A1D29] tracking-tight">Create Talentra Account</h1>
+          <p className="text-xs text-[#5B6272]">Join our marketplace and start collaborating today</p>
         </div>
 
         {/* Card containing register forms */}
-        <Card className="p-8 border-[#E2E5EA] bg-white rounded-[12px] shadow-xs space-y-6">
+        <Card className="p-8 border-[#E3E5EA] bg-white rounded-lg space-y-6">
           {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-[6px] text-xs font-medium text-rose-600">
+            <div className="p-3.5 bg-[#FDEAEA] border border-[#F5C2C2] rounded-lg text-xs font-medium text-[#BC2A2A]">
               {error}
             </div>
           )}
@@ -116,15 +116,15 @@ export default function RegisterPage() {
 
             {/* Role Switcher */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#333840]">Account Type</label>
+              <label className="block text-xs font-medium text-[#5B6272]">Account Type</label>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => setRole(Role.FREELANCER)}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-2 p-3 rounded-full border transition-all cursor-pointer ${
                     role === Role.FREELANCER
-                      ? "border-[#181d26] bg-[#181d26] text-white"
-                      : "border-[#E2E5EA] bg-[#F7F8FA] text-[#333840] hover:bg-[#EDEFF2]"
+                      ? "border-[#1A1D29] bg-[#152C55] text-white"
+                      : "border-[#C7CBD6] bg-[#F8F9FB] text-[#5B6272] hover:bg-[#F0F3F9]"
                   }`}
                   disabled={loading}
                 >
@@ -135,10 +135,10 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setRole(Role.COMPANY)}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-[6px] border transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-2 p-3 rounded-full border transition-all cursor-pointer ${
                     role === Role.COMPANY
-                      ? "border-[#181d26] bg-[#181d26] text-white"
-                      : "border-[#E2E5EA] bg-[#F7F8FA] text-[#333840] hover:bg-[#EDEFF2]"
+                      ? "border-[#1A1D29] bg-[#152C55] text-white"
+                      : "border-[#E3E5EA] bg-[#F8F9FB] text-[#5B6272] hover:bg-[#E8F1FE]"
                   }`}
                   disabled={loading}
                 >
@@ -160,9 +160,14 @@ export default function RegisterPage() {
         </Card>
 
         {/* Link back or login */}
-        <p className="text-center text-xs text-[#333840] font-normal">
+        <p className="text-center text-xs text-[#5B6272] font-normal">
           Already have an account?{" "}
-          <Link href="/login" className="text-[#1968E5] hover:underline font-medium">
+          {/* Inline prose link — padding extends the tap target without
+              disturbing the sentence's baseline. */}
+          <Link
+            href="/login"
+            className="inline-block py-2 -my-2 font-medium text-[#2159C9] hover:underline"
+          >
             Log In
           </Link>
         </p>

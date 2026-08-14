@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -356,7 +358,7 @@ export function CompanyProfileView({
       <div className="flex items-center">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-body hover:text-ink bg-white border border-hairline hover:border-border-strong rounded-xl transition-all duration-200 shadow-sm cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-body hover:text-ink bg-white border border-hairline hover:border-border-strong rounded-full transition-all duration-200 cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4 text-muted" />
           <span>Back</span>
@@ -367,13 +369,13 @@ export function CompanyProfileView({
  <Card className="overflow-hidden">
         {/* Relative wrapper — banner + logo live here, logo sticks out below banner */}
         <div className="relative">
-          {/* Banner: rounded top corners, overflow-hidden clips its own content but NOT the logo sibling */}
-          <div className="h-40 md:h-52 w-full overflow-hidden rounded-t-[12px] bg-gradient-to-br from-ink via-link-active to-link-active">
+          {/* Banner: rounded-lg top corners, overflow-hidden clips its own content but NOT the logo sibling */}
+          <div className="h-40 md:h-52 w-full overflow-hidden rounded-t-[12px] bg-[#152C55]">
             {company.bannerUrl ? (
               <img src={company.bannerUrl} alt="Company Cover Banner" className="h-full w-full object-cover" />
             ) : (
               <>
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-link/25 via-link-active to-ink" />
+                <div className="absolute inset-0" />
                 <div className="absolute right-0 top-0 opacity-[0.06] pointer-events-none">
                   <Building2 className="h-64 w-64 text-white" />
                 </div>
@@ -385,13 +387,13 @@ export function CompanyProfileView({
           <button
             type="button"
             onClick={() => setZoomedImage(company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`)}
-            className="absolute bottom-0 left-5 md:left-8 translate-y-1/2 h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-white p-1.5 border-4 border-white shadow-xl overflow-hidden group cursor-zoom-in z-20"
+            className="absolute bottom-0 left-5 md:left-8 translate-y-1/2 h-20 w-20 md:h-24 md:w-24 rounded-full bg-white p-1.5 border-4 border-white shadow-lg overflow-hidden group cursor-zoom-in z-20"
             title="Click to view full logo"
           >
             <img
               src={company.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${company.companyName}`}
               alt={company.companyName}
-              className="h-full w-full object-contain rounded-xl group-hover:scale-105 transition-transform duration-200"
+              className="h-full w-full object-contain rounded-md group- transition-transform duration-200"
             />
           </button>
         </div>
@@ -404,7 +406,7 @@ export function CompanyProfileView({
             <div className="pl-0 md:pl-28 min-w-0">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-ink leading-snug">{company.companyName}</h1>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-ink bg-link/10 border border-link/30 rounded-full px-2 py-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-ink bg-link/10 border border-link/30 rounded-full px-2 py-0.5">
                   <CheckCircle2 className="h-3 w-3 text-link" /> Verified
                 </span>
               </div>
@@ -426,21 +428,21 @@ export function CompanyProfileView({
             <div className="flex items-center justify-center md:justify-end gap-1.5 flex-wrap shrink-0">
               <button
                 onClick={handleFollowToggle}
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer ${
                   isFollowing
                     ? "bg-surface-strong text-body hover:bg-surface-strong border border-hairline"
-                    : "bg-ink hover:bg-primary-active text-white shadow-sm"
+                    : "bg-ink hover:bg-primary-active text-white"
                 }`}
               >
                 <Heart className={`h-3.5 w-3.5 shrink-0 ${isFollowing ? "fill-danger text-danger" : "text-white"}`} />
                 <span className="hidden sm:inline">{isFollowing ? "Following" : "Follow"}</span>
-                <span className="text-[10px] opacity-70">({followerCount})</span>
+                <span className="text-[11px] opacity-70">({followerCount})</span>
               </button>
 
               <button
                 onClick={handleAlertToggle}
                 title="Job Alerts"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isAlerted ? "bg-warning-surface text-warning border-warning-border" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isAlerted ? "bg-warning-surface text-warning border-warning-border" : ""}`}
               >
                 <Bell className={`h-3.5 w-3.5 shrink-0 ${isAlerted ? "fill-star text-star" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isAlerted ? "Alerts On" : "Job Alerts"}</span>
@@ -449,7 +451,7 @@ export function CompanyProfileView({
               <button
                 onClick={handleWatchlistToggle}
                 title="Watchlist"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isWatchlisted ? "bg-danger-surface text-danger border-danger-border" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isWatchlisted ? "bg-danger-surface text-danger border-danger-border" : ""}`}
               >
                 <Bookmark className={`h-3.5 w-3.5 shrink-0 ${isWatchlisted ? "fill-danger text-danger" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isWatchlisted ? "Saved" : "Save"}</span>
@@ -458,7 +460,7 @@ export function CompanyProfileView({
               <button
                 onClick={handleCommunityToggle}
                 title="Join Talent Community"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isCommunity ? "bg-success-surface text-success border-success-border" : ""}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft ${isCommunity ? "bg-success-surface text-success border-success-border" : ""}`}
               >
                 <Users className={`h-3.5 w-3.5 shrink-0 ${isCommunity ? "text-success" : "text-muted"}`} />
                 <span className="hidden sm:inline">{isCommunity ? "Member" : "Join"}</span>
@@ -467,7 +469,7 @@ export function CompanyProfileView({
               <button
                 onClick={handleShare}
                 title="Share Profile"
-                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft"
+                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer bg-white border border-hairline text-body hover:bg-surface-soft"
               >
                 <Share2 className="h-3.5 w-3.5 shrink-0 text-muted" />
                 <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
@@ -476,7 +478,7 @@ export function CompanyProfileView({
               {isCompanyOwner && (
                 <button
                   onClick={() => router.push("/company/profile")}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 h-8 transition-all cursor-pointer bg-star hover:bg-star text-ink shadow-sm border-0"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 h-8 transition-all cursor-pointer bg-star hover:bg-star text-ink border-0"
                 >
                   <Pencil className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden sm:inline">Edit Profile</span>
@@ -488,31 +490,17 @@ export function CompanyProfileView({
       </Card>
 
       {/* 2. Content Tabs */}
-      <div className="flex border-b border-hairline gap-6 pb-2.5 overflow-x-auto scrollbar-none whitespace-nowrap">
-        {[
-          { id: "overview", label: "Overview", count: null },
+      <Tabs
+        label="Company profile sections"
+        value={activeTab}
+        onChange={(id) => setActiveTab(id as any)}
+        items={[
+          { id: "overview", label: "Overview" },
           { id: "projects", label: "Open Gigs", count: projects.length },
           { id: "reviews", label: "Reviews & activity", count: reviews.length },
-          { id: "gallery_team", label: "Office & team", count: null },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`text-sm font-extrabold pb-2 transition-all cursor-pointer border-b-2 px-1 flex items-center gap-1.5 uppercase tracking-wide shrink-0 ${
-              activeTab === tab.id
-                ? "border-ink text-ink font-semibold"
-                : "border-transparent text-muted hover:text-ink hover:border-border-strong"
-            }`}
-          >
-            {tab.label}
-            {tab.count !== null && (
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? "bg-ink text-white" : "bg-surface-strong text-muted"}`}>
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+          { id: "gallery_team", label: "Office & team" },
+        ]}
+      />
 
       {/* 3. Tab Content viewports */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -532,19 +520,19 @@ export function CompanyProfileView({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 border-t border-hairline text-xs">
                   {company.foundedYear && (
                     <div>
-                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Founded</span>
+                      <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider block">Founded</span>
                       <strong className="text-ink text-sm mt-0.5 block">{company.foundedYear}</strong>
                     </div>
                   )}
                   {company.companySize && (
                     <div>
-                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Company Size</span>
+                      <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider block">Company Size</span>
                       <strong className="text-ink text-sm mt-0.5 block">{company.companySize}</strong>
                     </div>
                   )}
                   {company.industry && (
                     <div>
-                      <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Industry</span>
+                      <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider block">Industry</span>
                       <strong className="text-ink text-sm mt-0.5 block">{company.industry}</strong>
                     </div>
                   )}
@@ -585,20 +573,20 @@ export function CompanyProfileView({
               {company.officeLocations && company.officeLocations.length > 0 && (
  <Card className="p-8 space-y-4">
                   <div>
-                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
                       <MapPin className="h-4 w-4 text-link" /> Global Office Locations
                     </h3>
                     <p className="text-xs text-muted mt-0.5">Our physical office branches and active workspace hubs</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
                     {company.officeLocations.map((loc, idx) => (
-                      <div key={idx} className="p-4 bg-surface-soft border border-hairline rounded-2xl flex items-center gap-3">
-                        <div className="h-8 w-8 bg-link/10 rounded-xl flex items-center justify-center shrink-0">
+                      <div key={idx} className="p-4 bg-surface-soft border border-hairline rounded-lg flex items-center gap-3">
+                        <div className="h-8 w-8 bg-link/10 rounded-lg flex items-center justify-center shrink-0">
                           <MapPin className="h-4 w-4 text-ink" />
                         </div>
                         <div>
                           <span className="text-xs font-semibold text-ink block">{loc}</span>
-                          <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider">Active Office</span>
+                          <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider">Active Office</span>
                         </div>
                       </div>
                     ))}
@@ -609,7 +597,7 @@ export function CompanyProfileView({
               {/* Perks and benefits */}
  <Card className="p-8 space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Benefits & Perks</h3>
+                  <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Benefits & Perks</h3>
                   <p className="text-xs text-muted mt-0.5">What we offer to our teams and freelancers</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -622,7 +610,7 @@ export function CompanyProfileView({
                   ]).map((perk, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 bg-surface-soft border border-hairline rounded-2xl text-xs font-bold text-body hover:bg-white/5 hover:border-link/20 transition-colors flex items-center gap-2"
+                      className="p-3.5 bg-surface-soft border border-hairline rounded-lg text-xs font-bold text-body hover:bg-white/5 hover:border-link/20 transition-colors flex items-center gap-2"
                     >
                       <CheckCircle2 className="h-4 w-4 text-link shrink-0" />
                       <span>{perk}</span>
@@ -655,30 +643,30 @@ export function CompanyProfileView({
                   return (
  <Card
                       key={project.id}
-                      className="p-6 bg-white border border-hairline/90 shadow-sm hover:shadow-md transition-all rounded-3xl space-y-4 group"
+                      className="p-6 bg-white border border-hairline/90 hover:shadow-md transition-all rounded-lg space-y-4 group"
                     >
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={project.status === "OPEN" ? "success" : project.status === "IN_PROGRESS" ? "warning" : "neutral"} className="text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider">
+                            <Badge variant={project.status === "OPEN" ? "success" : project.status === "IN_PROGRESS" ? "warning" : "neutral"} className="text-[11px] px-2 py-0.5 font-bold uppercase tracking-wider">
                               {project.status === "OPEN" ? "Open" : project.status.replace("_", " ").toLowerCase()}
                             </Badge>
                             {project.priority === "HIGH" && <Badge variant="danger">High Priority</Badge>}
                             {project.priority === "MEDIUM" && <Badge variant="secondary">Medium Priority</Badge>}
-                            <span className="text-[10px] font-semibold text-border-strong flex items-center gap-1">
+                            <span className="text-[11px] font-semibold text-border-strong flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5" />
                               Posted {new Date(project.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <h4 className="text-base font-extrabold text-ink group-hover:text-link transition-colors">
+                          <h4 className="text-base font-bold text-ink group-hover:text-link transition-colors">
                             {project.title}
                           </h4>
-                          <span className="text-[10px] text-border-strong font-semibold uppercase block">
+                          <span className="text-[11px] text-border-strong font-semibold uppercase block">
                             Required Experience: {project.experienceRequired} years
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-border-strong uppercase font-bold block">Gig Budget</span>
+                          <span className="text-[11px] text-border-strong uppercase font-bold block">Gig Budget</span>
                           <span className="text-lg font-semibold text-ink">{formatProjectBudget(project)}</span>
                         </div>
                       </div>
@@ -690,7 +678,7 @@ export function CompanyProfileView({
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-hairline">
                         <div className="flex flex-wrap gap-1">
                           {project.requiredSkills.map((skill: string) => (
-                            <Badge key={skill} variant="neutral" className="text-[9px] lowercase font-bold py-0.5">
+                            <Badge key={skill} variant="neutral" className="text-[11px] lowercase font-bold py-0.5">
                               {skill}
                             </Badge>
                           ))}
@@ -700,7 +688,7 @@ export function CompanyProfileView({
                           {/* Save project */}
                           <button
                             onClick={() => handleSaveProjectToggle(project.id)}
-                            className={`p-2 rounded-xl border cursor-pointer transition-all ${
+                            className={`p-2 rounded-full border cursor-pointer transition-all ${
                               isSaved
                                 ? "bg-warning-surface text-warning border-warning-border"
                                 : "bg-white text-border-strong hover:text-body border-hairline hover:border-border-strong"
@@ -720,11 +708,11 @@ export function CompanyProfileView({
                           </Button>
 
                           {project.status !== "OPEN" ? (
-                            <Badge variant="neutral" className="px-4 py-1.5 rounded-xl font-bold text-[10px] uppercase">
+                            <Badge variant="neutral" className="px-4 py-1.5 rounded-full font-bold text-[11px] uppercase">
                               {project.status.replace("_", " ").toLowerCase()}
                             </Badge>
                           ) : hasApplied ? (
-                            <Badge variant="success" className="px-4 py-1.5 rounded-xl font-bold text-[10px]">
+                            <Badge variant="success" className="px-4 py-1.5 rounded-full font-bold text-[11px]">
                               Applied
                             </Badge>
                           ) : (
@@ -757,26 +745,26 @@ export function CompanyProfileView({
  <Card className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Freelancer Ratings Overview</h3>
+                    <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Freelancer Ratings Overview</h3>
                     <p className="text-xs text-muted">Averages based on projects completed with clients</p>
                   </div>
-                  <div className="text-center bg-ink text-white px-5 py-3 rounded-2xl shadow-md">
+                  <div className="text-center bg-ink text-white px-5 py-3 rounded-lg shadow-md">
                     <span className="text-2xl font-semibold">{company.reputationScore ? (company.reputationScore / 20).toFixed(1) : "5.0"}</span>
-                    <span className="text-[10px] text-white/70 block font-bold">Out of 5.0</span>
+                    <span className="text-[11px] text-white/70 block font-bold">Out of 5.0</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 pt-3 border-t border-hairline text-center text-xs">
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Communication</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase tracking-wider">Communication</span>
                     <strong className="text-ink text-sm mt-0.5 block">{avgCommunication.toFixed(1)} / 5.0</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Payment reliability</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase tracking-wider">Payment reliability</span>
                     <strong className="text-ink text-sm mt-0.5 block">{avgPayment.toFixed(1)} / 5.0</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase tracking-wider">Project Clarity</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase tracking-wider">Project Clarity</span>
                     <strong className="text-ink text-sm mt-0.5 block">{avgClarity.toFixed(1)} / 5.0</strong>
                   </div>
                 </div>
@@ -795,7 +783,7 @@ export function CompanyProfileView({
                       <div className="flex justify-between items-center pb-3.5 border-b border-hairline">
                         <div>
                           <h4 className="text-xs font-semibold text-ink">{rev.project.title}</h4>
-                          <span className="text-[9px] text-border-strong font-semibold block mt-0.5">
+                          <span className="text-[11px] text-border-strong font-semibold block mt-0.5">
                             Reviewed by {rev.reviewer.name} on {new Date(rev.createdAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -816,7 +804,7 @@ export function CompanyProfileView({
                         </p>
                       </div>
  
-                      <div className="flex justify-start gap-6 pt-3 border-t border-hairline text-[10px] text-border-strong font-bold">
+                      <div className="flex justify-start gap-6 pt-3 border-t border-hairline text-[11px] text-border-strong font-bold">
                         <span>Communication: {rev.communicationScore || 5}/5</span>
                         <span>Payment Speed: {rev.paymentReliabilityScore || 5}/5</span>
                         <span>Project Clarity: {rev.projectClarityScore || 5}/5</span>
@@ -834,14 +822,14 @@ export function CompanyProfileView({
  <Card className="p-8 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Office & Workspace Gallery</h3>
+                    <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Office & Workspace Gallery</h3>
                     <p className="text-xs text-muted">Glimpse of our work culture, events, and workspaces</p>
                   </div>
                 </div>
 
                 {/* Grid layout of photos */}
                 {galleryPhotos.length === 0 && galleryVideos.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-border-strong border border-dashed border-hairline rounded-2xl py-12 flex flex-col items-center gap-2">
+                  <div className="p-8 text-center text-xs text-border-strong border border-dashed border-hairline rounded-lg py-12 flex flex-col items-center gap-2">
                     <ImageIcon className="h-8 w-8 text-border-strong" />
                     No gallery photos or workspace images uploaded.
                   </div>
@@ -853,14 +841,14 @@ export function CompanyProfileView({
                           <div
                             key={idx}
                             onClick={() => setZoomedImage(url)}
-                            className="aspect-video bg-surface-soft border border-hairline rounded-2xl overflow-hidden cursor-zoom-in hover:border-link/20 transition-all relative group shadow-sm"
+                            className="aspect-video bg-surface-soft border border-hairline rounded-lg overflow-hidden cursor-zoom-in hover:border-link/20 transition-all relative group"
                           >
                             <img
                               src={url}
                               alt={`Workspace snapshot ${idx + 1}`}
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className="h-full w-full object-cover transition-transform duration-300 group-"
                             />
-                            <div className="absolute inset-0 bg-ink/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-[#1A1D29]/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         ))}
                       </div>
@@ -868,10 +856,10 @@ export function CompanyProfileView({
 
                     {galleryVideos.length > 0 && (
                       <div className="space-y-3 pt-3 border-t border-hairline">
-                        <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">Company Video Showcase</span>
+                        <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider block">Company Video Showcase</span>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {galleryVideos.map((url, idx) => (
-                            <div key={idx} className="bg-black border border-ink rounded-2xl overflow-hidden aspect-video shadow-sm">
+                            <div key={idx} className="bg-black border border-ink rounded-lg overflow-hidden aspect-video">
                               <video src={url} controls className="h-full w-full object-contain" />
                             </div>
                           ))}
@@ -883,17 +871,17 @@ export function CompanyProfileView({
 
                 {/* Upload gallery photos (Company Owner only) */}
                 {isCompanyOwner && (
-                  <form onSubmit={handleMediaUpload} className="p-5 bg-surface-soft border border-hairline rounded-2xl mt-6 space-y-4 text-xs">
+                  <form onSubmit={handleMediaUpload} className="p-5 bg-surface-soft border border-hairline rounded-lg mt-6 space-y-4 text-xs">
                     <div className="flex justify-between items-center border-b border-hairline pb-2">
                       <span className="font-bold text-ink flex items-center gap-1.5">
                         <Upload className="h-4 w-4 text-link" /> Upload Photo to Gallery
                       </span>
-                      <span className="text-[9px] text-border-strong font-semibold uppercase tracking-wider">Max 5MB · Images only</span>
+                      <span className="text-[11px] text-border-strong font-semibold uppercase tracking-wider">Max 5MB · Images only</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="flex-grow w-full">
-                        <div className="flex items-center justify-center border-2 border-dashed border-hairline hover:border-border-strong p-4 rounded-xl bg-white transition-colors relative cursor-pointer group">
+                        <div className="flex items-center justify-center border-2 border-dashed border-hairline hover:border-border-strong p-4 rounded-lg bg-white transition-colors relative cursor-pointer group">
                           <input
                             type="file"
                             accept="image/*"
@@ -901,15 +889,15 @@ export function CompanyProfileView({
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
                           <div className="text-center space-y-1">
-                            <Plus className="h-5 w-5 text-border-strong mx-auto group-hover:scale-110 transition-transform" />
-                            <p className="text-[10px] font-bold text-body uppercase">Select Photo</p>
-                            <p className="text-[9px] text-border-strong font-semibold">PNG, JPG, WebP — max 5MB</p>
+                            <Plus className="h-5 w-5 text-border-strong mx-auto group- transition-transform" />
+                            <p className="text-[11px] font-bold text-body uppercase">Select Photo</p>
+                            <p className="text-[11px] text-border-strong font-semibold">PNG, JPG, WebP — max 5MB</p>
                           </div>
                         </div>
                       </div>
 
                       {mediaPreview && (
-                        <div className="h-20 w-32 border border-hairline rounded-xl overflow-hidden shrink-0 bg-white">
+                        <div className="h-20 w-32 border border-hairline rounded-lg overflow-hidden shrink-0 bg-white">
                           <img src={mediaPreview} alt="preview" className="h-full w-full object-cover" />
                         </div>
                       )}
@@ -940,12 +928,12 @@ export function CompanyProfileView({
               {/* Team Showcase */}
  <Card className="p-8 space-y-5">
                 <div>
-                  <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Meet the Team</h3>
+                  <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Meet the Team</h3>
                   <p className="text-xs text-muted">Contact points for hiring and project execution</p>
                 </div>
 
                 {teamList.length === 0 ? (
-                  <div className="text-center text-xs text-border-strong py-6 border border-dashed border-hairline rounded-xl">
+                  <div className="text-center text-xs text-border-strong py-6 border border-dashed border-hairline rounded-lg">
                     No team members listed yet.
                   </div>
                 ) : (
@@ -953,11 +941,11 @@ export function CompanyProfileView({
                     {teamList.map((member: any, idx: number) => (
  <Card
                         key={idx}
-                        className="p-5 bg-surface-soft/50 border border-hairline rounded-2xl space-y-3.5 hover:shadow-md transition-shadow relative overflow-hidden"
+                        className="p-5 bg-surface-soft/50 border border-hairline rounded-lg space-y-3.5 hover:shadow-md transition-shadow relative overflow-hidden"
                       >
                         {/* Member top details */}
                         <div className="flex gap-4">
-                          <div className="h-16 w-16 rounded-2xl bg-link/10 flex items-center justify-center font-bold text-ink text-base border border-link/20 shrink-0 overflow-hidden shadow-sm">
+                          <div className="h-16 w-16 rounded-lg bg-link/10 flex items-center justify-center font-bold text-ink text-base border border-link/20 shrink-0 overflow-hidden">
                             {member.photoUrl ? (
                               <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
                             ) : (
@@ -966,13 +954,13 @@ export function CompanyProfileView({
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
                             <h4 className="text-sm font-semibold text-ink truncate">{member.name}</h4>
-                            <p className="text-[10px] text-border-strong font-bold uppercase tracking-wider truncate">{member.role}</p>
+                            <p className="text-[11px] text-border-strong font-bold uppercase tracking-wider truncate">{member.role}</p>
                             {member.linkedinUrl && (
                               <a
                                 href={member.linkedinUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] text-link hover:underline font-bold"
+                                className="inline-flex items-center gap-1 text-[11px] text-link hover:underline font-bold"
                               >
                                 <Share2 className="h-3 w-3" /> LinkedIn Profile
                               </a>
@@ -982,7 +970,7 @@ export function CompanyProfileView({
 
                         {/* Member bio */}
                         {member.bio && (
-                          <p className="text-xs text-muted bg-white p-3 border border-hairline rounded-xl italic leading-relaxed">
+                          <p className="text-xs text-muted bg-white p-3 border border-hairline rounded-lg italic leading-relaxed">
                             &quot;{member.bio}&quot;
                           </p>
                         )}
@@ -991,7 +979,7 @@ export function CompanyProfileView({
                         {member.skills && member.skills.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {member.skills.map((skill: string, sIdx: number) => (
-                              <Badge key={sIdx} variant="neutral" className="text-[8px] py-0.5 px-2 bg-white/80 border-hairline">
+                              <Badge key={sIdx} variant="neutral" className="text-[11px] py-0.5 px-2 bg-white/80 border-hairline">
                                 {skill}
                               </Badge>
                             ))}
@@ -1011,7 +999,7 @@ export function CompanyProfileView({
           {/* Profile Strength Score Card */}
  <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-ink/5 rounded-xl">
+              <div className="p-1.5 bg-ink/5 rounded-lg">
                 <Building2 className="h-4.5 w-4.5 text-ink" />
               </div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-ink">Profile Strength</h3>
@@ -1022,13 +1010,13 @@ export function CompanyProfileView({
                 <span className="font-semibold text-muted">LinkedIn Profile Score</span>
                 <span className="font-semibold text-ink">{completionPercent}%</span>
               </div>
-              <div className="w-full bg-surface-strong h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-surface-strong h-2 rounded-lg overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-link to-ink h-full rounded-full transition-all duration-300"
+                  className="bg-[#2E6BEA] h-full rounded-lg transition-all duration-300"
                   style={{ width: `${completionPercent}%` }}
                 />
               </div>
-              <p className="text-[10px] text-border-strong font-semibold leading-relaxed">
+              <p className="text-[11px] text-border-strong font-semibold leading-relaxed">
                 {completionPercent < 80 
                   ? "Complete missing sections (cover banner, office locations, showcase details) to maximize recruiter visibility index." 
                   : "Excellent! Your company page profile has completed premium status metrics."}
@@ -1042,7 +1030,7 @@ export function CompanyProfileView({
               <BrainCircuit className="h-44 w-44" />
             </div>
             <div className="flex items-center gap-2 relative z-10">
-              <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+              <div className="p-2 bg-white/10 rounded-lg border border-white/10">
                 <BrainCircuit className="h-5 w-5 text-white/70" />
               </div>
               <h3 className="text-sm font-semibold uppercase tracking-wider">AI Company Insights</h3>
@@ -1052,10 +1040,10 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Company Trust Score</span>
+                    <span className="text-[11px] text-white/70 block uppercase font-bold tracking-wider">Company Trust Score</span>
                     <span className="text-3xl font-semibold text-white">{company.trustScore}%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-[#C7CBD6] flex items-center justify-center font-bold text-sm relative">
                     <span>{company.trustScore}</span>
                   </div>
                 </div>
@@ -1085,10 +1073,10 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Project Match Score</span>
+                    <span className="text-[11px] text-white/70 block uppercase font-bold tracking-wider">Project Match Score</span>
                     <span className="text-3xl font-semibold text-white">96%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-[#C7CBD6] flex items-center justify-center font-bold text-sm relative">
                     <span>96</span>
                   </div>
                 </div>
@@ -1120,10 +1108,10 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Review Reputation</span>
+                    <span className="text-[11px] text-white/70 block uppercase font-bold tracking-wider">Review Reputation</span>
                     <span className="text-3xl font-semibold text-white">{company.reputationScore}%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-[#C7CBD6] flex items-center justify-center font-bold text-sm relative">
                     <span>{company.reputationScore}</span>
                   </div>
                 </div>
@@ -1153,10 +1141,10 @@ export function CompanyProfileView({
               <>
                 <div className="flex justify-between items-center pt-2 relative z-10">
                   <div>
-                    <span className="text-[10px] text-white/70 block uppercase font-bold tracking-wider">Culture Health Index</span>
+                    <span className="text-[11px] text-white/70 block uppercase font-bold tracking-wider">Culture Health Index</span>
                     <span className="text-3xl font-semibold text-white">95%</span>
                   </div>
-                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-sky-400 flex items-center justify-center font-bold text-sm relative">
+                  <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-[#C7CBD6] flex items-center justify-center font-bold text-sm relative">
                     <span>95</span>
                   </div>
                 </div>
@@ -1183,16 +1171,16 @@ export function CompanyProfileView({
             )}
 
             {(activeTab === "overview" || activeTab === "reviews") && company.sentimentAnalysis && (
-              <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1 text-[11px] relative z-10">
-                <span className="font-bold uppercase tracking-wider text-white/70 block text-[9px]">Review Sentiment Analysis</span>
+              <div className="p-3.5 bg-white/5 border border-white/10 rounded-lg space-y-1 text-[11px] relative z-10">
+                <span className="font-bold uppercase tracking-wider text-white/70 block text-[11px]">Review Sentiment Analysis</span>
                 <p className="text-border-strong italic leading-relaxed">
                   &quot;{company.sentimentAnalysis}&quot;
                 </p>
               </div>
             )}
 
-            <div className="p-3.5 bg-white/5 border border-white/10 text-white/70 rounded-2xl space-y-1 text-[11px] relative z-10 font-medium font-sans">
-              <span className="font-bold uppercase tracking-wider text-white/70 block text-[9px] flex items-center gap-1">
+            <div className="p-3.5 bg-white/5 border border-white/10 text-white/70 rounded-lg space-y-1 text-[11px] relative z-10 font-medium font-sans">
+              <span className="font-bold uppercase tracking-wider text-white/70 block text-[11px] flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" /> AI Predictive Hiring Insight
               </span>
               <p className="leading-relaxed">
@@ -1215,7 +1203,7 @@ export function CompanyProfileView({
           {/* Company Statistics */}
  <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-ink uppercase tracking-wider">
                 {activeTab === "overview" && "Hiring Statistics"}
                 {activeTab === "projects" && "Project Statistics"}
                 {activeTab === "reviews" && "Reputation Statistics"}
@@ -1231,21 +1219,21 @@ export function CompanyProfileView({
 
             {activeTab === "overview" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Posted Gigs</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Total Posted Gigs</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">{projects.length + (reviews.length || 2)}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Active Projects</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Active Projects</span>
                   <span className="text-lg font-semibold text-link mt-0.5 block">{projects.length}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Completed Gigs</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Completed Gigs</span>
                     <span className="text-lg font-semibold text-success mt-0.5 block">{reviews.length || 0} Gigs</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Response Time</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Avg Response Time</span>
                     <span className="text-xs font-semibold text-body mt-0.5 block">{company.avgResponseTime || "Within 1 hour"}</span>
                   </div>
                 </div>
@@ -1254,25 +1242,25 @@ export function CompanyProfileView({
 
             {activeTab === "projects" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Gigs</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Total Gigs</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">{projects.length}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Open Gigs</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Open Gigs</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">
                     {projects.filter((p: any) => p.status === "OPEN" || p.status === "ACTIVE").length}
                   </span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Closed Gigs</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Closed Gigs</span>
                     <span className="text-lg font-semibold text-muted mt-0.5 block">
                       {projects.filter((p: any) => p.status !== "OPEN" && p.status !== "ACTIVE").length}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Budget</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Avg Budget</span>
                     <span className="text-xs font-bold text-success mt-0.5 block">
                       ${projects.length > 0 ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0) / projects.length) : "1,200"}
                     </span>
@@ -1283,23 +1271,23 @@ export function CompanyProfileView({
 
             {activeTab === "reviews" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Total Reviews</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Total Reviews</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">{reviews.length}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Avg Rating</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Avg Rating</span>
                   <span className="text-lg font-semibold text-star mt-0.5 block">
                     {reviews.length ? (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1) : "5.0"}
                   </span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Rec. Rate</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Rec. Rate</span>
                     <span className="text-lg font-semibold text-success mt-0.5 block">98%</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Review Freq.</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Review Freq.</span>
                     <span className="text-xs font-semibold text-body mt-0.5 block">Regular</span>
                   </div>
                 </div>
@@ -1308,23 +1296,23 @@ export function CompanyProfileView({
 
             {activeTab === "gallery_team" && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Team Size</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Team Size</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">{teamList.length}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl">
-                  <span className="text-[10px] text-border-strong font-bold block uppercase">Gallery Size</span>
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg">
+                  <span className="text-[11px] text-border-strong font-bold block uppercase">Gallery Size</span>
                   <span className="text-lg font-semibold text-ink mt-0.5 block">{galleryPhotos.length}</span>
                 </div>
-                <div className="p-3 bg-surface-soft border border-hairline rounded-2xl col-span-2 flex justify-between items-center">
+                <div className="p-3 bg-surface-soft border border-hairline rounded-lg col-span-2 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Company Age</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Company Age</span>
                     <span className="text-lg font-semibold text-body mt-0.5 block">
                       {company.foundedYear ? new Date().getFullYear() - company.foundedYear + " yrs" : "N/A"}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-border-strong font-bold block uppercase">Listed Perks</span>
+                    <span className="text-[11px] text-border-strong font-bold block uppercase">Listed Perks</span>
                     <span className="text-xs font-semibold text-body mt-0.5 block">{company.benefits.length} Perks</span>
                   </div>
                 </div>
@@ -1335,7 +1323,7 @@ export function CompanyProfileView({
           {/* Hiring Activity & Skills */}
  <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-ink uppercase tracking-wider">
                 {activeTab === "overview" && "Hiring Activity"}
                 {activeTab === "projects" && "Project Activity"}
                 {activeTab === "reviews" && "Feedback Activity"}
@@ -1405,19 +1393,19 @@ export function CompanyProfileView({
               )}
 
               <div className="space-y-1.5 pt-2 border-t border-hairline">
-                <span className="text-[10px] text-border-strong font-bold uppercase tracking-wider block">
+                <span className="text-[11px] text-border-strong font-bold uppercase tracking-wider block">
                   {activeTab === "gallery_team" ? "Core Perks Highlight" : "Most Hired Skills"}
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {activeTab === "gallery_team" ? (
                     (company.benefits.length > 0 ? company.benefits.slice(0, 4) : ["Flexible Hours", "Health Wellness", "Remote Workspace"]).map((benefit) => (
-                      <Badge key={benefit} variant="neutral" className="text-[9px] py-0.5 font-bold">
+                      <Badge key={benefit} variant="neutral" className="text-[11px] py-0.5 font-bold">
                         {benefit}
                       </Badge>
                     ))
                   ) : (
                     ["React", "Next.js", "UI/UX Design", "Python", "TypeScript", "PostgreSQL"].map((skill) => (
-                      <Badge key={skill} variant="neutral" className="text-[9px] py-0.5 font-bold">
+                      <Badge key={skill} variant="neutral" className="text-[11px] py-0.5 font-bold">
                         {skill}
                       </Badge>
                     ))
@@ -1430,7 +1418,7 @@ export function CompanyProfileView({
           {/* Contact Section */}
  <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-ink uppercase tracking-wider">Contact & Socials</h3>
+              <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Contact & Socials</h3>
               <p className="text-xs text-muted">Official channels for direct communication</p>
             </div>
 
@@ -1440,7 +1428,7 @@ export function CompanyProfileView({
                   href={company.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft hover:bg-surface-strong hover:border-hairline transition-colors text-body font-semibold cursor-pointer"
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg border border-hairline bg-surface-soft hover:bg-surface-strong hover:border-hairline transition-colors text-body font-semibold cursor-pointer"
                 >
                   <Globe className="h-4.5 w-4.5 text-link" />
                   <span className="truncate">{company.website.replace("https://", "").replace("http://", "")}</span>
@@ -1452,7 +1440,7 @@ export function CompanyProfileView({
                   href={company.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft hover:bg-surface-strong/40 hover:border-border-strong transition-colors text-body font-semibold cursor-pointer"
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg border border-hairline bg-surface-soft hover:bg-surface-strong/40 hover:border-border-strong transition-colors text-body font-semibold cursor-pointer"
                 >
                   <Building2 className="h-4.5 w-4.5 text-link" />
                   <span className="truncate">LinkedIn Profile</span>
@@ -1460,14 +1448,14 @@ export function CompanyProfileView({
               )}
  
               {company.email && (
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft text-body font-semibold">
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-hairline bg-surface-soft text-body font-semibold">
                   <Mail className="h-4.5 w-4.5 text-border-strong" />
                   <span className="truncate">{company.email}</span>
                 </div>
               )}
  
               {company.phone && (
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-hairline bg-surface-soft text-body font-semibold">
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-hairline bg-surface-soft text-body font-semibold">
                   <Phone className="h-4.5 w-4.5 text-border-strong" />
                   <span className="truncate">{company.phone}</span>
                 </div>
@@ -1477,46 +1465,39 @@ export function CompanyProfileView({
         </div>
       </div>
 
-      {/* 4. Fullscreen Zoom Image overlay */}
+      {/* 4. Fullscreen Zoom Image overlay — an image viewer, not a dialog:
+          no header, no card chrome, sized to the image. Shares the system
+          scrim but stays structurally separate from Modal. */}
       {zoomedImage && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm" onClick={() => setZoomedImage(null)} />
-          <div className="relative max-w-4xl max-h-[85vh] bg-white border border-hairline rounded-3xl p-3 z-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <button
-              onClick={() => setZoomedImage(null)}
-              className="absolute top-4 right-4 p-1.5 text-body hover:text-ink bg-white/70 hover:bg-white rounded-full transition-colors cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <img src={zoomedImage} alt="Expanded snapshot" className="max-w-full max-h-[80vh] object-contain rounded-2xl" />
-          </div>
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setZoomedImage(null)} />
+          <button
+            type="button"
+            onClick={() => setZoomedImage(null)}
+            aria-label="Close image"
+            className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#1A1D29] transition-colors hover:bg-white cursor-pointer"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <img
+            src={zoomedImage}
+            alt="Expanded snapshot"
+            className="relative z-10 max-h-[85vh] max-w-full rounded-xl object-contain"
+          />
         </div>
       )}
 
       {/* 5. Project Proposal Cover Letter Modal */}
       {selectedProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-ink/80 backdrop-blur-sm"
-            onClick={() => setSelectedProject(null)}
-          />
-
- <Card className="relative w-full max-w-lg p-8 z-10 shadow-2xl">
-            <button
-              onClick={() => setSelectedProject(null)}
-              className="absolute top-4 right-4 p-1 text-muted hover:text-body rounded-full hover:bg-surface-strong"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <h3 className="text-lg font-bold text-ink mb-2">Apply for Project Gig</h3>
+        <Modal open onClose={() => setSelectedProject(null)} size="xl" title="Apply for Project Gig">
+          <div className="space-y-4">
             <p className="text-xs text-muted mb-6 font-semibold">
               Project: <span className="text-ink">{selectedProject.title}</span>
             </p>
 
             {applyMessage && (
               <div
-                className={`p-3 rounded-xl mb-4 text-xs font-semibold border ${
+                className={`p-3 rounded-lg mb-4 text-xs font-semibold border ${
                   applyMessage.includes("submitted")
                     ? "bg-success/10 border-success-border/20 text-success"
                     : "bg-danger/10 border-danger-border/20 text-danger"
@@ -1532,7 +1513,7 @@ export function CompanyProfileView({
                   Cover Letter / Proposal
                 </label>
                 <textarea
-                  className="w-full min-h-[140px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-hairline text-ink focus:border-ink focus:ring-ink/20"
+                  className="w-full min-h-[140px] px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-hairline text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-ink/20"
                   placeholder="Outline why you are the perfect contractor for this gig, and list relevant architectural/product achievements..."
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
@@ -1555,26 +1536,14 @@ export function CompanyProfileView({
                 </Button>
               </div>
             </form>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
 
       {/* 6. Open Project Details Modal */}
       {viewingProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-ink/80 backdrop-blur-sm"
-            onClick={() => setViewingProject(null)}
-          />
-
- <Card className="relative w-full max-w-2xl p-8 z-10 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <button
-              onClick={() => setViewingProject(null)}
-              className="absolute top-4 right-4 p-1 text-muted hover:text-body rounded-full hover:bg-surface-strong"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
+        <Modal open onClose={() => setViewingProject(null)} size="2xl">
+          <div className="space-y-4">
             <div className="space-y-6">
               {/* Header */}
               <div className="space-y-2.5">
@@ -1592,17 +1561,17 @@ export function CompanyProfileView({
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4.5 bg-surface-soft rounded-2xl border border-hairline">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4.5 bg-surface-soft rounded-lg border border-hairline">
                 <div>
-                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Budget</span>
+                  <span className="text-[11px] text-border-strong uppercase font-bold tracking-wider block">Budget</span>
                   <span className="text-lg font-semibold text-ink">{formatProjectBudget(viewingProject)}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Required Experience</span>
+                  <span className="text-[11px] text-border-strong uppercase font-bold tracking-wider block">Required Experience</span>
                   <span className="text-base font-bold text-ink">{viewingProject.experienceRequired} years</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-border-strong uppercase font-bold tracking-wider block">Urgency Priority</span>
+                  <span className="text-[11px] text-border-strong uppercase font-bold tracking-wider block">Urgency Priority</span>
                   <span className="text-base font-bold text-ink capitalize">{viewingProject.priority.toLowerCase()}</span>
                 </div>
               </div>
@@ -1671,11 +1640,11 @@ export function CompanyProfileView({
                   Close
                 </Button>
                 {viewingProject.status !== "OPEN" ? (
-                  <Badge variant="neutral" className="px-6 py-2.5 rounded-xl text-xs font-semibold uppercase">
+                  <Badge variant="neutral" className="px-6 py-2.5 rounded-full text-xs font-semibold uppercase">
                     {viewingProject.status.replace("_", " ").toLowerCase()}
                   </Badge>
                 ) : appliedProjectIds.includes(viewingProject.id) ? (
-                  <Badge variant="success" className="px-6 py-2.5 rounded-xl text-xs font-semibold">
+                  <Badge variant="success" className="px-6 py-2.5 rounded-full text-xs font-semibold">
                     Applied
                   </Badge>
                 ) : (
@@ -1695,8 +1664,8 @@ export function CompanyProfileView({
                 )}
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

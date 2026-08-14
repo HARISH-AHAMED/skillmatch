@@ -30,7 +30,7 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
   const totalSlots = roles.reduce((sum, r) => sum + (Number(r.slots) || 0), 0);
 
   return (
-    <div className="space-y-3 p-4 rounded-[12px] border border-hairline bg-surface-soft">
+    <div className="space-y-3 p-4 rounded-lg border border-hairline bg-surface-soft">
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-xs font-semibold text-ink flex items-center gap-1.5">
@@ -43,7 +43,7 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
           </span>
         </div>
         {roles.length > 0 && (
-          <span className="text-[10px] font-semibold text-ink bg-white border border-hairline px-2 py-1 rounded-full shrink-0">
+          <span className="text-[11px] font-semibold text-ink bg-white border border-hairline px-2 py-1 rounded-full shrink-0">
             {roles.length} role{roles.length === 1 ? "" : "s"} · {totalSlots} slot
             {totalSlots === 1 ? "" : "s"}
           </span>
@@ -66,7 +66,7 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
             {roles.map((role, idx) => (
               <div
                 key={idx}
-                className="p-3 bg-white border border-hairline rounded-[12px] space-y-2.5"
+                className="p-3 bg-white border border-hairline rounded-lg space-y-2.5"
               >
                 <div className="flex gap-2">
                   <input
@@ -74,17 +74,17 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
                     onChange={(e) => update(idx, { name: e.target.value })}
                     placeholder="Role name, e.g. Frontend Developer"
                     disabled={disabled}
-                    className="flex-1 h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none"
+                    className="flex-1 h-9 px-3 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                   />
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <label className="text-[10px] text-muted uppercase tracking-wider">Slots</label>
+                    <label className="text-[11px] text-muted uppercase tracking-wider">Slots</label>
                     <input
                       type="number"
                       min={1}
                       value={role.slots}
                       onChange={(e) => update(idx, { slots: Math.max(1, Number(e.target.value)) })}
                       disabled={disabled}
-                      className="w-16 h-9 px-2 rounded-xl border border-hairline bg-surface-soft text-xs text-ink text-center focus:ring-1 focus:ring-ink focus:outline-none"
+                      className="w-16 h-9 px-2 rounded-md border border-hairline bg-white text-xs text-ink text-center focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                     />
                   </div>
                   <button
@@ -92,7 +92,7 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
                     onClick={() => remove(idx)}
                     disabled={disabled}
                     title="Remove role"
-                    className="p-2 text-muted hover:text-danger rounded-xl hover:bg-danger-surface cursor-pointer shrink-0"
+                    className="p-2 text-muted hover:text-danger rounded-full hover:bg-danger-surface cursor-pointer shrink-0"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -103,7 +103,7 @@ export function RoleSlotsEditor({ roles, onChange, disabled }: RoleSlotsEditorPr
                   onChange={(e) => update(idx, { description: e.target.value })}
                   placeholder="What this person will actually do (optional)"
                   disabled={disabled}
-                  className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none"
+                  className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                 />
 
                 <label className="flex items-center gap-2 text-[11px] text-body cursor-pointer">

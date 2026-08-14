@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { Tabs } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { TeamMatchConfirmation } from "@/components/TeamMatchConfirmation";
@@ -240,53 +241,53 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
   ];
 
   return (
-    <Card className="p-0 border border-[#E2E5EA] bg-white rounded-[12px] shadow-xs overflow-hidden">
+    <Card className="p-0 border border-[#E3E5EA] bg-white rounded-lg overflow-hidden">
 
       {/* ═══ OFFER LETTER BANNER ═══ */}
       {hasOffer && (offerPending || offerNegotiating) && (
-        <div className="px-6 pt-5 pb-5 bg-[#181d26] text-white space-y-4 text-left">
+        <div className="px-6 pt-5 pb-5 bg-[#152C55] text-white space-y-4 text-left">
           <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-white/10 rounded-[8px] shrink-0">
-              <Gift className="h-5 w-5 text-[#FFC700]" />
+            <div className="p-2.5 bg-white/10 rounded-lg shrink-0">
+              <Gift className="h-5 w-5 text-[#8F5E08]" />
             </div>
             <div className="flex-1 space-y-1 text-left">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[#C7CCD4]">Official Hiring Offer Received</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#2159C9]">Official Hiring Offer Received</p>
               <h3 className="text-sm font-semibold">You&apos;ve been offered a position on this project!</h3>
-              <p className="text-xs text-[#E2E5EA] leading-relaxed font-normal">{offerLetter!.offerText}</p>
+              <p className="text-xs text-[#5B6272] leading-relaxed font-normal">{offerLetter!.offerText}</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 bg-white/10 rounded-[10px] p-4">
+          <div className="grid grid-cols-3 gap-3 bg-white/10 rounded-lg p-4">
             <div>
-              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">
+              <p className="text-[11px] font-medium text-[#2159C9] uppercase tracking-wider">
                 {offerLetter!.paymentCategory === "HOURLY"
                   ? "Hourly Rate"
                   : offerLetter!.paymentCategory === "MONTHLY"
                   ? "Monthly Rate"
                   : "Total Stipend"}
               </p>
-              <p className="text-lg font-semibold text-[#FFC700]">
+              <p className="text-lg font-semibold text-[#8F5E08]">
                 {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)}
               </p>
             </div>
             <div>
-              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">Payment Category</p>
+              <p className="text-[11px] font-medium text-[#2159C9] uppercase tracking-wider">Payment Category</p>
               <p className="text-xs font-semibold text-white">{getPaymentCategoryLabel(offerLetter!.paymentCategory)}</p>
-              <p className="text-[9px] text-white/60 mt-0.5">{offerLetter!.currency || DEFAULT_CURRENCY}</p>
+              <p className="text-[11px] text-white/60 mt-0.5">{offerLetter!.currency || DEFAULT_CURRENCY}</p>
             </div>
             <div>
-              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">Payment Plan</p>
+              <p className="text-[11px] font-medium text-[#2159C9] uppercase tracking-wider">Payment Plan</p>
               <p className="text-xs font-semibold text-white">{offerLetter!.milestones?.length || 0} milestones</p>
             </div>
           </div>
 
           {(offerLetter!.nonMonetaryBenefits?.length ?? 0) > 0 && (
-            <div className="bg-white/10 rounded-[10px] p-4 space-y-2">
-              <p className="text-[9px] font-medium text-[#C7CCD4] uppercase tracking-wider">
+            <div className="bg-white/10 rounded-lg p-4 space-y-2">
+              <p className="text-[11px] font-medium text-[#2159C9] uppercase tracking-wider">
                 {isNonMonetary(offerLetter!.paymentCategory) ? "What You Receive" : "Additional Benefits"}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {offerLetter!.nonMonetaryBenefits!.map((b) => (
-                  <span key={b} className="text-[10px] font-semibold bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full">
+                  <span key={b} className="text-[11px] font-semibold bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full">
                     {getBenefitLabel(b)}
                   </span>
                 ))}
@@ -299,15 +300,15 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
           {/* Awaiting the company's decision on a counter-offer */}
           {pendingNegotiation && (
-            <div className="bg-white/10 border border-white/20 rounded-[10px] p-4 space-y-1.5">
-              <p className="text-[9px] font-bold text-[#FFC700] uppercase tracking-wider">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-4 space-y-1.5">
+              <p className="text-[11px] font-bold text-[#8F5E08] uppercase tracking-wider">
                 Counter-offer sent — awaiting response
               </p>
               <p className="text-xs text-white font-semibold">
                 You proposed {formatMoney(pendingNegotiation.proposedAmount, pendingNegotiation.proposedCurrency, pendingNegotiation.proposedCategory)}
                 {" · "}{getPaymentCategoryLabel(pendingNegotiation.proposedCategory)}
               </p>
-              <p className="text-[10px] text-white/70">
+              <p className="text-[11px] text-white/70">
                 You can accept or decline the original offer once the company responds.
               </p>
             </div>
@@ -315,8 +316,8 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
           {/* Outcome of the previous round, once the company has replied */}
           {!pendingNegotiation && lastResolvedNegotiation && (
-            <div className="bg-white/10 border border-white/20 rounded-[10px] p-4 space-y-1">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-4 space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/70">
                 Your counter-offer was {lastResolvedNegotiation.status.toLowerCase()}
               </p>
               {lastResolvedNegotiation.status === "ACCEPTED" ? (
@@ -332,30 +333,30 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             </div>
           )}
           {offerLetter!.milestones?.length > 0 && (
-            <div className="bg-white/10 rounded-2xl p-3.5 space-y-1.5">
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-wider mb-2">Milestone Breakdown</p>
+            <div className="bg-white/10 rounded-lg p-3.5 space-y-1.5">
+              <p className="text-[11px] font-bold text-[#2159C9] uppercase tracking-wider mb-2">Milestone Breakdown</p>
               {offerLetter!.milestones.map((m: any, i: number) => (
                 <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-white/10 last:border-0">
-                  <span className="text-blue-100 font-medium">{m.title}</span>
-                  <span className="font-black text-yellow-300">{formatMoney(m.budget, offerLetter!.currency)}</span>
+                  <span className="text-[#2159C9] font-medium">{m.title}</span>
+                  <span className="font-bold text-[#8F5E08]">{formatMoney(m.budget, offerLetter!.currency)}</span>
                 </div>
               ))}
             </div>
           )}
           <div className="flex gap-3">
             {isDeclining ? (
-              <div className="w-full space-y-3 bg-white/10 p-4 rounded-xl border border-white/20 animate-fade-in text-left">
-                <label className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Reason for declining</label>
+              <div className="w-full space-y-3 bg-white/10 p-4 rounded-lg border border-white/20 animate-fade-in text-left">
+                <label className="text-[11px] font-bold text-[#2159C9] uppercase tracking-wider block">Reason for declining</label>
                 <textarea
                   autoFocus
                   rows={3}
                   value={declineReason}
                   onChange={(e) => setDeclineReason(e.target.value)}
                   placeholder="Please let the recruiter know why you are declining..."
-                  className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white placeholder-blue-200/50 text-xs focus:ring-1 focus:ring-yellow-300 focus:outline-none resize-none"
+                  className="w-full px-3 py-2.5 rounded-md border-none bg-white/10 text-white placeholder-[#2159C9]/50 text-xs focus:ring-1 focus:ring-[#96620A] focus:outline-none resize-none"
                 />
                 <div className="flex gap-2">
-                  <Button disabled={offerLoading !== null} onClick={() => handleOfferResponse("DECLINE")} className="flex-1 bg-rose-500 hover:bg-rose-400 text-white font-black cursor-pointer">
+                  <Button disabled={offerLoading !== null} onClick={() => handleOfferResponse("DECLINE")} className="flex-1 bg-[#C22B2B] hover:bg-[#FDEAEA] text-white font-bold cursor-pointer">
                     {offerLoading === "DECLINE" ? "Declining..." : "Confirm Decline"}
                   </Button>
                   <Button disabled={offerLoading !== null} onClick={() => { setIsDeclining(false); setDeclineReason(""); }} variant="outline" className="flex-1 border-white/30 text-white hover:bg-white/10 font-bold cursor-pointer">
@@ -364,17 +365,17 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                 </div>
               </div>
             ) : isNegotiating ? (
-              <div className="w-full space-y-3 bg-white/10 p-4 rounded-xl border border-white/20 animate-fade-in text-left">
-                <label className="text-[10px] font-bold text-white/70 uppercase tracking-wider block">
+              <div className="w-full space-y-3 bg-white/10 p-4 rounded-lg border border-white/20 animate-fade-in text-left">
+                <label className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Propose new payment terms
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-1">
-                    <span className="text-[9px] text-white/60 uppercase tracking-wider">Category</span>
+                    <span className="text-[11px] text-white/60 uppercase tracking-wider">Category</span>
                     <select
                       value={negoCategory}
                       onChange={(e) => setNegoCategory(e.target.value as PaymentCategory)}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none cursor-pointer"
+                      className="w-full px-3 py-2.5 rounded-md border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#F5B942] focus:outline-none cursor-pointer"
                     >
                       {PAYMENT_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value} className="text-ink">{c.label}</option>
@@ -382,11 +383,11 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] text-white/60 uppercase tracking-wider">Currency</span>
+                    <span className="text-[11px] text-white/60 uppercase tracking-wider">Currency</span>
                     <select
                       value={negoCurrency}
                       onChange={(e) => setNegoCurrency(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none cursor-pointer"
+                      className="w-full px-3 py-2.5 rounded-md border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#F5B942] focus:outline-none cursor-pointer"
                     >
                       {CURRENCIES.map((c) => (
                         <option key={c.code} value={c.code} className="text-ink">
@@ -396,7 +397,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] text-white/60 uppercase tracking-wider">
+                    <span className="text-[11px] text-white/60 uppercase tracking-wider">
                       Amount ({getCurrencySymbol(negoCurrency)}){getPaymentUnitLabel(negoCategory)}
                     </span>
                     <input
@@ -404,12 +405,12 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                       min={1}
                       value={negoAmount}
                       onChange={(e) => setNegoAmount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none"
+                      className="w-full px-3 py-2.5 rounded-md border-none bg-white/10 text-white text-xs focus:ring-1 focus:ring-[#F5B942] focus:outline-none"
                     />
                   </div>
                 </div>
                 {negoCurrency !== (offerLetter!.currency || DEFAULT_CURRENCY) && (
-                  <p className="text-[10px] text-[#FFC700]">
+                  <p className="text-[11px] text-[#8F5E08]">
                     You are proposing a currency change from {offerLetter!.currency || DEFAULT_CURRENCY} to {negoCurrency}.
                     The amount is not converted — enter the value you want in {negoCurrency}.
                   </p>
@@ -419,13 +420,13 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   value={negoMessage}
                   onChange={(e) => setNegoMessage(e.target.value)}
                   placeholder="Briefly explain your proposed terms (optional)..."
-                  className="w-full px-3 py-2.5 rounded-xl border-none bg-white/10 text-white placeholder-white/40 text-xs focus:ring-1 focus:ring-[#FFC700] focus:outline-none resize-none"
+                  className="w-full px-3 py-2.5 rounded-md border-none bg-white/10 text-white placeholder-white/40 text-xs focus:ring-1 focus:ring-[#F5B942] focus:outline-none resize-none"
                 />
                 <div className="flex gap-2">
                   <Button
                     disabled={offerLoading !== null || (negoCategory !== "NON_MONETARY" && negoAmount <= 0)}
                     onClick={handleNegotiate}
-                    className="flex-1 bg-[#FFC700] hover:bg-[#E8A800] text-ink font-semibold cursor-pointer"
+                    className="flex-1 bg-[#FFF3DC] hover:bg-[#FFF3DC] text-ink font-semibold cursor-pointer"
                   >
                     {offerLoading === "NEGOTIATE" ? "Sending..." : "Send Counter-Offer"}
                   </Button>
@@ -445,7 +446,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   disabled={offerLoading !== null || !!pendingNegotiation}
                   title={pendingNegotiation ? "Waiting for the company to respond to your counter-offer" : undefined}
                   onClick={() => handleOfferResponse("ACCEPT")}
-                  className="flex-1 bg-[#5A6472] hover:bg-emerald-400 text-white font-black cursor-pointer disabled:opacity-50"
+                  className="flex-1 bg-[#F1F2F4] hover:bg-[#E4F7EC] text-white font-bold cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {offerLoading === "ACCEPT" ? "Accepting..." : "Accept Offer & Start Project"}
@@ -477,15 +478,15 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Offer accepted ribbon */}
       {hasOffer && offerAccepted && (
-        <div className="px-6 py-3 bg-[#F7F8FA] border-b border-[#E2E5EA] flex items-center gap-3">
-          <CheckCircle className="h-4 w-4 text-[#181d26] shrink-0" />
+        <div className="px-6 py-3 bg-[#F8F9FB] border-b border-[#E3E5EA] flex items-center gap-3">
+          <CheckCircle className="h-4 w-4 text-[#1A1D29] shrink-0" />
           <div className="text-left flex-1">
-            <p className="text-xs font-black text-[#181d26]">Offer Accepted — Project In Progress</p>
-            <p className="text-[10px] text-[#181d26]">Stipend {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
+            <p className="text-xs font-bold text-[#1A1D29]">Offer Accepted — Project In Progress</p>
+            <p className="text-[11px] text-[#1A1D29]">Stipend {formatMoney(offerLetter!.stipendAmount, offerLetter!.currency, offerLetter!.paymentCategory)} · Accepted {new Date(offerLetter!.respondedAt || offerLetter!.sentAt).toLocaleDateString()}</p>
           </div>
           {app.status === "HIRED" && (
             <Link href={`/workspace/${app.id}`} target="_blank">
-              <Button size="xs" className="bg-[#181d26] hover:bg-[#333840] text-white font-bold cursor-pointer">Open Workspace</Button>
+              <Button size="xs" className="bg-[#152C55] hover:bg-[#1E3D71] text-white font-bold cursor-pointer">Open Workspace</Button>
             </Link>
           )}
         </div>
@@ -494,12 +495,12 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
       {/* Team Match Confirmation — only for role-based projects where this
           freelancer is hired but has not yet seen and confirmed their team. */}
       {app.status === "HIRED" && app.roleId && !app.teamConfirmedAt && (
-        <div className="px-6 py-3.5 bg-[#F7F8FA] border-b border-[#E2E5EA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="px-6 py-3.5 bg-[#F8F9FB] border-b border-[#E3E5EA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="text-left min-w-0">
-            <p className="text-xs font-semibold text-[#181d26]">
+            <p className="text-xs font-semibold text-[#1A1D29]">
               You&apos;ve been placed on this team
             </p>
-            <p className="text-[11px] text-[#5A6472]">
+            <p className="text-[11px] text-[#5B6272]">
               Review your teammates before confirming your place.
             </p>
           </div>
@@ -526,9 +527,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Confirmed marker, so the state is visible after the fact too */}
       {app.status === "HIRED" && app.roleId && app.teamConfirmedAt && (
-        <div className="px-6 py-2.5 bg-[#F7F8FA] border-b border-[#E2E5EA] flex items-center gap-2">
-          <CheckCircle className="h-3.5 w-3.5 text-[#181d26] shrink-0" />
-          <p className="text-[11px] font-semibold text-[#181d26]">
+        <div className="px-6 py-2.5 bg-[#F8F9FB] border-b border-[#E3E5EA] flex items-center gap-2">
+          <CheckCircle className="h-3.5 w-3.5 text-[#1A1D29] shrink-0" />
+          <p className="text-[11px] font-semibold text-[#1A1D29]">
             Team confirmed — you&apos;re on the roster.
           </p>
         </div>
@@ -536,36 +537,36 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
       {/* Offer declined ribbon */}
       {hasOffer && offerDeclined && (
-        <div className="px-6 py-3 bg-rose-50 border-b border-rose-100 flex items-center gap-2">
-          <X className="h-4 w-4 text-rose-500 shrink-0" />
-          <p className="text-xs font-bold text-rose-700">You declined the hiring offer for this project.</p>
+        <div className="px-6 py-3 bg-[#FDEAEA] border-b border-[#F5C2C2] flex items-center gap-2">
+          <X className="h-4 w-4 text-[#BC2A2A] shrink-0" />
+          <p className="text-xs font-bold text-[#BC2A2A]">You declined the hiring offer for this project.</p>
         </div>
       )}
 
       <div className="p-6 space-y-5 text-left">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-[#E2E5EA]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-[#E3E5EA]">
           <div className="space-y-1 text-left">
             <Link href={`/freelancer/applications/${app.id}`} className="hover:underline">
-              <h3 className="text-sm font-semibold text-[#181d26]">{app.project.title}</h3>
+              <h3 className="text-sm font-semibold text-[#1A1D29]">{app.project.title}</h3>
             </Link>
-            <p className="text-[11px] text-[#5A6472] font-normal">
+            <p className="text-[11px] text-[#5B6272] font-normal">
               {app.project.company.companyName} • {app.project.company.location || "Remote"}
             </p>
           </div>
           <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
-            <Badge variant="primary" className="text-[10px] px-2 py-0.5 capitalize">
+            <Badge variant="primary" className="text-[11px] px-2 py-0.5 capitalize">
               {activeStage}
             </Badge>
             <div className="flex flex-wrap items-center gap-2">
             <Link href={`/freelancer/applications/${app.id}`}>
-              <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-[8px] bg-[#181d26] px-3 text-[10px] font-medium text-white hover:bg-[#333840] cursor-pointer">
+              <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-full bg-[#152C55] px-3 text-[11px] font-medium text-white hover:bg-[#1E3D71] cursor-pointer">
                 Track Application Details →
               </Button>
             </Link>
             {app.status === "HIRED" && (
               <Link href={`/workspace/${app.id}`}>
-                <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-[8px] bg-[#181d26] px-3 text-[10px] font-medium text-white hover:bg-[#333840] cursor-pointer">
+                <Button size="sm" className="h-8 min-w-[170px] justify-center rounded-full bg-[#152C55] px-3 text-[11px] font-medium text-white hover:bg-[#1E3D71] cursor-pointer">
                   Open Workspace
                 </Button>
               </Link>
@@ -575,43 +576,35 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#EDEFF2] p-1 rounded-xl w-fit">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === tab.id ? "bg-white text-[#181d26] shadow-sm" : "text-[#5A6472] hover:text-[#333840]"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-                {tab.id === "chat" && dmMessages.length > 0 && (
-                  <span className="ml-0.5 h-4 w-4 rounded-full bg-sky-500 text-white text-[9px] font-black flex items-center justify-center">
-                    {dmMessages.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <Tabs
+          label="Application sections"
+          variant="pill"
+          value={activeTab}
+          onChange={(id) => setActiveTab(id as any)}
+          className="w-fit"
+          items={tabs.map((tab) => ({
+            id: tab.id,
+            label: tab.label,
+            icon: <tab.icon className="h-3.5 w-3.5" aria-hidden="true" />,
+            // Unread DM count rides the shared count chip.
+            ...(tab.id === "chat" && dmMessages.length > 0 ? { count: dmMessages.length } : {}),
+          }))}
+        />
 
         {/* ═══ OVERVIEW TAB ═══ */}
         {activeTab === "overview" && (
           <div className="space-y-5">
             {/* Pipeline progress */}
             <div className="space-y-2">
-              <span className="block text-[10px] font-bold text-[#5A6472] uppercase tracking-wider text-left">Recruitment Progress</span>
+              <span className="block text-[11px] font-bold text-[#5B6272] uppercase tracking-wider text-left">Recruitment Progress</span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                 {pipelineOrder.map((stage, idx) => {
                   const isPast = idx < currentPipelineIdx;
                   const isCurrent = idx === currentPipelineIdx;
                   return (
                     <div key={stage} className="flex flex-col items-center shrink-0 min-w-[80px]">
-                      <div className={`h-2 w-full rounded-full transition-all ${isPast ? "bg-[#5A6472]" : isCurrent ? "bg-[#181d26]" : "bg-[#EDEFF2]"}`} />
-                      <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#181d26]" : isPast ? "text-[#5A6472]" : "text-[#8A94A3]"}`}>
+                      <div className={`h-2 w-full rounded-lg transition-all ${isPast ? "bg-[#F1F2F4]" : isCurrent ? "bg-[#152C55]" : "bg-[#E8F1FE]"}`} />
+                      <span className={`text-[11px] font-bold mt-1 text-center leading-tight ${isCurrent ? "text-[#1A1D29]" : isPast ? "text-[#5B6272]" : "text-[#5B6272]"}`}>
                         {stage}
                       </span>
                     </div>
@@ -622,16 +615,16 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
             {/* Info specs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-left">
-              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
-                <Calendar className="h-4 w-4 text-[#8A94A3]" />
+              <div className="flex items-center gap-2 text-[#5B6272] font-medium">
+                <Calendar className="h-4 w-4 text-[#5B6272]" />
                 <span>Applied: {new Date(app.createdAt).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
-                <DollarSign className="h-4 w-4 text-[#8A94A3]" />
+              <div className="flex items-center gap-2 text-[#5B6272] font-medium">
+                <DollarSign className="h-4 w-4 text-[#5B6272]" />
                 <span>Budget: ₹{app.project.budget}</span>
               </div>
-              <div className="flex items-center gap-2 text-[#5A6472] font-medium">
-                <BrainCircuit className="h-4 w-4 text-[#8A94A3]" />
+              <div className="flex items-center gap-2 text-[#5B6272] font-medium">
+                <BrainCircuit className="h-4 w-4 text-[#5B6272]" />
                 <span>AI Match: {app.aiScore}%</span>
               </div>
             </div>
@@ -639,38 +632,38 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             {/* ═══ INTERVIEW SECTION ═══ */}
             {/* Conducted — no join button, show completed badge */}
             {interviewConducted && (
-              <div className="p-4 bg-[#F7F8FA] border border-[#E2E5EA] rounded-2xl flex items-center gap-3">
-                <div className="p-2 bg-white rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-[#181d26]" />
+              <div className="p-4 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg flex items-center gap-3">
+                <div className="p-2 bg-white rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-[#1A1D29]" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs font-black text-[#181d26]">Interview Completed</p>
-                  <p className="text-[10px] text-[#181d26]">Your interview has been conducted. Awaiting recruiter evaluation and decision.</p>
+                  <p className="text-xs font-bold text-[#1A1D29]">Interview Completed</p>
+                  <p className="text-[11px] text-[#1A1D29]">Your interview has been conducted. Awaiting recruiter evaluation and decision.</p>
                 </div>
               </div>
             )}
 
             {/* Cancelled */}
             {interviewCancelled && !interviewConducted && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
-                <div className="p-2 bg-rose-100 rounded-xl">
-                  <X className="h-5 w-5 text-rose-600" />
+              <div className="p-4 bg-[#FDEAEA] border border-[#F5C2C2] rounded-lg flex items-center gap-3">
+                <div className="p-2 bg-[#FDEAEA] rounded-lg">
+                  <X className="h-5 w-5 text-[#BC2A2A]" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs font-black text-rose-800">Interview Cancelled</p>
-                  <p className="text-[10px] text-rose-600">The recruiter cancelled the scheduled interview session. Please check your DM for further details.</p>
+                  <p className="text-xs font-bold text-[#BC2A2A]">Interview Cancelled</p>
+                  <p className="text-[11px] text-[#BC2A2A]">The recruiter cancelled the scheduled interview session. Please check your DM for further details.</p>
                 </div>
               </div>
             )}
 
             {/* Scheduled — show Google Meet join (Option A) — hidden once conducted or cancelled */}
             {latestInterview && !interviewConducted && !interviewCancelled && (
-              <div className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-left">
+              <div className="p-4 bg-[#E8F1FE] border border-[#C7CBD6] rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-left">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-black text-sky-700 uppercase tracking-widest block flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-[#2159C9] uppercase tracking-widest block flex items-center gap-1">
                     <Video className="h-3 w-3 inline" /> Interview Scheduled via Google Meet
                   </span>
-                  <p className="text-xs font-bold text-[#181d26]">
+                  <p className="text-xs font-bold text-[#1A1D29]">
                     {latestInterview.interviewDate
                       ? new Date(latestInterview.interviewDate).toLocaleString("en-IN", {
                           weekday: "long", day: "numeric", month: "short",
@@ -678,14 +671,14 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                         })
                       : "Date TBD"}
                   </p>
-                  <p className="text-[10px] text-[#5A6472]">Click the button to join via Google Meet at the scheduled time.</p>
+                  <p className="text-[11px] text-[#5B6272]">Click the button to join via Google Meet at the scheduled time.</p>
                 </div>
                 {latestInterview.meetingLink && (
                   <a
                     href={latestInterview.meetingLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 text-xs bg-sky-600 hover:bg-sky-500 font-black text-white rounded-xl flex items-center gap-1.5 shadow-md shadow-sky-200 transition-all shrink-0"
+                    className="px-4 py-2 text-xs bg-[#2E6BEA] hover:bg-[#2E6BEA] font-bold text-white rounded-full flex items-center gap-1.5 shadow-md shadow-[#2E6BEA] transition-all shrink-0"
                   >
                     <Video className="h-3.5 w-3.5" /> Join Google Meet <ExternalLink className="h-3 w-3" />
                   </a>
@@ -694,27 +687,27 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             )}
 
             {/* Proposal */}
-            <div className="bg-[#F7F8FA] p-4 rounded-xl border border-[#EDEFF2] text-xs text-left space-y-1.5">
-              <span className="text-[10px] font-bold text-[#5A6472] uppercase tracking-wider block">Your Proposal Pitch</span>
-              <p className="text-[#333840] italic">&quot;{coverLetterText}&quot;</p>
+            <div className="bg-[#F8F9FB] p-4 rounded-lg border border-[#E3E5EA] text-xs text-left space-y-1.5">
+              <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-wider block">Your Proposal Pitch</span>
+              <p className="text-[#5B6272] italic">&quot;{coverLetterText}&quot;</p>
             </div>
 
             {/* Contract sign prompt */}
             {activeStage === "Contract Sent" && !isSigned && appMeta.digitalContract && (
-              <div className="p-5 bg-sky-50 border border-sky-200 rounded-2xl text-left space-y-3.5">
-                <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-[#1968E5]" /> Action Required: Sign Workspace Contract
+              <div className="p-5 bg-[#E8F1FE] border border-[#C7CBD6] rounded-lg text-left space-y-3.5">
+                <h4 className="text-xs font-bold text-[#1A1D29] flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-[#2159C9]" /> Action Required: Sign Workspace Contract
                 </h4>
-                <p className="text-[10px] text-[#5A6472]">{appMeta.digitalContract.contractText}</p>
-                <div className="border border-[#E2E5EA]/80 rounded-xl divide-y divide-[#EDEFF2] bg-white text-xs">
+                <p className="text-[11px] text-[#5B6272]">{appMeta.digitalContract.contractText}</p>
+                <div className="border border-[#C7CBD6]/80 rounded-lg divide-y divide-[#E3E5EA] bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between">
-                      <span className="font-bold text-[#181d26]">{m.title}</span>
-                      <span className="text-[#5A6472]">{formatMoney(m.budget, offerLetter?.currency)}</span>
+                      <span className="font-bold text-[#1A1D29]">{m.title}</span>
+                      <span className="text-[#5B6272]">{formatMoney(m.budget, offerLetter?.currency)}</span>
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleSignContract} disabled={signing} className="cursor-pointer bg-[#181d26] text-white hover:bg-[#083a6b] w-full">
+                <Button onClick={handleSignContract} disabled={signing} className="cursor-pointer bg-[#152C55] text-white hover:bg-[#EAF1FE] w-full">
                   {signing ? "Signing..." : "Sign Digital Contract"}
                 </Button>
               </div>
@@ -722,21 +715,21 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
             {/* Signed contract tracker */}
             {isSigned && appMeta.digitalContract && (
-              <div className="p-5 bg-[#F7F8FA] border border-[#E2E5EA] rounded-2xl text-left space-y-3">
-                <h4 className="text-xs font-bold text-[#181d26] flex items-center gap-1.5">
-                  <CheckCircle className="h-4 w-4 text-[#181d26]" /> Signed Contract Active
+              <div className="p-5 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg text-left space-y-3">
+                <h4 className="text-xs font-bold text-[#1A1D29] flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-[#1A1D29]" /> Signed Contract Active
                 </h4>
-                <div className="border border-[#E2E5EA]/80 rounded-xl divide-y divide-[#EDEFF2] bg-white text-xs">
+                <div className="border border-[#E3E5EA]/80 rounded-lg divide-y divide-[#E3E5EA] bg-white text-xs">
                   {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                     <div key={idx} className="p-3 flex justify-between items-center">
                       <div>
-                        <span className="font-bold text-[#181d26]">{m.title}</span>
-                        <span className="text-[#8A94A3] ml-1.5">{formatMoney(m.budget, offerLetter?.currency)}</span>
+                        <span className="font-bold text-[#1A1D29]">{m.title}</span>
+                        <span className="text-[#5B6272] ml-1.5">{formatMoney(m.budget, offerLetter?.currency)}</span>
                       </div>
                       {m.status === "RELEASED" ? (
-                        <Badge variant="success" className="text-[9px]">Released</Badge>
+                        <Badge variant="success" className="text-[11px]">Released</Badge>
                       ) : (
-                        <Badge variant="neutral" className="text-[9px]">{m.status.toLowerCase()}</Badge>
+                        <Badge variant="neutral" className="text-[11px]">{m.status.toLowerCase()}</Badge>
                       )}
                     </div>
                   ))}
@@ -748,33 +741,33 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
 
         {/* ═══ DM CHAT TAB ═══ */}
         {activeTab === "chat" && (
-          <div className="border border-[#E2E5EA] rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: "340px" }}>
+          <div className="border border-[#E3E5EA] rounded-lg overflow-hidden flex flex-col" style={{ minHeight: "340px" }}>
             {/* Chat header */}
-            <div className="p-3.5 border-b border-[#EDEFF2] flex items-center gap-3 bg-[#F7F8FA]">
-              <div className="h-8 w-8 rounded-xl bg-[#181d26]/10 flex items-center justify-center text-[#181d26] font-black text-sm">
+            <div className="p-3.5 border-b border-[#E3E5EA] flex items-center gap-3 bg-[#F8F9FB]">
+              <div className="h-8 w-8 rounded-lg bg-[#152C55]/10 flex items-center justify-center text-[#1A1D29] font-bold text-sm">
                 R
               </div>
               <div>
-                <p className="text-xs font-black text-[#181d26]">{app.project.company.companyName} Recruiter</p>
-                <p className="text-[10px] text-[#8A94A3] font-medium">Direct Message · Pre-hire private channel</p>
+                <p className="text-xs font-bold text-[#1A1D29]">{app.project.company.companyName} Recruiter</p>
+                <p className="text-[11px] text-[#5B6272] font-medium">Direct Message · Pre-hire private channel</p>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[260px]">
               {dmMessages.length === 0 ? (
-                <p className="text-xs text-[#8A94A3] italic text-center py-8">No messages yet. You can reach out to the recruiter directly here.</p>
+                <p className="text-xs text-[#5B6272] italic text-center py-8">No messages yet. You can reach out to the recruiter directly here.</p>
               ) : (
                 dmMessages.map((msg: any) => {
                   const isMe = msg.senderId === currentUserId;
                   return (
                     <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
                       {!isMe && (
-                        <div className="h-6 w-6 rounded-full bg-[#181d26] flex items-center justify-center text-[10px] font-black text-white shrink-0">R</div>
+                        <div className="h-6 w-6 rounded-full bg-[#152C55] flex items-center justify-center text-[11px] font-bold text-white shrink-0">R</div>
                       )}
-                      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs ${isMe ? "bg-sky-600 text-white rounded-tr-none" : "bg-[#EDEFF2] text-[#181D26] rounded-tl-none"}`}>
+                      <div className={`max-w-[75%] rounded-lg px-3.5 py-2 text-xs ${isMe ? "bg-[#2E6BEA] text-white rounded-tr-none" : "bg-[#E8F1FE] text-[#1A1D29] rounded-tl-none"}`}>
                         <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                        <div className={`text-[9px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-sky-200" : "text-[#8A94A3]"}`}>
+                        <div className={`text-[11px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-[#2159C9]" : "text-[#5B6272]"}`}>
                           <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {isMe && (
                             <>
@@ -782,14 +775,14 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                               <button
                                 type="button"
                                 onClick={() => { setEditingMessageId(msg.id); setDmInput(msg.content); }}
-                                className="text-sky-300 hover:text-white underline font-bold transition-colors cursor-pointer border-none bg-transparent p-0"
+                                className="text-[#2159C9] hover:text-white underline font-bold transition-colors cursor-pointer border-none bg-transparent p-0"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteDM(msg.id)}
-                                className="text-rose-400 hover:text-rose-300 underline font-bold transition-colors cursor-pointer border-none bg-transparent p-0"
+                                className="text-[#BC2A2A] hover:text-[#BC2A2A] underline font-bold transition-colors cursor-pointer border-none bg-transparent p-0"
                               >
                                 Delete
                               </button>
@@ -804,7 +797,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                                     </svg>
                                   </div>
                                 ) : (
-                                  <svg className="h-3 w-3 text-sky-300 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                  <svg className="h-3 w-3 text-[#2159C9] opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                                     <title>Sent</title>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                   </svg>
@@ -815,7 +808,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                         </div>
                       </div>
                       {isMe && (
-                        <div className="h-6 w-6 rounded-full bg-sky-500 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                        <div className="h-6 w-6 rounded-full bg-[#2E6BEA] flex items-center justify-center text-[11px] font-bold text-white shrink-0">
                           {currentUserId[0]?.toUpperCase()}
                         </div>
                       )}
@@ -827,9 +820,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-[#EDEFF2] flex gap-2 items-center">
+            <div className="p-3 border-t border-[#E3E5EA] flex gap-2 items-center">
               {editingMessageId && (
-                <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[10px] text-[#8A94A3] hover:text-[#5A6472] font-medium whitespace-nowrap cursor-pointer">
+                <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[11px] text-[#5B6272] hover:text-[#5B6272] font-medium whitespace-nowrap cursor-pointer">
                   Cancel Edit
                 </button>
               )}
@@ -839,13 +832,13 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                 onChange={(e) => setDmInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendDM(); } }}
                 placeholder={editingMessageId ? "Edit message..." : "Type a message to the recruiter..."}
-                className="flex-1 h-9 px-3 rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] text-xs focus:ring-1 focus:ring-sky-600 focus:outline-none"
+                className="flex-1 h-9 px-3 rounded-md border border-[#C7CBD6] bg-[#F8F9FB] text-xs focus:ring-1 focus:ring-[#2E6BEA] focus:outline-none"
               />
               <Button
                 size="sm"
                 disabled={dmLoading || !dmInput.trim()}
                 onClick={handleSendDM}
-                className="bg-sky-600 hover:bg-sky-700 text-white font-bold cursor-pointer px-3"
+                className="bg-[#2E6BEA] hover:bg-[#2E6BEA] text-white font-bold cursor-pointer px-3"
               >
                 <Send className="h-3.5 w-3.5" />
               </Button>

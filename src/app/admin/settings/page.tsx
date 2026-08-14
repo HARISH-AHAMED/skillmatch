@@ -8,18 +8,18 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26] font-sans">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29] font-sans">
           Platform Settings
         </h1>
-        <p className="text-xs text-[#5A6472] mt-1 font-sans">
+        <p className="text-xs text-[#5B6272] mt-1 font-sans">
           Configure matching factors thresholds and core API settings
         </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        <Card className="p-8 bg-white border border-[#EDEFF2] shadow-sm space-y-6">
-          <h2 className="text-sm font-bold text-[#181d26] flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-[#1968E5]" />
+        <Card className="p-8 bg-white border border-[#E3E5EA] space-y-6">
+          <h2 className="text-sm font-bold text-[#1A1D29] flex items-center gap-2">
+            <Sparkles className="h-4.5 w-4.5 text-[#2159C9]" />
             AI recommendation Weights
           </h2>
 
@@ -36,9 +36,9 @@ export default function AdminSettingsPage() {
           </Button>
         </Card>
 
-        <Card className="p-8 bg-white border border-[#EDEFF2] shadow-sm space-y-6">
-          <h2 className="text-sm font-bold text-[#181d26] flex items-center gap-2">
-            <Shield className="h-4.5 w-4.5 text-[#1968E5]" />
+        <Card className="p-8 bg-white border border-[#E3E5EA] space-y-6">
+          <h2 className="text-sm font-bold text-[#1A1D29] flex items-center gap-2">
+            <Shield className="h-4.5 w-4.5 text-[#2159C9]" />
             System Configurations
           </h2>
 

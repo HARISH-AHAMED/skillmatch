@@ -5,8 +5,10 @@ import { updateFreelancerProfile } from "@/actions/profileActions";
 import { updateFreelancerCalendarAndProfile } from "@/actions/workflowActions";
 import { parseFreelancerMetadata, getFreelancerBioText, serializeFreelancerMetadata } from "@/lib/workflowHelpers";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { fileToBase64 } from "@/lib/utils";
@@ -367,28 +369,28 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
   const getPortfolioIcon = (type: string) => {
     switch (type) {
       case "IMAGE":
-        return <ImageIcon className="h-5 w-5 text-indigo-500" />;
+        return <ImageIcon className="h-5 w-5 text-[#2159C9]" />;
       case "VIDEO":
-        return <Video className="h-5 w-5 text-amber-500" />;
+        return <Video className="h-5 w-5 text-[#8F5E08]" />;
       case "GITHUB":
-        return <FileCode className="h-5 w-5 text-[#181D26]" />;
+        return <FileCode className="h-5 w-5 text-[#1A1D29]" />;
       case "WEBSITE":
-        return <Globe className="h-5 w-5 text-emerald-600" />;
+        return <Globe className="h-5 w-5 text-[#147A44]" />;
       case "CASE_STUDY":
-        return <FileText className="h-5 w-5 text-sky-500" />;
+        return <FileText className="h-5 w-5 text-[#2159C9]" />;
       default:
-        return <LinkIcon className="h-5 w-5 text-[#8A94A3]" />;
+        return <LinkIcon className="h-5 w-5 text-[#5B6272]" />;
     }
   };
 
   return (
-    <Card className="p-8 w-full bg-white border border-[#E2E5EA] rounded-[12px] space-y-6 shadow-xs">
+    <Card className="p-8 w-full bg-white border border-[#E3E5EA] rounded-lg space-y-6">
       {message && (
         <div
-          className={`p-4 rounded-[8px] text-xs font-medium border ${
+          className={`p-4 rounded-lg text-xs font-medium border ${
             message.type === "success"
-              ? "bg-[#F7F8FA] border-[#E2E5EA] text-[#181d26]"
-              : "bg-rose-50 border-rose-200 text-rose-800"
+              ? "bg-[#F8F9FB] border-[#E3E5EA] text-[#1A1D29]"
+              : "bg-[#FDEAEA] border-[#F5C2C2] text-[#BC2A2A]"
           }`}
         >
           {message.text}
@@ -396,50 +398,44 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
       )}
 
       {uploadProgress && (
-        <div className="p-3 bg-[#F7F8FA] border border-[#E2E5EA] text-[#181d26] rounded-[8px] text-xs font-medium flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[#181d26]" />
+        <div className="p-3 bg-[#F8F9FB] border border-[#C7CBD6] text-[#1A1D29] rounded-lg text-xs font-medium flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[#1A1D29]" />
           {uploadProgress}
         </div>
       )}
 
       {/* Tabs Selector Navigation */}
-      <div className="flex flex-nowrap overflow-x-auto no-scrollbar border-b border-[#E2E5EA] pb-2 mb-2 gap-2 whitespace-nowrap scroll-smooth md:flex-wrap md:overflow-x-visible md:pb-1.5 md:mb-0">
-        {(["info", "skills", "experience", "certifications", "portfolio", "calendar"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-medium rounded-[12px] transition-all cursor-pointer shrink-0 ${
-              activeTab === tab
-                ? "bg-[#181d26] text-white"
-                : "text-[#5A6472] hover:bg-[#F7F8FA] hover:text-[#181d26]"
-            }`}
-          >
-            {tab === "info" && "Profile Info"}
-            {tab === "skills" && "Skills & Resume"}
-            {tab === "experience" && "Work Experience"}
-            {tab === "certifications" && "Certificates"}
-            {tab === "portfolio" && "Portfolio Gallery"}
-            {tab === "calendar" && "Availability & Calendar"}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Profile sections"
+        variant="pill"
+        value={activeTab}
+        onChange={(id) => setActiveTab(id as typeof activeTab)}
+        className="mb-2 gap-2"
+        items={[
+          { id: "info", label: "Profile Info" },
+          { id: "skills", label: "Skills & Resume" },
+          { id: "experience", label: "Work Experience" },
+          { id: "certifications", label: "Certificates" },
+          { id: "portfolio", label: "Portfolio Gallery" },
+          { id: "calendar", label: "Availability & Calendar" },
+        ]}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* TAB 1: Profile Info */}
         {activeTab === "info" && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-[#F7F8FA] border border-[#E2E5EA]/40 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-[#F8F9FB] border border-[#E3E5EA]/40 rounded-lg">
               <div className="relative">
-                <div className="h-20 w-20 rounded-2xl bg-sky-100 border border-[#E2E5EA] overflow-hidden flex items-center justify-center font-bold text-[#181d26] text-2xl shadow-inner">
+                <div className="h-20 w-20 rounded-lg bg-[#E8F1FE] border border-[#E3E5EA] overflow-hidden flex items-center justify-center font-bold text-[#1A1D29] text-2xl shadow-inner">
                   {image ? (
                     <img src={image} alt="Profile Photo" className="h-full w-full object-cover" />
                   ) : (
                     name ? name[0].toUpperCase() : "U"
                   )}
                 </div>
-                <label className="absolute -bottom-1.5 -right-1.5 p-1.5 bg-white hover:bg-[#EDEFF2] border border-[#E2E5EA] rounded-lg shadow-sm cursor-pointer transition-transform hover:scale-105">
-                  <Upload className="h-3.5 w-3.5 text-[#5A6472]" />
+                <label className="absolute -bottom-1.5 -right-1.5 p-1.5 bg-white hover:bg-[#E8F1FE] border border-[#E3E5EA] rounded-lg cursor-pointer transition-transform">
+                  <Upload className="h-3.5 w-3.5 text-[#5B6272]" />
                   <input
                     type="file"
                     accept="image/*"
@@ -451,8 +447,8 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
               </div>
 
               <div className="flex-1 space-y-1 text-center sm:text-left">
-                <h4 className="text-xs font-bold text-[#333840]">Profile Photo</h4>
-                <p className="text-[10px] text-[#5A6472] leading-relaxed max-w-sm">
+                <h4 className="text-xs font-bold text-[#5B6272]">Profile Photo</h4>
+                <p className="text-[11px] text-[#5B6272] leading-relaxed max-w-sm">
                   Upload a clear image file (PNG, JPG, WebP, SVG). Size limit: 5MB.
                 </p>
               </div>
@@ -476,9 +472,9 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#5A6472]">Bio / About Me</label>
+              <label className="block text-xs font-semibold text-[#5B6272]">Bio / About Me</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#C7CBD6] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                 placeholder="Write a compelling summary about your software career..."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -488,11 +484,11 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#5A6472]">Availability Status</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">Availability Status</label>
                 <select
                   value={availabilityStatus}
                   onChange={(e) => setAvailabilityStatus(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                 >
                   <option value="AVAILABLE">Available for Hire (Immediate)</option>
                   <option value="BUSY">Busy / Limited availability</option>
@@ -501,11 +497,11 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#5A6472]">Typical Response Time</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">Typical Response Time</label>
                 <select
                   value={responseTime}
                   onChange={(e) => setResponseTime(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                 >
                   <option value="Within 1 hour">Within 1 hour</option>
                   <option value="Within 3 hours">Within 3 hours</option>
@@ -518,11 +514,11 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#5A6472]">My Gender</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">My Gender</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                 >
                   <option value="ANY">Prefer Not to Say / Other</option>
                   <option value="MALE">Male</option>
@@ -531,11 +527,11 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#5A6472]">Primary Domain</label>
+                <label className="block text-xs font-semibold text-[#5B6272]">Primary Domain</label>
                 <select
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                 >
                   <option value="Software Engineering">Software Engineering</option>
                   <option value="Data & AI">Data & AI</option>
@@ -552,7 +548,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
             </div>
 
             <div className="space-y-2.5 pt-1.5">
-              <label className="block text-xs font-semibold text-[#5A6472]">Verification Badges (Showcase)</label>
+              <label className="block text-xs font-semibold text-[#5B6272]">Verification Badges (Showcase)</label>
               <div className="flex flex-wrap gap-2.5">
                 {["Identity Verified", "Top Rated", "Expert Developer", "Preferred Freelancer"].map((badge) => {
                   const isChecked = verificationBadges.includes(badge);
@@ -561,13 +557,13 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                       key={badge}
                       type="button"
                       onClick={() => toggleBadge(badge)}
-                      className={`px-3 py-1.5 text-[10px] font-bold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 text-[11px] font-bold rounded-full border flex items-center gap-1.5 transition-all cursor-pointer ${
                         isChecked
-                          ? "bg-sky-50 border-sky-300 text-[#181d26] shadow-sm"
-                          : "bg-white border-[#E2E5EA] text-[#8A94A3] hover:border-[#8A94A3]"
+                          ? "bg-[#E8F1FE] border-[#C7CBD6] text-[#1A1D29]"
+                          : "bg-white border-[#E3E5EA] text-[#5B6272] hover:border-[#E3E5EA]"
                       }`}
                     >
-                      <CheckCircle className={`h-3.5 w-3.5 ${isChecked ? "text-sky-500 fill-sky-50" : "text-[#C7CCD4]"}`} />
+                      <CheckCircle className={`h-3.5 w-3.5 ${isChecked ? "text-[#2159C9] fill-[#2E6BEA]" : "text-[#2159C9]"}`} />
                       {badge}
                     </button>
                   );
@@ -581,7 +577,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
         {activeTab === "skills" && (
           <div className="space-y-5 text-left">
             <div className="space-y-2.5">
-              <label className="block text-xs font-bold text-[#5A6472] font-bold">Professional Skills *</label>
+              <label className="block text-xs font-bold text-[#5B6272] font-bold">Professional Skills *</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Type skill and press Add (e.g. react, typescript)"
@@ -607,26 +603,26 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     setNewSkill("");
                   }}
                   disabled={loading}
-                  className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F7F8FA]"
+                  className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F8F9FB]"
                 >
                   Add
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1.5">
                 {skills.length === 0 ? (
-                  <span className="text-[10px] text-[#8A94A3] italic">No skills added yet.</span>
+                  <span className="text-[11px] text-[#5B6272] italic">No skills added yet.</span>
                 ) : (
                   skills.map((s) => (
                     <Badge
                       key={s}
                       variant="primary"
-                      className="bg-[#1968E5]/10 text-[#181d26] border border-[#1968E5]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                      className="bg-[#EAF1FE]/10 text-[#1A1D29] border border-[#C7CBD6]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold"
                     >
                       {s}
                       <button
                         type="button"
                         onClick={() => setSkills(skills.filter((x) => x !== s))}
-                        className="hover:text-rose-600 font-extrabold cursor-pointer border-none bg-transparent p-0"
+                        className="hover:text-[#BC2A2A] font-bold cursor-pointer border-none bg-transparent p-0"
                       >
                         ×
                       </button>
@@ -646,17 +642,17 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
             />
 
             <div className="space-y-1.5 pt-1">
-              <label className="block text-xs font-semibold text-[#5A6472]">Resume / CV (PDF format)</label>
+              <label className="block text-xs font-semibold text-[#5B6272]">Resume / CV (PDF format)</label>
               {resumeUrl && (
-                <div className="flex items-center justify-between p-3 bg-[#F7F8FA] border border-[#E2E5EA]/70 rounded-xl mb-1.5">
-                  <span className="text-xs text-[#5A6472] font-semibold truncate max-w-[70%]">
+                <div className="flex items-center justify-between p-3 bg-[#F8F9FB] border border-[#E3E5EA]/70 rounded-lg mb-1.5">
+                  <span className="text-xs text-[#5B6272] font-semibold truncate max-w-[70%]">
                     Active CV: {resumeUrl.split("/").pop()}
                   </span>
                   <a
                     href={resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-bold text-[#1968E5] hover:text-[#181d26] transition-colors flex items-center gap-1"
+                    className="text-xs font-bold text-[#2159C9] hover:text-[#1A1D29] transition-colors flex items-center gap-1"
                   >
                     <span>View File</span>
                     <ExternalLink className="h-3 w-3" />
@@ -678,7 +674,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                   }
                 }}
                 disabled={loading}
-                className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20"
+                className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
               />
             </div>
           </div>
@@ -687,15 +683,15 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
         {/* TAB 3: Work Experience */}
         {activeTab === "experience" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[#EDEFF2]">
+            <div className="flex justify-between items-center pb-2 border-b border-[#E3E5EA]">
               <div>
-                <h4 className="text-xs font-bold text-[#333840]">Career History Timeline</h4>
-                <p className="text-[10px] text-[#5A6472]">Provide past employment roles and responsibilities.</p>
+                <h4 className="text-xs font-bold text-[#5B6272]">Career History Timeline</h4>
+                <p className="text-[11px] text-[#5B6272]">Provide past employment roles and responsibilities.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowExpModal(true)}
-                className="px-3.5 py-1.5 text-[10px] font-bold text-[#181d26] hover:bg-[#F7F8FA] border border-[#E2E5EA] rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 text-[11px] font-bold text-[#1A1D29] hover:bg-[#F8F9FB] border border-[#C7CBD6] rounded-full transition-colors cursor-pointer flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Experience
               </button>
@@ -704,30 +700,30 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
             {/* Experience List */}
             <div className="space-y-3">
               {experience.length === 0 ? (
-                <p className="text-xs text-[#8A94A3] italic text-center p-6 bg-[#F7F8FA] rounded-2xl">
+                <p className="text-xs text-[#5B6272] italic text-center p-6 bg-[#F8F9FB] rounded-lg">
                   No experience entries added.
                 </p>
               ) : (
                 experience.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-white border border-[#EDEFF2] rounded-2xl shadow-sm flex justify-between items-start gap-4 hover:border-[#E2E5EA] transition-colors"
+                    className="p-4 bg-white border border-[#E3E5EA] rounded-lg flex justify-between items-start gap-4 hover:border-[#E3E5EA] transition-colors"
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-[#181d26]" />
-                        <h4 className="text-xs font-bold text-[#181d26]">{item.title}</h4>
+                        <Briefcase className="h-4 w-4 text-[#1A1D29]" />
+                        <h4 className="text-xs font-bold text-[#1A1D29]">{item.title}</h4>
                       </div>
-                      <p className="text-[10px] text-[#5A6472] font-medium">
+                      <p className="text-[11px] text-[#5B6272] font-medium">
                         {item.company} • <span className="italic">{item.startDate} to {item.current ? "Present" : item.endDate}</span>
                       </p>
-                      <p className="text-[10px] text-[#5A6472] max-w-xl leading-relaxed">{item.description}</p>
+                      <p className="text-[11px] text-[#5B6272] max-w-xl leading-relaxed">{item.description}</p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setExperience(experience.filter((e) => e.id !== item.id))}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer self-center"
+                      className="p-1.5 text-[#BC2A2A] hover:bg-[#FDEAEA] rounded-full transition-colors cursor-pointer self-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -738,10 +734,8 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
             {/* Add Experience Modal Popup */}
             {showExpModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => setShowExpModal(false)} />
-                <div className="relative w-full max-w-md bg-white border border-[#EDEFF2] p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-                  <h3 className="text-sm font-bold text-[#181d26]">Add Work Experience</h3>
+              <Modal open onClose={() => setShowExpModal(false)} size="lg" title="Add Work Experience">
+                <div className="space-y-4">
 
                   <div className="space-y-3.5">
                     <Input
@@ -779,17 +773,17 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                         id="currJob"
                         checked={newExp.current}
                         onChange={(e) => setNewExp({ ...newExp, current: e.target.checked, endDate: e.target.checked ? "" : newExp.endDate })}
-                        className="rounded border-[#C7CCD4] focus:ring-[#181d26] h-4 w-4 cursor-pointer"
+                        className="rounded-md border-[#E3E5EA] focus:ring-[#152C55] h-4 w-4 cursor-pointer"
                       />
-                      <label htmlFor="currJob" className="text-xs font-semibold text-[#5A6472] cursor-pointer">
+                      <label htmlFor="currJob" className="text-xs font-semibold text-[#5B6272] cursor-pointer">
                         Currently working here
                       </label>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Role Description</label>
+                      <label className="block text-xs font-semibold text-[#5B6272]">Role Description</label>
                       <textarea
-                        className="w-full min-h-[90px] px-3.5 py-2 rounded-xl text-xs bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                        className="w-full min-h-[90px] px-3.5 py-2 rounded-md text-xs bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                         placeholder="Detail key tech used and deliverables completed..."
                         value={newExp.description}
                         onChange={(e) => setNewExp({ ...newExp, description: e.target.value })}
@@ -806,7 +800,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Modal>
             )}
           </div>
         )}
@@ -819,15 +813,15 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
         {/* TAB 5: Portfolio Gallery */}
         {activeTab === "portfolio" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[#EDEFF2]">
+            <div className="flex justify-between items-center pb-2 border-b border-[#E3E5EA]">
               <div>
-                <h4 className="text-xs font-bold text-[#333840]">Portfolio Gallery Showcase</h4>
-                <p className="text-[10px] text-[#5A6472]">Showcase past work, code repositories, websites, and case studies.</p>
+                <h4 className="text-xs font-bold text-[#5B6272]">Portfolio Gallery Showcase</h4>
+                <p className="text-[11px] text-[#5B6272]">Showcase past work, code repositories, websites, and case studies.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPortModal(true)}
-                className="px-3.5 py-1.5 text-[10px] font-bold text-[#181d26] hover:bg-[#F7F8FA] border border-[#E2E5EA] rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 text-[11px] font-bold text-[#1A1D29] hover:bg-[#F8F9FB] border border-[#E3E5EA] rounded-full transition-colors cursor-pointer flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Gallery Project
               </button>
@@ -838,19 +832,19 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
               {portfolioItems.map((item) => (
                 <div
                   key={item.id}
-                  className="p-5 bg-white border border-[#E2E5EA]/60 rounded-2xl shadow-sm flex flex-col justify-between space-y-3 hover:border-sky-200 transition-all group relative"
+                  className="p-5 bg-white border border-[#C7CBD6]/60 rounded-lg flex flex-col justify-between space-y-3 hover:border-[#C7CBD6] transition-all group relative"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getPortfolioIcon(item.type)}
-                        <h4 className="text-xs font-extrabold text-[#181d26]">{item.title}</h4>
+                        <h4 className="text-xs font-bold text-[#1A1D29]">{item.title}</h4>
                       </div>
-                      <Badge variant="neutral" className="text-[9px] uppercase px-1.5 py-0.5">
+                      <Badge variant="neutral" className="text-[11px] uppercase px-1.5 py-0.5">
                         {item.type.replace("_", " ")}
                       </Badge>
                     </div>
-                    <p className="text-[10px] text-[#5A6472] leading-relaxed font-medium line-clamp-3">
+                    <p className="text-[11px] text-[#5B6272] leading-relaxed font-medium line-clamp-3">
                       {item.description}
                     </p>
 
@@ -858,7 +852,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     {item.images && item.images.length > 0 && (
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         {item.images.map((img: string, i: number) => (
-                          <div key={i} className="aspect-video bg-white border border-[#E2E5EA] rounded-lg overflow-hidden h-10 relative">
+                          <div key={i} className="aspect-video bg-white border border-[#E3E5EA] rounded-lg overflow-hidden h-10 relative">
                             <img src={img} alt="screenshot" className="h-full w-full object-cover" />
                           </div>
                         ))}
@@ -866,25 +860,25 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center pt-2.5 border-t border-[#EDEFF2]">
+                  <div className="flex justify-between items-center pt-2.5 border-t border-[#E3E5EA]">
                     {item.url ? (
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#1968E5] hover:text-[#181d26] transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2159C9] hover:text-[#1A1D29] transition-colors"
                       >
                         <span>View Project</span>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     ) : (
-                      <span className="text-[10px] text-[#8A94A3] italic">No link provided</span>
+                      <span className="text-[11px] text-[#5B6272] italic">No link provided</span>
                     )}
 
                     <button
                       type="button"
                       onClick={() => setPortfolioItems(portfolioItems.filter((p) => p.id !== item.id))}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-[#BC2A2A] hover:bg-[#FDEAEA] rounded-full transition-colors cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -895,10 +889,8 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
             {/* Add Portfolio Item Modal Popup */}
             {showPortModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-xs" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setShowPortModal(false); }} />
-                <div className="relative w-full max-w-md bg-white border border-[#EDEFF2] p-6 rounded-3xl z-10 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
-                  <h3 className="text-sm font-bold text-[#181d26] border-b border-[#EDEFF2] pb-2">Add Portfolio Project</h3>
+              <Modal open onClose={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setShowPortModal(false); }} size="lg" title="Add Portfolio Project">
+                <div className="space-y-4">
 
                   <div className="space-y-3.5">
                     <Input
@@ -909,9 +901,9 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     />
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Project Description</label>
+                      <label className="block text-xs font-semibold text-[#5B6272]">Project Description</label>
                       <textarea
-                        className="w-full min-h-[70px] px-3.5 py-2 rounded-xl text-xs bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:border-[#181d26] focus:ring-[#181d26]/20"
+                        className="w-full min-h-[70px] px-3.5 py-2 rounded-md text-xs bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
                         placeholder="Outline the core functionality and what technologies you used..."
                         value={newPort.description}
                         onChange={(e) => setNewPort({ ...newPort, description: e.target.value })}
@@ -919,11 +911,11 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#5A6472]">Portfolio Media Type</label>
+                      <label className="block text-xs font-semibold text-[#5B6272]">Portfolio Media Type</label>
                       <select
                         value={newPort.type}
                         onChange={(e) => { setNewPort({ ...newPort, type: e.target.value as any, url: "" }); setSelectedFiles(null); setSelectedFilePreviews([]); }}
-                        className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer"
+                        className="w-full px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer"
                       >
                         <option value="IMAGE">Local Images Showcase (Multiple Uploads)</option>
                         <option value="VIDEO">Local Video Demo Showcase</option>
@@ -935,7 +927,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
                     {newPort.type === "IMAGE" && (
                       <div className="space-y-2">
-                        <label className="block text-xs font-semibold text-[#5A6472]">Upload Project Images (Screenshots)</label>
+                        <label className="block text-xs font-semibold text-[#5B6272]">Upload Project Images (Screenshots)</label>
                         <input
                           type="file"
                           accept="image/*"
@@ -950,12 +942,12 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                               setSelectedFilePreviews(previews);
                             }
                           }}
-                          className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26] focus:outline-none cursor-pointer"
+                          className="w-full px-4 py-2.5 rounded-md text-xs bg-white border border-[#C7CBD6] text-[#1A1D29] focus:outline-none cursor-pointer"
                         />
                         {selectedFilePreviews.length > 0 && (
                           <div className="grid grid-cols-4 gap-2 mt-2">
                             {selectedFilePreviews.map((preview, index) => (
-                              <div key={index} className="aspect-video border border-[#E2E5EA] rounded-xl overflow-hidden bg-white">
+                              <div key={index} className="aspect-video border border-[#E3E5EA] rounded-lg overflow-hidden bg-white">
                                 <img src={preview} alt="preview" className="h-full w-full object-cover" />
                               </div>
                             ))}
@@ -966,14 +958,14 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
                     {newPort.type === "VIDEO" && (
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#5A6472]">Upload Demo Video File (Max 20MB)</label>
+                        <label className="block text-xs font-semibold text-[#5B6272]">Upload Demo Video File (Max 20MB)</label>
                         <input
                           type="file"
                           accept="video/*"
                           onChange={(e) => {
                             if (e.target.files) setSelectedFiles(e.target.files);
                           }}
-                          className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-[#E2E5EA] text-[#181D26] focus:outline-none cursor-pointer"
+                          className="w-full px-4 py-2.5 rounded-md text-xs bg-white border border-[#E3E5EA] text-[#1A1D29] focus:outline-none cursor-pointer"
                         />
                       </div>
                     )}
@@ -988,7 +980,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     )}
                   </div>
 
-                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EDEFF2]">
+                  <div className="flex justify-end gap-2.5 pt-4 border-t border-[#E3E5EA]">
                     <Button variant="outline" size="sm" onClick={() => { setSelectedFiles(null); setSelectedFilePreviews([]); setShowPortModal(false); }} disabled={loading}>
                       Cancel
                     </Button>
@@ -997,7 +989,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Modal>
             )}
           </div>
         )}
@@ -1005,50 +997,50 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
         {/* TAB 6: Availability & Calendar */}
         {activeTab === "calendar" && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
               Unstop-style Profile Rankings & Availability Calendar
             </h2>
 
             {/* Unstop mock stats cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
-                <span className="text-[10px] text-[#5A6472] font-bold uppercase tracking-wider">Global Platform Rank</span>
-                <p className="text-xl font-black text-[#181d26]"># 1,832,289</p>
-                <p className="text-[10px] text-[#5A6472] font-medium">Based on active workspace completions</p>
+              <Card className="p-4.5 bg-[#E8F1FE]/50 border-[#C7CBD6] space-y-2 rounded-lg">
+                <span className="text-[11px] text-[#5B6272] font-bold uppercase tracking-wider">Global Platform Rank</span>
+                <p className="text-xl font-bold text-[#1A1D29]"># 1,832,289</p>
+                <p className="text-[11px] text-[#5B6272] font-medium">Based on active workspace completions</p>
               </Card>
 
-              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
-                <span className="text-[10px] text-[#5A6472] font-bold uppercase tracking-wider">Unstop-style Points</span>
-                <p className="text-xl font-black text-[#181d26]">20 Points</p>
-                <p className="text-[10px] text-[#5A6472] font-medium">Earned through quality ratings</p>
+              <Card className="p-4.5 bg-[#E8F1FE]/50 border-[#C7CBD6] space-y-2 rounded-lg">
+                <span className="text-[11px] text-[#5B6272] font-bold uppercase tracking-wider">Unstop-style Points</span>
+                <p className="text-xl font-bold text-[#1A1D29]">20 Points</p>
+                <p className="text-[11px] text-[#5B6272] font-medium">Earned through quality ratings</p>
               </Card>
 
-              <Card className="p-4.5 bg-sky-50/50 border-sky-100 space-y-2 rounded-2xl">
-                <span className="text-[10px] text-[#5A6472] font-bold uppercase tracking-wider">Streaks Activity (Recent Weeks)</span>
+              <Card className="p-4.5 bg-[#E8F1FE]/50 border-[#C7CBD6] space-y-2 rounded-lg">
+                <span className="text-[11px] text-[#5B6272] font-bold uppercase tracking-wider">Streaks Activity (Recent Weeks)</span>
                 <div className="flex gap-1 pt-1.5 overflow-x-auto">
                   {[2, 0, 4, 1, 3, 2, 0, 4, 3, 2, 4, 1, 0].map((v, i) => (
                     <div
                       key={i}
-                      className={`h-4 w-4 rounded shrink-0 border transition-all ${
-                        v === 4 ? "bg-emerald-700 border-emerald-800" :
-                        v === 3 ? "bg-emerald-500 border-emerald-600" :
-                        v === 2 ? "bg-[#1968E5] border-sky-400" :
-                        v === 1 ? "bg-sky-100 border-sky-200" :
-                        "bg-[#EDEFF2] border-[#E2E5EA]"
+                      className={`h-4 w-4 rounded-lg shrink-0 border transition-all ${
+                        v === 4 ? "bg-[#14713D] border-[#BFE9D2]" :
+                        v === 3 ? "bg-[#14713D] border-[#BFE9D2]" :
+                        v === 2 ? "bg-[#EAF1FE] border-[#C7CBD6]" :
+                        v === 1 ? "bg-[#E8F1FE] border-[#C7CBD6]" :
+                        "bg-[#F0F3F9] border-[#E3E5EA]"
                       }`}
                       title={`Activity level: ${v}`}
                     />
                   ))}
                 </div>
-                <p className="text-[9px] text-[#5A6472] font-semibold mt-1">Current streak: 3 Days</p>
+                <p className="text-[11px] text-[#5B6272] font-semibold mt-1">Current streak: 3 Days</p>
               </Card>
             </div>
 
             {/* Purpose Option */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#5A6472]">What's your primary purpose? *</label>
+              <label className="block text-xs font-semibold text-[#5B6272]">What's your primary purpose? *</label>
               <select
-                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
+                className="w-full px-4 py-2.5 rounded-md text-sm bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:ring-[#152C55]/20"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value as any)}
               >
@@ -1122,8 +1114,8 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
 
             {/* Weekly Availability Slots Setup */}
             <div className="space-y-3 pt-2">
-              <h3 className="text-xs font-bold text-[#5A6472] uppercase tracking-wider">Weekly Available Hours</h3>
-              <div className="border border-[#E2E5EA]/80 rounded-2xl overflow-hidden divide-y divide-[#EDEFF2] bg-white">
+              <h3 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Weekly Available Hours</h3>
+              <div className="border border-[#E3E5EA]/80 rounded-lg overflow-hidden divide-y divide-[#E3E5EA] bg-white">
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day, idx) => {
                   const dayEntry = calendarSlots.find(c => c.dayOfWeek === day);
                   const isChecked = dayEntry && dayEntry.slots.length > 0;
@@ -1142,9 +1134,9 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                               setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: [] } : c));
                             }
                           }}
-                          className="rounded border-[#C7CCD4] focus:ring-[#181d26] h-4 w-4 cursor-pointer"
+                          className="rounded-md border-[#C7CBD6] focus:ring-[#152C55] h-4 w-4 cursor-pointer"
                         />
-                        <label htmlFor={`day-${day}`} className="font-bold text-[#181d26] cursor-pointer">
+                        <label htmlFor={`day-${day}`} className="font-bold text-[#1A1D29] cursor-pointer">
                           {day}
                         </label>
                       </div>
@@ -1156,10 +1148,10 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
                             onChange={(e) => {
                               setCalendarSlots(calendarSlots.map(c => c.dayOfWeek === day ? { dayOfWeek: day, slots: [e.target.value] } : c));
                             }}
-                            className="px-3 py-1.5 border border-[#E2E5EA] bg-[#F7F8FA] text-xs rounded-xl focus:outline-none"
+                            className="px-3 py-1.5 border border-[#E3E5EA] bg-[#F8F9FB] text-xs rounded-md focus:outline-none"
                           />
                         ) : (
-                          <span className="text-[#8A94A3] italic text-[11px]">Not Available</span>
+                          <span className="text-[#5B6272] italic text-[11px]">Not Available</span>
                         )}
                       </div>
                     </div>
@@ -1171,7 +1163,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
         )}
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-[#EDEFF2] flex justify-end">
+        <div className="pt-4 border-t border-[#E3E5EA] flex justify-end">
           <Button type="submit" disabled={loading} className="cursor-pointer min-w-[150px]">
             {loading ? "Saving Profile..." : "Save Profile Settings"}
           </Button>

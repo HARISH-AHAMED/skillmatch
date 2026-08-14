@@ -109,7 +109,7 @@ export default async function PublicCompanyProfilePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f8ff] flex flex-col">
+    <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
       {/* Navbar header */}
       <Navbar />
 

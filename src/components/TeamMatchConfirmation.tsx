@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Users2, X } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { Users2 } from "lucide-react";
 import { getProjectTeam, confirmTeamMatch } from "@/actions/roleActions";
 import { TeamRosterPanel } from "@/components/TeamRosterPanel";
 
@@ -80,29 +81,24 @@ export function TeamMatchConfirmation({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-xs" onClick={onClose} />
-
-      <Card className="relative w-full max-w-lg p-6 z-10 shadow-2xl space-y-4 text-left max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1 text-muted hover:text-ink rounded-full hover:bg-surface-soft cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <Users2 className="h-4 w-4 text-muted" />
-            Meet Your Team
-          </h3>
-          <p className="text-xs text-muted">
-            You&apos;ve been placed on <strong className="text-ink">{projectTitle}</strong> at{" "}
-            {companyName}. Review who you&apos;d be working with before confirming.
-          </p>
-        </div>
-
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title={
+        <span className="flex items-center gap-2">
+          <Users2 className="h-[18px] w-[18px] text-[#5B6272]" aria-hidden="true" />
+          Meet Your Team
+        </span>
+      }
+      description={
+        <>
+          You&apos;ve been placed on <strong className="font-semibold text-[#1A1D29]">{projectTitle}</strong>{" "}
+          at {companyName}. Review who you&apos;d be working with before confirming.
+        </>
+      }
+    >
+      <div className="space-y-4 text-left">
         {done ? (
           <div className="py-8 text-center space-y-2">
             <p className="text-sm font-semibold text-ink">
@@ -135,7 +131,7 @@ export function TeamMatchConfirmation({
 
         {done ? null : isDeclining ? (
           <div className="space-y-2.5 pt-1">
-            <label className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+            <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
               Why are you declining? (optional)
             </label>
             <textarea
@@ -144,7 +140,7 @@ export function TeamMatchConfirmation({
               value={declineReason}
               onChange={(e) => setDeclineReason(e.target.value)}
               placeholder="Helps the company fill the slot appropriately…"
-              className="w-full px-3 py-2 rounded-xl border border-hairline bg-surface-soft text-xs text-ink focus:ring-1 focus:ring-ink focus:outline-none resize-none"
+              className="w-full px-3 py-2 rounded-md border border-hairline bg-white text-xs text-ink focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none resize-none"
             />
             <div className="flex gap-2">
               <Button
@@ -187,12 +183,12 @@ export function TeamMatchConfirmation({
         )}
 
         {!done && (
-          <p className="text-[10px] text-muted">
+          <p className="text-[11px] text-muted">
             Declining releases your slot so the company can offer it to someone else. Confirming opens
             the project workspace and lets your teammates know you have joined.
           </p>
         )}
-      </Card>
-    </div>
+      </div>
+    </Modal>
   );
 }

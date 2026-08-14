@@ -315,13 +315,13 @@ export default function NewProjectPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-2">
       {/* Wizard Header Status bar */}
-      <div className="bg-white border border-[#E2E5EA] p-6 rounded-2xl shadow-sm space-y-4">
+      <div className="bg-white border border-[#C7CBD6] p-6 rounded-lg space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-black text-[#181d26]">Opportunity Creation Wizard</h1>
-            <p className="text-xs text-[#5A6472] mt-0.5">Define your project requirements, screening stages, and milestones</p>
+            <h1 className="text-2xl font-bold text-[#1A1D29]">Opportunity Creation Wizard</h1>
+            <p className="text-xs text-[#5B6272] mt-0.5">Define your project requirements, screening stages, and milestones</p>
           </div>
-          <Badge variant="primary" className="px-3.5 py-1.5 rounded-xl bg-sky-50 text-[#181d26] border border-sky-100">
+          <Badge variant="primary" className="px-3.5 py-1.5 rounded-full bg-[#E8F1FE] text-[#1A1D29] border border-[#C7CBD6]">
             Step {step} of 5
           </Badge>
         </div>
@@ -339,10 +339,10 @@ export default function NewProjectPage() {
             const isPassed = step > s.id;
             return (
               <div key={s.id} className="space-y-1">
-                <div className={`h-1.5 rounded-full ${
-                  isPassed ? "bg-[#1968E5]" : isCurrent ? "bg-[#181d26]" : "bg-[#EDEFF2]"
+                <div className={`h-1.5 rounded-lg ${
+                  isPassed ? "bg-[#EAF1FE]" : isCurrent ? "bg-[#152C55]" : "bg-[#F0F3F9]"
                 }`} />
-                <span className="hidden md:inline-block text-[10px] font-bold text-[#5A6472] mt-1">{s.label}</span>
+                <span className="hidden md:inline-block text-[11px] font-bold text-[#5B6272] mt-1">{s.label}</span>
               </div>
             );
           })}
@@ -350,16 +350,16 @@ export default function NewProjectPage() {
       </div>
 
       {error && (
-        <Card className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+        <Card className="p-4 bg-[#FDEAEA] border border-[#F5C2C2] text-[#BC2A2A] text-xs font-semibold rounded-lg">
           {error}
         </Card>
       )}
 
-      <Card className="p-8 bg-white border border-[#E2E5EA]/80 shadow-sm rounded-2xl">
+      <Card className="p-8 bg-white border border-[#E3E5EA]/80 rounded-lg">
         {/* Step 1: Basic Details */}
         {step === 1 && (
           <div className="space-y-5">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#E2E5EA]/60 pb-2">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA]/60 pb-2">
               Step 1: Core Opportunity Details
             </h2>
 
@@ -454,14 +454,14 @@ export default function NewProjectPage() {
         {/* Step 2: Description & Skills */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
               Step 2: Opportunity Scope & Skill Sets
             </h2>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#5A6472] font-bold">Scope Summary / Overview *</label>
+              <label className="block text-xs font-semibold text-[#5B6272] font-bold">Scope Summary / Overview *</label>
               <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-xl text-sm bg-white border border-[#E2E5EA] focus:outline-none focus:ring-2 focus:ring-[#181d26]/20"
+                className="w-full min-h-[120px] px-4 py-2.5 rounded-md text-sm bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:ring-[#152C55]/20"
                 placeholder="Outline the overall goals, client details, and software systems..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -471,7 +471,7 @@ export default function NewProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Required Skills */}
               <div className="space-y-2.5 text-left">
-                <label className="block text-xs font-bold text-[#5A6472]">Required Primary Skills *</label>
+                <label className="block text-xs font-bold text-[#5B6272]">Required Primary Skills *</label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type skill and press Add (e.g. react, typescript)"
@@ -495,26 +495,26 @@ export default function NewProjectPage() {
                       if (skillsToAdd.length > 0) setRequiredSkills([...requiredSkills, ...skillsToAdd]);
                       setNewReqSkill("");
                     }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F7F8FA]"
+                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F8F9FB]"
                   >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {requiredSkills.length === 0 ? (
-                    <span className="text-[10px] text-[#8A94A3] italic">No required skills added yet.</span>
+                    <span className="text-[11px] text-[#5B6272] italic">No required skills added yet.</span>
                   ) : (
                     requiredSkills.map((s) => (
                       <Badge
                         key={s}
                         variant="primary"
-                        className="bg-[#1968E5]/10 text-[#181d26] border border-[#1968E5]/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#EAF1FE]/10 text-[#1A1D29] border border-[#C7CBD6]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold"
                       >
                         {s}
                         <button
                           type="button"
                           onClick={() => setRequiredSkills(requiredSkills.filter((x) => x !== s))}
-                          className="hover:text-rose-600 font-extrabold cursor-pointer border-none bg-transparent p-0"
+                          className="hover:text-[#BC2A2A] font-bold cursor-pointer border-none bg-transparent p-0"
                         >
                           ×
                         </button>
@@ -526,7 +526,7 @@ export default function NewProjectPage() {
 
               {/* Preferred Skills */}
               <div className="space-y-2.5 text-left">
-                <label className="block text-xs font-bold text-[#5A6472]">Preferred Secondary Skills</label>
+                <label className="block text-xs font-bold text-[#5B6272]">Preferred Secondary Skills</label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type skill and press Add (e.g. docker, postgresql)"
@@ -550,26 +550,26 @@ export default function NewProjectPage() {
                       if (skillsToAdd.length > 0) setPreferredSkills([...preferredSkills, ...skillsToAdd]);
                       setNewPrefSkill("");
                     }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F7F8FA]"
+                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F8F9FB]"
                   >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {preferredSkills.length === 0 ? (
-                    <span className="text-[10px] text-[#8A94A3] italic">No preferred skills added yet.</span>
+                    <span className="text-[11px] text-[#5B6272] italic">No preferred skills added yet.</span>
                   ) : (
                     preferredSkills.map((s) => (
                       <Badge
                         key={s}
                         variant="neutral"
-                        className="bg-[#EDEFF2] text-[#333840] border border-[#E2E5EA] px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold"
+                        className="bg-[#E8F1FE] text-[#5B6272] border border-[#E3E5EA] px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold"
                       >
                         {s}
                         <button
                           type="button"
                           onClick={() => setPreferredSkills(preferredSkills.filter((x) => x !== s))}
-                          className="hover:text-rose-600 font-extrabold cursor-pointer border-none bg-transparent p-0"
+                          className="hover:text-[#BC2A2A] font-bold cursor-pointer border-none bg-transparent p-0"
                         >
                           ×
                         </button>
@@ -583,7 +583,7 @@ export default function NewProjectPage() {
             {/* List Builders for Objectives, Deliverables */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-[#5A6472]">Project Objectives</span>
+                <span className="block text-xs font-bold text-[#5B6272]">Project Objectives</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Integrate Neon Cloud database"
@@ -605,9 +605,9 @@ export default function NewProjectPage() {
                 </div>
                 <div className="space-y-1.5">
                   {objectives.map((o, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg">
                       <span className="truncate">{o}</span>
-                      <button type="button" onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
+                      <button type="button" onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))} className="text-[#BC2A2A] hover:text-[#BC2A2A]">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -616,7 +616,7 @@ export default function NewProjectPage() {
               </div>
 
               <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-[#5A6472]">Key Deliverables</span>
+                <span className="block text-xs font-bold text-[#5B6272]">Key Deliverables</span>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Deployed vercel testing environment"
@@ -638,9 +638,9 @@ export default function NewProjectPage() {
                 </div>
                 <div className="space-y-1.5">
                   {deliverables.map((d, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F7F8FA] border border-[#EDEFF2] rounded-xl">
+                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg">
                       <span className="truncate">{d}</span>
-                      <button type="button" onClick={() => setDeliverables(deliverables.filter((_, i) => i !== idx))} className="text-rose-600 hover:text-rose-800">
+                      <button type="button" onClick={() => setDeliverables(deliverables.filter((_, i) => i !== idx))} className="text-[#BC2A2A] hover:text-[#BC2A2A]">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -651,7 +651,7 @@ export default function NewProjectPage() {
 
             <RoleSlotsEditor roles={roles} onChange={setRoles} disabled={loading} />
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#EDEFF2]">
+            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
               <Button variant="outline" onClick={() => setStep(1)} className="cursor-pointer">
                 <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
               </Button>
@@ -675,7 +675,7 @@ export default function NewProjectPage() {
         {/* Step 3: Budget & Timelines */}
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
               Step 3: Compensation, Working Days & Timelines
             </h2>
 
@@ -710,9 +710,9 @@ export default function NewProjectPage() {
                     value={estimatedHours}
                     onChange={(e) => setEstimatedHours(Number(e.target.value))}
                   />
-                  <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] px-3 py-2 text-xs text-[#5A6472]">
+                  <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2 text-xs text-[#5B6272]">
                     Estimated Total:{" "}
-                    <strong className="text-[#181d26]">
+                    <strong className="text-[#1A1D29]">
                       {getCurrencySymbol(currency)}
                       {estimatedHourlyTotal(paymentRate, estimatedHours).toLocaleString()}
                     </strong>
@@ -737,32 +737,32 @@ export default function NewProjectPage() {
                 </>
               )}
               {compensationType === "FIXED" && (
-                <label className="flex items-center gap-2 text-xs font-medium text-[#333840]">
+                <label className="flex items-center gap-2 text-xs font-medium text-[#5B6272]">
                   <input
                     type="checkbox"
                     checked={budgetNegotiable}
                     onChange={(e) => setBudgetNegotiable(e.target.checked)}
-                    className="h-4 w-4 cursor-pointer rounded border-[#C7CCD4]"
+                    className="h-4 w-4 cursor-pointer rounded-md border-[#C7CBD6]"
                   />
                   Budget is negotiable
                 </label>
               )}
               {compensationType === "MILESTONE" && (
-                <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] px-3 py-2 text-xs text-[#5A6472]">
+                <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2 text-xs text-[#5B6272]">
                   Total is derived from the milestone values defined for this project.
                 </div>
               )}
-              <label className="flex items-center gap-2 text-xs font-medium text-[#333840]">
+              <label className="flex items-center gap-2 text-xs font-medium text-[#5B6272]">
                 <input
                   type="checkbox"
                   checked={certificateIncluded}
                   onChange={(e) => setCertificateIncluded(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-[#C7CCD4]"
+                  className="h-4 w-4 cursor-pointer rounded-md border-[#C7CBD6]"
                 />
                 Certificate Included
               </label>
               {certificateIncluded && (
-                <div className="sm:col-span-2 rounded-[12px] border border-[#E2E5EA] bg-[#F7F8FA] px-4 py-3 text-[11px] text-[#5A6472]">
+                <div className="sm:col-span-2 rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-4 py-3 text-[11px] text-[#5B6272]">
                   Your certificate can be customized after creating the project.
                 </div>
               )}
@@ -783,7 +783,7 @@ export default function NewProjectPage() {
                 </>
               )}
               {supportsBenefits(paymentCategory) && (
-                <div className="sm:col-span-2 space-y-3 p-4 rounded-[12px] border border-hairline bg-surface-soft">
+                <div className="sm:col-span-2 space-y-3 p-4 rounded-lg border border-hairline bg-surface-soft">
                   <div>
                     <span className="text-xs font-semibold text-ink block">
                       Non-Monetary Compensation
@@ -808,7 +808,7 @@ export default function NewProjectPage() {
                         />
                         <span>
                           {b.label}
-                          <span className="block text-[10px] text-border-strong">{b.hint}</span>
+                          <span className="block text-[11px] text-border-strong">{b.hint}</span>
                         </span>
                       </label>
                     ))}
@@ -859,7 +859,7 @@ export default function NewProjectPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#EDEFF2] pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#E3E5EA] pt-4">
               <Input
                 label="Application Deadline Date *"
                 type="date"
@@ -894,17 +894,17 @@ export default function NewProjectPage() {
         {/* Step 4: Recruitment Rounds Builder */}
         {step === 4 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2 text-left">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2 text-left">
               Step 4: Recruitment Rounds & Screening Assessments
             </h2>
 
-            <p className="text-xs text-[#5A6472] font-semibold leading-relaxed text-left">
+            <p className="text-xs text-[#5B6272] font-semibold leading-relaxed text-left">
               Organize the hiring process for this project. Define evaluation steps such as CV screening, questionnaire tests, and coding challenges. Drag rounds to reorder them.
             </p>
 
             {/* Rounds List (HTML5 drag-and-drop) */}
             <div className="space-y-3.5 text-left">
-              <h3 className="text-xs font-bold text-[#5A6472] uppercase tracking-wider">Recruitment Pipeline Timeline</h3>
+              <h3 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Recruitment Pipeline Timeline</h3>
               <div className="space-y-2">
                 {rounds.map((round, index) => {
                   const isScreening = round.type === "SCREENING_QUESTIONS";
@@ -918,30 +918,30 @@ export default function NewProjectPage() {
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDrop={(e) => handleDrop(e, index)}
-                      className={`p-4 bg-white border rounded-2xl flex items-center justify-between gap-4 transition-all duration-200 ${
+                      className={`p-4 bg-white border rounded-lg flex items-center justify-between gap-4 transition-all duration-200 ${
                         isSelected
-                          ? "border-[#1968E5] shadow-md ring-1 ring-[#1968E5]/20 bg-[#F7F8FA]/10"
-                          : "border-[#E2E5EA] hover:border-[#C7CCD4] shadow-sm"
+                          ? "border-[#E3E5EA] shadow-md ring-1 ring-[#2E6BEA]/20 bg-[#F8F9FB]/10"
+                          : "border-[#E3E5EA] hover:border-[#C7CBD6]"
                       } cursor-grab active:cursor-grabbing`}
                     >
                       <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <div className="text-[#8A94A3] shrink-0">
+                        <div className="text-[#5B6272] shrink-0">
                           <GripVertical className="h-5 w-5" />
                         </div>
-                        <div className="h-8 w-8 rounded-full bg-[#181d26]/5 text-[#181d26] flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-[#152C55]/5 text-[#1A1D29] flex items-center justify-center font-bold text-xs shrink-0">
                           {index + 1}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-xs text-[#181d26] truncate">{round.name}</span>
-                            <Badge variant={isScreening ? "primary" : "neutral"} className="text-[9px] font-bold py-0.5">
+                            <span className="font-bold text-xs text-[#1A1D29] truncate">{round.name}</span>
+                            <Badge variant={isScreening ? "primary" : "neutral"} className="text-[11px] font-bold py-0.5">
                               {round.type.replace("_", " ")}
                             </Badge>
                             {isScreening && (
-                              <span className="text-[10px] text-[#5A6472] font-semibold">({questionCount} Questions)</span>
+                              <span className="text-[11px] text-[#5B6272] font-semibold">({questionCount} Questions)</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#8A94A3] truncate mt-0.5">{round.description}</p>
+                          <p className="text-[11px] text-[#5B6272] truncate mt-0.5">{round.description}</p>
                         </div>
                       </div>
 
@@ -956,7 +956,7 @@ export default function NewProjectPage() {
                               e.stopPropagation();
                               setSelectedRoundId(round.id);
                             }}
-                            className="cursor-pointer text-[10px] py-1 px-2.5 font-bold"
+                            className="cursor-pointer text-[11px] py-1 px-2.5 font-bold"
                           >
                             Configure Questions
                           </Button>
@@ -967,7 +967,7 @@ export default function NewProjectPage() {
                             e.stopPropagation();
                             handleRemoveRound(round.id);
                           }}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                          className="p-1.5 text-[#BC2A2A] hover:bg-[#FDEAEA] rounded-full cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -979,9 +979,9 @@ export default function NewProjectPage() {
             </div>
 
             {/* Form to add a new round */}
-            <div className="space-y-4 p-4.5 bg-[#F7F8FA] border border-[#E2E5EA]/60 rounded-2xl text-left">
-              <h4 className="text-xs font-black text-[#181d26] flex items-center gap-1.5 font-bold">
-                <Plus className="h-4 w-4 text-[#1968E5]" /> Add Custom Recruitment Round Step
+            <div className="space-y-4 p-4.5 bg-[#F8F9FB] border border-[#C7CBD6]/60 rounded-lg text-left">
+              <h4 className="text-xs font-bold text-[#1A1D29] flex items-center gap-1.5 font-bold">
+                <Plus className="h-4 w-4 text-[#2159C9]" /> Add Custom Recruitment Round Step
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -1008,7 +1008,7 @@ export default function NewProjectPage() {
                   type="button"
                   onClick={handleAddRound}
                   disabled={!newRoundName.trim()}
-                  className="cursor-pointer text-xs font-bold bg-[#181d26] hover:bg-[#134FB0] text-white"
+                  className="cursor-pointer text-xs font-bold bg-[#152C55] hover:bg-[#E8F1FE] text-white"
                 >
                   Create Round Step
                 </Button>
@@ -1035,34 +1035,34 @@ export default function NewProjectPage() {
                 if (!activeRound || activeRound.type !== "SCREENING_QUESTIONS") return null;
 
                 return (
-                  <div className="space-y-5 border-t border-[#EDEFF2] pt-5 text-left">
+                  <div className="space-y-5 border-t border-[#E3E5EA] pt-5 text-left">
                     <div className="space-y-1">
-                      <h3 className="text-xs font-black text-[#181d26] uppercase tracking-wider">
+                      <h3 className="text-xs font-bold text-[#1A1D29] uppercase tracking-wider">
                         Configure Questions for round: &quot;{activeRound.name}&quot;
                       </h3>
-                      <p className="text-[10px] text-[#5A6472] font-semibold leading-relaxed">
+                      <p className="text-[11px] text-[#5B6272] font-semibold leading-relaxed">
                         Add evaluation questions specifically for this round. Candidates must answer these during application.
                       </p>
                     </div>
 
                     {/* Questions inside active round */}
-                    <div className="divide-y divide-[#EDEFF2] border border-[#E2E5EA] rounded-2xl overflow-hidden bg-[#F7F8FA]/50">
+                    <div className="divide-y divide-[#E3E5EA] border border-[#E3E5EA] rounded-lg overflow-hidden bg-[#F8F9FB]/50">
                       {(!activeRound.questions || activeRound.questions.length === 0) ? (
-                        <p className="text-xs text-[#8A94A3] italic p-4 text-center">No questions added yet. Add screening questions below.</p>
+                        <p className="text-xs text-[#5B6272] italic p-4 text-center">No questions added yet. Add screening questions below.</p>
                       ) : (
                         activeRound.questions.map((q, idx) => (
                           <div key={q.id} className="flex justify-between items-center p-3.5 text-xs bg-white">
                             <div>
-                              <p className="font-bold text-[#181d26]">Q{idx + 1}: {q.question}</p>
-                              <p className="text-[10px] text-[#5A6472] mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
+                              <p className="font-bold text-[#1A1D29]">Q{idx + 1}: {q.question}</p>
+                              <p className="text-[11px] text-[#5B6272] mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
                               {q.options && q.options.length > 0 && (
-                                <p className="text-[9px] text-[#1968E5] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
+                                <p className="text-[11px] text-[#2159C9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
                               )}
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveQuestionFromRound(activeRound.id, q.id)}
-                              className="text-rose-600 hover:text-rose-800 cursor-pointer"
+                              className="text-[#BC2A2A] hover:text-[#BC2A2A] cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -1072,8 +1072,8 @@ export default function NewProjectPage() {
                     </div>
 
                     {/* Question Builder */}
-                    <div className="space-y-4 p-4.5 bg-[#F7F8FA] border border-[#E2E5EA]/60 rounded-2xl">
-                      <h4 className="text-xs font-bold text-[#181d26]">Add Question to &quot;{activeRound.name}&quot;</h4>
+                    <div className="space-y-4 p-4.5 bg-[#F8F9FB] border border-[#E3E5EA]/60 rounded-lg">
+                      <h4 className="text-xs font-bold text-[#1A1D29]">Add Question to &quot;{activeRound.name}&quot;</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                           label="Question Prompt text *"
@@ -1099,7 +1099,7 @@ export default function NewProjectPage() {
 
                       {newQuestionType === "MULTIPLE_CHOICE" && (
                         <div className="space-y-3">
-                          <span className="block text-xs font-bold text-[#5A6472] uppercase tracking-wider font-bold">MCQ Options (Provide at least 2)</span>
+                          <span className="block text-xs font-bold text-[#5B6272] uppercase tracking-wider font-bold">MCQ Options (Provide at least 2)</span>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
                               label="Option 1 *"
@@ -1134,7 +1134,7 @@ export default function NewProjectPage() {
                           type="button"
                           onClick={handleAddQuestionToRound}
                           disabled={!newQuestionText.trim()}
-                          className="cursor-pointer text-xs font-bold bg-white text-[#181d26] border border-[#181d26]/25 hover:bg-[#F7F8FA]"
+                          className="cursor-pointer text-xs font-bold bg-white text-[#1A1D29] border border-[#1A1D29]/25 hover:bg-[#F8F9FB]"
                         >
                           Add Question
                         </Button>
@@ -1145,7 +1145,7 @@ export default function NewProjectPage() {
               })()
             )}
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#EDEFF2]">
+            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
               <Button variant="outline" onClick={() => setStep(3)} className="cursor-pointer">
                 <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
               </Button>
@@ -1159,68 +1159,68 @@ export default function NewProjectPage() {
         {/* Step 5: Review & Preview */}
         {step === 5 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-[#181d26] border-b border-[#EDEFF2] pb-2">
+            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
               Step 5: Live Freelancer Page Preview
             </h2>
 
-            <p className="text-xs text-[#5A6472] font-semibold leading-relaxed">
+            <p className="text-xs text-[#5B6272] font-semibold leading-relaxed">
               Verify the layout before publishing the opportunity to the gig marketplace directories.
             </p>
 
             {/* MOCK PREVIEW CARD */}
-            <div className="border border-[#E2E5EA] rounded-3xl p-6 bg-[#F7F8FA]/30 space-y-6 text-left shadow-inner">
-              <div className="space-y-2 border-b border-[#EDEFF2] pb-4">
+            <div className="border border-[#E3E5EA] rounded-lg p-6 bg-[#F8F9FB]/30 space-y-6 text-left shadow-inner">
+              <div className="space-y-2 border-b border-[#E3E5EA] pb-4">
                 <div className="flex justify-between items-start flex-wrap gap-2">
                   <div className="space-y-1">
                     <Badge variant="accent">AI Match Ready</Badge>
-                    <h3 className="text-xl font-black text-[#181d26] leading-tight">{title || "Opportunity Title"}</h3>
-                    <p className="text-xs text-[#5A6472] font-medium">Category: {category} • {subcategory}</p>
+                    <h3 className="text-xl font-bold text-[#1A1D29] leading-tight">{title || "Opportunity Title"}</h3>
+                    <p className="text-xs text-[#5B6272] font-medium">Category: {category} • {subcategory}</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-[#5A6472] font-bold uppercase block">Budget / Stipend</span>
-                    <span className="text-base font-black text-[#181d26]">${budget} Total</span>
+                    <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Budget / Stipend</span>
+                    <span className="text-base font-bold text-[#1A1D29]">${budget} Total</span>
                   </div>
                 </div>
               </div>
 
               {/* Quick Specs */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white border border-[#E2E5EA]/50 rounded-2xl text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white border border-[#E3E5EA]/50 rounded-lg text-xs">
                 <div>
-                  <span className="text-[10px] text-[#8A94A3] font-bold uppercase block">Duration</span>
-                  <span className="font-bold text-[#181d26]">{duration}</span>
+                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Duration</span>
+                  <span className="font-bold text-[#1A1D29]">{duration}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#8A94A3] font-bold uppercase block">Working Structure</span>
-                  <span className="font-bold text-[#181d26]">{workingDays}</span>
+                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Working Structure</span>
+                  <span className="font-bold text-[#1A1D29]">{workingDays}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#8A94A3] font-bold uppercase block">Timing type</span>
-                  <span className="font-bold text-[#181d26]">{timingType}</span>
+                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Timing type</span>
+                  <span className="font-bold text-[#1A1D29]">{timingType}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#8A94A3] font-bold uppercase block">Deadline</span>
-                  <span className="font-bold text-rose-600">{appDeadline}</span>
+                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Deadline</span>
+                  <span className="font-bold text-[#BC2A2A]">{appDeadline}</span>
                 </div>
               </div>
 
               {/* Description */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#8A94A3] uppercase tracking-wider">Opportunity Overview</h4>
-                <p className="text-xs text-[#5A6472] leading-relaxed whitespace-pre-wrap">{description}</p>
+                <h4 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Opportunity Overview</h4>
+                <p className="text-xs text-[#5B6272] leading-relaxed whitespace-pre-wrap">{description}</p>
               </div>
 
               {/* Recruitment rounds list */}
               {rounds.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-[#8A94A3] uppercase tracking-wider">Recruitment Process / Assessment Rounds</h4>
+                  <h4 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Recruitment Process / Assessment Rounds</h4>
                   <div className="space-y-2">
                     {rounds.map((r, idx) => (
-                      <div key={r.id} className="p-3 bg-white border border-[#E2E5EA]/60 rounded-xl text-xs flex justify-between items-start">
+                      <div key={r.id} className="p-3 bg-white border border-[#E3E5EA]/60 rounded-lg text-xs flex justify-between items-start">
                         <div>
-                          <span className="font-extrabold text-[#181d26]">Round {idx + 1}: {r.name}</span>
-                          <p className="text-[10px] text-[#5A6472] mt-0.5">{r.description}</p>
+                          <span className="font-bold text-[#1A1D29]">Round {idx + 1}: {r.name}</span>
+                          <p className="text-[11px] text-[#5B6272] mt-0.5">{r.description}</p>
                         </div>
-                        <Badge variant="neutral" className="text-[9px] capitalize py-0.5 shrink-0">{r.type.toLowerCase().replace("_", " ")}</Badge>
+                        <Badge variant="neutral" className="text-[11px] capitalize py-0.5 shrink-0">{r.type.toLowerCase().replace("_", " ")}</Badge>
                       </div>
                     ))}
                   </div>
@@ -1228,14 +1228,14 @@ export default function NewProjectPage() {
               )}
             </div>
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#EDEFF2]">
+            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
               <Button variant="outline" onClick={() => setStep(4)} disabled={loading} className="cursor-pointer">
                 <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
               </Button>
               <Button
                 onClick={handlePublish}
                 disabled={loading}
-                className="cursor-pointer bg-[#181d26] text-white hover:bg-[#083a6b] font-bold px-8"
+                className="cursor-pointer bg-[#152C55] text-white hover:bg-[#EAF1FE] font-bold px-8"
               >
                 {loading ? "Publishing Opportunity..." : "Publish Opportunity"}
               </Button>

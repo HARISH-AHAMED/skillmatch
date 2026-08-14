@@ -94,13 +94,13 @@ export function TeamRosterPanel({
                 }.`}
           </p>
         </div>
-        <Badge variant={isTeamComplete ? "success" : "warning"} className="text-[10px] shrink-0">
+        <Badge variant={isTeamComplete ? "success" : "warning"} className="text-[11px] shrink-0">
           {totalFilled} / {totalSlots}
         </Badge>
       </div>
 
       {totalFilled === 0 && (
-        <p className="text-[11px] text-muted bg-surface-soft border border-hairline rounded-[8px] p-3">
+        <p className="text-[11px] text-muted bg-surface-soft border border-hairline rounded-lg p-3">
           No one has been hired yet. Each role below shows its open slots — the team appears here as
           people are hired and confirm their place.
         </p>
@@ -113,11 +113,11 @@ export function TeamRosterPanel({
           const empty = Math.max(0, role.slots - primaries.length);
 
           return (
-            <div key={role.id} className="p-3.5 bg-surface-soft border border-hairline rounded-[12px] space-y-2.5">
+            <div key={role.id} className="p-3.5 bg-surface-soft border border-hairline rounded-lg space-y-2.5">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-ink">{role.name}</span>
                 <span
-                  className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                  className={`text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                     primaries.length >= role.slots
                       ? "bg-success-surface text-success border-success-border/40"
                       : "bg-warning-surface text-warning border-warning-border"
@@ -155,7 +155,7 @@ export function TeamRosterPanel({
                 {Array.from({ length: empty }).map((_, i) => (
                   <div
                     key={`empty-${i}`}
-                    className="flex items-center gap-2.5 p-2 bg-white border border-dashed border-hairline rounded-[8px]"
+                    className="flex items-center gap-2.5 p-2 bg-white border border-dashed border-hairline rounded-lg"
                   >
                     <CircleDashed className="h-4 w-4 text-border-strong shrink-0" />
                     <span className="text-[11px] text-border-strong italic">
@@ -174,7 +174,7 @@ export function TeamRosterPanel({
                     .map((p) =>
                       apprentices.map((a) => (
                         <div key={p.applicationId + a.applicationId} className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="text-[10px] text-muted">
+                          <span className="text-[11px] text-muted">
                             Hand <strong className="text-ink">{p.name || "primary"}</strong>&apos;s{" "}
                             {role.name} over to <strong className="text-ink">{a.name || "apprentice"}</strong>
                           </span>
@@ -195,7 +195,7 @@ export function TeamRosterPanel({
               )}
 
               {role.allowApprentice && apprentices.length === 0 && (
-                <p className="text-[10px] text-muted flex items-center gap-1">
+                <p className="text-[11px] text-muted flex items-center gap-1">
                   <GraduationCap className="h-3 w-3" />
                   Open to an apprentice
                 </p>
@@ -219,11 +219,11 @@ function MemberRow({
 }) {
   return (
     <div
-      className={`flex items-center gap-2.5 p-2 rounded-[8px] border ${
+      className={`flex items-center gap-2.5 p-2 rounded-lg border ${
         isSelf ? "bg-white border-ink" : "bg-white border-hairline"
       }`}
     >
-      <div className="h-7 w-7 rounded-full bg-ink text-white text-[10px] font-semibold flex items-center justify-center overflow-hidden shrink-0">
+      <div className="h-7 w-7 rounded-full bg-ink text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden shrink-0">
         {member.image ? (
           <img src={member.image} alt={member.name || "Member"} className="h-full w-full object-cover" />
         ) : (
@@ -237,12 +237,12 @@ function MemberRow({
           className="text-[11px] font-semibold text-ink hover:text-link hover:underline truncate block"
         >
           {member.name || "Freelancer"}
-          {isSelf && <span className="text-[9px] text-link font-medium ml-1">(you)</span>}
+          {isSelf && <span className="text-[11px] text-link font-medium ml-1">(you)</span>}
         </Link>
-        <span className="text-[9px] text-muted">
+        <span className="text-[11px] text-muted">
           ★ {member.rating.toFixed(1)} · {member.completedProjects} gigs
           {member.isApprentice && (
-            <span className="text-[#E8A800] ml-1.5">
+            <span className="text-[#8F5E08] ml-1.5">
               {(member.apprenticeReviews ?? 0) > 0
                 ? "· apprentice " + (member.apprenticeRating ?? 0).toFixed(1) + "★ (" + member.apprenticeReviews + ")"
                 : "· apprentice: unrated"}
@@ -251,7 +251,7 @@ function MemberRow({
         </span>
       </div>
 
-      <Badge variant={member.isApprentice ? "warning" : "secondary"} className="text-[8px] shrink-0">
+      <Badge variant={member.isApprentice ? "warning" : "secondary"} className="text-[11px] shrink-0">
         {member.isApprentice ? "Apprentice" : "Primary"}
       </Badge>
 
@@ -263,7 +263,7 @@ function MemberRow({
         </span>
       ) : (
         <span
-          className="text-[8px] text-muted uppercase tracking-wider shrink-0"
+          className="text-[11px] text-muted uppercase tracking-wider shrink-0"
           title={
             viewerRole === "COMPANY"
               ? "Hired but has not yet confirmed their place"

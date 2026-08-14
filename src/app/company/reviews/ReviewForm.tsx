@@ -100,13 +100,13 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
   }));
 
   return (
-    <Card className="p-8 max-w-xl bg-white border border-[#EDEFF2] shadow-sm">
+    <Card className="p-8 max-w-xl bg-white border border-[#E3E5EA]">
       {message && (
         <div
-          className={`p-3.5 mb-6 rounded-xl text-xs font-semibold border ${
+          className={`p-3.5 mb-6 rounded-lg text-xs font-semibold border ${
             message.includes("successfully")
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
+              ? "bg-[#E4F7EC] border-[#BFE9D2] text-[#147A44]"
+              : "bg-[#FDEAEA] border-[#F5C2C2] text-[#BC2A2A]"
           }`}
         >
           {message}
@@ -114,7 +114,7 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
       )}
 
       {projects.length === 0 ? (
-        <p className="text-[#5A6472] text-xs py-4">No active or completed contracts to review.</p>
+        <p className="text-[#5B6272] text-xs py-4">No active or completed contracts to review.</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <Select
@@ -134,27 +134,27 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
               disabled={loading}
             />
           ) : hiredFreelancers.length === 1 ? (
-            <div className="p-3.5 bg-[#F7F8FA] rounded-xl border border-[#EDEFF2] text-xs">
-              <span className="text-[10px] text-[#5A6472] block">Freelancer details</span>
-              <strong className="text-[#181d26] font-semibold">{hiredFreelancers[0].user.name}</strong>
+            <div className="p-3.5 bg-[#F8F9FB] rounded-lg border border-[#E3E5EA] text-xs">
+              <span className="text-[11px] text-[#5B6272] block">Freelancer details</span>
+              <strong className="text-[#1A1D29] font-semibold">{hiredFreelancers[0].user.name}</strong>
             </div>
           ) : null}
 
           {/* Star Rating select */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-[#5A6472]">Rating Score (1-5)</label>
+            <label className="block text-xs font-semibold text-[#5B6272]">Rating Score (1-5)</label>
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
-                  className="p-1 rounded hover:bg-[#EDEFF2] transition-colors cursor-pointer"
+                  className="p-1 rounded-full hover:bg-[#E8F1FE] transition-colors cursor-pointer"
                   disabled={loading}
                 >
                   <Star
                     className={`h-6 w-6 ${
-                      star <= rating ? "text-amber-400 fill-amber-400/25" : "text-[#C7CCD4]"
+                      star <= rating ? "text-[#8F5E08] fill-[#B9790A]/25" : "text-[#2159C9]"
                     }`}
                   />
                 </button>
@@ -163,9 +163,9 @@ export function ReviewForm({ projects, initialProjectId = "" }: ReviewFormProps)
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-[#5A6472]">Written Feedback</label>
+            <label className="block text-xs font-semibold text-[#5B6272]">Written Feedback</label>
             <textarea
-              className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20"
+              className="w-full min-h-[100px] px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 bg-white border border-[#C7CBD6] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20"
               placeholder="Leave a review detailing freelancer communication, efficiency, and quality..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}

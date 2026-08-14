@@ -25,6 +25,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { shortlistApplicant, rejectApplicant, hireApplicant, removeFreelancer } from "@/actions/applicationActions";
@@ -417,35 +419,28 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
         <div className="lg:col-span-2 space-y-5">
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-surface-soft border border-hairline p-1 rounded-[12px] w-fit">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-                    activeTab === tab.id
-                      ? "bg-ink text-white"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+          <Tabs
+            label="Applicant detail sections"
+            variant="pill"
+            value={activeTab}
+            onChange={(id) => setActiveTab(id as any)}
+            className="w-fit"
+            items={tabs.map((tab) => ({
+              id: tab.id,
+              label: tab.label,
+              icon: <tab.icon className="h-3.5 w-3.5" aria-hidden="true" />,
+            }))}
+          />
 
           {/* ═══ OVERVIEW TAB ═══ */}
           {activeTab === "overview" && (
             <div className="space-y-5">
               {/* Cover Letter */}
- <Card className="p-6 rounded-[12px] space-y-3.5">
+ <Card className="p-6 rounded-lg space-y-3.5">
                 <h3 className="text-sm font-semibold text-ink uppercase tracking-wider flex items-center gap-1.5 border-b border-hairline pb-3">
                   <FileText className="h-4 w-4 text-ink" /> Cover Letter & Proposal
                 </h3>
-                <p className="text-xs text-body bg-surface-soft p-4 border border-hairline rounded-[10px] italic leading-relaxed text-left font-normal">
+                <p className="text-xs text-body bg-surface-soft p-4 border border-hairline rounded-lg italic leading-relaxed text-left font-normal">
                   &quot;{cleanCoverLetter}&quot;
                 </p>
               </Card>
@@ -458,7 +453,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     <Video className="h-4 w-4 text-link" />
                     <h3 className="text-sm font-semibold text-ink">Interview Rounds</h3>
                     {interviewRounds.length > 0 && (
-                      <span className="h-5 w-5 rounded-full bg-link/10 text-link-active text-[10px] font-semibold flex items-center justify-center">
+                      <span className="h-5 w-5 rounded-full bg-link/10 text-link-active text-[11px] font-semibold flex items-center justify-center">
                         {interviewRounds.length}
                       </span>
                     )}
@@ -493,7 +488,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                       return (
                         <div
                           key={round.roundNumber}
-                          className={`rounded-xl border p-4 space-y-3 ${
+                          className={`rounded-lg border p-4 space-y-3 ${
                             isConducted
                               ? "bg-success-surface/60 border-success-border/40"
                               : isCancelled
@@ -503,7 +498,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                         >
                           {/* Round header */}
                           <div className="flex items-center gap-2">
-                            <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
                               isConducted
                                 ? "bg-success-surface text-success border-success-border/40"
                                 : isCancelled
@@ -512,7 +507,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             }`}>
                               Round {round.roundNumber}
                             </span>
-                            <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                               isConducted
                                 ? "text-success"
                                 : isCancelled
@@ -521,14 +516,14 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             }`}>
                               {isConducted ? "Conducted" : isCancelled ? "Cancelled" : "Scheduled"}
                             </span>
-                            <span className="text-[9px] text-border-strong ml-auto">Google Meet</span>
+                            <span className="text-[11px] text-border-strong ml-auto">Google Meet</span>
                           </div>
 
                           {/* Details grid */}
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
                             {/* Scheduled on (created time) */}
                             <div className="space-y-0.5">
-                              <p className="text-[9px] font-bold text-border-strong uppercase tracking-wider">Scheduled On</p>
+                              <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Scheduled On</p>
                               <p className="font-semibold text-body">
                                 {new Date(round.scheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </p>
@@ -536,7 +531,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
 
                             {/* Interview Date/Time */}
                             <div className="space-y-0.5">
-                              <p className="text-[9px] font-bold text-border-strong uppercase tracking-wider">Interview Date & Time</p>
+                              <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Interview Date & Time</p>
                               <p className="font-bold text-ink">
                                 {round.interviewDate
                                   ? new Date(round.interviewDate).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
@@ -547,7 +542,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             {/* Meet Link */}
                             {round.meetingLink && (
                               <div className="col-span-2 space-y-0.5">
-                                <p className="text-[9px] font-bold text-border-strong uppercase tracking-wider">Meeting Link</p>
+                                <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Meeting Link</p>
                                 <a
                                   href={round.meetingLink}
                                   target="_blank"
@@ -564,8 +559,8 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             {/* Rescheduled label */}
                             {round.rescheduledAt && (
                               <div className="col-span-2 space-y-0.5">
-                                <p className="text-[9px] font-bold text-star uppercase tracking-wider">Rescheduled</p>
-                                <p className="text-[10px] text-warning font-semibold">
+                                <p className="text-[11px] font-bold text-star uppercase tracking-wider">Rescheduled</p>
+                                <p className="text-[11px] text-warning font-semibold">
                                   Last updated {new Date(round.rescheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
@@ -574,8 +569,8 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             {/* Conducted At */}
                             {isConducted && round.conductedAt && (
                               <div className="col-span-2 space-y-0.5">
-                                <p className="text-[9px] font-bold text-success uppercase tracking-wider">Interview Completed</p>
-                                <p className="text-[10px] text-success font-bold">
+                                <p className="text-[11px] font-bold text-success uppercase tracking-wider">Interview Completed</p>
+                                <p className="text-[11px] text-success font-bold">
                                   Conducted on {new Date(round.conductedAt).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
@@ -584,8 +579,8 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             {/* Cancelled At */}
                             {isCancelled && round.cancelledAt && (
                               <div className="col-span-2 space-y-0.5">
-                                <p className="text-[9px] font-bold text-danger uppercase tracking-wider">Cancelled</p>
-                                <p className="text-[10px] text-danger font-semibold">
+                                <p className="text-[11px] font-bold text-danger uppercase tracking-wider">Cancelled</p>
+                                <p className="text-[11px] text-danger font-semibold">
                                   Cancelled on {new Date(round.cancelledAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
@@ -633,7 +628,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
 
               {/* Offer Letter status (if sent) */}
               {offerSent && (
- <Card className={`p-5 border shadow-sm space-y-2 ${offerAccepted ?"border-success-border/40 bg-success-surface" : offerDeclined ?"border-danger-border bg-danger-surface" :"border-warning-border bg-warning-surface"}`}>
+ <Card className={`p-5 border space-y-2 ${offerAccepted ?"border-success-border/40 bg-success-surface" : offerDeclined ?"border-danger-border bg-danger-surface" :"border-warning-border bg-warning-surface"}`}>
                   <div className="flex items-center gap-2">
                     <Gift className={`h-4 w-4 ${offerAccepted ? "text-success" : offerDeclined ? "text-danger" : "text-warning"}`} />
                     <h3 className={`text-sm font-semibold ${offerAccepted ? "text-success" : offerDeclined ? "text-danger" : "text-warning"}`}>
@@ -688,19 +683,19 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                 <h3 className="text-sm font-semibold text-ink uppercase tracking-wider flex items-center gap-1.5">
                   <History className="h-4 w-4 text-link" /> Recruitment Pipeline History
                 </h3>
-                <div className="space-y-3 bg-surface-soft p-4 rounded-xl border border-hairline">
+                <div className="space-y-3 bg-surface-soft p-4 rounded-lg border border-hairline">
                   <div className="text-xs text-body text-left border-l-2 border-border-strong pl-3">
                     <span className="font-bold text-ink block">Initial Application Submitted</span>
-                    <span className="text-border-strong text-[9px] block mt-0.5">{new Date(application.createdAt).toLocaleString()}</span>
+                    <span className="text-border-strong text-[11px] block mt-0.5">{new Date(application.createdAt).toLocaleString()}</span>
                   </div>
                   {appMeta.pipelineHistory?.map((h: any, idx: number) => (
                     <div key={idx} className="text-xs text-body border-l-2 border-link pl-3 text-left">
                       <span className="font-semibold text-ink block">{h.stage}</span>
-                      <span className="text-border-strong text-[9px] block mt-0.5">
+                      <span className="text-border-strong text-[11px] block mt-0.5">
                         {new Date(h.timestamp).toLocaleString()} by {h.recruiterName || "System"}
                       </span>
                       {h.notes && (
-                        <p className="text-[10px] text-muted italic mt-1 font-medium bg-white p-2 rounded border border-hairline">
+                        <p className="text-[11px] text-muted italic mt-1 font-medium bg-white p-2 rounded-lg border border-hairline">
                           &quot;{h.notes}&quot;
                         </p>
                       )}
@@ -716,28 +711,28 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     <h3 className="text-sm font-semibold text-ink uppercase tracking-wider">
                       Active Work Contract
                     </h3>
-                    <Badge variant="primary" className="text-[10px] px-2 py-0.5">
+                    <Badge variant="primary" className="text-[11px] px-2 py-0.5">
                       {appMeta.digitalContract.freelancerSigned ? "Signed & Active" : "Awaiting Signature"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-body font-semibold bg-surface-soft p-4 border border-hairline rounded-xl leading-relaxed text-left">
+                  <p className="text-xs text-body font-semibold bg-surface-soft p-4 border border-hairline rounded-lg leading-relaxed text-left">
                     {appMeta.digitalContract.contractText}
                   </p>
                   <div className="space-y-2.5">
                     <span className="font-bold text-body block text-xs text-left">Contract Milestones</span>
-                    <div className="border border-hairline rounded-xl divide-y divide-hairline bg-white text-xs">
+                    <div className="border border-hairline rounded-lg divide-y divide-hairline bg-white text-xs">
                       {appMeta.digitalContract.milestones?.map((m: any, idx: number) => (
                         <div key={idx} className="p-3.5 flex justify-between items-center text-left">
                           <div>
                             <span className="font-bold text-ink block">{m.title}</span>
-                            <span className="text-border-strong text-[10px] block mt-0.5">{formatMoney(m.budget, offerLetterMeta?.currency)} Budget Allocation</span>
+                            <span className="text-border-strong text-[11px] block mt-0.5">{formatMoney(m.budget, offerLetterMeta?.currency)} Budget Allocation</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {m.status === "RELEASED" ? (
-                              <Badge variant="success" className="text-[10px] py-0.5 px-2.5">Paid & Released</Badge>
+                              <Badge variant="success" className="text-[11px] py-0.5 px-2.5">Paid & Released</Badge>
                             ) : (
                               <>
-                                <Badge variant="neutral" className="text-[10px] py-0.5 px-2.5">{m.status.toLowerCase()}</Badge>
+                                <Badge variant="neutral" className="text-[11px] py-0.5 px-2.5">{m.status.toLowerCase()}</Badge>
                                 <Button
                                   size="xs"
                                   disabled={loading === `milestone-${idx}`}
@@ -747,7 +742,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                                     if (res.success) { alert("Milestone released!"); router.refresh(); }
                                     setLoading(null);
                                   }}
-                                  className="cursor-pointer text-[10px] py-1 px-3"
+                                  className="cursor-pointer text-[11px] py-1 px-3"
                                 >
                                   {loading === `milestone-${idx}` ? "Processing..." : "Release Pay"}
                                 </Button>
@@ -768,7 +763,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
  <Card className="p-0 flex flex-col overflow-hidden" style={{ minHeight:"420px" }}>
               {/* Chat header */}
               <div className="p-4 border-b border-hairline flex items-center gap-3 bg-surface-soft">
-                <div className="h-8 w-8 rounded-xl bg-link/10 flex items-center justify-center text-link-active font-semibold text-sm overflow-hidden">
+                <div className="h-8 w-8 rounded-lg bg-link/10 flex items-center justify-center text-link-active font-semibold text-sm overflow-hidden">
                   {application.freelancer.user.image ? (
                     <img src={application.freelancer.user.image} className="h-full w-full object-cover" />
                   ) : (
@@ -777,7 +772,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-ink">{application.freelancer.user.name}</p>
-                  <p className="text-[10px] text-border-strong font-medium">Direct Message · Pre-hire channel</p>
+                  <p className="text-[11px] text-border-strong font-medium">Direct Message · Pre-hire channel</p>
                 </div>
               </div>
 
@@ -791,13 +786,13 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     return (
                       <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
                         {!isMe && (
-                          <div className="h-6 w-6 rounded-full bg-surface-strong flex items-center justify-center text-[10px] font-semibold text-body shrink-0">
+                          <div className="h-6 w-6 rounded-full bg-surface-strong flex items-center justify-center text-[11px] font-semibold text-body shrink-0">
                             {msg.sender?.name?.[0] || "?"}
                           </div>
                         )}
-                        <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs ${isMe ? "bg-ink text-white rounded-tr-none" : "bg-surface-strong text-ink rounded-tl-none"}`}>
+                        <div className={`max-w-[75%] rounded-lg px-3.5 py-2 text-xs ${isMe ? "bg-ink text-white rounded-tr-none" : "bg-surface-strong text-ink rounded-tl-none"}`}>
                           <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                          <div className={`text-[9px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-white/70" : "text-border-strong"}`}>
+                          <div className={`text-[11px] mt-0.5 flex items-center gap-1.5 ${isMe ? "justify-end text-white/70" : "text-border-strong"}`}>
                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {isMe && (
                               <>
@@ -838,7 +833,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                           </div>
                         </div>
                         {isMe && (
-                          <div className="h-6 w-6 rounded-full bg-ink flex items-center justify-center text-[10px] font-semibold text-white shrink-0">
+                          <div className="h-6 w-6 rounded-full bg-ink flex items-center justify-center text-[11px] font-semibold text-white shrink-0">
                             R
                           </div>
                         )}
@@ -852,7 +847,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
               {/* Input */}
               <div className="p-3 border-t border-hairline flex gap-2 items-center">
                 {editingMessageId && (
-                  <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[10px] text-border-strong hover:text-body font-medium whitespace-nowrap cursor-pointer">
+                  <button onClick={() => { setEditingMessageId(null); setDmInput(""); }} className="text-[11px] text-border-strong hover:text-body font-medium whitespace-nowrap cursor-pointer">
                     Cancel Edit
                   </button>
                 )}
@@ -862,7 +857,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                   onChange={(e) => setDmInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendDM(); } }}
                   placeholder={editingMessageId ? "Edit message..." : "Type a message to the candidate..."}
-                  className="flex-1 h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none"
+                  className="flex-1 h-9 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                 />
                 <Button
                   size="sm"
@@ -880,41 +875,41 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
           {activeTab === "offer" && (
             <div className="space-y-5">
               {offerSent && !isResendingOffer ? (
- <Card className={`p-6 border shadow-sm space-y-4 ${offerAccepted ?"border-success-border/40 bg-success-surface" : offerDeclined ?"border-danger-border bg-danger-surface" :"border-warning-border bg-warning-surface"}`}>
+ <Card className={`p-6 border space-y-4 ${offerAccepted ?"border-success-border/40 bg-success-surface" : offerDeclined ?"border-danger-border bg-danger-surface" :"border-warning-border bg-warning-surface"}`}>
                   <div className="flex items-center gap-2">
                     <Gift className={`h-5 w-5 ${offerAccepted ? "text-success" : offerDeclined ? "text-danger" : "text-warning"}`} />
                     <h3 className={`text-sm font-semibold ${offerAccepted ? "text-success" : offerDeclined ? "text-danger" : "text-warning"}`}>
                       Offer Letter {offerAccepted ? "Accepted" : offerDeclined ? "Declined" : "Sent — Awaiting Response"}
                     </h3>
                   </div>
-                  <div className="bg-white/70 p-4 rounded-xl border border-white space-y-3 text-xs text-body">
+                  <div className="bg-white/70 p-4 rounded-lg border border-white space-y-3 text-xs text-body">
                     <p className="italic leading-relaxed">&quot;{offerLetterMeta!.offerText}&quot;</p>
                     <div className="grid grid-cols-2 gap-3 pt-2 border-t border-hairline">
                       <div>
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">Stipend</p>
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Stipend</p>
                         <p className="font-semibold text-ink text-sm">
                           {formatMoney(offerLetterMeta!.stipendAmount, offerLetterMeta!.currency, offerLetterMeta!.paymentCategory)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">Payment Category</p>
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Payment Category</p>
                         <p className="font-semibold text-ink text-sm">{getPaymentCategoryLabel(offerLetterMeta!.paymentCategory)}</p>
-                        <p className="text-[10px] text-border-strong mt-0.5">{offerLetterMeta!.currency || DEFAULT_CURRENCY}</p>
+                        <p className="text-[11px] text-border-strong mt-0.5">{offerLetterMeta!.currency || DEFAULT_CURRENCY}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">Status</p>
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Status</p>
                         <p className="font-bold capitalize">{offerLetterMeta!.status.toLowerCase()}</p>
                       </div>
                     </div>
 
                     {(offerLetterMeta!.nonMonetaryBenefits?.length ?? 0) > 0 && (
                       <div className="pt-2 border-t border-hairline space-y-1.5">
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">
                           Non-Monetary Compensation
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {offerLetterMeta!.nonMonetaryBenefits!.map((b) => (
-                            <Badge key={b} variant="secondary" className="text-[9px]">{getBenefitLabel(b)}</Badge>
+                            <Badge key={b} variant="secondary" className="text-[11px]">{getBenefitLabel(b)}</Badge>
                           ))}
                         </div>
                         {offerLetterMeta!.nonMonetaryDetails && (
@@ -926,19 +921,19 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     {/* Counter-offer awaiting the company's decision */}
                     {pendingNegotiation && (
                       <div className="pt-3 border-t border-hairline space-y-2.5">
-                        <p className="text-[10px] font-bold text-warning uppercase tracking-wider">
+                        <p className="text-[11px] font-bold text-warning uppercase tracking-wider">
                           Counter-offer from freelancer
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-[9px] text-border-strong uppercase tracking-wider">Current</p>
+                            <p className="text-[11px] text-border-strong uppercase tracking-wider">Current</p>
                             <p className="text-xs font-medium text-muted line-through">
                               {formatMoney(pendingNegotiation.previousAmount, pendingNegotiation.previousCurrency, pendingNegotiation.previousCategory)}
                               {" · "}{getPaymentCategoryLabel(pendingNegotiation.previousCategory)}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] text-border-strong uppercase tracking-wider">Proposed</p>
+                            <p className="text-[11px] text-border-strong uppercase tracking-wider">Proposed</p>
                             <p className="text-xs font-semibold text-ink">
                               {formatMoney(pendingNegotiation.proposedAmount, pendingNegotiation.proposedCurrency, pendingNegotiation.proposedCategory)}
                               {" · "}{getPaymentCategoryLabel(pendingNegotiation.proposedCategory)}
@@ -973,7 +968,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     {/* Settled negotiation rounds */}
                     {resolvedNegotiations.length > 0 && (
                       <div className="pt-2 border-t border-hairline space-y-1.5">
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">
                           Negotiation History ({resolvedNegotiations.length})
                         </p>
                         {resolvedNegotiations.map((n, i) => (
@@ -981,7 +976,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                             <span className="text-body">
                               {formatMoney(n.proposedAmount, n.proposedCurrency, n.proposedCategory)} · {getPaymentCategoryLabel(n.proposedCategory)}
                             </span>
-                            <Badge variant={n.status === "ACCEPTED" ? "success" : "danger"} className="text-[9px]">
+                            <Badge variant={n.status === "ACCEPTED" ? "success" : "danger"} className="text-[11px]">
                               {n.status.toLowerCase()}
                             </Badge>
                           </div>
@@ -990,13 +985,13 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     )}
                     {offerLetterMeta!.reason && (
                       <div className="pt-2 border-t border-hairline">
-                        <p className="text-[10px] font-bold text-danger uppercase tracking-wider">Reason for declining</p>
+                        <p className="text-[11px] font-bold text-danger uppercase tracking-wider">Reason for declining</p>
                         <p className="text-sm font-semibold text-danger italic mt-0.5">&quot;{offerLetterMeta!.reason}&quot;</p>
                       </div>
                     )}
                     {offerLetterMeta!.milestones?.length > 0 && (
                       <div className="pt-2 border-t border-hairline space-y-1.5">
-                        <p className="text-[10px] font-bold text-border-strong uppercase tracking-wider">Milestone Plan</p>
+                        <p className="text-[11px] font-bold text-border-strong uppercase tracking-wider">Milestone Plan</p>
                         {offerLetterMeta!.milestones.map((m: any, i: number) => (
                           <div key={i} className="flex justify-between items-center py-1 border-b border-hairline last:border-0">
                             <span className="font-medium text-body">{m.title}</span>
@@ -1025,7 +1020,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                   <div className="space-y-4 text-xs">
                     {/* Offer Text */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">
                         Offer Letter Message *
                       </label>
                       <textarea
@@ -1033,19 +1028,19 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                         value={offerText}
                         onChange={(e) => setOfferText(e.target.value)}
                         placeholder="Dear [Candidate Name], We are pleased to extend you an offer to join our project..."
-                        className="w-full px-3 py-2.5 rounded-xl border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none resize-none"
+                        className="w-full px-3 py-2.5 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none resize-none"
                       />
                     </div>
 
                     {/* Currency */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">
                         Currency *
                       </label>
                       <select
                         value={offerCurrency}
                         onChange={(e) => setOfferCurrency(e.target.value)}
-                        className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none cursor-pointer"
+                        className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none cursor-pointer"
                       >
                         {CURRENCIES.map((c) => (
                           <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
@@ -1055,19 +1050,19 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
 
                     {/* Payment Category */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">
                         Payment Category *
                       </label>
                       <select
                         value={offerCategory}
                         onChange={(e) => setOfferCategory(e.target.value as PaymentCategory)}
-                        className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none cursor-pointer"
+                        className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none cursor-pointer"
                       >
                         {PAYMENT_CATEGORIES.map((c) => (
                           <option key={c.value} value={c.value}>{c.label}</option>
                         ))}
                       </select>
-                      <p className="text-[9px] text-border-strong">
+                      <p className="text-[11px] text-border-strong">
                         {PAYMENT_CATEGORIES.find((c) => c.value === offerCategory)?.hint}
                       </p>
                     </div>
@@ -1075,7 +1070,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     {/* Stipend Amount */}
                     {!isNonMonetary(offerCategory) && (
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">
                         {offerCategory === "HOURLY"
                           ? `Hourly Rate (${getCurrencySymbol(offerCurrency)} per hour) *`
                           : offerCategory === "MONTHLY"
@@ -1087,14 +1082,14 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                         min={0}
                         value={offerStipend}
                         onChange={(e) => setOfferStipend(Number(e.target.value))}
-                        className="w-full h-9 px-3 rounded-xl border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none"
+                        className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                       />
                     </div>
                     )}
 
                     {supportsBenefits(offerCategory) && (
-                      <div className="space-y-2 p-3 rounded-xl border border-hairline bg-surface-soft">
-                        <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">
+                      <div className="space-y-2 p-3 rounded-lg border border-hairline bg-surface-soft">
+                        <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">
                           Non-Monetary Compensation
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
@@ -1114,7 +1109,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                           value={offerBenefitDetails}
                           onChange={(e) => setOfferBenefitDetails(e.target.value)}
                           placeholder="Additional detail (equity %, certificate issuer, etc.)"
-                          className="w-full h-9 px-3 rounded-xl border border-hairline bg-white text-xs focus:ring-1 focus:ring-ink focus:outline-none"
+                          className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                         />
                       </div>
                     )}
@@ -1122,13 +1117,13 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                     {/* Milestones */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-muted uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-muted uppercase tracking-wider">
                           Payment Milestones
                         </label>
                         <button
                           type="button"
                           onClick={() => setOfferMilestones([...offerMilestones, { title: "", budget: 0 }])}
-                          className="text-[10px] text-link hover:text-link font-bold flex items-center gap-0.5 cursor-pointer"
+                          className="text-[11px] text-link hover:text-link font-bold flex items-center gap-0.5 cursor-pointer"
                         >
                           <Plus className="h-3 w-3" /> Add milestone
                         </button>
@@ -1145,7 +1140,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                                 setOfferMilestones(updated);
                               }}
                               placeholder={`Milestone ${i + 1} title`}
-                              className="flex-1 h-8 px-3 rounded-lg border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none"
+                              className="flex-1 h-8 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                             />
                             <input
                               type="number"
@@ -1156,7 +1151,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                                 setOfferMilestones(updated);
                               }}
                               placeholder={`${getCurrencySymbol(offerCurrency)} Amount`}
-                              className="w-24 h-8 px-3 rounded-lg border border-hairline bg-surface-soft text-xs focus:ring-1 focus:ring-ink focus:outline-none"
+                              className="w-24 h-8 px-3 rounded-md border border-hairline bg-white text-xs focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                             />
                             {offerMilestones.length > 1 && (
                               <button
@@ -1202,7 +1197,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
 
           {/* Candidate Summary */}
  <Card className="p-6 text-center space-y-4">
-            <div className="h-16 w-16 rounded-2xl bg-surface-soft border border-hairline flex items-center justify-center font-semibold text-xl text-ink mx-auto shadow-inner overflow-hidden">
+            <div className="h-16 w-16 rounded-lg bg-surface-soft border border-hairline flex items-center justify-center font-semibold text-xl text-ink mx-auto shadow-inner overflow-hidden">
               {application.freelancer.user.image ? (
                 <img src={application.freelancer.user.image} className="h-full w-full object-cover" />
               ) : (
@@ -1211,28 +1206,28 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
             </div>
             <div className="space-y-1">
               <h4 className="text-sm font-semibold text-ink">{application.freelancer.user.name}</h4>
-              <p className="text-[10px] text-border-strong font-bold uppercase tracking-wider truncate">
+              <p className="text-[11px] text-border-strong font-bold uppercase tracking-wider truncate">
                 {application.freelancer.professionalHeadline || "Software Engineer"}
               </p>
             </div>
             <div className="flex justify-center gap-3">
-              <Badge variant="accent" className="font-extrabold text-[10px] py-1 px-2.5 flex items-center gap-0.5">
+              <Badge variant="accent" className="font-bold text-[11px] py-1 px-2.5 flex items-center gap-0.5">
                 <BrainCircuit className="h-3 w-3" /> AI Match: {application.aiScore}%
               </Badge>
               {getStatusBadge(application.status)}
             </div>
-            <div className="grid grid-cols-3 gap-2 p-3 bg-surface-soft border border-hairline rounded-xl text-center text-xs">
+            <div className="grid grid-cols-3 gap-2 p-3 bg-surface-soft border border-hairline rounded-lg text-center text-xs">
               <div>
                 <p className="font-bold text-body">{application.freelancer.experienceYears}y</p>
-                <p className="text-[8px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Exp</p>
+                <p className="text-[11px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Exp</p>
               </div>
               <div className="border-x border-hairline">
                 <p className="font-bold text-ink">{application.freelancer.rating}/5</p>
-                <p className="text-[8px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Rating</p>
+                <p className="text-[11px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Rating</p>
               </div>
               <div>
                 <p className="font-bold text-success">{application.freelancer.completionRate}%</p>
-                <p className="text-[8px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Done</p>
+                <p className="text-[11px] text-border-strong font-bold uppercase tracking-wider mt-0.5">Done</p>
               </div>
             </div>
             <div className="pt-2 border-t border-hairline space-y-2">
@@ -1259,19 +1254,19 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
               <div className="space-y-4 text-xs">
                 {/* Notes */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Evaluation Notes</label>
+                  <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">Evaluation Notes</label>
                   <input
                     type="text"
                     value={notesText}
                     onChange={(e) => setNotesText(e.target.value)}
                     placeholder="Add comment for this pipeline change..."
-                    className="w-full h-9 px-3 rounded-lg border border-hairline bg-surface-soft text-[11px] focus:ring-1 focus:ring-ink focus:outline-none"
+                    className="w-full h-9 px-3 rounded-md border border-hairline bg-white text-[11px] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:outline-none"
                   />
                 </div>
 
                 {/* Pipeline Stage Selector */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Transition Pipeline Stage</label>
+                  <label className="block text-[11px] font-bold text-muted uppercase tracking-wider">Transition Pipeline Stage</label>
                   <select
                     value={isHired ? "Project Started" : currentStage}
                     disabled={loading !== null}
@@ -1281,7 +1276,7 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                       else if (val === "REJECTED") handleAction("reject");
                       else if (val) handleTransitionStage(val);
                     }}
-                    className="w-full h-9 px-3 border border-hairline bg-white rounded-lg focus:outline-none cursor-pointer font-bold text-ink"
+                    className="w-full h-9 px-3 border border-hairline bg-white rounded-md focus:outline-none cursor-pointer font-bold text-ink"
                   >
                     <option value="Applied">Applied</option>
                     <option value="Profile Reviewed">Profile Reviewed</option>
@@ -1347,12 +1342,8 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
 
       {/* Interview Scheduling Modal */}
       {showMeetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm cursor-pointer" onClick={() => setShowMeetModal(false)} />
- <Card className="relative w-full max-w-md p-6 z-10 shadow-2xl space-y-4 text-left">
-            <button onClick={() => setShowMeetModal(false)} className="absolute top-4 right-4 p-1.5 text-muted hover:text-body rounded-full hover:bg-surface-soft cursor-pointer">
-              <X className="h-4 w-4" />
-            </button>
+        <Modal open onClose={() => setShowMeetModal(false)} size="lg">
+          <div className="space-y-4">
             <div className="space-y-1">
               <h3 className="text-base font-bold text-ink">
                 {isEditingMeeting ? "Edit Scheduled Interview" : "Schedule Google Meet Interview"}
@@ -1366,15 +1357,15 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
             <div className="space-y-3.5 text-xs text-body">
               <div className="space-y-1">
                 <label className="block font-bold">Interview Date</label>
-                <input type="date" value={interviewDate} onChange={(e) => setInterviewDate(e.target.value)} className="w-full h-10 px-3 border border-hairline rounded-xl bg-white" />
+                <input type="date" value={interviewDate} onChange={(e) => setInterviewDate(e.target.value)} className="w-full h-10 px-3 border border-hairline rounded-md bg-white" />
               </div>
               <div className="space-y-1">
                 <label className="block font-bold">Interview Time</label>
-                <input type="time" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} className="w-full h-10 px-3 border border-hairline rounded-xl bg-white" />
+                <input type="time" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} className="w-full h-10 px-3 border border-hairline rounded-md bg-white" />
               </div>
               <div className="space-y-1">
                 <label className="block font-bold">Google Meet Link</label>
-                <input type="text" value={meetLink} onChange={(e) => setMeetLink(e.target.value)} placeholder="https://meet.google.com/..." className="w-full h-10 px-3 border border-hairline rounded-xl bg-white" />
+                <input type="text" value={meetLink} onChange={(e) => setMeetLink(e.target.value)} placeholder="https://meet.google.com/..." className="w-full h-10 px-3 border border-hairline rounded-md bg-white" />
               </div>
             </div>
             <div className="flex gap-2.5 pt-2">
@@ -1389,8 +1380,8 @@ export function ApplicantDetailView({ application, currentUserId }: ApplicantDet
                   : (isEditingMeeting ? "Save Changes & Notify" : "Confirm & Notify Candidate")}
               </Button>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

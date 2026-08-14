@@ -41,7 +41,7 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/company/projects/${projectId}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A6472] hover:text-[#181d26]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5B6272] hover:text-[#1A1D29]"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to project
         </Link>
@@ -68,7 +68,7 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
       {message && (
         <Card
           className={`p-3 text-xs font-medium ${
-            message.type === "ok" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
+            message.type === "ok" ? "border-[#BFE9D2] bg-[#E4F7EC] text-[#147A44]" : "border-[#F5C2C2] bg-[#FDEAEA] text-[#BC2A2A]"
           }`}
         >
           {message.text}
@@ -76,23 +76,23 @@ export function CertificateDesigner({ projectId, initialConfig, data }: Props) {
       )}
 
       {fullPreview ? (
-        <Card className="bg-[#EDEFF2] p-4 sm:p-8">
+        <Card className="bg-[#E8F1FE] p-4 sm:p-8">
           <CertificatePreview config={config} data={data} />
         </Card>
       ) : (
         /* Controls first on mobile, side-by-side from lg up. */
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           <Card className="p-5">
-            <h2 className="mb-4 text-sm font-black text-[#181d26]">Customize Certificate</h2>
+            <h2 className="mb-4 text-sm font-bold text-[#1A1D29]">Customize Certificate</h2>
             <CertificateControls value={config} onChange={setConfig} disabled={saving} />
           </Card>
 
           <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
-            <span className="block text-xs font-semibold text-[#333840]">Live Preview</span>
-            <Card className="bg-[#EDEFF2] p-3 sm:p-5">
+            <span className="block text-xs font-semibold text-[#5B6272]">Live Preview</span>
+            <Card className="bg-[#E8F1FE] p-3 sm:p-5">
               <CertificatePreview config={config} data={data} />
             </Card>
-            <p className="text-[11px] text-[#5A6472]">
+            <p className="text-[11px] text-[#5B6272]">
               Recipient, project, role, skills, completion date, certificate ID and company name are filled
               automatically from Talentra and cannot be typed in manually.
             </p>

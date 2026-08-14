@@ -223,13 +223,13 @@ export default async function CompanyFreelancersPage({
   return (
     <div className="space-y-8">
       <div>
-        <span className="text-[10px] font-bold text-[#5A6472] tracking-widest uppercase">
+        <span className="text-[11px] font-bold text-[#5B6272] tracking-widest uppercase">
           Company Portal
         </span>
-        <h1 className="text-3xl font-black text-[#181d26] tracking-tight mt-0.5">
+        <h1 className="text-3xl font-bold text-[#1A1D29] tracking-tight mt-0.5">
           Search Freelancers
         </h1>
-        <p className="text-xs text-[#5A6472] font-semibold mt-1">
+        <p className="text-xs text-[#5B6272] font-semibold mt-1">
           Discover and filter top freelancers by skills, experience, rating, availability and more.
         </p>
       </div>

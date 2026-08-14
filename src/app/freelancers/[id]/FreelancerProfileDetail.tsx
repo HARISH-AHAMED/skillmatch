@@ -222,7 +222,7 @@ export function FreelancerProfileDetail({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-xs font-medium text-ink hover:bg-surface-soft transition-colors cursor-pointer bg-white border border-hairline px-3.5 py-2 rounded-[12px] shadow-xs w-fit"
+          className="inline-flex items-center gap-2 text-xs font-medium text-ink hover:bg-surface-soft transition-colors cursor-pointer bg-white border border-hairline px-3.5 py-2 rounded-full w-fit"
         >
           <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
           Back to list
@@ -233,7 +233,7 @@ export function FreelancerProfileDetail({
           {isOwnProfile ? (
             <Button
               onClick={() => router.push("/freelancer/profile")}
-              className="text-xs font-medium h-9 bg-ink hover:bg-body border-0 text-white rounded-[12px] flex items-center gap-1.5 cursor-pointer shadow-xs flex-1 sm:flex-none justify-center"
+              className="text-xs font-medium h-9 bg-ink hover:bg-body border-0 text-white rounded-full flex items-center gap-1.5 cursor-pointer flex-1 sm:flex-none justify-center"
             >
               <Pencil className="h-4 w-4" />
               Edit Profile
@@ -243,7 +243,7 @@ export function FreelancerProfileDetail({
               onClick={handleToggleSave}
               disabled={isSaving}
               variant="outline"
-              className="text-xs font-medium h-9 rounded-[12px] flex items-center gap-1.5 cursor-pointer shadow-xs flex-1 sm:flex-none justify-center border-hairline text-ink"
+              className="text-xs font-medium h-9 rounded-full flex items-center gap-1.5 cursor-pointer flex-1 sm:flex-none justify-center border-hairline text-ink"
             >
               <Heart
                 className={`h-4 w-4 shrink-0 transition-colors ${
@@ -259,7 +259,7 @@ export function FreelancerProfileDetail({
               href={freelancer.resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-surface-soft hover:bg-surface-strong text-ink h-9 px-4 rounded-[12px] transition-colors border border-hairline shadow-xs flex-1 sm:flex-none"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-surface-soft hover:bg-surface-strong text-ink h-9 px-4 rounded-full transition-colors border border-hairline flex-1 sm:flex-none"
             >
               <FileText className="h-4 w-4 text-muted shrink-0" />
               View Resume
@@ -270,7 +270,7 @@ export function FreelancerProfileDetail({
 
 
       {/* Main Profile Showcase Card */}
-      <div className="bg-white border border-hairline rounded-[12px] overflow-hidden shadow-xs relative">
+      <div className="bg-white border border-hairline rounded-lg overflow-hidden relative">
 
         {/* Banner */}
         <div className="h-36 bg-ink relative overflow-hidden">
@@ -288,7 +288,7 @@ export function FreelancerProfileDetail({
               type="button"
               onClick={() => freelancer.user.image && setLightboxImage(freelancer.user.image)}
               disabled={!freelancer.user.image}
-              className={`h-24 w-24 rounded-3xl bg-white border-4 border-white overflow-hidden flex items-center justify-center font-semibold text-3xl text-ink shrink-0 shadow-xl relative ${
+              className={`h-24 w-24 rounded-full bg-white border-4 border-white overflow-hidden flex items-center justify-center font-semibold text-3xl text-ink shrink-0 shadow-lg relative ${
                 freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
               }`}
               title={freelancer.user.image ? "Click to view full image" : undefined}
@@ -302,19 +302,19 @@ export function FreelancerProfileDetail({
               ) : (
                 freelancer.user.name ? freelancer.user.name[0].toUpperCase() : "U"
               )}
-              <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full bg-success border-2 border-white shadow-sm" />
+              <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full bg-success border-2 border-white" />
             </button>
 
             {/* Badges — aligned to right on desktop */}
             <div className="flex flex-wrap gap-1.5 self-end pb-1">
-              <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5 ${avail.badge}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.dot}`} />
                 {avail.label}
               </span>
               {freelancer.verificationBadges && freelancer.verificationBadges.map((badge) => (
                 <span
                   key={badge}
-                  className="inline-flex items-center gap-1 bg-link/5 text-[9px] font-semibold text-ink border border-link/20 px-2.5 py-1 rounded-full shadow-xs"
+                  className="inline-flex items-center gap-1 bg-link/5 text-[11px] font-semibold text-ink border border-link/20 px-2.5 py-1 rounded-full"
                 >
                   <CheckCircle className="h-3 w-3 text-link fill-link/5" />
                   {badge}
@@ -337,12 +337,12 @@ export function FreelancerProfileDetail({
             )}
             <div className="flex flex-wrap items-center gap-2 pt-1.5">
               {freelancer.domain && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-[11px]">
                   <Briefcase className="h-3 w-3 mr-1 text-muted" />
                   {freelancer.domain}
                 </Badge>
               )}
-              <Badge variant="neutral" className="text-[10px]">
+              <Badge variant="neutral" className="text-[11px]">
                 <Clock className="h-3 w-3 mr-1 text-muted" />
                 Member since {memberSince}
               </Badge>
@@ -350,7 +350,7 @@ export function FreelancerProfileDetail({
           </div>
 
           {/* Quick contact and response time */}
-          <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-muted pt-4 border-t border-hairline">
+          <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold uppercase tracking-wider text-muted pt-4 border-t border-hairline">
             <span className="flex items-center gap-1.5 text-border-strong">
               <Mail className="h-3.5 w-3.5 text-border-strong" />
               {freelancer.user.email}
@@ -375,28 +375,28 @@ export function FreelancerProfileDetail({
  <Card className="p-5">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-y-4 text-center divide-x divide-hairline">
               <div>
-                <p className="text-border-strong font-semibold uppercase text-[9px] tracking-wider">Experience</p>
+                <p className="text-border-strong font-semibold uppercase text-[11px] tracking-wider">Experience</p>
                 <p className="text-lg font-semibold text-ink mt-0.5">{freelancer.experienceYears} Years</p>
               </div>
               <div>
-                <p className="text-border-strong font-semibold uppercase text-[9px] tracking-wider">Rating Score</p>
+                <p className="text-border-strong font-semibold uppercase text-[11px] tracking-wider">Rating Score</p>
                 <p className="text-lg font-semibold text-ink mt-0.5 flex items-center justify-center gap-0.5">
                   <Star className="h-4 w-4 text-star fill-star" />
                   {freelancer.rating.toFixed(1)}
                 </p>
               </div>
               <div>
-                <p className="text-border-strong font-semibold uppercase text-[9px] tracking-wider">Gigs Done</p>
+                <p className="text-border-strong font-semibold uppercase text-[11px] tracking-wider">Gigs Done</p>
                 <p className="text-lg font-semibold text-ink mt-0.5">{freelancer.completedProjects}</p>
               </div>
               <div>
-                <p className="text-border-strong font-semibold uppercase text-[9px] tracking-wider">Value Delivered</p>
+                <p className="text-border-strong font-semibold uppercase text-[11px] tracking-wider">Value Delivered</p>
                 <p className="text-lg font-semibold text-ink mt-0.5">
                   ${totalEarned.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-border-strong font-semibold uppercase text-[9px] tracking-wider">Clients Served</p>
+                <p className="text-border-strong font-semibold uppercase text-[11px] tracking-wider">Clients Served</p>
                 <p className="text-lg font-semibold text-ink mt-0.5">{clientsServed}</p>
               </div>
             </div>
@@ -405,7 +405,7 @@ export function FreelancerProfileDetail({
           {/* Biography */}
  <Card className="p-6 space-y-3">
             <h3 className="text-xs font-semibold uppercase text-border-strong tracking-wider">Professional Biography</h3>
-            <p className="text-xs text-body leading-relaxed italic bg-surface-soft p-4 border border-hairline rounded-2xl font-medium">
+            <p className="text-xs text-body leading-relaxed italic bg-surface-soft p-4 border border-hairline rounded-lg font-medium">
               &quot;{getFreelancerBioText(freelancer.bio) || "No professional biography has been provided yet."}&quot;
             </p>
           </Card>
@@ -422,14 +422,14 @@ export function FreelancerProfileDetail({
                 {expList.map((exp: any, idx: number) => (
                   <div
                     key={exp.id || idx}
-                    className="p-4 bg-surface-soft/70 border border-hairline rounded-2xl space-y-2 text-xs hover:border-border-strong transition-colors"
+                    className="p-4 bg-surface-soft/70 border border-hairline rounded-lg space-y-2 text-xs hover:border-border-strong transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-semibold text-ink text-sm">{exp.title}</h4>
-                        <p className="text-[10px] text-link font-bold mt-0.5">{exp.company}</p>
+                        <p className="text-[11px] text-link font-bold mt-0.5">{exp.company}</p>
                       </div>
-                      <span className="text-[9px] font-bold text-muted bg-white border border-hairline px-2.5 py-0.5 rounded-full shrink-0">
+                      <span className="text-[11px] font-bold text-muted bg-white border border-hairline px-2.5 py-0.5 rounded-full shrink-0">
                         {exp.startDate} to {exp.current ? "Present" : exp.endDate}
                       </span>
                     </div>
@@ -456,7 +456,7 @@ export function FreelancerProfileDetail({
                 {portList.map((item: any, idx: number) => (
                   <div
                     key={item.id || idx}
-                    className="p-4 bg-surface-soft/70 border border-hairline rounded-2xl flex flex-col justify-between space-y-3.5 hover:border-link/20 transition-colors shadow-2xs"
+                    className="p-4 bg-surface-soft/70 border border-hairline rounded-lg flex flex-col justify-between space-y-3.5 hover:border-link/20 transition-colors"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
@@ -464,11 +464,11 @@ export function FreelancerProfileDetail({
                           {getPortfolioIcon(item.type)}
                           {item.title}
                         </h4>
-                        <Badge variant="neutral" className="text-[8px] uppercase tracking-wider font-semibold px-1.5 py-0.5 shrink-0">
+                        <Badge variant="neutral" className="text-[11px] uppercase tracking-wider font-semibold px-1.5 py-0.5 shrink-0">
                           {item.type.replace("_", " ")}
                         </Badge>
                       </div>
-                      <p className="text-[10px] text-muted leading-relaxed font-medium line-clamp-3">
+                      <p className="text-[11px] text-muted leading-relaxed font-medium line-clamp-3">
                         {item.description}
                       </p>
 
@@ -480,7 +480,7 @@ export function FreelancerProfileDetail({
                               key={i}
                               type="button"
                               onClick={() => setLightboxImage(img)}
-                              className="aspect-video bg-white border border-hairline rounded-lg overflow-hidden h-10 shrink-0 cursor-zoom-in hover:opacity-90 transition-opacity"
+                              className="aspect-video bg-white border border-hairline rounded-full overflow-hidden h-10 shrink-0 cursor-zoom-in hover:opacity-90 transition-opacity"
                               title="Click to zoom image"
                             >
                               <img src={img} alt="screenshot" className="h-full w-full object-cover" />
@@ -492,7 +492,7 @@ export function FreelancerProfileDetail({
                           <button
                             type="button"
                             onClick={() => setLightboxImage(item.fileUrl)}
-                            className="w-full bg-white border border-hairline rounded-xl overflow-hidden h-28 flex items-center justify-center cursor-zoom-in hover:brightness-95 transition-all shadow-inner mt-1"
+                            className="w-full bg-white border border-hairline rounded-full overflow-hidden h-28 flex items-center justify-center cursor-zoom-in hover:brightness-95 transition-all shadow-inner mt-1"
                           >
                             <img src={item.fileUrl} alt={item.title} className="h-full w-full object-cover" />
                           </button>
@@ -500,7 +500,7 @@ export function FreelancerProfileDetail({
                       ) : null}
 
                       {item.type === "VIDEO" && item.fileUrl && (
-                        <div className="bg-black border border-ink rounded-xl overflow-hidden h-28 mt-1 flex items-center justify-center">
+                        <div className="bg-black border border-ink rounded-lg overflow-hidden h-28 mt-1 flex items-center justify-center">
                           <video src={item.fileUrl} controls className="h-full w-full object-contain" />
                         </div>
                       )}
@@ -512,13 +512,13 @@ export function FreelancerProfileDetail({
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] font-bold text-link hover:text-ink transition-colors"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-link hover:text-ink transition-colors"
                         >
                           <span>Visit link</span>
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       ) : (
-                        <span className="text-[9px] text-border-strong italic">No link provided</span>
+                        <span className="text-[11px] text-border-strong italic">No link provided</span>
                       )}
                     </div>
                   </div>
@@ -537,7 +537,7 @@ export function FreelancerProfileDetail({
               {freelancer.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="text-[10px] font-bold bg-ink/5 text-ink border border-ink/10 px-2.5 py-1 rounded-full uppercase tracking-wide"
+                  className="text-[11px] font-bold bg-ink/5 text-ink border border-ink/10 px-2.5 py-1 rounded-full uppercase tracking-wide"
                 >
                   {skill}
                 </span>
@@ -561,23 +561,23 @@ export function FreelancerProfileDetail({
                     <span className="text-2xl font-semibold text-ink leading-none">
                       {freelancer.rating.toFixed(1)}
                     </span>
-                    <span className="text-[10px] text-border-strong font-medium">
+                    <span className="text-[11px] text-border-strong font-medium">
                       from {reviews.length} review{reviews.length === 1 ? "" : "s"}
                     </span>
                   </div>
                   {ratingBuckets.map((b) => (
                     <div key={b.star} className="flex items-center gap-2">
-                      <span className="text-[9px] font-semibold text-muted w-6 shrink-0 flex items-center gap-0.5">
+                      <span className="text-[11px] font-semibold text-muted w-6 shrink-0 flex items-center gap-0.5">
                         {b.star}
                         <Star className="h-2.5 w-2.5 text-star fill-star" />
                       </span>
-                      <div className="flex-1 h-1.5 bg-surface-soft border border-hairline rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-surface-soft border border-hairline rounded-lg overflow-hidden">
                         <div
-                          className="h-full bg-ink rounded-full transition-all"
+                          className="h-full bg-ink rounded-lg transition-all"
                           style={{ width: `${b.pct}%` }}
                         />
                       </div>
-                      <span className="text-[9px] font-medium text-border-strong w-6 text-right shrink-0">
+                      <span className="text-[11px] font-medium text-border-strong w-6 text-right shrink-0">
                         {b.count}
                       </span>
                     </div>
@@ -588,20 +588,20 @@ export function FreelancerProfileDetail({
                 {freelancer.user.reviewsReceived.map((rev) => (
                   <div
                     key={rev.id}
-                    className="p-3.5 bg-surface-soft border border-hairline rounded-2xl space-y-2 text-xs"
+                    className="p-3.5 bg-surface-soft border border-hairline rounded-lg space-y-2 text-xs"
                   >
                     <div className="flex justify-between items-center border-b border-hairline pb-1.5">
                       <span className="font-bold text-ink truncate max-w-[70%]">
                         {rev.project.title}
                       </span>
-                      <span className="text-[10px] font-semibold text-ink shrink-0">
+                      <span className="text-[11px] font-semibold text-ink shrink-0">
                         {rev.rating}/5
                       </span>
                     </div>
                     <p className="text-body italic leading-relaxed font-medium">
                       &quot;{rev.comment}&quot;
                     </p>
-                    <p className="text-[9px] text-border-strong text-right font-semibold">
+                    <p className="text-[11px] text-border-strong text-right font-semibold">
                       — Reviewed by {rev.reviewer.name || "Client Representative"}
                     </p>
                   </div>
@@ -620,7 +620,7 @@ export function FreelancerProfileDetail({
                 independently verifiable, so they lead ahead of self-reported ones. */}
             {earnedCertificates.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-success uppercase tracking-wider">
+                <p className="text-[11px] font-semibold text-success uppercase tracking-wider">
                   Verified by Talentra
                 </p>
                 {earnedCertificates.map((cert) => (
@@ -629,7 +629,7 @@ export function FreelancerProfileDetail({
                     href={`/verify/${cert.publicId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`block p-3 border rounded-2xl text-xs transition-colors ${
+                    className={`block p-3 border rounded-lg text-xs transition-colors ${
                       cert.revokedAt
                         ? "bg-danger-surface border-danger-border opacity-70"
                         : "bg-success-surface border-success-border/40 hover:border-success"
@@ -640,7 +640,7 @@ export function FreelancerProfileDetail({
                       <CheckCircle className={`h-4 w-4 shrink-0 ${cert.revokedAt ? "text-danger" : "text-success"}`} />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-ink truncate">{cert.roleTitle}</p>
-                        <p className="text-[9px] text-muted uppercase tracking-wider mt-0.5">
+                        <p className="text-[11px] text-muted uppercase tracking-wider mt-0.5">
                           {cert.issuerName} • {new Date(cert.issuedAt).getFullYear()}
                           {cert.revokedAt ? " • Revoked" : ""}
                         </p>
@@ -667,7 +667,7 @@ export function FreelancerProfileDetail({
                 {pastCollabs.map((c) => (
                   <span
                     key={c.name}
-                    className="inline-flex items-center gap-1.5 text-[10px] font-medium bg-surface-soft text-ink border border-hairline px-2.5 py-1 rounded-full"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-surface-soft text-ink border border-hairline px-2.5 py-1 rounded-full"
                     title={
                       c.count > 1
                         ? c.count + " contracts with " + c.name
@@ -676,13 +676,13 @@ export function FreelancerProfileDetail({
                   >
                     {c.name}
                     {c.count > 1 && (
-                      <span className="text-[9px] font-semibold text-link">×{c.count}</span>
+                      <span className="text-[11px] font-semibold text-link">×{c.count}</span>
                     )}
                   </span>
                 ))}
               </div>
               {pastCollabs.some((c) => c.count > 1) && (
-                <p className="text-[10px] text-muted">
+                <p className="text-[11px] text-muted">
                   A ×N marker means that client hired them more than once.
                 </p>
               )}
@@ -701,11 +701,11 @@ export function FreelancerProfileDetail({
                 {freelancer.applications.map((app) => (
                   <div
                     key={app.id}
-                    className="p-3 bg-surface-soft border border-hairline rounded-xl flex justify-between items-center text-xs"
+                    className="p-3 bg-surface-soft border border-hairline rounded-lg flex justify-between items-center text-xs"
                   >
                     <div className="min-w-0 flex-1 pr-2">
                       <h4 className="font-bold text-ink truncate">{app.project.title}</h4>
-                      <p className="text-[10px] text-muted truncate">Hired by {app.project.company.companyName}</p>
+                      <p className="text-[11px] text-muted truncate">Hired by {app.project.company.companyName}</p>
                     </div>
                     <span className="font-semibold text-ink shrink-0">${app.project.budget}</span>
                   </div>
@@ -719,11 +719,7 @@ export function FreelancerProfileDetail({
       {/* Lightbox Zoom-In Modal Overlay */}
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-ink/80 backdrop-blur-sm cursor-zoom-out"
-            onClick={() => setLightboxImage(null)}
-          />
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setLightboxImage(null)} />
 
           {/* Close button top right */}
           <button
@@ -735,7 +731,7 @@ export function FreelancerProfileDetail({
           </button>
 
           {/* Image */}
-          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-lg overflow-hidden shadow-lg bg-black flex items-center justify-center">
             <img src={lightboxImage} alt="profile lightbox" className="object-contain max-h-[80vh] max-w-[90vw]" />
           </div>
         </div>

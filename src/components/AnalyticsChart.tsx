@@ -21,7 +21,7 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
   if (!data || data.length === 0) {
     return (
       <Card>
-        <p className="text-[#5A6472] text-xs text-center py-10">No analytics data available.</p>
+        <p className="text-[#5B6272] text-xs text-center py-10">No analytics data available.</p>
       </Card>
     );
   }
@@ -59,8 +59,8 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
   return (
     <Card className="w-full">
       <div className="mb-4 text-left">
-        <h3 className="text-sm font-semibold text-[#181d26]">{title}</h3>
-        {subtitle && <p className="text-xs text-[#5A6472] mt-0.5 font-normal">{subtitle}</p>}
+        <h3 className="text-sm font-semibold text-[#1A1D29]">{title}</h3>
+        {subtitle && <p className="text-xs text-[#5B6272] mt-0.5 font-normal">{subtitle}</p>}
       </div>
 
       <div className="relative w-full h-[180px]">
@@ -142,7 +142,7 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
                     cx={p.x}
                     cy={p.y}
                     r={activeIdx === idx ? "5" : "3.5"}
-                    fill={activeIdx === idx ? "#181d26" : "#1968E5"}
+                    fill={activeIdx === idx ? "#181d26" : "#78A4CB"}
                     stroke="#ffffff"
                     strokeWidth="1.5"
                     className="transition-all duration-150 pointer-events-none"
@@ -162,7 +162,7 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
                 const isLast = idx === points.length - 1;
                 const barColor = isLast 
                   ? "#181d26" 
-                  : (activeIdx === idx ? "#181d26" : "#EDEFF2");
+                  : (activeIdx === idx ? "#181d26" : "#B4E1EB");
 
                 return (
                   <g key={idx}>
@@ -209,7 +209,7 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
         {/* Hover Tooltip Overlay */}
         {activeIdx !== null && (
           <div
-            className="absolute bg-[#181d26] border border-[#1968E5]/20 px-3 py-1.5 rounded-lg shadow-xl text-[10px] text-white backdrop-blur-md pointer-events-none z-10"
+            className="absolute bg-[#152C55] border border-[#E3E5EA]/20 px-3 py-1.5 rounded-lg shadow-lg text-[11px] text-white pointer-events-none z-10"
             style={{
               left: `${(points[activeIdx].x / width) * 100}%`,
               top: `${(points[activeIdx].y / height) * 100 - 25}%`,
@@ -217,7 +217,7 @@ export function AnalyticsChart({ title, subtitle, data, type = "line" }: Analyti
             }}
           >
             <p className="font-bold text-white">{points[activeIdx].label}</p>
-            <p className="mt-0.5 text-sky-300 font-semibold">{points[activeIdx].value} Items</p>
+            <p className="mt-0.5 text-[#2159C9] font-semibold">{points[activeIdx].value} Items</p>
           </div>
         )}
       </div>

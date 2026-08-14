@@ -84,11 +84,11 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
   if (!freelancer) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">
           Browse Projects
         </h1>
-        <div className="p-8 text-center bg-white border border-[#EDEFF2] shadow-sm rounded-2xl">
-          <p className="text-[#5A6472] text-sm">
+        <div className="p-8 text-center bg-white border border-[#E3E5EA] rounded-lg">
+          <p className="text-[#5B6272] text-sm">
             Please complete your profile details first to browse open projects.
           </p>
         </div>
@@ -116,10 +116,10 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">
           Browse Matching Gigs
         </h1>
-        <p className="text-xs text-[#5A6472] mt-1">
+        <p className="text-xs text-[#5B6272] mt-1">
           Apply to open project requests matching your expertise
         </p>
       </div>

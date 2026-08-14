@@ -8,10 +8,13 @@ import { transitionApplicationStage, bulkTransitionApplicants, releaseMilestoneP
 import { parseApplicationMetadata, getApplicationCoverLetterText, getProjectMetadataDirect, formatProjectBudget } from "@/lib/workflowHelpers";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { User, Mail, Award, BrainCircuit, Star, Flame, ClipboardList, X, ExternalLink, ChevronRight, Briefcase, CheckCircle, FileText, Calendar, Clock, Send, ShieldAlert, History, LayoutGrid, Table } from "lucide-react";
+import { User, Mail, Award, BrainCircuit, Star, Flame, ClipboardList, X, ExternalLink, ChevronRight, Briefcase, CheckCircle, FileText, Calendar, Clock, Send, ShieldAlert, History, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { ApplicationStatus } from "@prisma/client";
 
 interface ReviewReceivedItem {
@@ -235,16 +238,16 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
   if (!selectedProjectId) {
     return (
       <div className="space-y-6 text-left">
-        <div className="bg-white border border-[#E2E5EA] p-6 rounded-[12px] shadow-xs">
-          <h2 className="text-base font-semibold text-[#181d26] mb-1">Select a Project to Review</h2>
-          <p className="text-xs text-[#5A6472] font-normal">
+        <div className="bg-white border border-[#E3E5EA] p-6 rounded-lg">
+          <h2 className="text-base font-semibold text-[#1A1D29] mb-1">Select a Project to Review</h2>
+          <p className="text-xs text-[#5B6272] font-normal">
             Please choose a project below to evaluate and rank candidate proposals matching that listing.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.length === 0 ? (
-            <Card className="col-span-full p-10 text-center text-xs text-[#5A6472] border border-[#E2E5EA] rounded-[12px]">
+            <Card className="col-span-full p-10 text-center text-xs text-[#5B6272] border border-[#E3E5EA] rounded-lg">
               No projects posted yet. Post a project first to receive proposals.
             </Card>
           ) : (
@@ -252,32 +255,32 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               <Card
                 key={project.id}
                 onClick={() => router.push(`/company/applicants?projectId=${project.id}`)}
-                className="p-6 border border-[#E2E5EA] bg-white hover:bg-[#F7F8FA] transition-all cursor-pointer rounded-[12px] flex flex-col justify-between space-y-4 group"
+                className="p-6 border border-[#E3E5EA] bg-white hover:bg-[#F8F9FB] transition-all cursor-pointer rounded-lg flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-2">
                   <div className="flex justify-between items-start gap-3">
-                    <h3 className="text-sm font-semibold text-[#181d26] transition-colors line-clamp-1">
+                    <h3 className="text-sm font-semibold text-[#1A1D29] transition-colors line-clamp-1">
                       {project.title}
                     </h3>
-                    <Badge variant={project.status === "OPEN" ? "forest" : "neutral"} className="shrink-0 text-[9px] px-2 py-0.5">
+                    <Badge variant={project.status === "OPEN" ? "forest" : "neutral"} className="shrink-0 text-[11px] px-2 py-0.5">
                       {project.status === "OPEN" ? "Active" : project.status.toLowerCase()}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#5A6472] font-normal">
-                    <span>Budget: <strong className="text-[#181d26] font-semibold">{formatProjectBudget(project)}</strong></span>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#5B6272] font-normal">
+                    <span>Budget: <strong className="text-[#1A1D29] font-semibold">{formatProjectBudget(project)}</strong></span>
                     <span>•</span>
-                    <span>Exp: <strong className="text-[#181d26] font-semibold">{project.experienceRequired}y</strong></span>
+                    <span>Exp: <strong className="text-[#1A1D29] font-semibold">{project.experienceRequired}y</strong></span>
                     <span>•</span>
-                    <span>Priority: <strong className="text-[#181d26] font-semibold uppercase">{project.priority.toLowerCase()}</strong></span>
+                    <span>Priority: <strong className="text-[#1A1D29] font-semibold uppercase">{project.priority.toLowerCase()}</strong></span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-[#E2E5EA]">
-                  <span className="text-[10px] font-medium text-[#181d26] bg-[#F7F8FA] px-2.5 py-1 rounded-[8px] border border-[#E2E5EA] flex items-center gap-1">
-                    <ClipboardList className="h-3 w-3 text-[#5A6472]" />
+                <div className="flex items-center justify-between pt-3 border-t border-[#C7CBD6]">
+                  <span className="text-[11px] font-medium text-[#1A1D29] bg-[#F8F9FB] px-2.5 py-1 rounded-full border border-[#E3E5EA] flex items-center gap-1">
+                    <ClipboardList className="h-3 w-3 text-[#5B6272]" />
                     <strong>{project._count.applications}</strong> proposals
                   </span>
-                  <span className="text-[10px] font-medium text-[#181d26] flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                  <span className="text-[11px] font-medium text-[#1A1D29] flex items-center gap-0.5 group- transition-transform">
                     View Applicants <ChevronRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
@@ -292,15 +295,15 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
   return (
     <div className="space-y-6">
       {/* Top project switcher toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white border border-[#EDEFF2] shadow-md p-6 rounded-2xl sticky top-0 z-20">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white border border-[#E3E5EA] shadow-md p-6 rounded-lg sticky top-0 z-20">
         <div className="space-y-1">
-          <span className="text-[10px] text-[#8A94A3] font-bold uppercase tracking-wider block">Currently Reviewing</span>
-          <h2 className="text-base font-extrabold text-[#181d26] line-clamp-1">
+          <span className="text-[11px] text-[#5B6272] font-bold uppercase tracking-wider block">Currently Reviewing</span>
+          <h2 className="text-base font-bold text-[#1A1D29] line-clamp-1">
             {selectedProject ? selectedProject.title : "Project Details"}
           </h2>
           <button
             onClick={() => router.push("/company/applicants")}
-            className="text-[10px] font-semibold text-[#181d26] hover:text-[#181d26] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+            className="text-[11px] font-semibold text-[#1A1D29] hover:text-[#1A1D29] transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
           >
             ← Back to all projects
           </button>
@@ -308,34 +311,19 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
           {/* View Mode Toggle Switch */}
-          <div className="flex bg-[#EDEFF2] p-1 rounded-xl gap-0.5 self-center">
-            <button
-              type="button"
-              onClick={() => setViewMode("card")}
-              className={cn(
-                "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
-                viewMode === "card"
-                  ? "bg-white text-[#181d26] shadow-xs"
-                  : "text-[#5A6472] hover:text-[#181D26]"
-              )}
-            >
-              <LayoutGrid className="h-3 w-3" /> Cards
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={cn(
-                "px-2.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1 text-[10px] font-bold",
-                viewMode === "table"
-                  ? "bg-white text-[#181d26] shadow-xs"
-                  : "text-[#5A6472] hover:text-[#181D26]"
-              )}
-            >
-              <Table className="h-3 w-3" /> Table
-            </button>
-          </div>
+          <Tabs
+            label="Result layout"
+            variant="pill"
+            value={viewMode}
+            onChange={(id) => setViewMode(id as any)}
+            className="self-center"
+            items={[
+              { id: "card", label: "Cards", icon: <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> },
+              { id: "table", label: "Table", icon: <TableIcon className="h-3.5 w-3.5" aria-hidden="true" /> },
+            ]}
+          />
 
-          <label className="text-[10px] font-bold text-[#8A94A3] uppercase tracking-wider self-center hidden sm:inline">Switch Project:</label>
+          <label className="text-[11px] font-bold text-[#5B6272] uppercase tracking-wider self-center hidden sm:inline">Switch Project:</label>
           <select
             value={selectedProjectId}
             onChange={(e) => {
@@ -345,7 +333,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 router.push(`/company/applicants?projectId=${e.target.value}`);
               }
             }}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-[#E2E5EA] text-[#181D26] focus:border-[#181d26] focus:ring-[#181d26]/20 cursor-pointer min-w-[200px]"
+            className="px-4 py-2.5 rounded-md text-xs font-semibold transition-all focus:outline-none focus:ring-2 bg-white border border-[#E3E5EA] text-[#1A1D29] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)] focus:ring-[#152C55]/20 cursor-pointer min-w-[200px]"
           >
             <option value="all">-- Select Project --</option>
             {projects.map((p) => (
@@ -359,7 +347,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
 
       {/* Bulk actions toolbar */}
       {applicants.length > 0 && (
-        <div className="bg-[#F7F8FA] border border-[#E2E5EA] p-4 rounded-xl flex flex-wrap justify-between items-center gap-3 text-xs">
+        <div className="bg-[#F8F9FB] border border-[#E3E5EA] p-4 rounded-lg flex flex-wrap justify-between items-center gap-3 text-xs">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -372,16 +360,16 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   setSelectedAppIds([]);
                 }
               }}
-              className="rounded border-[#C7CCD4] focus:ring-[#181d26] h-4 w-4 cursor-pointer"
+              className="rounded-md border-[#E3E5EA] focus:ring-[#152C55] h-4 w-4 cursor-pointer"
             />
-            <label htmlFor="selectAllApps" className="font-bold text-[#181d26] cursor-pointer">
+            <label htmlFor="selectAllApps" className="font-bold text-[#1A1D29] cursor-pointer">
               Select All Candidates ({selectedAppIds.length} chosen)
             </label>
           </div>
 
           {selectedAppIds.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-[#5A6472] font-bold uppercase text-[10px]">Transition Selection To:</span>
+              <span className="text-[#5B6272] font-bold uppercase text-[11px]">Transition Selection To:</span>
               <select
                 onChange={(e) => {
                   if (e.target.value) {
@@ -389,7 +377,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                     e.target.value = "";
                   }
                 }}
-                className="px-3 py-1.5 border border-[#E2E5EA] bg-white text-xs rounded-xl focus:outline-none cursor-pointer"
+                className="px-3 py-1.5 border border-[#C7CBD6] bg-white text-xs rounded-md focus:outline-none cursor-pointer"
               >
                 <option value="">-- Choose Stage --</option>
                 <option value="Profile Reviewed">Profile Reviewed</option>
@@ -414,55 +402,52 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
       {/* Per-role tabs. Applicant review is naturally scoped to one role at a
           time when a project has several. Hidden entirely for single-hire listings. */}
       {roleTabs.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {[{ id: "ALL", name: "All Roles", slots: 0 }, ...roleTabs].map((tab) => {
-            const active = activeRoleId === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveRoleId(tab.id)}
-                className={cn(
-                  "px-3.5 py-2 rounded-[12px] text-xs font-medium transition-colors cursor-pointer border",
-                  active
-                    ? "bg-[#181d26] text-white border-[#181d26]"
-                    : "bg-white text-[#333840] border-[#E2E5EA] hover:border-[#C7CCD4]"
-                )}
-              >
-                {tab.name} ({roleCount(tab.id)})
-                {tab.id !== "ALL" && (
-                  <span className={cn("ml-1.5 text-[10px]", active ? "text-white/70" : "text-[#5A6472]")}>
+        <Tabs
+          label="Applicant roles"
+          variant="pill"
+          value={activeRoleId}
+          onChange={setActiveRoleId}
+          className="flex-wrap"
+          items={[{ id: "ALL", name: "All Roles", slots: 0 }, ...roleTabs].map((tab) => ({
+            id: tab.id,
+            count: roleCount(tab.id),
+            label:
+              tab.id === "ALL" ? (
+                tab.name
+              ) : (
+                <>
+                  {tab.name}
+                  <span className="ml-1 text-[11px] font-normal opacity-70">
                     · {roleHired(tab.id)}/{tab.slots} hired
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                </>
+              ),
+          }))}
+        />
       )}
 
       {visibleApplicants.length === 0 ? (
-        <Card className="p-8 text-center text-xs text-[#5A6472]">
+        <Card className="p-8 text-center text-xs text-[#5B6272]">
           {applicants.length === 0
             ? "No proposals submitted for this project yet."
             : "No applicants for this role yet."}
         </Card>
       ) : viewMode === "table" ? (
-        <Card className="border-[#EDEFF2] bg-white shadow-sm overflow-hidden rounded-2xl">
+        <Card className="border-[#E3E5EA] bg-white overflow-hidden rounded-lg">
           <div className="overflow-x-auto p-5">
-            <table className="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[950px]">
-            <thead>
-              <tr className="border-b border-[#EDEFF2] text-[10px] text-[#8A94A3] font-extrabold uppercase tracking-wider">
-                <th className="pb-3.5 pl-2 pt-1 w-10">Select</th>
-                <th className="pb-3.5 pt-1">Candidate Profile</th>
-                <th className="pb-3.5 pt-1">Applied Project</th>
-                <th className="pb-3.5 pt-1 text-center">Match Score</th>
-                <th className="pb-3.5 pt-1">Pipeline Stage</th>
-                <th className="pb-3.5 pt-1 text-center">Specs</th>
-                <th className="pb-3.5 pt-1 text-right pr-2">Workspace & Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EDEFF2] font-medium">
+            <Table className="w-full whitespace-nowrap min-w-[950px]">
+            <THead>
+              <TR>
+                <TH className="w-10">Select</TH>
+                <TH>Candidate Profile</TH>
+                <TH>Applied Project</TH>
+                <TH align="center">Match Score</TH>
+                <TH>Pipeline Stage</TH>
+                <TH align="center">Specs</TH>
+                <TH align="right">Workspace & Actions</TH>
+              </TR>
+            </THead>
+            <TBody>
               {visibleApplicants.map((app) => {
                 const isSelected = selectedAppIds.includes(app.id);
                 const isHired = app.status === ApplicationStatus.HIRED;
@@ -475,9 +460,9 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   : "Applied";
 
                 return (
-                  <tr key={app.id} className={cn("hover:bg-[#F7F8FA]/50 transition-colors", isSelected && "bg-[#F7F8FA]")}>
+                  <TR key={app.id} className={cn("hover:bg-[#F8F9FB]/50 transition-colors", isSelected && "bg-[#F8F9FB]")}>
                     {/* Checkbox */}
-                    <td className="py-4 pl-2">
+                    <TD>
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -488,14 +473,14 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                             setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
                           }
                         }}
-                        className="rounded border-[#C7CCD4] focus:ring-[#181d26] h-4 w-4 cursor-pointer"
+                        className="rounded-md border-[#C7CBD6] focus:ring-[#152C55] h-4 w-4 cursor-pointer"
                       />
-                    </td>
+                    </TD>
 
                     {/* Candidate Profile Details */}
-                    <td className="py-4 pr-3 text-left">
+                    <TD>
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-[#EDEFF2] flex items-center justify-center font-bold text-[#181d26] text-[10px] border border-[#E2E5EA] shrink-0 overflow-hidden">
+                        <div className="h-8 w-8 rounded-lg bg-[#E8F1FE] flex items-center justify-center font-bold text-[#1A1D29] text-[11px] border border-[#C7CBD6] shrink-0 overflow-hidden">
                           {app.freelancer.user.image ? (
                             <img src={app.freelancer.user.image} className="h-full w-full object-cover" />
                           ) : (
@@ -506,34 +491,34 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                           <button
                             type="button"
                             onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                            className="font-bold text-[#181d26] hover:text-[#5A6472] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
+                            className="font-bold text-[#1A1D29] hover:text-[#5B6272] hover:underline cursor-pointer block text-left truncate max-w-[150px]"
                           >
                             {app.freelancer.user.name}
                           </button>
-                          <span className="text-[10px] text-[#8A94A3] block truncate max-w-[150px]">
+                          <span className="text-[11px] text-[#5B6272] block truncate max-w-[150px]">
                             {app.freelancer.professionalHeadline || "Software Engineer"}
                           </span>
                         </div>
                       </div>
-                    </td>
+                    </TD>
 
                     {/* Applied Project */}
-                    <td className="py-4 pr-3 text-left">
-                      <p className="font-bold text-[#333840] truncate max-w-[180px]" title={app.project.title}>
+                    <TD>
+                      <p className="font-bold text-[#5B6272] truncate max-w-[180px]" title={app.project.title}>
                         {app.project.title}
                       </p>
-                      <span className="text-[9px] text-[#8A94A3] block font-semibold">Submitted {new Date(app.createdAt).toLocaleDateString()}</span>
-                    </td>
+                      <span className="text-[11px] text-[#5B6272] block font-semibold">Submitted {new Date(app.createdAt).toLocaleDateString()}</span>
+                    </TD>
 
                     {/* Match Score */}
-                    <td className="py-4 text-center">
-                      <Badge variant="accent" className="font-extrabold text-[10px] py-1 px-2.5">
+                    <TD align="center">
+                      <Badge variant="accent" className="font-bold text-[11px] py-1 px-2.5">
                         <BrainCircuit className="h-3 w-3 mr-0.5" /> {app.aiScore}%
                       </Badge>
-                    </td>
+                    </TD>
 
                     {/* Status Badge & Actions dropdown */}
-                    <td className="py-4 pr-3 text-left">
+                    <TD>
                       <div className="space-y-1.5">
                         {getStatusBadge(app.status)}
                         
@@ -550,7 +535,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                                 handleTransitionStage(app.id, val);
                               }
                             }}
-                            className="px-2 py-1 border border-[#E2E5EA] bg-white text-[10px] rounded-lg focus:outline-none cursor-pointer text-[#5A6472] font-bold"
+                            className="px-2 py-1 border border-[#E3E5EA] bg-white text-[11px] rounded-md focus:outline-none cursor-pointer text-[#5B6272] font-bold"
                           >
                             <option value="Applied">Applied</option>
                             <option value="Profile Reviewed">Profile Reviewed</option>
@@ -571,35 +556,35 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                             <button
                               type="button"
                               onClick={() => handleAction(app.id, "shortlist")}
-                              className="text-[10px] text-emerald-600 hover:text-emerald-700 font-bold underline cursor-pointer"
+                              className="text-[11px] text-[#147A44] hover:text-[#147A44] font-bold underline cursor-pointer"
                             >
                               Shortlist
                             </button>
                           )}
                         </div>
                       </div>
-                    </td>
+                    </TD>
 
                     {/* Specs Details */}
-                    <td className="py-4 text-center">
-                      <div className="space-y-0.5 text-[10px] text-[#5A6472] font-bold">
-                        <p><strong className="text-[#333840]">{app.freelancer.experienceYears}y</strong> exp</p>
-                        <p><strong className="text-[#181d26]">{app.freelancer.rating}/5</strong> rating</p>
-                        <p><strong className="text-emerald-700">{app.freelancer.completionRate}%</strong> done</p>
+                    <TD align="center">
+                      <div className="space-y-0.5 text-[11px] text-[#5B6272] font-bold">
+                        <p><strong className="text-[#5B6272]">{app.freelancer.experienceYears}y</strong> exp</p>
+                        <p><strong className="text-[#1A1D29]">{app.freelancer.rating}/5</strong> rating</p>
+                        <p><strong className="text-[#147A44]">{app.freelancer.completionRate}%</strong> done</p>
                       </div>
-                    </td>
+                    </TD>
 
                     {/* Actions and Workspace Links */}
-                    <td className="py-4 text-right pr-2">
+                    <TD align="right">
                       <div className="flex flex-col items-end gap-1.5">
                         {isHired ? (
                           <Link href={`/workspace/${app.id}`} target="_blank">
-                            <Button size="xs" className="cursor-pointer bg-[#181d26] hover:bg-[#333840] text-white text-[9px] py-1 px-2.5 h-auto rounded-lg font-bold">
+                            <Button size="xs" className="cursor-pointer bg-[#152C55] hover:bg-[#1E3D71] text-white text-[11px] py-1 px-2.5 h-auto rounded-full font-bold">
                               Open Workspace
                             </Button>
                           </Link>
                         ) : isRejected ? (
-                          <span className="text-[10px] text-[#8A94A3] font-bold">Closed</span>
+                          <span className="text-[11px] text-[#5B6272] font-bold">Closed</span>
                         ) : (
                           <>
                             {currentStage === "Interview" && (
@@ -607,7 +592,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                                 size="xs"
                                 variant="secondary"
                                 onClick={() => setSchedulingApp(app)}
-                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-[#F7F8FA] border border-[#E2E5EA] text-[#181d26] font-bold"
+                                className="cursor-pointer text-[11px] py-1 px-2.5 h-auto rounded-full bg-[#F8F9FB] border border-[#E3E5EA] text-[#1A1D29] font-bold"
                               >
                                 Schedule Meet
                               </Button>
@@ -616,7 +601,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                               <Button
                                 size="xs"
                                 onClick={() => handleAction(app.id, "hire")}
-                                className="cursor-pointer text-[9px] py-1 px-2.5 h-auto rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                className="cursor-pointer text-[11px] py-1 px-2.5 h-auto rounded-full bg-[#14713D] hover:bg-[#14713D] text-white font-bold"
                               >
                                 Sign & Hire
                               </Button>
@@ -626,18 +611,18 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                         <Link href={`/company/applicants/${app.id}`}>
                           <button
                             type="button"
-                            className="text-[10px] text-[#181d26] hover:text-[#5A6472] font-bold hover:underline flex items-center gap-0.5 justify-end cursor-pointer"
+                            className="text-[11px] text-[#1A1D29] hover:text-[#5B6272] font-bold hover:underline flex items-center gap-0.5 justify-end cursor-pointer"
                           >
                             View Details <ChevronRight className="h-2.5 w-2.5" />
                           </button>
                         </Link>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 );
               })}
-            </tbody>
-          </table>
+            </TBody>
+          </Table>
           </div>
         </Card>
       ) : (
@@ -653,8 +638,8 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
             : "Applied";
 
           return (
-            <Card key={app.id} className="p-6 border-[#EDEFF2] bg-white shadow-sm">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-3 border-b border-[#E2E5EA] mb-4">
+            <Card key={app.id} className="p-6 border-[#E3E5EA] bg-white">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-3 border-b border-[#E3E5EA] mb-4">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -666,13 +651,13 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                         setSelectedAppIds(selectedAppIds.filter(id => id !== app.id));
                       }
                     }}
-                    className="rounded border-[#C7CCD4] focus:ring-[#181d26] h-4 w-4 cursor-pointer mr-1 shrink-0"
+                    className="rounded-md border-[#E3E5EA] focus:ring-[#152C55] h-4 w-4 cursor-pointer mr-1 shrink-0"
                   />
                   <button
                     type="button"
                     onClick={() => app.freelancer.user.image && setLightboxImage(app.freelancer.user.image)}
                     disabled={!app.freelancer.user.image}
-                    className={`h-10 w-10 rounded-xl bg-[#EDEFF2] flex items-center justify-center font-bold text-[#181d26] shrink-0 overflow-hidden border border-[#E2E5EA]/50 ${
+                    className={`h-10 w-10 rounded-full bg-[#F0F3F9] flex items-center justify-center font-bold text-[#1A1D29] shrink-0 overflow-hidden border border-[#E3E5EA]/50 ${
                       app.freelancer.user.image ? "cursor-zoom-in hover:brightness-95 transition-all" : ""
                     }`}
                     title={app.freelancer.user.image ? "Click to view full image" : undefined}
@@ -686,12 +671,12 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                   <div>
                     <h3
                       onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
-                      className="text-sm font-bold text-[#181d26] hover:text-[#5A6472] cursor-pointer transition-colors"
+                      className="text-sm font-bold text-[#1A1D29] hover:text-[#5B6272] cursor-pointer transition-colors"
                     >
                       {app.freelancer.user.name}
                     </h3>
-                    <p className="text-[10px] text-[#5A6472]">
-                      Applied for: <strong className="text-[#181D26]">{app.project.title}</strong>
+                    <p className="text-[11px] text-[#5B6272]">
+                      Applied for: <strong className="text-[#1A1D29]">{app.project.title}</strong>
                     </p>
                   </div>
                 </div>
@@ -706,38 +691,38 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               </div>
 
               {/* Freelancer Specs Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-[#5A6472] mb-4 bg-[#F7F8FA] p-4 rounded-xl border border-[#EDEFF2]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-[#5B6272] mb-4 bg-[#F8F9FB] p-4 rounded-lg border border-[#E3E5EA]">
                 <div>
-                  <span className="text-[10px] text-[#5A6472] block">Experience</span>
-                  <span className="font-bold text-[#181D26]">{app.freelancer.experienceYears} Years</span>
+                  <span className="text-[11px] text-[#5B6272] block">Experience</span>
+                  <span className="font-bold text-[#1A1D29]">{app.freelancer.experienceYears} Years</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#5A6472] block">Average Rating</span>
-                  <span className="font-semibold text-[#181d26] flex items-center gap-1">
+                  <span className="text-[11px] text-[#5B6272] block">Average Rating</span>
+                  <span className="font-semibold text-[#1A1D29] flex items-center gap-1">
                     {app.freelancer.rating}/5
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#5A6472] block">Completion Rate</span>
-                  <span className="font-bold text-emerald-700">{app.freelancer.completionRate}%</span>
+                  <span className="text-[11px] text-[#5B6272] block">Completion Rate</span>
+                  <span className="font-bold text-[#147A44]">{app.freelancer.completionRate}%</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#5A6472] block">Gigs Completed</span>
-                  <span className="font-bold text-[#181D26]">{app.freelancer.completedProjects} Jobs</span>
+                  <span className="text-[11px] text-[#5B6272] block">Gigs Completed</span>
+                  <span className="font-bold text-[#1A1D29]">{app.freelancer.completedProjects} Jobs</span>
                 </div>
               </div>
 
               {/* Freelancer Skills */}
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {app.freelancer.skills.map((skill) => (
-                  <Badge key={skill} variant="neutral" className="text-[9px]">
+                  <Badge key={skill} variant="neutral" className="text-[11px]">
                     {skill}
                   </Badge>
                 ))}
               </div>
 
               {/* Action Handles */}
-              <div className="space-y-3.5 pt-3 border-t border-[#E2E5EA]">
+              <div className="space-y-3.5 pt-3 border-t border-[#C7CBD6]">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Link href={`/company/applicants/${app.id}`}>
@@ -754,7 +739,7 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                       onClick={() => router.push(`/freelancers/${app.freelancer.id}`)}
                       className="cursor-pointer text-xs gap-1.5 font-bold"
                     >
-                      <User className="h-3.5 w-3.5 text-[#181d26]" /> View Profile
+                      <User className="h-3.5 w-3.5 text-[#1A1D29]" /> View Profile
                     </Button>
                   </div>
 
@@ -773,40 +758,29 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
 
       {/* Interview Scheduler Modal Overlay */}
       {schedulingApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div
-            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-pointer"
-            onClick={() => setSchedulingApp(null)}
-          />
-          <Card className="relative w-full max-w-md p-6 z-10 border-[#EDEFF2] bg-white shadow-2xl space-y-4 rounded-3xl">
-            <button
-              onClick={() => setSchedulingApp(null)}
-              className="absolute top-4 right-4 p-1.5 text-[#5A6472] hover:text-[#333840] rounded-full hover:bg-[#F7F8FA] cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="space-y-1.5 text-left border-b border-[#EDEFF2] pb-2">
-              <h3 className="text-sm font-black text-[#181d26]">Schedule Video Interview</h3>
-              <p className="text-[10px] text-[#5A6472] font-medium font-semibold">Candidate: <span className="text-[#181d26]">{schedulingApp.freelancer.user.name}</span></p>
+        <Modal open onClose={() => setSchedulingApp(null)} size="lg">
+          <div className="space-y-4">
+            <div className="space-y-1.5 text-left border-b border-[#E3E5EA] pb-2">
+              <h3 className="text-sm font-bold text-[#1A1D29]">Schedule Video Interview</h3>
+              <p className="text-[11px] text-[#5B6272] font-medium font-semibold">Candidate: <span className="text-[#1A1D29]">{schedulingApp.freelancer.user.name}</span></p>
             </div>
 
             <div className="space-y-3 text-left">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Interview Date</label>
+                  <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Interview Date</label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2 border border-[#E2E5EA] rounded-xl text-xs focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#E3E5EA] rounded-md text-xs focus:outline-none"
                     value={interviewDate}
                     onChange={(e) => setInterviewDate(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Interview Time</label>
+                  <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Interview Time</label>
                   <input
                     type="time"
-                    className="w-full px-3 py-2 border border-[#E2E5EA] rounded-xl text-xs focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#E3E5EA] rounded-md text-xs focus:outline-none"
                     value={interviewTime}
                     onChange={(e) => setInterviewTime(e.target.value)}
                   />
@@ -814,17 +788,17 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-[#5A6472] uppercase">Google Meet / Video Link</label>
+                <label className="block text-[11px] font-bold text-[#5B6272] uppercase">Google Meet / Video Link</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-[#E2E5EA] rounded-xl text-xs focus:outline-none"
+                  className="w-full px-3 py-2 border border-[#E3E5EA] rounded-md text-xs focus:outline-none"
                   value={meetLink}
                   onChange={(e) => setMeetLink(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EDEFF2]">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E3E5EA]">
               <Button
                 variant="outline"
                 size="sm"
@@ -838,30 +812,27 @@ export function ApplicantsList({ applicants, projects, selectedProjectId }: Appl
                 size="sm"
                 onClick={handleScheduleInterview}
                 disabled={loadingId !== null}
-                className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                className="cursor-pointer text-xs bg-[#14713D] hover:bg-[#14713D] text-white font-semibold"
               >
                 {loadingId === `${schedulingApp.id}-sched` ? "Scheduling..." : "Schedule Round"}
               </Button>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
 
       {/* Lightbox Zoom-In Modal Overlay */}
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div
-            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-zoom-out"
-            onClick={() => setLightboxImage(null)}
-          />
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setLightboxImage(null)} />
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#181d26]/70 hover:bg-[#181d26] transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#152C55]/70 hover:bg-[#152C55] transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-lg overflow-hidden shadow-lg bg-black flex items-center justify-center">
             <img src={lightboxImage} alt="lightbox preview" className="object-contain max-h-[80vh] max-w-[90vw]" />
           </div>
         </div>

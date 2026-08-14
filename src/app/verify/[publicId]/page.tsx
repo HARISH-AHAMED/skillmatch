@@ -34,7 +34,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
       <Navbar />
       <main className="flex-grow max-w-2xl w-full mx-auto px-6 py-12">
         {!cert ? (
-          <div className="bg-white border border-hairline rounded-[12px] p-10 text-center space-y-3">
+          <div className="bg-white border border-hairline rounded-lg p-10 text-center space-y-3">
             <div className="h-12 w-12 rounded-full bg-surface-soft border border-hairline flex items-center justify-center mx-auto">
               <Search className="h-5 w-5 text-muted" />
             </div>
@@ -49,7 +49,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
           <div className="space-y-4">
             {/* Verification verdict — the single thing a visitor came here for */}
             <div
-              className={`rounded-[12px] border p-4 flex items-start gap-3 ${
+              className={`rounded-lg border p-4 flex items-start gap-3 ${
                 cert.revokedAt
                   ? "bg-danger-surface border-danger-border"
                   : "bg-success-surface border-success-border/40"
@@ -75,9 +75,9 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
             </div>
 
             {/* The certificate itself */}
-            <div className="bg-white border border-hairline rounded-[12px] overflow-hidden">
+            <div className="bg-white border border-hairline rounded-lg overflow-hidden">
               <div className="bg-ink px-8 py-6 text-center">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
                   Talentra Verified Credential
                 </p>
                 <h1 className="text-xl font-semibold text-white mt-1">Certificate of Completion</h1>
@@ -112,7 +112,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
                     <p className="text-[11px] uppercase tracking-wider text-muted">Skills demonstrated</p>
                     <div className="flex flex-wrap gap-1.5 justify-center">
                       {cert.skills.map((s) => (
-                        <Badge key={s} variant="secondary" className="text-[10px]">
+                        <Badge key={s} variant="secondary" className="text-[11px]">
                           {s}
                         </Badge>
                       ))}
@@ -124,14 +124,14 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
                   <div className="flex items-start gap-2">
                     <Building2 className="h-4 w-4 text-muted shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted">Issued by</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted">Issued by</p>
                       <p className="text-xs font-semibold text-ink">{cert.issuerName}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <User className="h-4 w-4 text-muted shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted">Issued on</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted">Issued on</p>
                       <p className="text-xs font-semibold text-ink">
                         {new Date(cert.issuedAt).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -144,7 +144,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
                 </div>
 
                 <div className="pt-3 border-t border-hairline">
-                  <p className="text-[10px] uppercase tracking-wider text-muted">Credential ID</p>
+                  <p className="text-[11px] uppercase tracking-wider text-muted">Credential ID</p>
                   <p className="font-mono text-sm text-ink tracking-wider mt-0.5">{cert.publicId}</p>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { EmptyStateAstronaut } from "@/components/ui/AppBlocks";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -23,30 +24,31 @@ export default async function FreelancerCertificatesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-black tracking-tight text-[#181d26]">My Certificates</h1>
-        <p className="mt-1 text-xs text-[#5A6472]">
+        <h1 className="text-2xl font-bold tracking-tight text-[#1A1D29]">My Certificates</h1>
+        <p className="mt-1 text-xs text-[#5B6272]">
           Certificates issued to you when a company marked a project complete. Each one is
           independently verifiable and can be downloaded as a PDF.
         </p>
-      </div>
+            <EmptyStateAstronaut title="No certificates yet" subtitle="They appear here once a company completes a project you were hired on." />
+          </div>
 
       {certificates.length === 0 ? (
-        <Card className="p-10 text-center text-xs text-[#5A6472]">
-          No certificates yet. They appear here once a company completes a project you were hired on.
+        <Card className="p-10 text-center text-xs text-[#5B6272]">
+          
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {certificates.map((cert) => (
             <Card key={cert.id} className="flex items-start gap-3 p-5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1968E5]/10 text-[#1968E5]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EAF1FE]/10 text-[#2159C9]">
                 <Award className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-bold text-[#181d26]">{cert.projectTitle}</h2>
-                <p className="truncate text-[11px] text-[#5A6472]">
+                <h2 className="truncate text-sm font-bold text-[#1A1D29]">{cert.projectTitle}</h2>
+                <p className="truncate text-[11px] text-[#5B6272]">
                   {cert.roleTitle} • {cert.issuerName}
                 </p>
-                <p className="mt-0.5 text-[11px] text-[#8A94A3]">
+                <p className="mt-0.5 text-[11px] text-[#5B6272]">
                   Issued {new Date(cert.issuedAt).toLocaleDateString()} • ID {cert.publicId}
                 </p>
                 <Link href={`/freelancer/certificates/${cert.publicId}`} className="mt-3 inline-block">

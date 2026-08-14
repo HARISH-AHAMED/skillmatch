@@ -14,24 +14,24 @@ export default function ContactPage() {
         {/* Info panel */}
         <div className="space-y-6">
           <Badge variant="accent" className="w-fit">Get in Touch</Badge>
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
             How Can We Help You?
           </h1>
-          <p className="text-[#8A94A3] text-sm leading-relaxed max-w-md">
+          <p className="text-[#5B6272] text-sm leading-relaxed max-w-md">
             Have questions about our matching engine, custom company billing tiers, or platform features? Send us a message and our team will reply within 12 hours.
           </p>
 
-          <div className="space-y-4 pt-4 text-sm text-[#C7CCD4]">
+          <div className="space-y-4 pt-4 text-sm text-[#2159C9]">
             <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-indigo-400" />
+              <Mail className="h-5 w-5 text-[#2159C9]" />
               <span>support@skillmatch.ai</span>
             </div>
             <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 text-indigo-400" />
+              <Phone className="h-5 w-5 text-[#2159C9]" />
               <span>+1 (555) 349-9230</span>
             </div>
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-indigo-400" />
+              <MapPin className="h-5 w-5 text-[#2159C9]" />
               <span>Austin, Texas, USA</span>
             </div>
           </div>
@@ -39,14 +39,14 @@ export default function ContactPage() {
 
         {/* Contact Form */}
         <Card className="p-8 space-y-6">
-          <h2 className="text-xl font-bold text-[#E2E5EA]">Send Message</h2>
+          <h2 className="text-xl font-bold text-[#5B6272]">Send Message</h2>
           <div className="space-y-4">
             <Input label="Your Name" placeholder="Alex Carter" />
             <Input label="Email Address" type="email" placeholder="alex@gmail.com" />
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#8A94A3]">Message Description</label>
+              <label className="block text-xs font-semibold text-[#5B6272]">Message Description</label>
               <textarea
-                className="w-full min-h-[100px] px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 glass-input border border-[#181D26] focus:border-indigo-500 focus:ring-indigo-500/20"
+                className="w-full min-h-[100px] px-4 py-2.5 rounded-md text-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 glass-input border border-[#1A1D29] focus:border-[#C7CBD6] focus:ring-[#2E6BEA]/20"
                 placeholder="What details are you inquiring about?"
               />
             </div>

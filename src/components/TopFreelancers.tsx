@@ -26,46 +26,46 @@ interface TopFreelancersProps {
 
 const rankStyles = [
   {
-    bg: "from-[#181d26] via-[#333840] to-[#181d26]",
-    text: "text-amber-600",
-    glow: "shadow-sm border-[#181d26]/25 ring-1 ring-[#181d26]/10",
-    badge: "bg-[#181d26] text-white border-[#181d26]",
-    icon: "text-amber-500",
-    titleColor: "text-[#181d26]",
+    bg: "from-[#152C55] via-[#1E3D71] to-[#152C55]",
+    text: "text-[#8F5E08]",
+    glow: " border-[#1A1D29]/25 ring-1 ring-[#152C55]/10",
+    badge: "bg-[#152C55] text-white border-[#1A1D29]",
+    icon: "text-[#8F5E08]",
+    titleColor: "text-[#1A1D29]",
   },
   {
-    bg: "from-[#1968E5] via-[#134FB0] to-[#1968E5]",
-    text: "text-[#5A6472]",
-    glow: "shadow-sm border-[#E2E5EA] ring-1 ring-[#E2E5EA]/60",
-    badge: "bg-[#1968E5]/10 text-[#181d26] border-[#1968E5]/25",
-    icon: "text-[#8A94A3]",
-    titleColor: "text-[#181d26]",
+    bg: "from-[#EAF1FE] via-[#F0F3F9] to-[#EAF1FE]",
+    text: "text-[#5B6272]",
+    glow: " border-[#E3E5EA] ring-1 ring-[#2E6BEA]/60",
+    badge: "bg-[#EAF1FE]/10 text-[#1A1D29] border-[#C7CBD6]/25",
+    icon: "text-[#5B6272]",
+    titleColor: "text-[#1A1D29]",
   },
   {
-    bg: "from-[#134FB0] via-[#7cc9f2] to-[#134FB0]",
-    text: "text-[#a1662f]",
-    glow: "shadow-sm border-[#a1662f]/25 ring-1 ring-[#a1662f]/10",
-    badge: "bg-[#134FB0]/10 text-[#181d26] border-[#134FB0]/30",
-    icon: "text-[#a1662f]",
-    titleColor: "text-[#181d26]",
+    bg: "from-[#F0F3F9] via-[#E8F1FE] to-[#F0F3F9]",
+    text: "text-[#2159C9]",
+    glow: " border-[#C7CBD6]/25 ring-1 ring-[#2E6BEA]/10",
+    badge: "bg-[#EAF1FE]/10 text-[#1A1D29] border-[#E3E5EA]/30",
+    icon: "text-[#2159C9]",
+    titleColor: "text-[#1A1D29]",
   },
 ];
 
 function getMedalIcon(rank: number) {
-  if (rank === 1) return <Trophy className="h-4 w-4 text-amber-500" />;
-  if (rank === 2) return <Medal className="h-4 w-4 text-[#8A94A3]" />;
-  if (rank === 3) return <Medal className="h-4 w-4 text-[#a1662f]" />;
+  if (rank === 1) return <Trophy className="h-4 w-4 text-[#8F5E08]" />;
+  if (rank === 2) return <Medal className="h-4 w-4 text-[#5B6272]" />;
+  if (rank === 3) return <Medal className="h-4 w-4 text-[#2159C9]" />;
   return null;
 }
 
 function getAvailabilityDot(status: string | null) {
   switch (status) {
     case "AVAILABLE":
-      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm" title="Available" />;
+      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#14713D] border-2 border-white" title="Available" />;
     case "BUSY":
-      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-amber-400 border-2 border-white shadow-sm" title="Busy" />;
+      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#FFF3DC] border-2 border-white" title="Busy" />;
     default:
-      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#C7CCD4] border-2 border-white shadow-sm" title="Unavailable" />;
+      return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#EAF1FE] border-2 border-white" title="Unavailable" />;
   }
 }
 
@@ -104,30 +104,30 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E5EA] pb-4 text-left">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E3E5EA] pb-4 text-left">
         <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-[#181d26]">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#152C55]">
             <Trophy className="h-6 w-6 text-white" />
           </div>
           <div className="text-left">
-            <h2 className="flex items-center gap-2 text-2xl font-black leading-tight tracking-tight text-[#181d26]">
+            <h2 className="flex items-center gap-2 text-2xl font-bold leading-tight tracking-tight text-[#1A1D29]">
               Top Talent Leaderboard
-              <Sparkles className="h-3.5 w-3.5 text-[#181d26]" />
+              <Sparkles className="h-3.5 w-3.5 text-[#1A1D29]" />
             </h2>
-            <p className="text-[10px] text-[#5A6472] font-normal tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
+            <p className="text-[11px] text-[#5B6272] font-normal tracking-wide">Dynamic ranking calculated from client satisfaction, AI performance scores, and milestones completed.</p>
           </div>
         </div>
-        <div className="w-fit rounded-[12px] border border-[#E2E5EA] bg-white px-5 py-3 text-left shadow-xs">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f1f3f6]">
-            <Star className="h-3 w-3 fill-[#5A6472] text-[#5A6472]" />
+        <div className="w-fit rounded-lg border border-[#E3E5EA] bg-white px-5 py-3 text-left">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F0F3F9]">
+            <Star className="h-3 w-3 fill-[#F1F2F4] text-[#5B6272]" />
           </span>
-          <p className="mt-1.5 text-2xl font-black leading-none text-[#181d26]">{reranked.length}</p>
-          <p className="mt-1 max-w-[90px] text-[10px] font-semibold uppercase leading-tight tracking-wider text-[#5A6472]">Specialists Ranked</p>
+          <p className="mt-1.5 text-2xl font-bold leading-none text-[#1A1D29]">{reranked.length}</p>
+          <p className="mt-1 max-w-[90px] text-[11px] font-semibold uppercase leading-tight tracking-wider text-[#5B6272]">Specialists Ranked</p>
         </div>
       </div>
 
       {/* Domain tabs selector */}
-      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-[#E2E5EA] scrollbar-track-transparent">
+      <div className="flex overflow-x-auto whitespace-nowrap pb-3 mb-2 gap-2 scrollbar-thin scrollbar-thumb-[#F0F3F9] scrollbar-track-transparent">
         {DOMAIN_TABS.map(tab => {
           const count = tab.value === "ALL" 
             ? topFreelancers.length 
@@ -139,18 +139,18 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               type="button"
               onClick={() => setActiveDomain(tab.value)}
               className={cn(
-                "px-4 py-2 rounded-[12px] text-xs font-medium transition-all border shrink-0 flex items-center gap-1.5",
+                "px-4 py-2 rounded-full text-xs font-medium transition-all border shrink-0 flex items-center gap-1.5",
                 activeDomain === tab.value
-                  ? "bg-[#181d26] text-white border-[#181d26]"
-                  : "bg-white text-[#5A6472] border-[#E2E5EA] hover:bg-[#F7F8FA] hover:text-[#181d26] cursor-pointer"
+                  ? "bg-[#152C55] text-white border-[#1A1D29]"
+                  : "bg-white text-[#5B6272] border-[#E3E5EA] hover:bg-[#F8F9FB] hover:text-[#1A1D29] cursor-pointer"
               )}
             >
               <span>{tab.label}</span>
               <span className={cn(
-                "px-1.5 py-0.5 rounded-[6px] text-[9px] font-medium",
+                "px-1.5 py-0.5 rounded-full text-[11px] font-medium",
                 activeDomain === tab.value 
                   ? "bg-white/20 text-white" 
-                  : "bg-[#F7F8FA] text-[#5A6472]"
+                  : "bg-[#F8F9FB] text-[#5B6272]"
               )}>
                 {count}
               </span>
@@ -160,14 +160,14 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
       </div>
 
       {/* Aligned unified ranking list */}
-      <div className="bg-white border border-[#E2E5EA] rounded-[12px] overflow-hidden shadow-xs">
+      <div className="bg-white border border-[#E3E5EA] rounded-lg overflow-hidden">
         {rest.length === 0 ? (
           <div className="p-10 text-center bg-white space-y-2">
-            <p className="text-sm font-bold text-[#333840]">No Specialists Ranked Yet</p>
-            <p className="text-xs text-[#8A94A3]">There are currently no active freelancers in this domain with milestones completed.</p>
+            <p className="text-sm font-bold text-[#5B6272]">No Specialists Ranked Yet</p>
+            <p className="text-xs text-[#5B6272]">There are currently no active freelancers in this domain with milestones completed.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#EDEFF2]/80">
+          <div className="divide-y divide-[#E3E5EA]/80">
             {rest.map((f) => {
               const isRank1 = f.rank === 1;
               const isRank2 = f.rank === 2;
@@ -175,10 +175,10 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
               const isTop3 = isRank1 || isRank2 || isRank3;
 
               const highlightClass = isRank1
-                ? "bg-[#fdfcf7] hover:bg-[#faf7ee]"
+                ? "bg-[#FFF3DC] hover:bg-[#FFF3DC]"
                 : isRank2
-                ? "bg-[#f6f7f9] hover:bg-[#eef0f3]"
-                : "bg-white hover:bg-[#F7F8FA]";
+                ? "bg-[#F8F9FB] hover:bg-[#E8F1FE]"
+                : "bg-white hover:bg-[#F8F9FB]";
 
               return (
                 <div
@@ -193,13 +193,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     <div className="flex w-[70px] shrink-0 items-center gap-3 text-left">
                       <span className={cn(
                         "text-sm font-bold",
-                        isRank1 ? "text-amber-600" : isRank2 ? "text-[#5A6472]" : isRank3 ? "text-[#a1662f]" : "text-[#5A6472]"
+                        isRank1 ? "text-[#8F5E08]" : isRank2 ? "text-[#5B6272]" : isRank3 ? "text-[#2159C9]" : "text-[#5B6272]"
                       )}>
                         #{f.rank}
                       </span>
                       <Star className={cn(
                         "h-4 w-4",
-                        isRank1 ? "fill-amber-500 text-amber-500" : isRank2 ? "fill-[#8A94A3] text-[#8A94A3]" : isRank3 ? "fill-[#a1662f] text-[#a1662f]" : "text-[#C7CCD4]"
+                        isRank1 ? "fill-[#B9790A] text-[#8F5E08]" : isRank2 ? "fill-[#F1F2F4] text-[#5B6272]" : isRank3 ? "fill-[#2E6BEA] text-[#2159C9]" : "text-[#2159C9]"
                       )} />
                     </div>
 
@@ -209,17 +209,17 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                       onClick={() => f.image && setLightboxImage(f.image)}
                       disabled={!f.image}
                       className={cn(
-                        "relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#E2E5EA] bg-[#F7F8FA] p-0 text-left",
+                        "relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#C7CBD6] bg-[#F8F9FB] p-0 text-left",
                         f.image ? "cursor-zoom-in hover:opacity-95 transition-all" : ""
                       )}
                       title={f.image ? "Click to view full image" : undefined}
                     >
                       {f.image ? (
-                        <img src={f.image} alt={f.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                        <img src={f.image} alt={f.name} className="h-full w-full object-cover transition-transform group-" />
                       ) : (
                         <div className={cn(
-                          "h-full w-full flex items-center justify-center text-sm font-black text-white",
-                          "bg-[#5b6472]"
+                          "h-full w-full flex items-center justify-center text-sm font-bold text-white",
+                          "bg-[#F1F2F4]"
                         )}>
                           {f.name[0]?.toUpperCase()}
                         </div>
@@ -231,13 +231,13 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     <div className="hidden min-w-0 text-left xl:block">
                       <p
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="text-xs font-black text-[#181d26] truncate cursor-pointer hover:text-[#181d26] hover:underline transition-colors"
+                        className="text-xs font-bold text-[#1A1D29] truncate cursor-pointer hover:text-[#1A1D29] hover:underline transition-colors"
                       >
                         {f.name}
                       </p>
                       <p
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="text-[9px] font-semibold text-[#8A94A3] truncate mt-0.5 cursor-pointer hover:text-[#181d26] transition-colors"
+                        className="text-[11px] font-semibold text-[#5B6272] truncate mt-0.5 cursor-pointer hover:text-[#1A1D29] transition-colors"
                       >
                         {f.headline || "Elite Specialist"}
                       </p>
@@ -247,12 +247,12 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                   {/* Right columns: metrics + composite score */}
                   <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
                     {/* Stats chips */}
-                    <div className="flex items-center gap-6 text-xs font-semibold text-[#181d26]">
+                    <div className="flex items-center gap-6 text-xs font-semibold text-[#1A1D29]">
                       <span className="flex items-center gap-1">
-                        <BarChart3 className="h-4 w-4 text-[#181d26]" />
+                        <BarChart3 className="h-4 w-4 text-[#1A1D29]" />
                         {f.completedProjects}
                       </span>
-                      <span className="flex items-center gap-1 text-[#181d26]">
+                      <span className="flex items-center gap-1 text-[#1A1D29]">
                         <Zap className="h-3.5 w-3.5" />
                         {f.avgAiScore.toFixed(0)}%
                       </span>
@@ -261,14 +261,14 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
                     {/* Composite badge */}
                     <div className="flex items-center gap-3">
                       <span className={cn(
-                        "rounded-[10px] border border-transparent bg-[#f1f3f6] px-3 py-1.5 text-xs font-bold",
-                        isRank1 ? "text-[#1968E5]" : "text-[#181d26]"
+                        "rounded-full border border-transparent bg-[#E8F1FE] px-3 py-1.5 text-xs font-bold",
+                        isRank1 ? "text-[#2159C9]" : "text-[#1A1D29]"
                       )}>
                         {f.compositeScore.toFixed(1)}
                       </span>
                       <button
                         onClick={() => router.push(`/freelancers/${f.id}`)}
-                        className="p-1 rounded-lg hover:bg-[#EDEFF2] text-[#8A94A3] hover:text-[#181d26] transition-all cursor-pointer border border-transparent hover:border-[#E2E5EA]/50"
+                        className="p-1 rounded-full hover:bg-[#F0F3F9] text-[#5B6272] hover:text-[#1A1D29] transition-all cursor-pointer border border-transparent hover:border-[#E3E5EA]/50"
                         title="View Profile"
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -285,7 +285,7 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
         {reranked.length > 7 && (
           <button
             onClick={() => setExpanded((p) => !p)}
-            className="mx-auto my-4 flex w-fit items-center justify-center gap-2 rounded-[10px] border border-[#E2E5EA] bg-white px-8 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#181d26] transition-colors hover:bg-[#F7F8FA] cursor-pointer"
+            className="mx-auto my-4 flex w-fit items-center justify-center gap-2 rounded-full border border-[#E3E5EA] bg-white px-8 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#1A1D29] transition-colors hover:bg-[#F8F9FB] cursor-pointer"
           >
             {expanded ? "Show less" : `Show ${reranked.length - 7} more`}
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200", expanded ? "-rotate-90" : "rotate-90")} />
@@ -296,18 +296,15 @@ export function TopFreelancers({ topFreelancers }: TopFreelancersProps) {
       {/* Lightbox Zoom-In Modal Overlay */}
       {lightboxImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div
-            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm cursor-zoom-out"
-            onClick={() => setLightboxImage(null)}
-          />
+          <div className="absolute inset-0 bg-[#1A1D29]/50 cursor-zoom-out" onClick={() => setLightboxImage(null)} />
           <button
             onClick={() => setLightboxImage(null)}
-            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#181d26]/70 hover:bg-[#181d26] transition-colors cursor-pointer z-10"
+            className="absolute top-5 right-5 p-2 text-white/80 hover:text-white rounded-full bg-[#152C55]/70 hover:bg-[#152C55] transition-colors cursor-pointer z-10"
             title="Close image overlay"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+          <div className="relative max-w-full max-h-[85vh] z-10 animate-in zoom-in-95 duration-200 rounded-lg overflow-hidden shadow-lg bg-black flex items-center justify-center">
             <img src={lightboxImage} alt="lightbox preview" className="object-contain max-h-[80vh] max-w-[90vw]" />
           </div>
         </div>

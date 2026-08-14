@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { Plus, X, UserPlus } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { Plus, UserPlus } from "lucide-react";
 import { Role } from "@prisma/client";
 
 export function AddUserModal() {
@@ -75,44 +76,29 @@ export function AddUserModal() {
         <Plus className="h-4 w-4" /> Add New User
       </Button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-[#181d26]/80 backdrop-blur-sm"
-            onClick={() => !loading && setIsOpen(false)}
-          />
-
-          {/* Modal Container */}
-          <Card className="relative w-full max-w-md p-8 z-10 border-[#EDEFF2] bg-white shadow-2xl rounded-3xl animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
-            <button
-              onClick={() => setIsOpen(false)}
-              disabled={loading}
-              className="absolute top-5 right-5 p-1 text-[#8A94A3] hover:text-[#333840] rounded-full hover:bg-[#F7F8FA] transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-[#EDEFF2] mb-6">
-              <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100">
-                <UserPlus className="h-5 w-5 text-[#181d26]" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-[#181d26]">Add New User</h3>
-                <p className="text-[10px] text-[#5A6472] font-medium">Create a new platform workspace account</p>
-              </div>
-            </div>
-
+      <Modal
+        open={isOpen}
+        onClose={() => !loading && setIsOpen(false)}
+        size="lg"
+        title={
+          <span className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF1FE]">
+              <UserPlus className="h-5 w-5 text-[#2159C9]" aria-hidden="true" />
+            </span>
+            Add New User
+          </span>
+        }
+        description="Create a new platform workspace account"
+      >
+        <div>
             {/* Error / Success Feedback */}
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700 mb-4 animate-in fade-in duration-150">
+              <div className="p-3 bg-[#FDEAEA] border border-[#F5C2C2] rounded-lg text-xs font-semibold text-[#BC2A2A] mb-4 animate-in fade-in duration-150">
                 {error}
               </div>
             )}
             {success && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 mb-4 animate-in fade-in duration-150">
+              <div className="p-3 bg-[#E4F7EC] border border-[#BFE9D2] rounded-lg text-xs font-semibold text-[#147A44] mb-4 animate-in fade-in duration-150">
                 {success}
               </div>
             )}
@@ -160,7 +146,7 @@ export function AddUserModal() {
                 ]}
               />
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-[#EDEFF2] mt-6">
+              <div className="flex gap-3 justify-end pt-4 border-t border-[#E3E5EA] mt-6">
                 <Button
                   type="button"
                   variant="outline"
@@ -175,9 +161,8 @@ export function AddUserModal() {
                 </Button>
               </div>
             </form>
-          </Card>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

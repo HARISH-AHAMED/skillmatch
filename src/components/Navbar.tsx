@@ -13,44 +13,44 @@ export async function Navbar() {
     : "/login";
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E2E5EA]">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E3E5EA]">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
-          <div className="h-8 w-8 rounded-lg bg-[#181d26] flex items-center justify-center text-white">
+          <div className="h-8 w-8 rounded-lg bg-[#152C55] flex items-center justify-center text-white">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <span className="font-medium text-[#181d26] tracking-tight text-lg">Talentra</span>
+          <span className="font-medium text-[#1A1D29] tracking-tight text-lg">Talentra</span>
         </Link>
 
         {/* Links */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-normal text-[#333840]">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-normal text-[#5B6272]">
           {!session?.user ? (
             <>
-              <Link href="/features" className="hover:text-[#181d26] transition-colors">Platform</Link>
-              <Link href="/about" className="hover:text-[#181d26] transition-colors">Solutions</Link>
-              <Link href="/contact" className="hover:text-[#181d26] transition-colors">Resources</Link>
+              <Link href="/features" className="hover:text-[#1A1D29] transition-colors">Platform</Link>
+              <Link href="/about" className="hover:text-[#1A1D29] transition-colors">Solutions</Link>
+              <Link href="/contact" className="hover:text-[#1A1D29] transition-colors">Resources</Link>
             </>
           ) : session.user.role === "FREELANCER" ? (
             <>
-              <Link href="/freelancer/dashboard" className="hover:text-[#181d26] transition-colors">Dashboard</Link>
-              <Link href="/freelancer/projects" className="hover:text-[#181d26] transition-colors">Browse Projects</Link>
-              <Link href="/freelancer/applications" className="hover:text-[#181d26] transition-colors">Track Applications</Link>
-              <Link href="/freelancer/profile" className="hover:text-[#181d26] transition-colors">My Profile</Link>
+              <Link href="/freelancer/dashboard" className="hover:text-[#1A1D29] transition-colors">Dashboard</Link>
+              <Link href="/freelancer/projects" className="hover:text-[#1A1D29] transition-colors">Browse Projects</Link>
+              <Link href="/freelancer/applications" className="hover:text-[#1A1D29] transition-colors">Track Applications</Link>
+              <Link href="/freelancer/profile" className="hover:text-[#1A1D29] transition-colors">My Profile</Link>
             </>
           ) : session.user.role === "COMPANY" ? (
             <>
-              <Link href="/company/dashboard" className="hover:text-[#181d26] transition-colors">Dashboard</Link>
-              <Link href="/company/projects/new" className="hover:text-[#181d26] transition-colors">Post a Gig</Link>
-              <Link href="/company/projects" className="hover:text-[#181d26] transition-colors">Manage Gigs</Link>
-              <Link href="/company/applicants" className="hover:text-[#181d26] transition-colors">Applicants</Link>
-              <Link href="/company/profile" className="hover:text-[#181d26] transition-colors">My Profile</Link>
+              <Link href="/company/dashboard" className="hover:text-[#1A1D29] transition-colors">Dashboard</Link>
+              <Link href="/company/projects/new" className="hover:text-[#1A1D29] transition-colors">Post a Gig</Link>
+              <Link href="/company/projects" className="hover:text-[#1A1D29] transition-colors">Manage Gigs</Link>
+              <Link href="/company/applicants" className="hover:text-[#1A1D29] transition-colors">Applicants</Link>
+              <Link href="/company/profile" className="hover:text-[#1A1D29] transition-colors">My Profile</Link>
             </>
           ) : (
             <>
-              <Link href="/admin/dashboard" className="hover:text-[#181d26] transition-colors">Admin Dashboard</Link>
-              <Link href="/admin/users" className="hover:text-[#181d26] transition-colors">Users</Link>
-              <Link href="/admin/projects" className="hover:text-[#181d26] transition-colors">Projects</Link>
+              <Link href="/admin/dashboard" className="hover:text-[#1A1D29] transition-colors">Admin Dashboard</Link>
+              <Link href="/admin/users" className="hover:text-[#1A1D29] transition-colors">Users</Link>
+              <Link href="/admin/projects" className="hover:text-[#1A1D29] transition-colors">Projects</Link>
             </>
           )}
         </nav>
@@ -68,7 +68,11 @@ export async function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-medium text-[#333840] hover:text-[#181d26] transition-colors">
+              {/* Min 36px touch target on mobile, per the accessibility rules. */}
+              <Link
+                href="/login"
+                className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-[#5B6272] transition-colors hover:bg-[#F0F3F9] hover:text-[#1A1D29]"
+              >
                 Log In
               </Link>
               <Link href="/register">

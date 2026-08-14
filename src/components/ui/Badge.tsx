@@ -2,29 +2,41 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "primary" | "secondary" | "accent" | "coral" | "cream" | "forest" | "mint" | "peach" | "success" | "warning" | "danger" | "neutral";
+  variant?:
+    | "primary" | "secondary" | "accent" | "coral" | "cream" | "forest"
+    | "mint" | "peach" | "success" | "warning" | "danger" | "neutral";
 }
 
+/**
+ * Status pill. Always pastel background + saturated same-hue text —
+ * never a solid saturated fill. Legacy variant names are kept and folded
+ * onto the six semantic types so call sites stay untouched.
+ */
 export function Badge({ children, className, variant = "neutral", ...props }: BadgeProps) {
   const styles = {
-    primary: "bg-[#E6F0FE] text-[#1968E5] border border-transparent",
-    secondary: "bg-[#F7F8FA] text-[#181d26] border border-[#E2E5EA]",
-    accent: "bg-[#EDF5FD] text-[#1968E5] border border-[#DEEDFC]",
-    coral: "bg-[#B3401E] text-white border border-transparent",
-    cream: "bg-[#FFF7DA] text-[#181d26] border border-[#e0d3bd]",
-    forest: "bg-[#0B1C32] text-white border border-transparent",
-    mint: "bg-[#DEF7EB] text-[#0B1C32] border border-transparent",
-    peach: "bg-[#FFC700] text-[#181d26] border border-transparent",
-    success: "bg-[#DEF7EB] text-[#0F9D58] border border-transparent",
-    warning: "bg-[#FDEEDC] text-[#B4630E] border border-transparent",
-    danger: "bg-[#FDEDEA] text-[#B3401E] border border-transparent",
-    neutral: "bg-[#F7F8FA] text-[#333840] border border-[#E2E5EA]",
+    // Semantic set.
+    success: "bg-[#E4F7EC] text-[#147A44]",
+    warning: "bg-[#FFF3DC] text-[#8F5E08]",
+    danger: "bg-[#FDEAEA] text-[#BC2A2A]",
+    neutral: "bg-[#F1F2F4] text-[#5B6272]",
+    primary: "bg-[#E8F1FE] text-[#2159C9]",
+    secondary: "bg-[#F1F2F4] text-[#5B6272]",
+
+    // Legacy aliases → nearest semantic meaning.
+    accent: "bg-[#E8F1FE] text-[#2159C9]",
+    coral: "bg-[#FDEAEA] text-[#BC2A2A]",
+    cream: "bg-[#FFF3DC] text-[#8F5E08]",
+    peach: "bg-[#FFF3DC] text-[#8F5E08]",
+    forest: "bg-[#E4F7EC] text-[#147A44]",
+    mint: "bg-[#E4F7EC] text-[#147A44]",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[4px] px-2 py-0.5 text-xs font-medium tracking-normal transition-colors duration-150",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5",
+        "text-xs font-medium leading-5 whitespace-nowrap",
+        "border border-transparent transition-colors duration-[180ms]",
         styles[variant],
         className
       )}
@@ -34,4 +46,3 @@ export function Badge({ children, className, variant = "neutral", ...props }: Ba
     </span>
   );
 }
-

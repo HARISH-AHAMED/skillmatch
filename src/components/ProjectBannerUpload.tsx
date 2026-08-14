@@ -38,22 +38,22 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-semibold text-[#333840]">{label}</label>
+      <label className="block text-xs font-semibold text-[#5B6272]">{label}</label>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-dashed border-[#C7CCD4] bg-[#F7F8FA]">
+      <div className="relative w-full overflow-hidden rounded-lg border border-dashed border-[#C7CBD6] bg-[#F8F9FB]">
         {value ? (
           <img src={value} alt="Project banner preview" className="h-44 w-full object-cover sm:h-56" />
         ) : (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-2 text-[#5A6472] transition-colors hover:bg-[#EDEFF2] sm:h-56"
+            className="flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-2 text-[#5B6272] transition-colors hover:bg-[#E8F1FE] sm:h-56"
           >
             {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
             <span className="text-xs font-medium">
               {uploading ? "Uploading..." : "Click to add a cover image"}
             </span>
-            <span className="text-[10px] text-[#8A94A3]">PNG, JPG or WEBP • up to 5MB • can be skipped</span>
+            <span className="text-[11px] text-[#5B6272]">PNG, JPG or WEBP • up to 5MB • can be skipped</span>
           </button>
         )}
       </div>
@@ -64,7 +64,7 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[#E2E5EA] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#333840] hover:border-[#8A94A3] disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E3E5EA] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5B6272] hover:border-[#E3E5EA] disabled:opacity-50"
           >
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Replace
@@ -75,7 +75,7 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
               onChange(null);
               if (inputRef.current) inputRef.current.value = "";
             }}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-600 hover:border-red-400"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#F5C2C2] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#BC2A2A] hover:border-[#F5C2C2]"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Remove
@@ -83,7 +83,7 @@ export function ProjectBannerUpload({ value, onChange, label = "Project Banner I
         </div>
       )}
 
-      {error && <p className="text-[11px] font-medium text-red-600">{error}</p>}
+      {error && <p className="text-[11px] font-medium text-[#BC2A2A]">{error}</p>}
 
       <input
         ref={inputRef}

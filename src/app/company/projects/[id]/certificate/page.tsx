@@ -58,8 +58,8 @@ export default async function CertificateDesignPage({ params }: PageProps) {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
       <div>
-        <h1 className="text-xl font-black text-[#181d26]">Certificate Design</h1>
-        <p className="mt-1 text-xs text-[#5A6472]">
+        <h1 className="text-xl font-bold text-[#1A1D29]">Certificate Design</h1>
+        <p className="mt-1 text-xs text-[#5B6272]">
           Prepare the certificate template for <strong>{project.title}</strong>. Designing a template does not
           issue any certificate — issuance happens separately once work is completed.
         </p>

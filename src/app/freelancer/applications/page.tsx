@@ -24,8 +24,8 @@ export default async function FreelancerApplicationsPage() {
   if (!freelancer) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">My Applications</h1>
-        <Card className="p-8 text-center text-[#5A6472] text-xs">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">My Applications</h1>
+        <Card className="p-8 text-center text-[#5B6272] text-xs">
           Please complete your profile to track application records.
         </Card>
       </div>
@@ -35,8 +35,8 @@ export default async function FreelancerApplicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#181d26]">Application History</h1>
-        <p className="text-xs text-[#5A6472] mt-1">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1A1D29]">Application History</h1>
+        <p className="text-xs text-[#5B6272] mt-1">
           Monitor status updates and cover letters submitted for active gigs
         </p>
       </div>
