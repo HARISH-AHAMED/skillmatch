@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { RecruitmentRound, ROUND_TYPE_CATALOG } from "@/lib/workflowHelpers";
+import { RecruitmentRound, ROUND_TYPE_CATALOG, isRoundTypeSupported } from "@/lib/workflowHelpers";
 
 /**
  * Renders only the configuration fields the selected round type declares in
@@ -17,7 +17,7 @@ export function RoundConfigPanel({
   onChange: (config: NonNullable<RecruitmentRound["config"]>) => void;
 }) {
   const entry = ROUND_TYPE_CATALOG.find((t) => t.value === round.type);
-  if (!entry || entry.fields.length === 0) return null;
+  if (!entry || (entry.fields.length === 0 && isRoundTypeSupported(round.type))) return null;
 
   const cfg = round.config || {};
   const set = (patch: Partial<NonNullable<RecruitmentRound["config"]>>) =>
@@ -29,6 +29,20 @@ export function RoundConfigPanel({
 
   return (
     <div className="space-y-3 border-t border-[#E3E5EA] pt-4 text-left">
+      {/*
+        EVAL-001…006 — a round whose type the platform cannot yet run keeps its
+        stored settings (nothing is deleted) but must say plainly that they are
+        not applied to candidates. Previously these settings were collected and
+        silently ignored.
+      */}
+      {!isRoundTypeSupported(round.type) && (
+        <div className="rounded-lg border border-[#F5DEB0] bg-[#FFF3DC] px-3 py-2">
+          <span className="text-[11px] font-bold text-[#8F5E08]">
+            Coming soon — this round type is not yet run by the platform. These settings are
+            saved but candidates are not asked to complete this round.
+          </span>
+        </div>
+      )}
       <div>
         <h4 className="text-xs font-bold text-[#1A1D29]">Configure: {entry.label}</h4>
         <p className="text-[11px] text-[#5B6272] font-semibold">{entry.description}</p>

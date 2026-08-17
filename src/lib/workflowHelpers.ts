@@ -119,6 +119,34 @@ export const ROUND_TYPE_CATALOG: {
   { value: "FINAL_OFFER_CALL", label: "Final Offer Review Call", description: "Closing call for terms, availability and compensation — not a screening stage.", icon: "PhoneCall", fields: ["instructions", "deadline"] },
 ];
 
+/**
+ * EVAL-001…006 — which round types the platform can actually run.
+ *
+ * The configurator offered 13 types with full per-type settings, but only
+ * SCREENING_QUESTIONS ever reaches a candidate: it is the sole type read by the
+ * apply wizard. There is no per-round submission store, no reviewer workflow
+ * and no progression gating, so the other twelve collected configuration that
+ * was never presented to anyone.
+ *
+ * Product decision (Phase 3): do not build the runtime in this pass; surface
+ * honestly instead. Unsupported types are marked "Coming soon" and cannot be
+ * newly selected. Rounds already configured on existing projects are NOT
+ * deleted — they render read-only and labelled unsupported, so no company
+ * silently loses stored configuration.
+ */
+export const SUPPORTED_ROUND_TYPES: RecruitmentRoundType[] = ["SCREENING_QUESTIONS"];
+
+export function isRoundTypeSupported(type: RecruitmentRoundType): boolean {
+  return SUPPORTED_ROUND_TYPES.includes(type);
+}
+
+/** Label for a round type, suffixed when the platform cannot yet run it. */
+export function roundTypeLabel(type: RecruitmentRoundType): string {
+  const entry = ROUND_TYPE_CATALOG.find((t) => t.value === type);
+  const base = entry?.label ?? type;
+  return isRoundTypeSupported(type) ? base : base + " (Coming soon)";
+}
+
 /** Behavioural rounds score on their own track; technical scoring is untouched. */
 export function roundScoreCategory(type: RecruitmentRoundType): "TECHNICAL" | "BEHAVIORAL" | "NONE" {
   if (type === "BEHAVIORAL_QUESTIONNAIRE" || type === "GROUP_TEAM_FIT") return "BEHAVIORAL";

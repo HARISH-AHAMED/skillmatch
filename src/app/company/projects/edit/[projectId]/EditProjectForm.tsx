@@ -36,7 +36,7 @@ import {
   isNonMonetary,
   supportsBenefits
 } from "@/lib/workflowHelpers";
-import { ROUND_TYPE_CATALOG } from "@/lib/workflowHelpers";
+import { ROUND_TYPE_CATALOG, isRoundTypeSupported, roundTypeLabel } from "@/lib/workflowHelpers";
 import { RoundConfigPanel } from "@/components/RoundConfigPanel";
 import { 
   Plus, 
@@ -1051,6 +1051,13 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-xs text-[#1A1D29] truncate">{round.name}</span>
+                            {/* EVAL-001..006 — an already-configured round of an
+                                unsupported type is kept, not deleted, but labelled. */}
+                            {!isRoundTypeSupported(round.type) && (
+                              <span className="shrink-0 rounded-full border border-[#F5DEB0] bg-[#FFF3DC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8F5E08]">
+                                Coming soon
+                              </span>
+                            )}
                             <Badge variant={isScreening ? "primary" : "neutral"} className="text-[11px] font-bold py-0.5">
                               {round.type.replace("_", " ")}
                             </Badge>
@@ -1111,7 +1118,16 @@ export function EditProjectForm({ project }: EditProjectFormProps) {
                 />
                 <Select
                   label="Round Evaluation Type"
-                  options={ROUND_TYPE_CATALOG.map((t) => ({ value: t.value, label: t.label + " — " + t.description }))}
+                  /* EVAL-001..006 — only types the platform can actually run are selectable;
+                     the rest stay visible but disabled and marked "Coming soon", so the
+                     capability gap is stated rather than discovered after launch. */
+                  options={ROUND_TYPE_CATALOG.map((t) => ({
+                    value: t.value,
+                    label: isRoundTypeSupported(t.value)
+                      ? t.label + " — " + t.description
+                      : t.label + " (Coming soon) — not yet run by the platform",
+                    disabled: !isRoundTypeSupported(t.value),
+                  }))}
                   value={newRoundType}
                   onChange={(e) => setNewRoundType(e.target.value as any)}
                   disabled={loading}

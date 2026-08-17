@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
-  options: { value: string; label: string }[];
+  /** A disabled option still renders but cannot be chosen (EVAL-001…006). */
+  options: { value: string; label: string; disabled?: boolean }[];
 }
 
 /** Same box, radius, height and focus treatment as `Input`, plus a trailing chevron. */
@@ -52,7 +53,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {options.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-white text-[#1A1D29]">
+              <option
+                key={opt.value}
+                value={opt.value}
+                disabled={opt.disabled}
+                className="bg-white text-[#1A1D29]"
+              >
                 {opt.label}
               </option>
             ))}
