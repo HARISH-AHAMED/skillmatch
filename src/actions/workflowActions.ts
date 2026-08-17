@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { Role, ApplicationStatus, ProjectStatus } from "@prisma/client";
+import { Role, ApplicationStatus, ProjectStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   parseCompanyMetadata,
@@ -97,11 +97,31 @@ export async function submitCompanyOnboarding(formData: {
 
   const userId = session.user.id;
 
-  // Check duplicate company based on legal name or registration number
+  /**
+   * PERF-001 — this used to call `db.company.findMany()` with no filter and
+   * JSON-parse every company's description on each onboarding save: an
+   * unindexed O(n) full-table scan that decoded the whole metadata blob per row.
+   *
+   * The registration number and legal name live inside the serialized metadata,
+   * so they cannot be indexed directly without a schema change. Narrowing at the
+   * database layer with a substring match on the description reduces the scan to
+   * the few rows that could possibly collide; the exact comparison below still
+   * decides, so behaviour is unchanged.
+   */
   if (formData.registrationNumber) {
-    const allCompanies = await db.company.findMany();
-    for (const c of allCompanies) {
-      if (c.userId === userId) continue; // Skip self
+    const candidates = await db.company.findMany({
+      where: {
+        userId: { not: userId },
+        OR: [
+          { description: { contains: formData.registrationNumber.trim(), mode: Prisma.QueryMode.insensitive } },
+          ...(formData.legalBusinessName
+            ? [{ description: { contains: formData.legalBusinessName.trim(), mode: Prisma.QueryMode.insensitive } }]
+            : []),
+        ],
+      },
+      select: { userId: true, description: true },
+    });
+    for (const c of candidates) {
       const meta = parseCompanyMetadata(c.description);
       if (
         (meta.registrationNumber && meta.registrationNumber.trim().toLowerCase() === formData.registrationNumber.trim().toLowerCase()) ||

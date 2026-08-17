@@ -192,6 +192,22 @@ export function WorkspaceFunding({
   // One handler for every lifecycle transition; the server owns the rules.
   const router = useRouter();
 
+  /**
+   * UX-003 — releasing was a single click with no confirmation and no amount
+   * echo, on an action the server treats as irreversible. The amount is shown
+   * back before it happens.
+   */
+  const [pendingRelease, setPendingRelease] = React.useState<any | null>(null);
+
+  const confirmRelease = (stage: any) => setPendingRelease(stage);
+
+  const doRelease = async () => {
+    const stage = pendingRelease;
+    setPendingRelease(null);
+    if (!stage || !projectId) return;
+    await runStageAction(() => releasePaymentStage(projectId, stage.id));
+  };
+
   const runStageAction = async (fn: () => Promise<any>) => {
     setStageError(null);
     const res = await fn();
@@ -583,6 +599,42 @@ export function WorkspaceFunding({
 
   return (
     <div className="space-y-6">
+      {/* UX-003 — release is irreversible, so the amount is echoed back first. */}
+      {pendingRelease && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="w-full max-w-md space-y-4 border border-[#E3E5EA] bg-white p-6 rounded-lg">
+            <h3 className="text-base font-bold text-[#1A1D29]">Release payment</h3>
+            <p className="text-xs text-[#5B6272] leading-relaxed">
+              This marks the payment as released for{" "}
+              <span className="font-semibold text-[#1A1D29]">{pendingRelease.freelancerName}</span>. It
+              cannot be undone.
+            </p>
+            <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-4 py-3">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-[#5B6272]">
+                {pendingRelease.title}
+              </span>
+              <span className="mt-1 block text-lg font-bold text-[#1A1D29]">
+                {money(Number(pendingRelease.amount) - Number(pendingRelease.released || 0))}
+              </span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setPendingRelease(null)}
+                className="text-xs font-bold px-4 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={doRelease}
+                className="bg-[#152C55] text-white hover:bg-[#1E3D71] text-xs font-bold px-4 cursor-pointer"
+              >
+                Release payment
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
       {header("Funding / Payments", type === "MILESTONE" ? "Milestone engagement — per-freelancer funding" : "Fixed price engagement", Wallet)}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Total Budget" value={money(projectBudget)} />
@@ -802,7 +854,7 @@ export function WorkspaceFunding({
                               </>
                             )}
                             {canManageStages && projectId && stage.status === "APPROVED" && (
-                              <button type="button" onClick={() => runStageAction(() => releasePaymentStage(projectId, stage.id))} className="cursor-pointer rounded-full bg-[#152C55] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#1E3D71]">Release Payment</button>
+                              <button type="button" onClick={() => confirmRelease(stage)} className="cursor-pointer rounded-full bg-[#152C55] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#1E3D71]">Release Payment</button>
                             )}
                             {canManageStages && (
                             <>

@@ -635,13 +635,11 @@ export interface ApplicationWorkflowData {
     status: "DRAFT" | "SENT" | "SIGNED" | "ACTIVE" | "COMPLETED";
     milestones: { title: string; budget: number; status: "PENDING" | "ESCROWED" | "RELEASED" }[];
   };
-  escrowMilestones?: {
-    id: string;
-    title: string;
-    amount: number;
-    dueDate: string;
-    status: "PENDING" | "FUNDED" | "APPROVED" | "RELEASED";
-  }[];
+  /**
+   * DATA-006 — `escrowMilestones` was declared here and never written or read
+   * by any code path. Removed rather than left as a field future readers would
+   * assume carries state. Payment items are the real store (COMP-010).
+   */
   extensionRequests?: {
     requestedDueDate: string;
     reason: string;
@@ -701,6 +699,9 @@ export interface ApplicationWorkflowData {
 /**
  * Safely parse JSON from a string, returning a default fallback object on error.
  */
+/** The delimiter every serializer in this module writes. */
+export const METADATA_MARKER = "\n\nMETADATA_JSON_BLOCK:";
+
 function safeJsonParse<T>(jsonStr: string | null | undefined, fallback: T): T {
   if (!jsonStr) return fallback;
   try {
@@ -815,18 +816,40 @@ export function parseProjectMetadata(descriptionField: string | null | undefined
     timingType: "Full Time",
     screeningQuestions: [],
     visibility: "PUBLIC",
-    rounds: [],
+    // LEG-002 — deliberately absent, not []. An empty array here would be
+    // indistinguishable from a project that configured zero rounds on purpose,
+    // which is exactly the distinction the default-seeding below depends on.
   };
 
+  /**
+   * LEG-003 — this detected metadata by sniffing for the literal {"objectives"
+   * substring, so it depended on JSON.stringify key ordering. Any refactor that
+   * reordered ProjectWizardData would silently orphan every project s metadata,
+   * resetting all payment state to defaults.
+   *
+   * The explicit marker is now checked first, and the substring sniff is kept
+   * only as a fallback for rows written before the marker existed.
+   */
   let parsed = fallback;
-  if (descriptionField && descriptionField.includes('{"objectives"')) {
+  if (descriptionField?.includes(METADATA_MARKER)) {
+    parsed = safeJsonParse(descriptionField.split(METADATA_MARKER)[1], fallback);
+  } else if (descriptionField) {
     const startIdx = descriptionField.indexOf("{");
-    const jsonSub = descriptionField.substring(startIdx);
-    parsed = safeJsonParse(jsonSub, fallback);
+    if (startIdx !== -1) {
+      parsed = safeJsonParse(descriptionField.substring(startIdx), fallback);
+    }
   }
 
-  // Auto-migrate legacy projects to default recruitment rounds
-  if (!parsed.rounds || parsed.rounds.length === 0) {
+  /**
+   * LEG-002 — this injected three default rounds into ANY project whose rounds
+   * array was empty, on every read. A company that deliberately configured zero
+   * rounds got three back, and because it happened at parse time the next write
+   * persisted them.
+   *
+   * Defaults are now applied only when the field is genuinely absent (a project
+   * predating the feature), never when it is present and deliberately empty.
+   */
+  if (parsed.rounds === undefined) {
     parsed.rounds = [
       {
         id: "r-cv",

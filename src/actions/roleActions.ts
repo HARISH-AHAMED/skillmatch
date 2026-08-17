@@ -20,6 +20,9 @@ export interface RoleInput {
  * Roles are opt-in: a project with an empty list keeps the original
  * one-candidate-per-listing behaviour, so nothing that worked before changes.
  */
+/** ROLE-002 — a sane ceiling on openings for one named role. */
+const MAX_ROLE_SLOTS = 100;
+
 export async function saveProjectRoles(
   projectId: string,
   roles: RoleInput[]
@@ -71,6 +74,11 @@ export async function saveProjectRoles(
     if (!r.name?.trim()) return { success: false, error: "Every role needs a name." };
     if (!Number.isFinite(r.slots) || r.slots < 1) {
       return { success: false, error: "Every role needs at least one slot." };
+    }
+    // ROLE-002 — slots had a lower bound but no upper one, so a role could be
+    // created with a million openings and rendered as such on every roster.
+    if (r.slots > MAX_ROLE_SLOTS) {
+      return { success: false, error: "A role cannot have more than " + MAX_ROLE_SLOTS + " slots." };
     }
     // Slots may not drop below the primaries already hired into the role.
     if (r.id) {

@@ -180,6 +180,40 @@ export async function lockApplicationsForCapacity(tx: Tx, projectId: string) {
     SELECT "id" FROM "Application" WHERE "projectId" = ${projectId} FOR UPDATE`;
 }
 
+/* ── Tasks ─────────────────────────────────────────────────────────────────*/
+
+/**
+ * KANBAN-003 — Task.status is a bare String column and updateTaskStatus wrote
+ * whatever it was given, so any value persisted. Combined with KANBAN-002 that
+ * made a task invisible with no way back, since the board could not render it
+ * and the detail dropdown could not express it.
+ */
+export const TASK_STATUSES = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export function isTaskStatus(value: string): value is TaskStatus {
+  return (TASK_STATUSES as readonly string[]).includes(value);
+}
+
+/**
+ * KANBAN-002 — the board rendered only TODO/IN_PROGRESS/DONE while the schema
+ * documents four states, so a REVIEW task belonged to no column and vanished
+ * from the board while still counting in totals. REVIEW is now a real column.
+ */
+export const TASK_COLUMNS: { id: TaskStatus; label: string }[] = [
+  { id: "TODO", label: "To Do" },
+  { id: "IN_PROGRESS", label: "In Progress" },
+  { id: "REVIEW", label: "Review" },
+  { id: "DONE", label: "Done" },
+];
+
+/** The next/previous column, for the button-driven card movement. */
+export function adjacentTaskStatus(current: TaskStatus, direction: "forward" | "back"): TaskStatus {
+  const idx = TASK_STATUSES.indexOf(current);
+  const next = direction === "forward" ? idx + 1 : idx - 1;
+  return TASK_STATUSES[Math.min(Math.max(next, 0), TASK_STATUSES.length - 1)];
+}
+
 /* ── Contract milestones ───────────────────────────────────────────────────*/
 
 /**

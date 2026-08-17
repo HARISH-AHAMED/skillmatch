@@ -169,6 +169,26 @@ export async function completeProject(projectId: string) {
   return { success: true, certificatesIssued: issued, certificateNeedsDesign: needsDesign };
 }
 
+/**
+ * DATA-005 — the number of COMPLETED projects this freelancer was hired on as
+ * a primary. Derived rather than accumulated, so repeated reviews cannot
+ * inflate it and an unreviewed completion is not lost.
+ *
+ * Fix-forward only per the approved decision: historical values are not
+ * recomputed, so a profile keeps its existing number until its next review
+ * recalculates it.
+ */
+async function countCompletedProjects(freelancerId: string): Promise<number> {
+  return db.application.count({
+    where: {
+      freelancerId,
+      status: "HIRED",
+      isApprentice: false,
+      project: { status: ProjectStatus.COMPLETED },
+    },
+  });
+}
+
 // GET REVIEW STATUS
 export async function getProjectReviewStatus(projectId: string) {
   const session = await auth();
@@ -283,8 +303,17 @@ export async function submitReview(projectId: string, revieweeUserId: string, ra
           where: { id: freelancer.id },
           data: {
             rating: Math.round((primaryReviews.reduce((s, r) => s + r.rating, 0) / primaryReviews.length) * 10) / 10,
-            // Apprentice contributions do not count as completed primary gigs.
-            completedProjects: isApprenticeWork ? freelancer.completedProjects : freelancer.completedProjects + 1,
+            /**
+             * DATA-005 — this used to increment on every review, so the counter
+             * measured reviews received rather than projects completed: a
+             * freelancer reviewed twice on one project counted twice, and one
+             * completed but never reviewed counted zero.
+             *
+             * It is now derived from the actual completed projects the
+             * freelancer was hired on (apprentice work excluded, as before),
+             * so it is correct however many reviews arrive.
+             */
+            completedProjects: await countCompletedProjects(freelancer.id),
           },
         })
       : freelancer;

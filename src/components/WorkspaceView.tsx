@@ -2,7 +2,8 @@
 
 import { WorkspaceFunding } from "@/components/WorkspaceFunding";
 import { getProjectMetadataDirect as getProjMetaForFunding, formatCompensation, getCurrencySymbol } from "@/lib/workflowHelpers";
-import { groupByDateKey, sortDateKeysDesc, filterDateKeys, formatDateKey } from "@/lib/dates";
+import { groupByDateKey, sortDateKeysDesc, filterDateKeys, formatDateKey, toDateKey } from "@/lib/dates";
+import { TASK_COLUMNS, adjacentTaskStatus } from "@/lib/lifecycle";
 import React, { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -531,7 +532,7 @@ export function WorkspaceView({
     try {
       await updateProjectDueDate(projectId, newDateString || null);
     } catch (err: any) {
-      alert("Failed to update project due date: " + err.message);
+      setActionError("Failed to update project due date: " + err.message);
       setProjectDueDate(initialProjectDueDate);
     }
   };
@@ -557,6 +558,40 @@ export function WorkspaceView({
   const [completionBlockedReason, setCompletionBlockedReason] = useState<string | null>(null);
   const [completionNotice, setCompletionNotice] = useState<string | null>(null);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+
+  /**
+   * UX-002 / UX-003 — destructive and money-moving actions used native
+   * alert()/confirm(): unstyled, blocking, and applied inconsistently (task
+   * deletion was confirmed, file and message deletion were not, and no
+   * financial action was confirmed at all despite releases being irreversible).
+   *
+   * One promise-based dialog backed by the existing Modal component replaces
+   * both, so every call site gets the same treatment.
+   */
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    body: string;
+    detail?: string;
+    confirmLabel: string;
+    destructive?: boolean;
+    resolve: (ok: boolean) => void;
+  } | null>(null);
+
+  const confirmAction = (opts: {
+    title: string;
+    body: string;
+    /** Echoed back verbatim — e.g. the amount being released (UX-003). */
+    detail?: string;
+    confirmLabel: string;
+    destructive?: boolean;
+  }) =>
+    new Promise<boolean>((resolve) => setConfirmState({ ...opts, resolve }));
+
+  const closeConfirm = (ok: boolean) => {
+    confirmState?.resolve(ok);
+    setConfirmState(null);
+  };
 
   useEffect(() => {
     if (projectStatus === "COMPLETED") { setCompletionBlockedReason(null); return; }
@@ -608,10 +643,17 @@ export function WorkspaceView({
     });
   };
 
-  // Detect all milestones completed (for company completion CTA)
-  const milestonesFromUpdates = updates.filter((u) => !u.title.startsWith("[") === false || u.title.includes("[Value"));
-  const allMilestoneDone =
-    updates.length > 0 && updates.every((u) => u.status === "COMPLETED");
+  /**
+   * WS-007 — the completion CTA used to be gated on every ProjectUpdate being
+   * COMPLETED, so a FIXED, HOURLY or STIPEND project that never created
+   * workspace "milestones" had updates.length === 0 and the CTA never appeared,
+   * regardless of payment state. It is now gated on the server readiness check
+   * (LIFE-001s single completion authority), which is already loaded above.
+   *
+   * WS-010 — the milestonesFromUpdates filter removed: its double negative made
+   * the second clause unreachable and the result was never used.
+   */
+  const canOfferCompletion = completionBlockedReason === null;
   const [taskViewMode, setTaskViewMode] = useState<"board" | "timeline">("board");
   // Timeline: optional single-day filter (YYYY-MM-DD).
   const [timelineDate, setTimelineDate] = useState("");
@@ -652,7 +694,15 @@ export function WorkspaceView({
           return serialize(data.tasks) !== serialize(curr) ? data.tasks : curr;
         });
 
-        setFiles((curr) => (curr.length !== data.files.length ? data.files : curr));
+        // WS-006 — this compared array length only, so a deliverable approval
+        // or revision request (which changes the embedded status, not the
+        // count) never propagated to the reviewing party until a manual
+        // refresh. Serialised like the other three lists.
+        setFiles((curr) => {
+          const serialize = (list: SharedFileItem[]) =>
+            list.map((f) => f.id + "-" + (f.fileSize ?? "") + "-" + f.fileName).join("|");
+          return serialize(data.files) !== serialize(curr) ? data.files : curr;
+        });
         
         setUpdates((curr) => {
           const serialize = (list: ProjectUpdateItem[]) => list.map(u => `${u.id}-${u.status}`).join("|");
@@ -663,10 +713,43 @@ export function WorkspaceView({
       }
     };
 
-    const interval = setInterval(fetchWorkspaceUpdates, 3000);
+    /**
+     * WS-005 — a 3s full refetch of messages, files, updates and tasks (four
+     * joined queries) ran per open tab per user, with no delta or cursor. Ten
+     * concurrent viewers was ~800 queries/minute for one project.
+     *
+     * Backed off to 15s and paused entirely while the tab is hidden, which is
+     * the smallest change that removes the load without altering the sync
+     * model. A cursor/ETag protocol is the real fix and belongs with the API.
+     */
+    const POLL_MS = 15000;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (interval === null) interval = setInterval(fetchWorkspaceUpdates, POLL_MS);
+    };
+    const stop = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchWorkspaceUpdates();
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       active = false;
-      clearInterval(interval);
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [projectId]);
 
@@ -690,11 +773,11 @@ export function WorkspaceView({
     try {
       const res = await deleteMessage(projectId, messageId);
       if (res.error) {
-        alert(res.error);
+        setActionError(res.error);
         router.refresh();
       }
     } catch (err: any) {
-      alert("Failed to delete message: " + err.message);
+      setActionError("Failed to delete message: " + err.message);
       router.refresh();
     }
   };
@@ -816,7 +899,7 @@ export function WorkspaceView({
     setIsSendingMessage(false);
 
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
     }
   };
@@ -868,11 +951,11 @@ export function WorkspaceView({
       }
 
       if (result.error) {
-        alert(result.error);
+        setActionError(result.error);
         setFiles((prev) => prev.filter(f => f.id !== tempId));
       }
     } catch (err: any) {
-      alert("Failed to share file deliverable.");
+      setActionError("Failed to share file deliverable.");
       setFiles((prev) => prev.filter(f => f.id !== tempId));
     } finally {
       setIsUploadingFile(false);
@@ -894,7 +977,7 @@ export function WorkspaceView({
       const fileMsgContent = `[FILE:${fileName}|${realUrl}|${bytesFormatted}]`;
       await handleSendMessage(null as any, fileMsgContent);
     } catch (err: any) {
-      alert("Failed to attach file to chat.");
+      setActionError("Failed to attach file to chat.");
     } finally {
       setIsUploadingChatFile(false);
       if (chatFileInputRef.current) chatFileInputRef.current.value = "";
@@ -903,18 +986,25 @@ export function WorkspaceView({
 
   // HANDLER: Delete File
   const handleDeleteFile = async (fileId: string) => {
-    if (!confirm("Are you sure you want to delete this deliverable?")) return;
+    // UX-002 — file deletion was previously unconfirmed, unlike task deletion.
+    const ok = await confirmAction({
+      title: "Delete deliverable",
+      body: "This file will be removed from the workspace for everyone, and deleted from storage. This cannot be undone.",
+      confirmLabel: "Delete file",
+      destructive: true,
+    });
+    if (!ok) return;
     setFiles((prev) => prev.filter(f => f.id !== fileId));
     const result = await deleteFile(projectId, fileId);
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
     }
   };
 
   // HANDLER: Deliverable review actions
   const handleReviewDeliverable = async (fileId: string, status: "APPROVED" | "REVISION_REQUESTED") => {
     if (!reviewFeedback.trim()) {
-      alert("Please provide revision feedback or approval comments first.");
+      setActionError("Please provide revision feedback or approval comments first.");
       return;
     }
     setIsReviewing(true);
@@ -923,7 +1013,7 @@ export function WorkspaceView({
     setIsReviewing(false);
 
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
     } else {
       setReviewFeedback("");
       setSelectedPreviewFile(null);
@@ -967,7 +1057,7 @@ export function WorkspaceView({
     setShowAddMilestoneModal(false);
 
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
     }
   };
 
@@ -977,7 +1067,7 @@ export function WorkspaceView({
     
     const result = await updateProjectUpdateStatus(projectId, updateId, newStatus);
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
       // Revert if error
       getProjectReviewStatus(projectId).then(() => {
         router.refresh();
@@ -1001,15 +1091,23 @@ export function WorkspaceView({
     setShowAddTaskModal(false);
 
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
     }
   };
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
+    /**
+     * KANBAN-005 — the optimistic update was never rolled back on failure, so
+     * after a rejected move the board kept showing a state the server had
+     * refused until a manual refresh. The previous state is captured and
+     * restored, matching the recovery the milestone handler already had.
+     */
+    const previous = tasks;
     setTasks((prev) => prev.map(t => t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t));
     const result = await updateTaskStatus(projectId, taskId, newStatus);
     if (result.error) {
-      alert(result.error);
+      setTasks(previous);
+      setActionError(result.error);
     }
   };
 
@@ -1030,18 +1128,30 @@ export function WorkspaceView({
     setSelectedTask(null);
 
     if (result.error) {
-      alert(result.error);
+      setActionError(result.error);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    // UX-002 — destructive confirmation via the app Modal rather than a native
+    // confirm(); see confirmAction below.
+    const ok = await confirmAction({
+      title: "Delete task",
+      body: "This task will be removed from the board for everyone on the project. This cannot be undone.",
+      confirmLabel: "Delete task",
+      destructive: true,
+    });
+    if (!ok) return;
+
+    // KANBAN-005 — restore on failure rather than leaving the card removed.
+    const previous = tasks;
     setTasks((prev) => prev.filter(t => t.id !== taskId));
     setShowTaskDetailModal(false);
     setSelectedTask(null);
     const result = await deleteTask(projectId, taskId);
     if (result.error) {
-      alert(result.error);
+      setTasks(previous);
+      setActionError(result.error);
     }
   };
 
@@ -1117,6 +1227,14 @@ export function WorkspaceView({
   };
 
   // CRITICAL: Filter tasks
+  /**
+   * TIME-005 — nothing in the workspace expressed an overdue state. Compared on
+   * ISO date keys so the comparison is timezone-stable (TIME-001/TIME-002).
+   */
+  const todayKey = toDateKey(new Date());
+  const isOverdue = (t: TaskItem) =>
+    !!t.dueDate && t.status !== "DONE" && toDateKey(t.dueDate) < todayKey;
+
   const filteredTasksList = tasks.filter(t => 
     t.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
     (t.description && t.description.toLowerCase().includes(taskSearch.toLowerCase()))
@@ -1192,7 +1310,58 @@ export function WorkspaceView({
   const fundsPaid = financials.paid;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#F8F9FB] text-[#1A1D29] font-sans overflow-hidden">
+    // RESP-001 — w-screen is 100vw, which includes the vertical scrollbar width,
+    // so the root was wider than the viewport and overflow-hidden clipped
+    // content at the right edge rather than preventing the overflow. w-full
+    // matches the containing block instead.
+    <div className="h-screen w-full flex flex-col bg-[#F8F9FB] text-[#1A1D29] font-sans overflow-hidden">
+
+      {/* ── UX-002/UX-003: shared confirmation dialog ── */}
+      {confirmState && (
+        <Modal open onClose={() => closeConfirm(false)} title={confirmState.title}>
+          <div className="space-y-4">
+            <p className="text-xs text-[#5B6272] leading-relaxed">{confirmState.body}</p>
+            {confirmState.detail && (
+              <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-4 py-3">
+                <span className="text-sm font-bold text-[#1A1D29]">{confirmState.detail}</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="secondary"
+                onClick={() => closeConfirm(false)}
+                className="text-xs font-bold px-4 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => closeConfirm(true)}
+                className={
+                  "text-xs font-bold px-4 cursor-pointer text-white " +
+                  (confirmState.destructive
+                    ? "bg-[#BC2A2A] hover:bg-[#a02424]"
+                    : "bg-[#152C55] hover:bg-[#1E3D71]")
+                }
+              >
+                {confirmState.confirmLabel}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* UX-002/UX-005 — errors surface in the UI instead of a native alert. */}
+      {actionError && (
+        <div className="shrink-0 bg-[#FDEAEA] border-b border-[#F5C2C2] px-6 py-2.5 flex items-center justify-between gap-4 z-30">
+          <span className="text-xs font-semibold text-[#BC2A2A]">{actionError}</span>
+          <button
+            onClick={() => setActionError(null)}
+            className="text-xs font-bold text-[#BC2A2A] hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ── COMPLETION REVIEW MODAL ── */}
       {showReviewModal && reviewStatus && (
@@ -1371,7 +1540,7 @@ export function WorkspaceView({
       {/* ── PROJECT COMPLETION BANNERS ─────────────────────────────────── */}
 
       {/* All milestones done → Company can mark project complete */}
-      {role === "COMPANY" && (projectStatus === "IN_PROGRESS" || projectStatus === "OPEN") && allMilestoneDone && (
+      {role === "COMPANY" && (projectStatus === "IN_PROGRESS" || projectStatus === "OPEN") && canOfferCompletion && (
         <div className="shrink-0 bg-rail-bg-light px-6 py-3 flex items-center justify-between gap-4 z-20">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-canvas rounded-lg border border-rail-elevated-light">
@@ -2791,7 +2960,7 @@ export function WorkspaceView({
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                       
                       {/* Columns mapping TODO, IN_PROGRESS, DONE */}
-                      {(["TODO", "IN_PROGRESS", "DONE"] as const).map((col) => {
+                      {TASK_COLUMNS.map(({ id: col, label: colLabel }) => {
                         const colTasks = filteredTasksList.filter(t => t.status === col);
                         return (
                           <div key={col} className="bg-[#F0F3F9]/40 border border-[#E3E5EA]/40 rounded-lg p-4 flex flex-col min-h-[440px]">
@@ -2799,9 +2968,7 @@ export function WorkspaceView({
                             {/* Column Header */}
                             <div className="flex items-center justify-between pb-3.5 border-b border-[#E3E5EA]/50 mb-3.5">
                               <span className="text-xs font-semibold uppercase text-[#5B6272] tracking-wider">
-                                {col === "TODO" && "To Do"}
-                                {col === "IN_PROGRESS" && "In Progress"}
-                                {col === "DONE" && "Done"}
+                                {colLabel}
                               </span>
                               <Badge variant="neutral" className="px-2">{colTasks.length}</Badge>
                             </div>
@@ -2850,7 +3017,10 @@ export function WorkspaceView({
                                         {task.dueDate ? (
                                           <>
                                             <Calendar className="h-3 w-3 shrink-0" />
-                                            <span>{new Date(task.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+                                            <span className={isOverdue(task) ? "text-[#BC2A2A] font-bold" : undefined}>
+                                              {new Date(task.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                              {isOverdue(task) ? " · Overdue" : ""}
+                                            </span>
                                           </>
                                         ) : (
                                           <span>No due date</span>
@@ -2861,7 +3031,7 @@ export function WorkspaceView({
                                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                         {col !== "TODO" && (
                                           <button
-                                            onClick={() => handleUpdateTaskStatus(task.id, col === "DONE" ? "IN_PROGRESS" : "TODO")}
+                                            onClick={() => handleUpdateTaskStatus(task.id, adjacentTaskStatus(col, "back"))}
                                             className="p-1 rounded-full bg-[#E8F1FE] hover:bg-[#FFF3DC] text-[#5B6272] transition-all"
                                             title="Move Left"
                                           >
@@ -2870,7 +3040,7 @@ export function WorkspaceView({
                                         )}
                                         {col !== "DONE" && (
                                           <button
-                                            onClick={() => handleUpdateTaskStatus(task.id, col === "TODO" ? "IN_PROGRESS" : "DONE")}
+                                            onClick={() => handleUpdateTaskStatus(task.id, adjacentTaskStatus(col, "forward"))}
                                             className="p-1 rounded-full bg-[#E8F1FE] hover:bg-[#EAF1FE] text-[#5B6272] transition-all font-bold"
                                             title="Move Right"
                                           >
@@ -3394,8 +3564,8 @@ export function WorkspaceView({
                                       milestone.status === "IN_PROGRESS" ? "primary" : "neutral"
                                     }
                                   >
-                                    {milestone.status === "COMPLETED" ? "Released" : 
-                                     milestone.status === "IN_PROGRESS" ? "Committed" : "Not committed"}
+                                    {milestone.status === "COMPLETED" ? "Done" :
+                                     milestone.status === "IN_PROGRESS" ? "In progress" : "Not started"}
                                   </Badge>
                                 </div>
                                 <p className="text-xs text-[#5B6272] leading-relaxed max-w-2xl">
@@ -3618,9 +3788,9 @@ export function WorkspaceView({
                     onChange={(e) => handleUpdateTaskStatus(selectedTask.id, e.target.value)}
                     className="w-full px-3.5 py-2 rounded-md border border-[#C7CBD6] bg-white focus:outline-none text-xs text-[#1A1D29]"
                   >
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="DONE">Done</option>
+                    {TASK_COLUMNS.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>

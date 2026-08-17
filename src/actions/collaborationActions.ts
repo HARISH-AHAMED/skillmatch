@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { DELIVERABLE_REVISION_CAP } from "@/lib/workflowHelpers";
+import { isTaskStatus } from "@/lib/lifecycle";
 import {
   scopedTask,
   scopedSharedFile,
@@ -416,6 +417,12 @@ export async function updateTaskStatus(projectId: string, taskId: string, status
   // any project could mutate any task on the platform by id.
   if (!(await scopedTask(taskId, projectId))) {
     return { error: "Task not found" };
+  }
+
+  // KANBAN-003: Task.status is a bare String column, so an arbitrary value used
+  // to persist and strand the task outside every rendered column.
+  if (!isTaskStatus(status)) {
+    return { error: "Unknown task status." };
   }
 
   try {
