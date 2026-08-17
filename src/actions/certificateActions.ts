@@ -153,6 +153,25 @@ export async function setCertificateVisibility(certificateId: string, visible: b
  * Returns `needsDesign` when the company opted into certificates but never
  * designed one — the caller nudges them rather than issuing something unstyled.
  */
+/**
+ * MF-007 — skills credited on a certificate.
+ *
+ * A role's own description is the only role-specific signal the schema carries,
+ * so skills named in it are credited. If the role names none, the certificate
+ * falls back to the project's required skills — correct for a project that uses
+ * no roles, and no worse than the previous behaviour for one that does.
+ */
+function deriveRoleSkills(
+  role: { name: string; description: string | null } | null | undefined,
+  projectSkills: string[]
+): string[] {
+  if (!role) return projectSkills.slice(0, 8);
+
+  const haystack = `${role.name} ${role.description ?? ""}`.toLowerCase();
+  const matched = projectSkills.filter((skill) => haystack.includes(skill.toLowerCase()));
+  return (matched.length > 0 ? matched : projectSkills).slice(0, 8);
+}
+
 export async function issueProjectCertificates(
   projectId: string
 ): Promise<{ issued: number; needsDesign: boolean }> {
@@ -179,15 +198,28 @@ export async function issueProjectCertificates(
     });
     if (existing) continue;
 
-    const role: any = app.role;
+    /**
+     * MF-007 — the title read `role?.title`, a field ProjectRole does not have
+     * (it is `name`), so every certificate silently fell through to the generic
+     * "Project Contributor". Skills came from `project.requiredSkills`, giving
+     * a designer and a backend engineer on the same project identical skill
+     * lists.
+     *
+     * Both now come from the freelancer's actual role, and are only inferred
+     * from project-wide data when the project uses no roles at all.
+     */
+    const role = app.role;
+    const roleTitle = role?.name?.trim() || "Project Contributor";
+    const roleSkills = deriveRoleSkills(role, project.requiredSkills);
+
     const certificate = await db.certificate.create({
       data: {
         publicId: generatePublicId(),
         projectId: project.id,
         freelancerId: app.freelancerId,
         companyId: project.companyId,
-        roleTitle: role?.title || role?.name || "Project Contributor",
-        skills: project.requiredSkills.slice(0, 8),
+        roleTitle: app.isApprentice ? `${roleTitle} (Apprentice)` : roleTitle,
+        skills: roleSkills,
         issuerName: project.company.companyName,
         recipientName: app.freelancer.user?.name || "Freelancer",
         projectTitle: project.title,

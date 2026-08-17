@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Role, ProjectPriority, ProjectStatus, ApplicationStatus } from "@prisma/client";
 import { recalculateRecommendationsForProject } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
+import { assertProjectTransition, assertProjectMutable } from "@/lib/lifecycle";
 
 export async function createProject(formData: {
   title: string;
@@ -121,6 +122,10 @@ export async function editProject(
     throw new Error("Unauthorized project edit");
   }
 
+  // LIFE-001 — a terminal project is read-only.
+  const editable = assertProjectMutable(existingProject.status, "edit");
+  if (!editable.ok) throw new Error(editable.error);
+
   const skillsCleaned = formData.requiredSkills.map(s => s.toLowerCase().trim()).filter(Boolean);
 
   const project = await db.project.update({
@@ -167,6 +172,9 @@ export async function toggleProjectVisibility(projectId: string) {
     throw new Error("Unauthorized");
   }
 
+  const visible = assertProjectMutable(project.status, "change the visibility of");
+  if (!visible.ok) throw new Error(visible.error);
+
   const updatedProject = await db.project.update({
     where: { id: projectId },
     data: { isVisible: !project.isVisible },
@@ -196,6 +204,11 @@ export async function closeProject(projectId: string) {
     throw new Error("Unauthorized");
   }
 
+  // LIFE-001 — CLOSED and COMPLETED are terminal; neither can be reopened or
+  // re-closed.
+  const move = assertProjectTransition(project.status, ProjectStatus.CLOSED);
+  if (!move.ok) throw new Error(move.error);
+
   await db.project.update({
     where: { id: projectId },
     data: { status: ProjectStatus.CLOSED },
@@ -222,6 +235,9 @@ export async function updateProjectDueDate(projectId: string, dueDateString: str
   if (!project || !company || project.companyId !== company.id) {
     throw new Error("Unauthorized");
   }
+
+  const datable = assertProjectMutable(project.status, "change the due date of");
+  if (!datable.ok) throw new Error(datable.error);
 
   const updatedProject = await db.project.update({
     where: { id: projectId },

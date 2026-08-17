@@ -13,6 +13,7 @@ import {
 } from "@/lib/workflowHelpers";
 import { issueProjectCertificates } from "@/actions/certificateActions";
 import { requireProjectOwner, requireProjectParty } from "@/lib/authz";
+import { assertProjectTransition } from "@/lib/lifecycle";
 import { getProjectCompensation } from "@/lib/compensation";
 import { D, approvedHourlyValue, maxStipendPeriods } from "@/lib/paymentRules";
 
@@ -129,6 +130,15 @@ export async function completeProject(projectId: string) {
   if (!project) throw new Error("Project not found.");
   if (project.company.userId !== session.user.id) throw new Error("Not your project.");
   if (project.status === ProjectStatus.COMPLETED) return { success: true, alreadyDone: true };
+
+  /**
+   * LIFE-001 — this is the sole writer of COMPLETED. A CLOSED project is
+   * terminal and cannot be completed; the state machine rejects it rather than
+   * this function deciding for itself.
+   */
+  const move = assertProjectTransition(project.status, ProjectStatus.COMPLETED);
+  if (!move.ok) throw new Error(move.error);
+
   // Project-level gate: one completion state for the whole project.
   const readiness = await getProjectCompletionReadiness(projectId);
   if (!readiness.ready) throw new Error(readiness.reason || "Project cannot be completed yet.");

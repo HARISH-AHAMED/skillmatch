@@ -30,6 +30,40 @@ import {
   requireUser,
   callerIpAddress,
 } from "@/lib/authz";
+import {
+  assertApplicationTransition,
+  assertProjectTransition,
+  assertProjectMutable,
+  getCapacity,
+  buildContractMilestones,
+} from "@/lib/lifecycle";
+
+/**
+ * COMP-011 — the contract payment schedule, derived from configured data
+ * rather than the fabricated 30/40/30 split of the project budget that used to
+ * be injected at two separate call sites.
+ *
+ * Priority: the application's configured payment items, then a single
+ * full-value milestone. An offer's own agreed milestones take precedence and
+ * are passed in directly by the offer-acceptance path.
+ */
+async function contractMilestonesFor(
+  applicationId: string,
+  projectId: string,
+  fallbackTotal: number,
+  projectTitle: string
+) {
+  const items = await db.paymentItem.findMany({
+    where: { projectId, applicationId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { title: true, amount: true },
+  });
+  return buildContractMilestones({
+    configuredItems: items,
+    fallbackTotal,
+    projectTitle,
+  });
+}
 
 /**
  * 1. Submit Company Onboarding Data
@@ -347,7 +381,22 @@ export async function transitionApplicationStage(
     targetStage === "Offer Accepted" ||
     targetStage === "Project Started"
   ) {
-    dbStatus = ApplicationStatus.HIRED;
+    /**
+     * LIFE-002 — this used to write HIRED directly, bypassing every capacity
+     * and team-lock guard. Hiring now happens only through hireApplicant, the
+     * authoritative path; this pipeline event records the stage but no longer
+     * produces the status itself.
+     */
+    return {
+      success: false,
+      error: "Use the Hire action to hire this applicant, so capacity and team rules are applied.",
+    };
+  }
+
+  // LIFE-003 — reject an invalid transition rather than writing it blindly.
+  if (dbStatus !== app.status) {
+    const move = assertApplicationTransition(app.status, dbStatus);
+    if (!move.ok) return { success: false, error: move.error };
   }
 
   if (targetStage === "Contract Sent") {
@@ -356,13 +405,10 @@ export async function transitionApplicationStage(
       freelancerSigned: false,
       clientSigned: true,
       clientSignedAt: new Date().toISOString(),
-      clientIp: "127.0.0.1",
+      clientIp: await callerIpAddress(),
       status: "SENT",
-      milestones: [
-        { title: "Milestone 1: Project Setup", budget: Math.round(app.project.budget * 0.3), status: "PENDING" },
-        { title: "Milestone 2: Beta Launch", budget: Math.round(app.project.budget * 0.4), status: "PENDING" },
-        { title: "Milestone 3: Final Delivery", budget: Math.round(app.project.budget * 0.3), status: "PENDING" },
-      ],
+      // COMP-011 — derived from configured data, never a fabricated split.
+      milestones: await contractMilestonesFor(app.id, app.projectId, app.project.budget, app.project.title),
     };
   }
 
@@ -477,11 +523,9 @@ export async function signDigitalContract(
       freelancerSigned: false,
       clientSigned: false,
       status: "SENT",
-      milestones: [
-        { title: "Milestone 1: Project Setup", budget: Math.round(app.project.budget * 0.3), status: "PENDING" },
-        { title: "Milestone 2: Beta Launch", budget: Math.round(app.project.budget * 0.4), status: "PENDING" },
-        { title: "Milestone 3: Final Delivery", budget: Math.round(app.project.budget * 0.3), status: "PENDING" },
-      ],
+      // COMP-011 — see contractMilestonesFor; the same helper as the other site,
+      // so the schedule cannot drift between them.
+      milestones: await contractMilestonesFor(app.id, app.projectId, app.project.budget, app.project.title),
     };
   }
 
@@ -510,11 +554,35 @@ export async function signDigitalContract(
     };
     meta.pipelineHistory = [...meta.pipelineHistory, startEvent];
     
-    // Update project status to IN_PROGRESS
-    await db.project.update({
+    /**
+     * MF-002 — the first freelancer to sign used to flip the whole project to
+     * IN_PROGRESS, misrepresenting the state for co-hires who had not signed.
+     * The project moves only once every hired freelancer has signed, and only
+     * from a live state (LIFE-001/LIFE-003).
+     */
+    const project = await db.project.findUnique({
       where: { id: app.projectId },
-      data: { status: ProjectStatus.IN_PROGRESS },
+      select: { status: true },
     });
+
+    if (project && assertProjectTransition(project.status, ProjectStatus.IN_PROGRESS).ok) {
+      const hired = await db.application.findMany({
+        where: { projectId: app.projectId, status: ApplicationStatus.HIRED },
+        select: { id: true, coverLetter: true },
+      });
+      const allSigned = hired.every((h) => {
+        if (h.id === app.id) return true; // this one has just been signed
+        const c = parseApplicationMetadata(h.coverLetter).digitalContract;
+        return !!c?.freelancerSigned && !!c?.clientSigned;
+      });
+
+      if (allSigned) {
+        await db.project.update({
+          where: { id: app.projectId },
+          data: { status: ProjectStatus.IN_PROGRESS },
+        });
+      }
+    }
   }
 
   const originalCoverLetterText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
@@ -614,11 +682,17 @@ export async function releaseMilestonePayment(
       }
     ];
 
-    // Update project state to completed
-    await db.project.update({
-      where: { id: app.projectId },
-      data: { status: ProjectStatus.COMPLETED },
-    });
+    /**
+     * LIFE-001 / MF-001 — this used to set ProjectStatus.COMPLETED here.
+     * Milestones are per-application, so on a multi-freelancer project the
+     * first freelancer's final release completed the project for everyone,
+     * stranding co-hires' outstanding milestones and skipping certificate
+     * issuance entirely (which only runs via completeProject).
+     *
+     * completeProject is now the sole writer of COMPLETED. Releasing a payment
+     * records the release and nothing more; the company completes the project
+     * once every hired freelancer is settled.
+     */
   }
 
   const originalCoverLetterText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
@@ -1106,6 +1180,22 @@ export async function respondToOfferLetterAction(
       },
     ];
   } else {
+    /**
+     * LIFE-002 / MF-005 — accepting an offer used to set HIRED directly,
+     * bypassing role capacity and the project-wide limit entirely. Capacity is
+     * now checked here against the same authoritative calculation the hire path
+     * uses, so an offer cannot over-fill a project.
+     */
+    const capacity = await getCapacity(db, app.project.id, app.roleId);
+    if (!app.isApprentice && (capacity.roleFull || capacity.projectFull)) {
+      return {
+        success: false,
+        error: "This role has since been filled. Contact the company before accepting.",
+      };
+    }
+    const move = assertApplicationTransition(app.status, ApplicationStatus.HIRED);
+    if (!move.ok) return { success: false, error: move.error };
+
     // ACCEPT
     meta.offerLetter.status = "ACCEPTED";
     meta.pipelineHistory = [
