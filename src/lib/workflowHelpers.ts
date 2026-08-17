@@ -702,17 +702,49 @@ export interface ApplicationWorkflowData {
 /** The delimiter every serializer in this module writes. */
 export const METADATA_MARKER = "\n\nMETADATA_JSON_BLOCK:";
 
-function safeJsonParse<T>(jsonStr: string | null | undefined, fallback: T): T {
+/**
+ * LEG-004 — a corrupted or truncated metadata block was swallowed by a bare
+ * `console.warn` and the fallback returned, so the record silently presented as
+ * *empty* rather than *broken*. "No rounds configured" and "this row is
+ * corrupt" were indistinguishable to every caller and to anyone reading logs.
+ *
+ * Corruption is now distinguishable from absence:
+ *   - absent input still returns the fallback quietly, which is a normal state;
+ *   - a block that is present but unparseable is logged as an error with the
+ *     offending prefix, and recorded so callers can detect it.
+ *
+ * Deliberately still non-throwing: a corrupt block must not take a page down,
+ * and since Step 2 the financial state lives in real tables, so the blast
+ * radius is presentation only.
+ */
+const corruptedPayloads = new Set<string>();
+
+/** True when this exact payload previously failed to parse (LEG-004). */
+export function isMetadataCorrupt(jsonStr: string | null | undefined): boolean {
+  return !!jsonStr && corruptedPayloads.has(jsonStr);
+}
+
+function safeJsonParse<T>(jsonStr: string | null | undefined, fallback: T, context = "metadata"): T {
+  // Absent is a normal state, not a failure.
   if (!jsonStr) return fallback;
-  try {
-    const trimmed = jsonStr.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      return JSON.parse(trimmed) as T;
-    }
-  } catch (e) {
-    console.warn("Failed to parse JSON field:", e);
+
+  const trimmed = jsonStr.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    // Not a JSON payload at all — plain prose, also a normal state.
+    return fallback;
   }
-  return fallback;
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch (e) {
+    corruptedPayloads.add(jsonStr);
+    console.error(
+      `[${context}] Corrupted metadata block — falling back to defaults. ` +
+        `This record will present as empty until repaired. Prefix: ${trimmed.slice(0, 120)}`,
+      e
+    );
+    return fallback;
+  }
 }
 
 // Company Metadata Parser & Serializer

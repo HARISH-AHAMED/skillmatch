@@ -1,6 +1,6 @@
 import React from "react";
 import { getProjectTeam } from "@/actions/roleActions";
-import { notFound, redirect } from "next/navigation";
+import { notFound, redirect, forbidden } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
@@ -142,9 +142,13 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
     }
   }
 
-  // Security Check: is this user part of the project workspace?
+  /**
+   * SEC-009 — a non-member was bounced to /login, which is misleading for an
+   * already-authenticated user and masks a genuine permission error as a
+   * session problem. forbidden() states what actually happened.
+   */
   if (!userWorkspaceRole) {
-    redirect("/login");
+    forbidden();
   }
 
   // Map hired freelancers for components

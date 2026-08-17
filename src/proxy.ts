@@ -10,6 +10,13 @@ export const proxy = auth((req) => {
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const isCompanyRoute = pathname === "/company" || pathname.startsWith("/company/");
   const isFreelancerRoute = pathname === "/freelancer" || pathname.startsWith("/freelancer/");
+  /**
+   * SEC-009 — /workspace matched none of the guarded prefixes, so the proxy
+   * applied no gating to it. The page enforces its own membership check, so no
+   * unauthorized access was reachable, but requiring a session here is the
+   * defence-in-depth the other authenticated areas already get.
+   */
+  const isWorkspaceRoute = pathname === "/workspace" || pathname.startsWith("/workspace/");
   const isAuthRoute = pathname === "/login" || pathname.startsWith("/login/") || pathname === "/register" || pathname.startsWith("/register/");
 
   // Admin access control boundary
@@ -28,10 +35,13 @@ export const proxy = auth((req) => {
   }
 
   // Route protection for dashboards
-  if (isAdminRoute || isCompanyRoute || isFreelancerRoute) {
+  if (isAdminRoute || isCompanyRoute || isFreelancerRoute || isWorkspaceRoute) {
     if (!isLoggedIn || !userRole) {
       return NextResponse.redirect(new URL("/login", nextUrl.origin));
     }
+    // The workspace is shared by companies and freelancers, so it has no single
+    // expected role; membership is decided by the page against the project.
+    if (isWorkspaceRoute) return NextResponse.next();
 
     // Role mismatch check
     if (isAdminRoute && userRole !== "ADMIN") {

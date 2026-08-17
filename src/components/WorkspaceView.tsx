@@ -710,6 +710,11 @@ export function WorkspaceView({
         });
       } catch (err) {
         console.error("Workspace sync error:", err);
+        if (active) {
+          setActionError(
+            "Live updates have stopped. You may be seeing out-of-date information — refresh to reconnect."
+          );
+        }
       }
     };
 
@@ -1322,7 +1327,7 @@ export function WorkspaceView({
     // so the root was wider than the viewport and overflow-hidden clipped
     // content at the right edge rather than preventing the overflow. w-full
     // matches the containing block instead.
-    <div className="h-screen w-full flex flex-col bg-[#F8F9FB] text-[#1A1D29] font-sans overflow-hidden">
+    <div className="h-dvh w-full flex flex-col bg-[#F8F9FB] text-[#1A1D29] font-sans overflow-hidden">
 
       {/* ── UX-002/UX-003: shared confirmation dialog ── */}
       {confirmState && (
