@@ -1,96 +1,148 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/auth";
-import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import {
-  getProjectMetadataDirect,
-  getProjectDescriptionText,
-  serializeProjectMetadata,
-} from "@/lib/workflowHelpers";
-
-type StipendPayment = NonNullable<
-  ReturnType<typeof getProjectMetadataDirect>["stipendPayments"]
->[number];
+import { requireProjectOwner } from "@/lib/authz";
+import { D, checkStipendRelease, transitionKey } from "@/lib/paymentRules";
+import { inFinancialTransaction, appendLedger, LedgerReplayError } from "@/lib/payments";
+import { getProjectCompensation } from "@/lib/compensation";
 
 /**
- * Company releases one stipend period to one hired freelancer. Each payout is
- * recorded against that freelancer's application, so balances never mix, and a
- * period can only be paid once.
+ * Stipend payouts, backed by StipendPeriod + the ledger rather than JSON
+ * (ARCH-001).
+ *
+ * COMP-013 — the unique index on (applicationId, periodIndex) makes paying the
+ * same period twice a database constraint rather than an array scan that a
+ * concurrent caller could race past.
+ * COMP-014 — cumulative payouts are now capped at the project budget.
  */
 export async function releaseStipendPayment(
   projectId: string,
   applicationId: string,
   periodIndex: number
 ) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    return { success: false, error: "Unauthorized" };
-  }
-  const company = await db.company.findUnique({ where: { userId: session.user.id } });
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project || !company || project.companyId !== company.id) {
-    return { success: false, error: "Unauthorized" };
+  const owned = await requireProjectOwner(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
+
+  const comp = await getProjectCompensation(projectId);
+  if (!comp) return { success: false, error: "This project has no compensation configured." };
+  if (comp.type !== "STIPEND") {
+    return { success: false, error: "This project is not a stipend engagement." };
   }
 
   const application = await db.application.findFirst({
     where: { id: applicationId, projectId, status: "HIRED" },
-    select: { id: true, freelancer: { select: { user: { select: { name: true } } } } },
+    select: { id: true },
   });
   if (!application) {
     return { success: false, error: "That freelancer is not hired on this project." };
   }
 
-  const meta = getProjectMetadataDirect(project.description);
-  if (meta.compensationType !== "STIPEND") {
-    return { success: false, error: "This project is not a stipend engagement." };
+  const amount = comp.stipendAmount ?? D(0);
+
+  try {
+    const result = await inFinancialTransaction(async (tx) => {
+      // Lock this project's stipend rows so a concurrent release computes its
+      // running total from committed state.
+      await tx.$queryRaw`
+        SELECT "id" FROM "StipendPeriod" WHERE "projectId" = ${projectId} FOR UPDATE`;
+
+      const existing = await tx.stipendPeriod.findMany({ where: { projectId } });
+      const alreadyPaidTotal = existing
+        .filter((p) => p.status === "RELEASED")
+        .reduce((t, p) => t.plus(D(p.amount)), D(0));
+
+      const rule = checkStipendRelease({
+        periodIndex,
+        frequency: comp.stipendFrequency,
+        configuredPeriods: comp.stipendPeriods,
+        amount: D(amount),
+        alreadyPaidTotal,
+        projectBudget: D(comp.totalBudget),
+      });
+      if (!rule.ok) return { success: false as const, error: rule.error! };
+
+      let period;
+      try {
+        period = await tx.stipendPeriod.create({
+          data: {
+            projectId,
+            applicationId,
+            periodIndex,
+            amount: D(amount),
+            currency: comp.currency,
+            status: "RELEASED",
+            releasedAt: new Date(),
+          },
+        });
+      } catch (err: any) {
+        if (err?.code === "P2002") {
+          return {
+            success: false as const,
+            error: `Period ${periodIndex} has already been paid to this freelancer.`,
+          };
+        }
+        throw err;
+      }
+
+      await appendLedger(tx, {
+        projectId,
+        applicationId,
+        stipendPeriodId: period.id,
+        type: "RELEASE",
+        amount: D(amount),
+        currency: comp.currency,
+        actorUserId: owned.data.userId,
+        idempotencyKey: transitionKey("stipend", applicationId, "release", periodIndex),
+        note: `Stipend period ${periodIndex}`,
+      });
+
+      return { success: true as const, currency: comp.currency };
+    });
+
+    if (!result.success) return result;
+
+    const app = await db.application.findUnique({
+      where: { id: applicationId },
+      select: { freelancer: { select: { userId: true } } },
+    });
+    if (app) {
+      await db.notification.create({
+        data: {
+          userId: app.freelancer.userId,
+          title: "Stipend released",
+          message: `${result.currency} ${D(amount).toFixed(2)} was released for period ${periodIndex}.`,
+        },
+      });
+    }
+  } catch (err) {
+    if (err instanceof LedgerReplayError) {
+      return { success: false, error: "That stipend period has already been paid." };
+    }
+    console.error("releaseStipendPayment failed:", err);
+    return { success: false, error: "Could not release the stipend." };
   }
 
-  const amount = meta.paymentRate ?? project.budget;
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { success: false, error: "This project has no stipend amount configured." };
-  }
+  revalidatePath(`/company/projects/${projectId}`);
+  return { success: true, payments: await getStipendPayments(projectId) };
+}
 
-  const period = Number(periodIndex);
-  if (!Number.isInteger(period) || period < 1) {
-    return { success: false, error: "Invalid payment period." };
-  }
-  // A one-time stipend has exactly one period.
-  if ((meta.stipendFrequency || "MONTHLY") === "ONE_TIME" && period > 1) {
-    return { success: false, error: "A one-time stipend has only a single payment period." };
-  }
-
-  const payments: StipendPayment[] = meta.stipendPayments ?? [];
-  const duplicate = payments.some(
-    (p) => p.applicationId === applicationId && p.periodIndex === period
-  );
-  if (duplicate) {
-    return { success: false, error: `Period ${period} has already been paid to this freelancer.` };
-  }
-
-  const next: StipendPayment[] = [
-    ...payments,
-    {
-      id: `stipend-${Date.now()}`,
-      applicationId,
-      freelancerName: application.freelancer.user.name || "Freelancer",
-      periodIndex: period,
-      amount,
-      date: new Date().toISOString(),
-      companyName: company.companyName,
-    },
-  ];
-
-  await db.project.update({
-    where: { id: projectId },
-    data: {
-      description: serializeProjectMetadata(getProjectDescriptionText(project.description), {
-        ...meta,
-        stipendPayments: next,
-      }),
+export async function getStipendPayments(projectId: string) {
+  const periods = await db.stipendPeriod.findMany({
+    where: { projectId },
+    orderBy: { periodIndex: "asc" },
+    include: {
+      application: { select: { freelancer: { select: { user: { select: { name: true } } } } } },
     },
   });
-  revalidatePath(`/company/projects/${projectId}`);
-  return { success: true, payments: next };
+  return periods.map((p) => ({
+    id: p.id,
+    applicationId: p.applicationId,
+    freelancerName: p.application.freelancer.user.name || "Freelancer",
+    periodIndex: p.periodIndex,
+    amount: Number(p.amount),
+    currency: p.currency,
+    date: (p.releasedAt ?? p.createdAt).toISOString(),
+    status: p.status,
+  }));
 }

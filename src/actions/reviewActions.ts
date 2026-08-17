@@ -13,6 +13,8 @@ import {
 } from "@/lib/workflowHelpers";
 import { issueProjectCertificates } from "@/actions/certificateActions";
 import { requireProjectOwner, requireProjectParty } from "@/lib/authz";
+import { getProjectCompensation } from "@/lib/compensation";
+import { D, approvedHourlyValue, maxStipendPeriods } from "@/lib/paymentRules";
 
 /**
  * Whether the project's existing compensation workflow has reached a state that
@@ -38,32 +40,50 @@ export async function getProjectCompletionReadiness(projectId: string) {
     return { ready: false, completed: true, reason: "This project is already completed." };
   }
 
-  const meta = getProjectMetadataDirect(project.description);
-  const type = meta.compensationType || "MILESTONE";
+  /**
+   * ARCH-001 / DATA-009 — readiness now reads the financial tables rather than
+   * JSON, and resolves the compensation type through the single resolver, so it
+   * can no longer disagree with what other screens display for the same project.
+   */
+  const comp = await getProjectCompensation(projectId);
+  const type = comp?.type ?? "FIXED";
 
   if (type === "UNPAID") return { ready: true };
 
   if (type === "FIXED" || type === "MILESTONE") {
-    const stages = meta.paymentStages ?? [];
-    if (stages.length === 0) return { ready: true };
-    const open = stages.filter((s) => s.status !== "RELEASED").length;
+    const items = await db.paymentItem.findMany({
+      where: { projectId },
+      select: { status: true },
+    });
+    if (items.length === 0) return { ready: true };
+    const open = items.filter((s) => s.status !== "RELEASED" && s.status !== "CANCELLED").length;
     return open === 0
       ? { ready: true }
       : { ready: false, reason: `${open} payment stage(s) are still awaiting release.` };
   }
 
   if (type === "HOURLY") {
-    const logs = meta.hourlyLogs ?? [];
-    const pays = meta.hourlyPayments ?? [];
-    const rate = meta.paymentRate ?? 0;
+    const [logs, payments] = await Promise.all([
+      db.workLog.findMany({ where: { projectId }, select: { applicationId: true, hours: true, rateSnapshot: true, status: true } }),
+      db.paymentTransaction.findMany({
+        where: { projectId, type: "RELEASE", paymentItemId: null },
+        select: { applicationId: true, amount: true },
+      }),
+    ]);
     const pending = logs.filter((l) => l.status === "PENDING").length;
     if (pending > 0) return { ready: false, reason: `${pending} work log(s) are still pending review.` };
+
     // Every hired freelancer must be settled, not just the selected one.
     const unpaid = hiredIds.filter((id) => {
-      const approved =
-        logs.filter((l) => l.applicationId === id && l.status === "APPROVED").reduce((t, l) => t + (l.hours || 0), 0) * rate;
-      const paid = pays.filter((p) => p.applicationId === id).reduce((t, p) => t + (p.amount || 0), 0);
-      return approved - paid > 0;
+      const approved = approvedHourlyValue(
+        logs
+          .filter((l) => l.applicationId === id)
+          .map((l) => ({ hours: D(l.hours), rateSnapshot: D(l.rateSnapshot), status: l.status }))
+      );
+      const paid = payments
+        .filter((p) => p.applicationId === id)
+        .reduce((t, p) => t.plus(D(p.amount).abs()), D(0));
+      return approved.minus(paid).gt(0);
     }).length;
     return unpaid === 0
       ? { ready: true }
@@ -71,12 +91,27 @@ export async function getProjectCompletionReadiness(projectId: string) {
   }
 
   if (type === "STIPEND") {
-    const paidApps = new Set((meta.stipendPayments ?? []).map((p) => p.applicationId));
-    const unpaid = hiredIds.filter((id) => !paidApps.has(id)).length;
     if (hiredIds.length === 0) return { ready: true };
-    return unpaid === 0
+    const periods = await db.stipendPeriod.findMany({
+      where: { projectId, status: "RELEASED" },
+      select: { applicationId: true, periodIndex: true },
+    });
+    /**
+     * COMP-015 — this previously passed as soon as each freelancer had *any*
+     * stipend payment, so a twelve-month engagement completed cleanly after
+     * month one. Every configured period must now be settled.
+     */
+    const expected = maxStipendPeriods(comp?.stipendFrequency, comp?.stipendPeriods);
+    const outstanding = hiredIds.filter((id) => {
+      const paid = new Set(periods.filter((p) => p.applicationId === id).map((p) => p.periodIndex));
+      return paid.size < expected;
+    }).length;
+    return outstanding === 0
       ? { ready: true }
-      : { ready: false, reason: `${unpaid} freelancer(s) have no stipend released yet.` };
+      : {
+          ready: false,
+          reason: `${outstanding} freelancer(s) have unpaid stipend periods (${expected} expected each).`,
+        };
   }
 
   return { ready: true };

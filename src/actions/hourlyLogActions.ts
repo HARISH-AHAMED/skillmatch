@@ -1,32 +1,34 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/auth";
-import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { requireProjectOwner, requireHiredFreelancer } from "@/lib/authz";
 import {
-  getProjectMetadataDirect,
-  getProjectDescriptionText,
-  serializeProjectMetadata,
-} from "@/lib/workflowHelpers";
+  D,
+  checkAddWorkLog,
+  checkHourlyRelease,
+  approvedHourlyValue,
+  transitionKey,
+} from "@/lib/paymentRules";
+import { inFinancialTransaction, appendLedger, LedgerReplayError } from "@/lib/payments";
+import { getProjectCompensation } from "@/lib/compensation";
 
-type WorkLog = NonNullable<ReturnType<typeof getProjectMetadataDirect>["hourlyLogs"]>[number];
+/**
+ * Hourly work logs and payments, backed by the WorkLog table and the ledger
+ * rather than JSON in Project.description (ARCH-001).
+ *
+ * COMP-007 — each log stores the rate in force when the work was logged, so
+ * editing the project rate no longer retroactively reprices approved work.
+ */
 
-/** A single day of logged work may not exceed this. */
-const MAX_DAILY_HOURS = 16;
-
-async function persist(projectId: string, description: string | null, logs: WorkLog[]) {
-  const meta = getProjectMetadataDirect(description);
-  await db.project.update({
-    where: { id: projectId },
-    data: {
-      description: serializeProjectMetadata(getProjectDescriptionText(description), {
-        ...meta,
-        hourlyLogs: logs,
-      }),
-    },
-  });
-  revalidatePath(`/company/projects/${projectId}`);
+/**
+ * TIME-002 — a date-only value like "2026-08-17" parses as UTC midnight and
+ * then renders a day earlier everywhere west of UTC. Anchoring to local noon
+ * keeps the calendar date stable in every timezone the platform serves.
+ */
+function toWorkDate(dateString: string): Date {
+  const [y, m, d] = dateString.split("-").map(Number);
+  return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
 }
 
 /** Freelancer records a day of work. Only a hired freelancer may log time. */
@@ -34,111 +36,153 @@ export async function addWorkLog(
   projectId: string,
   input: { date: string; hours: number; description: string }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const actor = await requireHiredFreelancer(projectId);
+  if (!actor.ok) return { success: false, error: actor.error };
 
-  const application = await db.application.findFirst({
-    where: { projectId, status: "HIRED", freelancer: { userId: session.user.id } },
-    select: { id: true },
+  const comp = await getProjectCompensation(projectId);
+  if (!comp) return { success: false, error: "This project has no compensation configured." };
+  if (comp.type !== "HOURLY") {
+    return { success: false, error: "This project is not an hourly engagement." };
+  }
+  const rate = comp.hourlyRate ?? D(0);
+  if (rate.lte(0)) {
+    return { success: false, error: "This project has no hourly rate configured." };
+  }
+
+  // COMP-006 — cumulative hours were previously unbounded.
+  const existing = await db.workLog.findMany({
+    where: { applicationId: actor.data.applicationId, status: { not: "REJECTED" } },
+    select: { hours: true },
   });
-  if (!application) {
-    return { success: false, error: "Only a hired freelancer can log work on this project." };
+  const alreadyLogged = existing.reduce((t, l) => t.plus(l.hours), D(0));
+
+  const rule = checkAddWorkLog({
+    hours: D(input.hours),
+    date: input.date,
+    description: input.description,
+    alreadyLoggedHours: alreadyLogged,
+    maxHours: comp.maxHours ?? comp.estimatedHours ?? null,
+  });
+  if (!rule.ok) return { success: false, error: rule.error };
+
+  try {
+    await db.workLog.create({
+      data: {
+        projectId,
+        applicationId: actor.data.applicationId,
+        workDate: toWorkDate(input.date),
+        hours: D(input.hours),
+        description: input.description.trim(),
+        rateSnapshot: rate,
+        currency: comp.currency,
+      },
+    });
+  } catch (err: any) {
+    // COMP-009 — the same day + description cannot be logged twice.
+    if (err?.code === "P2002") {
+      return { success: false, error: "You have already logged this work for that date." };
+    }
+    throw err;
   }
 
-  const hours = Number(input.hours);
-  if (!Number.isFinite(hours) || hours <= 0) {
-    return { success: false, error: "Enter a number of hours greater than zero." };
-  }
-  if (hours > MAX_DAILY_HOURS) {
-    return { success: false, error: `A single work log cannot exceed ${MAX_DAILY_HOURS} hours.` };
-  }
-  if (!input.date) return { success: false, error: "Select the date the work was done." };
-  if (!input.description?.trim()) {
-    return { success: false, error: "Describe the work briefly." };
-  }
-
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project) return { success: false, error: "Project not found." };
-
-  const logs: WorkLog[] = getProjectMetadataDirect(project.description).hourlyLogs ?? [];
-  const next: WorkLog[] = [
-    ...logs,
-    {
-      id: `log-${Date.now()}`,
-      applicationId: application.id,
-      freelancerUserId: session.user.id,
-      freelancerName: session.user.name || "Freelancer",
-      date: input.date,
-      hours,
-      description: input.description.trim(),
-      status: "PENDING",
-    },
-  ];
-
-  await persist(projectId, project.description, next);
-  return { success: true, logs: next };
+  revalidatePath(`/company/projects/${projectId}`);
+  return { success: true, logs: await getWorkLogs(projectId) };
 }
 
-/**
- * Company approves or rejects a pending work log. Only the owning company may
- * review, and a log that has already been reviewed cannot be reviewed again.
- */
-export async function reviewWorkLog(projectId: string, logId: string, approve: boolean) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    return { success: false, error: "Unauthorized" };
-  }
-  const company = await db.company.findUnique({ where: { userId: session.user.id } });
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project || !company || project.companyId !== company.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+export async function getWorkLogs(projectId: string) {
+  const logs = await db.workLog.findMany({
+    where: { projectId },
+    orderBy: { workDate: "desc" },
+    include: {
+      application: {
+        select: { id: true, freelancer: { select: { userId: true, user: { select: { name: true } } } } },
+      },
+    },
+  });
+  return logs.map((l) => ({
+    id: l.id,
+    applicationId: l.applicationId,
+    freelancerUserId: l.application.freelancer.userId,
+    freelancerName: l.application.freelancer.user.name || "Freelancer",
+    date: l.workDate.toISOString().slice(0, 10),
+    hours: Number(l.hours),
+    description: l.description,
+    status: l.status,
+    rate: Number(l.rateSnapshot),
+    currency: l.currency,
+    reviewedAt: l.reviewedAt?.toISOString(),
+    reviewNote: l.reviewNote ?? "",
+  }));
+}
 
-  const logs: WorkLog[] = getProjectMetadataDirect(project.description).hourlyLogs ?? [];
-  const target = logs.find((l) => l.id === logId);
-  if (!target) return { success: false, error: "Work log not found." };
-  if (target.status !== "PENDING") {
-    return { success: false, error: "This work log has already been reviewed." };
-  }
+/** Company approves or rejects a pending work log. */
+export async function reviewWorkLog(
+  projectId: string,
+  logId: string,
+  approve: boolean,
+  reviewNote?: string
+) {
+  const owned = await requireProjectOwner(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
 
-  const next = logs.map((l) =>
-    l.id === logId
-      ? {
-          ...l,
-          status: (approve ? "APPROVED" : "REJECTED") as WorkLog["status"],
-          reviewedAt: new Date().toISOString(),
-        }
-      : l
+  const result = await inFinancialTransaction(async (tx) => {
+    // Scoped to the project, per the Phase 1 Class B rule.
+    const rows = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "WorkLog" WHERE "id" = ${logId} AND "projectId" = ${projectId} FOR UPDATE`;
+    if (rows.length === 0) return { success: false as const, error: "Work log not found." };
+
+    const log = await tx.workLog.findUnique({ where: { id: logId } });
+    if (!log) return { success: false as const, error: "Work log not found." };
+    if (log.status !== "PENDING") {
+      return { success: false as const, error: "This work log has already been reviewed." };
+    }
+
+    await tx.workLog.update({
+      where: { id: logId },
+      data: {
+        status: approve ? "APPROVED" : "REJECTED",
+        reviewedAt: new Date(),
+        reviewedById: owned.data.userId,
+        // COMP-008 — a rejection now carries a reason, so a mistaken one is
+        // explicable rather than silently terminal.
+        reviewNote: approve ? null : reviewNote || "",
+      },
+    });
+    return { success: true as const, applicationId: log.applicationId };
+  });
+
+  if (!result.success) return result;
+
+  await notifyFreelancer(
+    result.applicationId,
+    approve ? "Work log approved" : "Work log rejected",
+    approve
+      ? "Your logged hours were approved and are now payable."
+      : `Your logged hours were rejected.${reviewNote ? ` Reason: ${reviewNote}` : ""}`
   );
 
-  await persist(projectId, project.description, next);
-  return { success: true, logs: next };
+  revalidatePath(`/company/projects/${projectId}`);
+  return { success: true, logs: await getWorkLogs(projectId) };
 }
 
 /** Freelancer deletes their own log, only while it is still pending review. */
 export async function deleteWorkLog(projectId: string, logId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const actor = await requireHiredFreelancer(projectId);
+  if (!actor.ok) return { success: false, error: actor.error };
 
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project) return { success: false, error: "Project not found." };
-
-  const logs: WorkLog[] = getProjectMetadataDirect(project.description).hourlyLogs ?? [];
-  const target = logs.find((l) => l.id === logId);
-  if (!target) return { success: false, error: "Work log not found." };
-  if (target.freelancerUserId !== session.user.id) {
+  const log = await db.workLog.findFirst({ where: { id: logId, projectId } });
+  if (!log) return { success: false, error: "Work log not found." };
+  if (log.applicationId !== actor.data.applicationId) {
     return { success: false, error: "You can only remove your own work logs." };
   }
-  if (target.status !== "PENDING") {
+  if (log.status !== "PENDING") {
     return { success: false, error: "A reviewed work log can no longer be removed." };
   }
 
-  const next = logs.filter((l) => l.id !== logId);
-  await persist(projectId, project.description, next);
-  return { success: true, logs: next };
+  await db.workLog.delete({ where: { id: logId } });
+  revalidatePath(`/company/projects/${projectId}`);
+  return { success: true, logs: await getWorkLogs(projectId) };
 }
-
-type Payment = NonNullable<ReturnType<typeof getProjectMetadataDirect>["hourlyPayments"]>[number];
 
 /**
  * Company releases payment for a freelancer's approved hourly work.
@@ -150,73 +194,94 @@ export async function releaseHourlyPayment(
   applicationId: string,
   amount: number
 ) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    return { success: false, error: "Unauthorized" };
-  }
-  const company = await db.company.findUnique({ where: { userId: session.user.id } });
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project || !company || project.companyId !== company.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  const owned = await requireProjectOwner(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
+
+  const comp = await getProjectCompensation(projectId);
+  if (!comp) return { success: false, error: "This project has no compensation configured." };
 
   const application = await db.application.findFirst({
     where: { id: applicationId, projectId, status: "HIRED" },
-    select: { id: true, freelancer: { select: { user: { select: { name: true } } } } },
+    select: { id: true },
   });
   if (!application) {
     return { success: false, error: "That freelancer is not hired on this project." };
   }
 
-  const meta = getProjectMetadataDirect(project.description);
-  const rate = meta.paymentRate ?? 0;
-  const logs: WorkLog[] = meta.hourlyLogs ?? [];
-  const payments: Payment[] = meta.hourlyPayments ?? [];
+  try {
+    const result = await inFinancialTransaction(async (tx) => {
+      // Lock this application's logs and prior payments together, so a
+      // concurrent release cannot compute its balance from stale state.
+      await tx.$queryRaw`
+        SELECT "id" FROM "WorkLog" WHERE "applicationId" = ${applicationId} FOR UPDATE`;
 
-  const approvedHours = logs
-    .filter((l) => l.applicationId === applicationId && l.status === "APPROVED")
-    .reduce((t, l) => t + (l.hours || 0), 0);
-  const approvedAmount = approvedHours * rate;
-  const alreadyPaid = payments
-    .filter((p) => p.applicationId === applicationId)
-    .reduce((t, p) => t + (p.amount || 0), 0);
-  const remainingPayable = approvedAmount - alreadyPaid;
+      const logs = await tx.workLog.findMany({ where: { applicationId } });
+      const paid = await tx.paymentTransaction.findMany({
+        where: { applicationId, type: "RELEASE", paymentItemId: null },
+      });
 
-  const value = Number(amount);
-  if (!Number.isFinite(value) || value <= 0) {
-    return { success: false, error: "Enter a payment amount greater than zero." };
-  }
-  if (remainingPayable <= 0) {
-    return { success: false, error: "This freelancer's approved work has already been paid in full." };
-  }
-  if (value > remainingPayable) {
-    return {
-      success: false,
-      error: `Only ${remainingPayable.toLocaleString()} remains payable for this freelancer's approved work.`,
-    };
-  }
+      const approvedValue = approvedHourlyValue(
+        logs.map((l) => ({ hours: D(l.hours), rateSnapshot: D(l.rateSnapshot), status: l.status }))
+      );
+      const alreadyPaid = paid.reduce((t, p) => t.plus(D(p.amount).abs()), D(0));
+      const value = D(amount);
 
-  const next: Payment[] = [
-    ...payments,
-    {
-      id: `pay-${Date.now()}`,
+      const rule = checkHourlyRelease({ value, approvedValue, alreadyPaid });
+      if (!rule.ok) return { success: false as const, error: rule.error! };
+
+      const nextPaid = alreadyPaid.plus(value);
+      await appendLedger(tx, {
+        projectId,
+        applicationId,
+        type: "RELEASE",
+        amount: value,
+        currency: comp.currency,
+        actorUserId: owned.data.userId,
+        idempotencyKey: transitionKey("hourly", applicationId, "release", nextPaid.toFixed(2)),
+        note: "Hourly work payment",
+      });
+      return { success: true as const, value, currency: comp.currency };
+    });
+
+    if (!result.success) return result;
+
+    await notifyFreelancer(
       applicationId,
-      date: new Date().toISOString(),
-      amount: value,
-      companyName: company.companyName,
-      freelancerName: application.freelancer.user.name || "Freelancer",
-    },
-  ];
+      "Payment released",
+      `${result.currency} ${result.value.toFixed(2)} was released for your approved hours.`
+    );
+  } catch (err) {
+    if (err instanceof LedgerReplayError) {
+      return { success: false, error: "That payment has already been recorded." };
+    }
+    console.error("releaseHourlyPayment failed:", err);
+    return { success: false, error: "Could not release the payment." };
+  }
 
-  await db.project.update({
-    where: { id: projectId },
-    data: {
-      description: serializeProjectMetadata(getProjectDescriptionText(project.description), {
-        ...meta,
-        hourlyPayments: next,
-      }),
-    },
-  });
   revalidatePath(`/company/projects/${projectId}`);
-  return { success: true, payments: next };
+  return { success: true, payments: await getHourlyPayments(projectId) };
+}
+
+export async function getHourlyPayments(projectId: string) {
+  const entries = await db.paymentTransaction.findMany({
+    where: { projectId, type: "RELEASE", paymentItemId: null },
+    orderBy: { createdAt: "desc" },
+  });
+  return entries.map((e) => ({
+    id: e.id,
+    applicationId: e.applicationId,
+    date: e.createdAt.toISOString(),
+    amount: Number(e.amount.abs()),
+    currency: e.currency,
+    note: e.note ?? "",
+  }));
+}
+
+async function notifyFreelancer(applicationId: string, title: string, message: string) {
+  const app = await db.application.findUnique({
+    where: { id: applicationId },
+    select: { freelancer: { select: { userId: true } } },
+  });
+  if (!app) return;
+  await db.notification.create({ data: { userId: app.freelancer.userId, title, message } });
 }

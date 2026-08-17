@@ -1084,7 +1084,9 @@ export function WorkspaceView({
           else pending += amount;
         });
 
-        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** $${projectBudget.toLocaleString()}\n• **Escrow Wallet secured:** $${held.toLocaleString()} (funded milestones in progress)\n• **Released to Freelancer:** $${released.toLocaleString()}\n• **Remaining unfunded milestones:** $${pending.toLocaleString()}.`;
+        // COMP-001 is deferred: the platform holds no funds, so this must not
+        // describe an escrow balance.
+        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** ${projectBudget.toLocaleString()}\n• **Committed:** ${held.toLocaleString()} (approved for payment, not yet marked paid)\n• **Marked paid:** ${released.toLocaleString()}\n• **Not yet committed:** ${pending.toLocaleString()}.`;
       } else if (lower.includes("deadline") || lower.includes("date") || lower.includes("timeline")) {
         reply = `The final project timeline deadline is scheduled for **December 28, 2026**. Please coordinate tasks and milestones accordingly to prevent delivery lags.`;
       } else if (lower.includes("deliverable") || lower.includes("file") || lower.includes("submission")) {
@@ -1581,7 +1583,7 @@ export function WorkspaceView({
                           <span className="font-semibold text-success text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Secured in Escrow</span>
+                          <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Committed</span>
                           <span className="font-semibold text-[#2159C9] text-sm mt-0.5 block">${fundsEscrowed.toLocaleString()}</span>
                         </div>
                         <div>
@@ -3367,7 +3369,7 @@ export function WorkspaceView({
                                     }
                                   >
                                     {milestone.status === "COMPLETED" ? "Released" : 
-                                     milestone.status === "IN_PROGRESS" ? "In Escrow" : "Pending Funding"}
+                                     milestone.status === "IN_PROGRESS" ? "Committed" : "Not committed"}
                                   </Badge>
                                 </div>
                                 <p className="text-xs text-[#5B6272] leading-relaxed max-w-2xl">

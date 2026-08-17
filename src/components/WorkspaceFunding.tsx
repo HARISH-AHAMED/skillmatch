@@ -7,9 +7,9 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { HeartHandshake, Clock, Wallet, CalendarClock, Layers, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { releaseStipendPayment } from "@/actions/stipendPaymentActions";
-import { addWorkLog, reviewWorkLog, deleteWorkLog, releaseHourlyPayment } from "@/actions/hourlyLogActions";
-import { savePaymentStage, deletePaymentStage, fundPaymentStage, submitPaymentStage, reviewPaymentStage, releasePaymentStage } from "@/actions/paymentStageActions";
+import { releaseStipendPayment, getStipendPayments } from "@/actions/stipendPaymentActions";
+import { addWorkLog, reviewWorkLog, deleteWorkLog, releaseHourlyPayment, getWorkLogs, getHourlyPayments } from "@/actions/hourlyLogActions";
+import { savePaymentStage, deletePaymentStage, fundPaymentStage, submitPaymentStage, reviewPaymentStage, releasePaymentStage, getPaymentStages } from "@/actions/paymentStageActions";
 import {
   getProjectMetadataDirect,
   getCurrencySymbol,
@@ -68,12 +68,38 @@ export function WorkspaceFunding({
   fundsPaid,
   trackedHours,
 }: WorkspaceFundingProps) {
-  // Stage editing state. Seeded from metadata and kept in sync after each save.
-  const seededStages = React.useMemo(
-    () => getProjectMetadataDirect(projectDescription || "").paymentStages ?? [],
-    [projectDescription]
-  );
-  const [stageList, setStageList] = React.useState<any[]>(seededStages);
+  /**
+   * ARCH-001 — these four lists were previously seeded by parsing JSON out of
+   * projectDescription. They now load from the financial tables, which are the
+   * source of truth. Each is kept in sync after every mutation exactly as
+   * before, so the interaction model is unchanged.
+   */
+  const [stageList, setStageList] = React.useState<any[]>([]);
+  const [logList, setLogList] = React.useState<any[]>([]);
+  const [paymentList, setPaymentList] = React.useState<any[]>([]);
+  const [stipendList, setStipendList] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!projectId) return;
+    let active = true;
+    (async () => {
+      const [stages, logs, payments, stipends] = await Promise.all([
+        getPaymentStages(projectId),
+        getWorkLogs(projectId),
+        getHourlyPayments(projectId),
+        getStipendPayments(projectId),
+      ]);
+      if (!active) return;
+      setStageList(stages);
+      setLogList(logs);
+      setPaymentList(payments);
+      setStipendList(stipends);
+    })().catch((err) => console.error("Failed to load funding data:", err));
+    return () => {
+      active = false;
+    };
+  }, [projectId]);
+
   const [editing, setEditing] = React.useState<any | null>(null);
   const [form, setForm] = React.useState({ title: "", description: "", amount: "", applicationId: "" });
   const [selectedApp, setSelectedApp] = React.useState("ALL");
@@ -84,17 +110,11 @@ export function WorkspaceFunding({
   const [fundAmount, setFundAmount] = React.useState("");
   const [submittingStage, setSubmittingStage] = React.useState<any | null>(null);
   const [submitNote, setSubmitNote] = React.useState("");
-  const seededLogs = React.useMemo(() => getProjectMetadataDirect(projectDescription || "").hourlyLogs ?? [], [projectDescription]);
-  const [logList, setLogList] = React.useState<any[]>(seededLogs);
   const [showLogForm, setShowLogForm] = React.useState(false);
   const [logForm, setLogForm] = React.useState({ date: "", hours: "", description: "" });
   const [logError, setLogError] = React.useState<string | null>(null);
   const [savingLog, setSavingLog] = React.useState(false);
-  const seededPayments = React.useMemo(() => getProjectMetadataDirect(projectDescription || "").hourlyPayments ?? [], [projectDescription]);
-  const [paymentList, setPaymentList] = React.useState<any[]>(seededPayments);
   const [payAmount, setPayAmount] = React.useState("");
-  const seededStipends = React.useMemo(() => getProjectMetadataDirect(projectDescription || "").stipendPayments ?? [], [projectDescription]);
-  const [stipendList, setStipendList] = React.useState<any[]>(seededStipends);
 
   const runStipendAction = async (fn: () => Promise<any>) => {
     setLogError(null);
@@ -127,11 +147,6 @@ export function WorkspaceFunding({
     });
     setSavingLog(false);
   };
-
-  React.useEffect(() => setStageList(seededStages), [seededStages]);
-  React.useEffect(() => setLogList(seededLogs), [seededLogs]);
-  React.useEffect(() => setPaymentList(seededPayments), [seededPayments]);
-  React.useEffect(() => setStipendList(seededStipends), [seededStipends]);
 
   const openStageForm = (stage?: any) => {
     setShowStageForm(true);
