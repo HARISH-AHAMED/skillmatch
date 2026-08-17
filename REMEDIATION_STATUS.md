@@ -360,6 +360,71 @@ migration or backfill was run in an attempt to close any of them.
 
 ---
 
+## Phase 3 Step 2 — Product Decisions Implemented: COMPLETE
+
+2 commits (`453acb3`, `5decee9`). `npm test` **159 passing / 12 files** ·
+`tsc --noEmit` clean · `next build` exit 0.
+**No migration applied. No backfill run. No DB probes. Nothing deployed.**
+
+All five decisions were **B**. Two required code; three are deferrals recorded
+here with no code change, per the decision.
+
+| Decision | Outcome | Evidence |
+|---|---|---|
+| **EVAL-001…006** → B | **Closed** — configurator reduced to what the platform runs | `workflowHelpers.ts` `SUPPORTED_ROUND_TYPES` / `isRoundTypeSupported`; both round selectors; `RoundConfigPanel.tsx:38`; `ui/Select.tsx` |
+| **WS-009** → B | **Fixed & Tested** — voice + assistant simulations removed | `WorkspaceView.tsx` `VoiceMessagePlayer`, chat composer, assistant panel |
+| **KANBAN-004** → B | **Deferred — product decision, not building this pass.** Button-driven interaction is the intended design; correctness already fixed in Step 5 | no code change |
+| **TIME-004** → B | **Deferred — product decision, not building this pass.** Due-date-only model retained | no code change |
+| **SEC-015 object storage** → B | **Deferred — separate initiative.** SVG restriction remains Fixed & Tested | no code change |
+
+### What changed for EVAL
+Only `SCREENING_QUESTIONS` is selectable. The other twelve types stay visible
+but disabled and labelled "Coming soon — not yet run by the platform", and
+`RoundConfigPanel` states on an unsupported round that its settings are saved
+but candidates are never asked to complete it.
+
+**Rounds already configured on existing projects are not deleted.** They remain
+stored, render with a "Coming soon" badge, and can still be removed by the
+company. This was the conservative reading of a question left open at the
+decision gate — deleting stored configuration was not authorised.
+
+**Interview scheduling is unaffected.** It runs from the applicant detail view
+via pipeline stages, not from the rounds array, so disabling the `INTERVIEW`
+round type removed no working functionality. Worth noting for a future
+revisit: `INTERVIEW` is therefore *partially* real, unlike the other eleven.
+
+Legacy default rounds (`CV_PITCH` / `SCREENING_QUESTIONS` / `INTERVIEW`, seeded
+for projects predating the field) are left seeded and simply inherit the
+labelling. Changing them would alter what existing projects display.
+
+### What changed for WS-009
+- **Voice:** nothing was ever recorded. The button started a timer and animated
+  waveform; "sending" emitted a text token; the player synthesised tones with
+  Web Audio + `Math.random()`. Button, overlay and handlers removed; the
+  ~200-line player replaced with "Voice message — playback not available" so
+  tokens already in history render honestly. Existing messages are not deleted.
+- **Assistant:** keyword matching over canned replies, presented as an AI
+  assistant. Handler and conversation state removed; the panel now states it is
+  unavailable and points to Overview/Funding for real figures. The toggle and
+  layout are unchanged.
+
+### Deferred and partial items — unchanged by this step
+| ID | Classification |
+|---|---|
+| COMP-001 | **Intentionally deferred** — real payment-provider integration, outside this remediation |
+| PERF-002 | **Technically pending** — browse/list read paths still parse JSON per project |
+| COMP-016 | **Blocked on migration** — legacy `rate ?? budget` fallback closes when the backfill runs |
+| SEC-015 (object storage) | **Deferred — product decision** as of this step |
+| DEP-001 (version bumps) | **Intentionally deferred** — `next`/`postcss`/`sharp`/`next-auth` need breaking-range upgrades and their own regression pass |
+
+### ⚠️ Database state — unchanged
+Three migrations written, **none applied**. Backfill written, **never executed**.
+The `User.passwordChangeRequired` warning in the Phase 1 section above **remains
+current**: until `0_init` is resolved and `20260817000001` deployed,
+`/admin/users` and any other `user.findMany()` path errors at query time.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -502,12 +567,12 @@ Logged per ground rule 1 rather than chased.
 ### Evaluations — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| EVAL-001 | P1 | 5 | **Needs Decision** |
-| EVAL-002 | P1 | 5 | **Needs Decision** |
-| EVAL-003 | P2 | 5 | Needs Decision (depends on 001/002) |
-| EVAL-004 | P2 | 5 | Needs Decision (depends on 001/002) |
-| EVAL-005 | P2 | 5 | Needs Decision (depends on 001/002) |
-| EVAL-006 | P3 | 5 | Needs Decision (depends on 001/002) |
+| EVAL-001 | P1 | 5 | **Closed — configurator reduced (Phase 3 decision B)**|
+| EVAL-002 | P1 | 5 | **Closed — runtime not built (Phase 3 decision B)**|
+| EVAL-003 | P2 | 5 | **Closed via EVAL-001/002 decision**|
+| EVAL-004 | P2 | 5 | **Closed via EVAL-001/002 decision**|
+| EVAL-005 | P2 | 5 | **Closed via EVAL-001/002 decision**|
+| EVAL-006 | P3 | 5 | **Closed via EVAL-001/002 decision**|
 
 ### Timeline / Kanban — session 2
 | ID | Sev | Phase | Status |
@@ -515,12 +580,12 @@ Logged per ground rule 1 rather than chased.
 | TIME-001 | P1 | 6 | **Fixed & Tested** |
 | TIME-002 | P1 | 6 | **Fixed & Tested** |
 | TIME-003 | P2 | 7 | **Fixed & Tested**|
-| TIME-004 | P2 | 5 | **Needs Decision** |
+| TIME-004 | P2 | 5 | **Deferred — product decision: due-date-only model retained**|
 | TIME-005 | P2 | 7 | **Fixed & Tested**|
 | KANBAN-001 | P1 | 2 | **Fixed & Tested** |
 | KANBAN-002 | P2 | 7 | **Fixed & Tested**|
 | KANBAN-003 | P2 | 7 | **Fixed & Tested**|
-| KANBAN-004 | P2 | 5 | **Needs Decision** |
+| KANBAN-004 | P2 | 5 | **Deferred — product decision: keeping button-driven Kanban**|
 | KANBAN-005 | P3 | 7 | **Fixed & Tested**|
 
 ### Workspace — session 2
@@ -534,7 +599,7 @@ Logged per ground rule 1 rather than chased.
 | WS-006 | P2 | 7 | **Fixed & Tested**|
 | WS-007 | P2 | 7 | **Fixed & Tested**|
 | WS-008 | P2 | 1 | **Fixed & Tested** — unsafe render-time delete removed; 7-day retention kept, cron only |
-| WS-009 | P2 | 5 | **Needs Decision** |
+| WS-009 | P2 | 5 | **Fixed & Tested — simulations removed (Phase 3 decision B)**|
 | WS-010 | P3 | 7 | **Fixed & Tested**|
 
 ### Data consistency — session 2
@@ -569,10 +634,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 88 |
-| Partially fixed | 4 (SEC-015 SVG half, DEP-001 non-breaking half, COMP-016, PERF-002) |
-| Deferred (explicit decision) | 1 (COMP-001) |
-| Needs Decision | 9 |
+| Fixed & Tested | 95 |
+| Deferred (explicit product decision) | 3 (KANBAN-004, TIME-004, COMP-001) |
+| Partially fixed / pending | 4 (SEC-015 object storage, DEP-001 version bumps, COMP-016, PERF-002) |
+| Needs Decision | 0 |
 | Not Started | 0 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001) |
