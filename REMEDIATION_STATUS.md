@@ -22,6 +22,51 @@ Statuses: `Not Started` · `In Progress` · `Fixed & Tested` · `Deferred (reaso
 
 ---
 
+## Phase 1 — Security & Ownership Foundation: COMPLETE
+
+4 commits. `npm test` 61 passing · `tsc --noEmit` clean · `next build` exit 0.
+
+| Step | Result |
+|---|---|
+| Migration baseline | ✅ `prisma/migrations/0_init` generated from the existing schema |
+| DEP-001 non-breaking | ✅ `@auth/core` + `nanoid` resolved (3 critical + 2 high CVEs) |
+| P0 quick fixes | ✅ SEC-001, 002, 003, 008, 010, 017, ARCH-002 |
+| Class A sweep | ✅ SEC-004, 005, 006, 007, 011, 012, 013, 014, 016 |
+| Class B sweep | ✅ KANBAN-001, WS-001, WS-002, ROLE-001 **+ 4 unnamed instances found by the grep** |
+| SEC-015 (SVG half) | ✅ Blocked on both MIME and extension |
+
+### ⚠️ Two things that must happen before this branch runs against a database
+
+1. **The migrations are written but deliberately not applied.** No migration in
+   `prisma/migrations/` has been executed anywhere. `0_init` must be marked
+   applied per-environment (`prisma migrate resolve --applied 0_init`), then
+   `20260817000001_sec002_password_rotation_flag` applied with `migrate deploy`.
+   **Until that runs, `/admin/users` and any other `user.findMany()` path will
+   error** — the Prisma client now knows `User.passwordChangeRequired` but the
+   database does not. `next build` still exits 0; the failure is at query time.
+2. **`registerUser`'s signature changed** — `passwordHash` → `password`. Both
+   in-repo callers were updated. Any external caller would break.
+
+### Class B sweep — grep results
+`grep -rnE "db\.[a-zA-Z]+\.(update|delete|updateMany|deleteMany)\("` across
+`src/actions`, `src/app/api`, `src/app/workspace`, filtered to bare `{ id }`
+where-clauses inside functions that had already run a project-access check.
+
+Beyond the four IDs the audit named, this found **four more instances of the
+identical shape**, all in `collaborationActions.ts`, all now fixed:
+
+| Function | Record | Audit status |
+|---|---|---|
+| `updateProjectUpdateStatus` | `ProjectUpdate` | not named |
+| `updateDeliverableStatus` | `SharedFile` | not named |
+| `uploadDeliverableVersion` | `SharedFile` | not named |
+| `deleteMessage` | `Message` | flagged "lower-risk, same shape" — confirmed |
+
+`markMessagesAsRead` was checked and is already correctly scoped by
+`projectId` + `channel`. No further instances remain.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -70,23 +115,23 @@ Logged per ground rule 1 rather than chased.
 ### Security — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| SEC-001 | P0 | 1 | Not Started |
-| SEC-002 | P0 | 1 | Not Started |
-| SEC-003 | P0 | 1 | Not Started |
-| SEC-004 | P0 | 2 | Not Started |
-| SEC-005 | P0 | 2 | Not Started |
-| SEC-006 | P0 | 2 | Not Started |
-| SEC-007 | P0 | 2 | Not Started |
-| SEC-008 | P0 | 1 | Not Started |
+| SEC-001 | P0 | 1 | **Fixed & Tested** |
+| SEC-002 | P0 | 1 | **Fixed & Tested** |
+| SEC-003 | P0 | 1 | **Fixed & Tested** |
+| SEC-004 | P0 | 2 | **Fixed & Tested** |
+| SEC-005 | P0 | 2 | **Fixed & Tested** |
+| SEC-006 | P0 | 2 | **Fixed & Tested** |
+| SEC-007 | P0 | 2 | **Fixed & Tested** |
+| SEC-008 | P0 | 1 | **Fixed & Tested** |
 | SEC-009 | P3 | 8 | Not Started |
-| SEC-010 | P1 | 1 | Not Started |
-| SEC-011 | P1 | 2 | Not Started |
-| SEC-012 | P1 | 2 | Not Started |
-| SEC-013 | P2 | 2 | Not Started |
-| SEC-014 | P2 | 2 | Not Started |
-| SEC-015 | P2 | 2 (SVG) / Needs Decision (object storage) | Not Started |
-| SEC-016 | P3 | 2 | Not Started |
-| SEC-017 | P3 | 1 | Not Started |
+| SEC-010 | P1 | 1 | **Fixed & Tested** |
+| SEC-011 | P1 | 2 | **Fixed & Tested** |
+| SEC-012 | P1 | 2 | **Fixed & Tested** |
+| SEC-013 | P2 | 2 | **Fixed & Tested** |
+| SEC-014 | P2 | 2 | **Fixed & Tested** |
+| SEC-015 | P2 | 1 / 3 | **Fixed & Tested** (SVG blocked) · object storage → Needs Decision |
+| SEC-016 | P3 | 2 | **Fixed & Tested** |
+| SEC-017 | P3 | 1 | **Fixed & Tested** |
 
 ### Compensation — session 1
 | ID | Sev | Phase | Status |
@@ -102,7 +147,7 @@ Logged per ground rule 1 rather than chased.
 | COMP-009 | P3 | 3 | Not Started |
 | COMP-010 | P0 | 3 | **Needs Plan** |
 | COMP-011 | P1 | 3 | Not Started |
-| COMP-012 | P1 | 3 | Not Started |
+| COMP-012 | P1 | 3 | **Fixed & Tested** |
 | COMP-013 | P2 | 3 | Not Started |
 | COMP-014 | P2 | 3 | Not Started |
 | COMP-015 | P2 | 3 | Not Started |
@@ -136,7 +181,7 @@ Logged per ground rule 1 rather than chased.
 | ID | Sev | Phase | Status |
 |---|---|---|---|
 | ARCH-001 | P0 | 3 | **Needs Plan** |
-| ARCH-002 | P1 | 1 | Not Started |
+| ARCH-002 | P1 | 1 | **Fixed & Tested** |
 | DATA-001 | — | — | **N/A — orphan reference.** Cited in audit §1 alongside ARCH-001 but never defined as its own finding. Treated as covered by ARCH-001; no separate work item. |
 | DATA-002 | P1 | 3 | Not Started |
 | DATA-003 | P1 | 3 | Not Started |
@@ -158,7 +203,7 @@ Logged per ground rule 1 rather than chased.
 ### Roles — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| ROLE-001 | P2 | 2 | Not Started |
+| ROLE-001 | P2 | 2 | **Fixed & Tested** |
 | ROLE-002 | P3 | 7 | Not Started |
 
 ### Evaluations — session 2
@@ -179,7 +224,7 @@ Logged per ground rule 1 rather than chased.
 | TIME-003 | P2 | 7 | Not Started |
 | TIME-004 | P2 | 5 | **Needs Decision** |
 | TIME-005 | P2 | 7 | Not Started |
-| KANBAN-001 | P1 | 2 | Not Started |
+| KANBAN-001 | P1 | 2 | **Fixed & Tested** |
 | KANBAN-002 | P2 | 7 | Not Started |
 | KANBAN-003 | P2 | 7 | Not Started |
 | KANBAN-004 | P2 | 5 | **Needs Decision** |
@@ -188,14 +233,14 @@ Logged per ground rule 1 rather than chased.
 ### Workspace — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| WS-001 | P1 | 2 | Not Started |
-| WS-002 | P1 | 2 | Not Started |
+| WS-001 | P1 | 2 | **Fixed & Tested** |
+| WS-002 | P1 | 2 | **Fixed & Tested** |
 | WS-003 | P1 | 3 | **Needs Plan** (milestone consolidation) |
 | WS-004 | P1 | 6 | Not Started (may close via Phase 3) |
 | WS-005 | P2 | 7 | Not Started |
 | WS-006 | P2 | 7 | Not Started |
 | WS-007 | P2 | 7 | Not Started (expected to close via LIFE-001) |
-| WS-008 | P2 | 7 | Not Started (retention policy flagged above) |
+| WS-008 | P2 | 1 | **Fixed & Tested** — unsafe render-time delete removed; 7-day retention kept, cron only |
 | WS-009 | P2 | 5 | **Needs Decision** |
 | WS-010 | P3 | 7 | Not Started |
 
@@ -222,7 +267,7 @@ Logged per ground rule 1 rather than chased.
 ### New — this remediation
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| DEP-001 | P1 | 1 (non-breaking) / Needs Decision (`--force` set) | Not Started |
+| DEP-001 | P1 | 1 | **Partially Fixed** — @auth/core + nanoid resolved; next/postcss/sharp/next-auth deferred |
 
 ---
 
@@ -231,8 +276,9 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 1 (TEST-001) |
+| Fixed & Tested | 22 |
+| Partially fixed | 2 (SEC-015 SVG half, DEP-001 non-breaking half) |
 | Needs Decision / Needs Plan | 16 |
-| Not Started | 85 |
+| Not Started | 62 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged this pass | 1 (DEP-001) |
