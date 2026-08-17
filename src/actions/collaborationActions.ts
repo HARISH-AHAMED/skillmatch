@@ -4,6 +4,12 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { DELIVERABLE_REVISION_CAP } from "@/lib/workflowHelpers";
+import {
+  scopedTask,
+  scopedSharedFile,
+  scopedMessage,
+  scopedProjectUpdate,
+} from "@/lib/authz";
 
 // Helper to verify if the user belongs to the project workspace
 async function verifyProjectWorkspaceAccess(projectId: string, userId: string) {
@@ -293,6 +299,12 @@ export async function updateProjectUpdateStatus(
 
   const { role, project } = access;
 
+  // KANBAN-001 class — surfaced by the Phase 1 sweep, not named in the audit.
+  // Same shape: project access is checked, the update id was not scoped to it.
+  if (!(await scopedProjectUpdate(updateId, projectId))) {
+    return { error: "Update not found" };
+  }
+
   try {
     const update = await db.projectUpdate.update({
       where: { id: updateId },
@@ -399,6 +411,13 @@ export async function updateTaskStatus(projectId: string, taskId: string, status
     return { error: access.error || "Access denied" };
   }
 
+  // KANBAN-001: the workspace-access check above validates the *project* the
+  // caller claims, not that this task lives in it. Without this, any member of
+  // any project could mutate any task on the platform by id.
+  if (!(await scopedTask(taskId, projectId))) {
+    return { error: "Task not found" };
+  }
+
   try {
     const task = await db.task.update({
       where: { id: taskId },
@@ -437,6 +456,11 @@ export async function updateTaskDetails(
     return { error: access.error || "Access denied" };
   }
 
+  // KANBAN-001 — see updateTaskStatus.
+  if (!(await scopedTask(taskId, projectId))) {
+    return { error: "Task not found" };
+  }
+
   try {
     const task = await db.task.update({
       where: { id: taskId },
@@ -471,6 +495,12 @@ export async function deleteTask(projectId: string, taskId: string) {
     return { error: access.error || "Access denied" };
   }
 
+  // KANBAN-001 — see updateTaskStatus. Deletion is irreversible, so the
+  // unscoped version allowed permanent destruction of another project's plan.
+  if (!(await scopedTask(taskId, projectId))) {
+    return { error: "Task not found" };
+  }
+
   try {
     await db.task.delete({
       where: { id: taskId },
@@ -501,9 +531,11 @@ export async function deleteFile(projectId: string, fileId: string) {
   const { role } = access;
 
   try {
-    const file = await db.sharedFile.findUnique({
-      where: { id: fileId },
-    });
+    // WS-001: the company branch below is intentionally permissive ("a company
+    // may delete any file in their project"), which without this scope check
+    // meant any company could delete any file on the platform — and unlink it
+    // from disk. Scoping the lookup to the project restores the intent.
+    const file = await scopedSharedFile(fileId, projectId);
 
     if (!file) {
       return { error: "File not found" };
@@ -562,7 +594,9 @@ export async function updateDeliverableStatus(
   }
 
   try {
-    const file = await db.sharedFile.findUnique({ where: { id: fileId } });
+    // KANBAN-001 class, surfaced by the Phase 1 sweep: scope the deliverable
+    // to the project the caller was granted access to.
+    const file = await scopedSharedFile(fileId, projectId);
     if (!file) return { error: "Deliverable not found" };
 
     let meta = {
@@ -649,7 +683,9 @@ export async function uploadDeliverableVersion(
   }
 
   try {
-    const file = await db.sharedFile.findUnique({ where: { id: fileId } });
+    // KANBAN-001 class, surfaced by the Phase 1 sweep: scope the deliverable
+    // to the project the caller was granted access to.
+    const file = await scopedSharedFile(fileId, projectId);
     if (!file) return { error: "Deliverable not found" };
 
     let meta = { size: "Unknown size", status: "PENDING", version: 1, feedback: "" };
@@ -711,9 +747,11 @@ export async function deleteMessage(projectId: string, messageId: string) {
   }
 
   try {
-    const message = await db.message.findUnique({
-      where: { id: messageId },
-    });
+    // Same class as KANBAN-001. The audit flagged this as lower-risk because
+    // the sender check below already limits the blast radius to the caller's
+    // own messages — confirmed, but scoping it costs nothing and removes the
+    // cross-project shape entirely.
+    const message = await scopedMessage(messageId, projectId);
 
     if (!message) {
       return { error: "Message not found" };

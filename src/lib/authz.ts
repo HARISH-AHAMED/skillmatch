@@ -170,6 +170,60 @@ export async function requireProjectParty(projectId: string): Promise<
   return deny();
 }
 
+/**
+ * Class A guard: caller is a party to this *application* — either the company
+ * that owns its project, or the freelancer who submitted it. Used where both
+ * sides legitimately act on the same record (contract signing, offers).
+ */
+export async function requireApplicationParty(applicationId: string): Promise<
+  Guard<{
+    userId: string;
+    role: "COMPANY" | "FREELANCER";
+    application: Application & { project: Project };
+  }>
+> {
+  const user = await requireUser();
+  if (!user.ok) return user;
+  const { userId } = user.data;
+
+  const application = await db.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      project: { include: { company: { select: { userId: true } } } },
+      freelancer: { select: { userId: true } },
+    },
+  });
+  if (!application) return deny();
+
+  if (application.project.company.userId === userId) {
+    return { ok: true, data: { userId, role: "COMPANY", application } };
+  }
+  if (application.freelancer.userId === userId) {
+    return { ok: true, data: { userId, role: "FREELANCER", application } };
+  }
+  return deny();
+}
+
+/**
+ * The caller's IP, read from request headers server-side.
+ *
+ * SEC-006: this was previously a caller-supplied argument defaulting to
+ * "127.0.0.1", so the value recorded in signature audit trails was entirely
+ * attacker-controlled.
+ */
+export async function callerIpAddress(): Promise<string> {
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const forwarded = h.get("x-forwarded-for");
+    if (forwarded) return forwarded.split(",")[0]!.trim();
+    return h.get("x-real-ip") ?? "unknown";
+  } catch {
+    // Outside a request scope (e.g. unit tests) there is no client address.
+    return "unknown";
+  }
+}
+
 /** Class A guard: caller is a currently-hired freelancer on this project. */
 export async function requireHiredFreelancer(
   projectId: string

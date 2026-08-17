@@ -26,9 +26,27 @@ export async function POST(req: NextRequest) {
     if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
       allowed = true;
       category = "pdf";
-    } else if (fileType.startsWith("image/") || /\.(png|jpe?g|webp|gif|svg)$/.test(fileName)) {
+    } else if (
+      // SEC-015 — SVG is deliberately excluded. It is an active content type:
+      // a crafted SVG rendered inline executes script in the app's origin.
+      // Both the MIME check and the extension check must reject it, since
+      // either alone can be spoofed by the client.
+      (fileType.startsWith("image/") && fileType !== "image/svg+xml") ||
+      /\.(png|jpe?g|webp|gif)$/.test(fileName)
+    ) {
+      if (fileType === "image/svg+xml" || /\.svg$/.test(fileName)) {
+        return NextResponse.json(
+          { error: "SVG uploads are not supported. Use PNG, JPEG, WebP or GIF." },
+          { status: 400 }
+        );
+      }
       allowed = true;
       category = "image";
+    } else if (fileType === "image/svg+xml" || /\.svg$/.test(fileName)) {
+      return NextResponse.json(
+        { error: "SVG uploads are not supported. Use PNG, JPEG, WebP or GIF." },
+        { status: 400 }
+      );
     } else if (fileType.startsWith("video/") || /\.(mp4|webm|ogv|mov)$/.test(fileName)) {
       allowed = true;
       category = "video";

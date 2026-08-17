@@ -12,12 +12,18 @@ import {
   getProjectMetadataDirect,
 } from "@/lib/workflowHelpers";
 import { issueProjectCertificates } from "@/actions/certificateActions";
+import { requireProjectOwner, requireProjectParty } from "@/lib/authz";
 
 /**
  * Whether the project's existing compensation workflow has reached a state that
  * allows completion. Reads only existing stored state — no new payment rules.
  */
 export async function getProjectCompletionReadiness(projectId: string) {
+  // SEC-016 — this was an exported server action with no auth at all, leaking
+  // payment state ("3 payment stage(s) awaiting release") for any project id.
+  const party = await requireProjectParty(projectId);
+  if (!party.ok) return { ready: false, reason: party.error };
+
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: { description: true, status: true },
@@ -148,11 +154,47 @@ export async function getProjectReviewStatus(projectId: string) {
 }
 
 // COMPANY -> FREELANCER
+/**
+ * SEC-013 — rating bounds. The column is a bare Int, so a value of 1000 or -50
+ * was accepted and skewed every aggregate computed from it.
+ */
+function assertValidRating(rating: number, label = "Rating") {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new Error(`${label} must be a whole number between 1 and 5.`);
+  }
+}
+
+/**
+ * SEC-013 — neither review action verified any relationship to the project.
+ * Any company could rate any freelancer, and any freelancer any company, with
+ * an unbounded rating; both then recomputed platform-wide reputation
+ * aggregates. Reputation was effectively attacker-controlled.
+ *
+ * Reviews now require a real, finished engagement: the caller must own/have
+ * worked the project, the counterparty must have been HIRED on it, and the
+ * project must be COMPLETED.
+ */
 export async function submitReview(projectId: string, revieweeUserId: string, rating: number, comment: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) throw new Error("Unauthorized: Only companies can submit freelancer reviews.");
-  const project = await db.project.findUnique({ where: { id: projectId } });
-  if (!project) throw new Error("Project not found");
+  const owned = await requireProjectOwner(projectId);
+  if (!owned.ok) throw new Error(owned.error);
+  const project = owned.data.project;
+  const session = { user: { id: owned.data.userId, name: owned.data.company.companyName } };
+
+  assertValidRating(rating);
+
+  if (project.status !== ProjectStatus.COMPLETED) {
+    throw new Error("You can only review freelancers once the project is complete.");
+  }
+
+  // The reviewee must actually have been hired on this project.
+  const engagement = await db.application.findFirst({
+    where: { projectId, status: "HIRED", freelancer: { userId: revieweeUserId } },
+    select: { id: true },
+  });
+  if (!engagement) {
+    throw new Error("That freelancer was not hired on this project.");
+  }
+
   const existing = await db.review.findFirst({ where: { projectId, reviewerId: session.user.id, revieweeId: revieweeUserId } });
   if (existing) return { success: true, review: existing, duplicate: true };
   const review = await db.review.create({ data: { projectId, reviewerId: session.user.id, revieweeId: revieweeUserId, rating, comment } });
@@ -212,12 +254,36 @@ export async function submitReview(projectId: string, revieweeUserId: string, ra
 export async function submitCompanyReview(projectId: string, companyId: string, rating: number, comment: string, communicationScore: number, paymentReliabilityScore: number, projectClarityScore: number) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) throw new Error("Unauthorized: Only freelancers can review companies.");
+
+  // SEC-013: bound every score before it reaches an aggregate.
+  assertValidRating(rating);
+  assertValidRating(communicationScore, "Communication score");
+  assertValidRating(paymentReliabilityScore, "Payment reliability score");
+  assertValidRating(projectClarityScore, "Project clarity score");
+
   const freelancer = await db.freelancer.findUnique({ where: { userId: session.user.id } });
   if (!freelancer) throw new Error("Freelancer profile not found.");
   const company = await db.company.findUnique({ where: { id: companyId }, include: { user: true } });
   if (!company) throw new Error("Company not found");
   const project = await db.project.findUnique({ where: { id: projectId } });
   if (!project) throw new Error("Project not found");
+
+  // SEC-013: the reviewer must have actually worked this project, and the
+  // project must belong to the company being reviewed.
+  if (project.companyId !== companyId) {
+    throw new Error("That project does not belong to this company.");
+  }
+  if (project.status !== ProjectStatus.COMPLETED) {
+    throw new Error("You can only review a company once the project is complete.");
+  }
+  const engagement = await db.application.findFirst({
+    where: { projectId, status: "HIRED", freelancerId: freelancer.id },
+    select: { id: true },
+  });
+  if (!engagement) {
+    throw new Error("You were not hired on this project.");
+  }
+
   const existing = await db.review.findFirst({ where: { projectId, reviewerId: session.user.id, revieweeId: company.userId } });
   if (existing) return { success: true, review: existing, duplicate: true };
   const review = await db.review.create({ data: { projectId, reviewerId: session.user.id, revieweeId: company.userId, rating, comment, communicationScore, paymentReliabilityScore, projectClarityScore } });

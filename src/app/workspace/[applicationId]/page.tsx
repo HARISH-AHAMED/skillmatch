@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
 import { WorkspaceView } from "@/components/WorkspaceView";
+import { visibleChannelsFor } from "@/lib/authz";
 
 interface PageProps {
   params: Promise<{
@@ -163,21 +164,36 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
     companyId: project.company.id,
   };
 
-  // Auto-cleanup: delete messages older than 7 days for this project
+  /**
+   * WS-008 — a destructive `deleteMany` used to run here, un-awaited, as a side
+   * effect of rendering the page. Retention is unchanged at 7 days but now runs
+   * solely through /api/cron/cleanup-messages; rendering only filters the view.
+   */
   const messageCutoff = new Date();
   messageCutoff.setDate(messageCutoff.getDate() - 7);
 
-  db.message.deleteMany({
-    where: {
-      projectId: project.id,
-      createdAt: { lt: messageCutoff },
-    },
-  }).catch((err) => console.error("Stale messages cleanup error:", err));
+  /**
+   * WS-002 — every DM and every freelancers-only message on the project was
+   * embedded in the RSC payload sent to whoever opened the workspace,
+   * including the company. Any client-side tab filtering was cosmetic: the
+   * content was already on the wire.
+   *
+   * Filtered here with the same predicate the polling API uses (SEC-011), so
+   * the two paths cannot drift apart.
+   */
+  const visible = visibleChannelsFor(userWorkspaceRole, currentUserId);
+  const canSeeChannel = (channel: string) =>
+    visible.OR.some((clause) => {
+      const c = clause.channel;
+      if (typeof c === "string") return channel === c;
+      if ("startsWith" in c) return channel.startsWith(c.startsWith);
+      return channel.endsWith(c.endsWith);
+    });
 
-  // Filter out any stale messages from the already-fetched data
   const freshMessages = project.messages.filter(
-    (m) => new Date(m.createdAt) >= messageCutoff
+    (m) => new Date(m.createdAt) >= messageCutoff && canSeeChannel(m.channel)
   );
+  const visibleFiles = project.sharedFiles.filter((f) => canSeeChannel(f.channel));
 
   // Shared roster (null for zero-role projects, panel then not rendered).
   const teamRoster = await getProjectTeam(project.id);
@@ -198,7 +214,7 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
       hiredFreelancers={hiredFreelancers}
       companyUser={companyUser}
       initialMessages={freshMessages as any}
-      initialFiles={project.sharedFiles as any}
+      initialFiles={visibleFiles as any}
       initialUpdates={project.projectUpdates as any}
       initialTasks={project.tasks as any}
     />

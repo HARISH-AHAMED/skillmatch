@@ -1,43 +1,33 @@
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireProjectParty, visibleChannelsFor } from "@/lib/authz";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { projectId } = await params;
-  const userId = session.user.id;
 
   try {
-    // Security check: Check if user is either the company owner of the project, or a hired freelancer
-    const projectAccess = await db.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { company: { userId } },
-          {
-            applications: {
-              some: {
-                freelancer: { userId },
-                status: "HIRED",
-              },
-            },
-          },
-        ],
-      },
-    });
-
-    if (!projectAccess) {
+    // Project membership. Same guarantee as before, via the shared guard.
+    const access = await requireProjectParty(projectId);
+    if (!access.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    const { userId, role } = access.data;
 
-    // Cleanup: delete messages older than 7 days
+    /**
+     * SEC-011 — this query previously had no channel filter, so every private
+     * DM and every freelancers-only message on the project was returned to
+     * whoever called it, including the company. collaborationActions enforces
+     * channel access carefully on write; this read path discarded it.
+     *
+     * The predicate is shared with the server-rendered workspace page (WS-002),
+     * which had the same leak via a different path, so the two cannot drift.
+     */
+    const channelFilter = visibleChannelsFor(role, userId);
+
+    // Retention cutoff for the message window (see WS-008 for the deletion job).
     const messageCutoff = new Date();
     messageCutoff.setDate(messageCutoff.getDate() - 7);
 
@@ -47,6 +37,7 @@ export async function GET(
         where: {
           projectId,
           createdAt: { gte: messageCutoff },
+          ...channelFilter,
         },
         include: {
           sender: {
@@ -61,7 +52,9 @@ export async function GET(
         orderBy: { createdAt: "asc" },
       }),
       db.sharedFile.findMany({
-        where: { projectId },
+        // SharedFile carries the same `channel` column as Message and leaked
+        // identically — same bug class as SEC-011, so the same predicate.
+        where: { projectId, ...channelFilter },
         include: {
           uploadedBy: {
             select: {

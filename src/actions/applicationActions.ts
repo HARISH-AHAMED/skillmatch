@@ -12,6 +12,7 @@ import {
   serializeFreelancerMetadata,
   getFreelancerBioText,
 } from "@/lib/workflowHelpers";
+import { requireApplicationOwner } from "@/lib/authz";
 
 export async function applyToProject(
   projectId: string,
@@ -157,27 +158,35 @@ export async function applyToProject(
   return { success: true, application };
 }
 
-export async function shortlistApplicant(applicationId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    throw new Error("Unauthorized");
-  }
+/**
+ * SEC-004 — shortlist/reject/hire/remove all verified the caller's *role* but
+ * never that the caller owns the project the application belongs to. Any
+ * COMPANY user holding an application id from another company could hire,
+ * reject, or remove that company's freelancers.
+ *
+ * Each now goes through requireApplicationOwner(), which resolves the caller's
+ * company and confirms `application.project.companyId` matches before anything
+ * else happens. Guard failures still throw, preserving the existing caller
+ * contract in ApplicantsList.tsx and ApplicantDetailView.tsx.
+ */
+async function ownedApplicationOrThrow(applicationId: string) {
+  const owned = await requireApplicationOwner(applicationId);
+  if (!owned.ok) throw new Error(owned.error);
 
+  // Re-read with the relations these actions need for notifications.
   const application = await db.application.findUnique({
     where: { id: applicationId },
     include: {
       project: true,
-      freelancer: {
-        include: {
-          user: { select: { id: true } },
-        },
-      },
+      freelancer: { include: { user: { select: { id: true } } } },
     },
   });
+  if (!application) throw new Error("Application not found");
+  return application;
+}
 
-  if (!application) {
-    throw new Error("Application not found");
-  }
+export async function shortlistApplicant(applicationId: string) {
+  const application = await ownedApplicationOrThrow(applicationId);
 
   await db.application.update({
     where: { id: applicationId },
@@ -200,26 +209,7 @@ export async function shortlistApplicant(applicationId: string) {
 }
 
 export async function rejectApplicant(applicationId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    throw new Error("Unauthorized");
-  }
-
-  const application = await db.application.findUnique({
-    where: { id: applicationId },
-    include: {
-      project: true,
-      freelancer: {
-        include: {
-          user: { select: { id: true } },
-        },
-      },
-    },
-  });
-
-  if (!application) {
-    throw new Error("Application not found");
-  }
+  const application = await ownedApplicationOrThrow(applicationId);
 
   await db.application.update({
     where: { id: applicationId },
@@ -242,26 +232,7 @@ export async function rejectApplicant(applicationId: string) {
 }
 
 export async function hireApplicant(applicationId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    throw new Error("Unauthorized");
-  }
-
-  const application = await db.application.findUnique({
-    where: { id: applicationId },
-    include: {
-      project: true,
-      freelancer: {
-        include: {
-          user: { select: { id: true } },
-        },
-      },
-    },
-  });
-
-  if (!application) {
-    throw new Error("Application not found");
-  }
+  const application = await ownedApplicationOrThrow(applicationId);
 
   const projectId = application.projectId;
 
@@ -362,26 +333,7 @@ export async function hireApplicant(applicationId: string) {
 }
 
 export async function removeFreelancer(applicationId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    throw new Error("Unauthorized");
-  }
-
-  const application = await db.application.findUnique({
-    where: { id: applicationId },
-    include: {
-      project: true,
-      freelancer: {
-        include: {
-          user: { select: { id: true } },
-        },
-      },
-    },
-  });
-
-  if (!application) {
-    throw new Error("Application not found");
-  }
+  const application = await ownedApplicationOrThrow(applicationId);
 
   const projectId = application.projectId;
 

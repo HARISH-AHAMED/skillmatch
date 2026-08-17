@@ -22,6 +22,14 @@ import {
   DEFAULT_CURRENCY,
   NonMonetaryBenefit,
 } from "@/lib/workflowHelpers";
+import {
+  requireApplicationOwner,
+  requireApplicationParty,
+  requireProjectOwner,
+  requireRole,
+  requireUser,
+  callerIpAddress,
+} from "@/lib/authz";
 
 /**
  * 1. Submit Company Onboarding Data
@@ -259,16 +267,24 @@ export async function updateFreelancerCalendarAndProfile(formData: {
 /**
  * 3. Transition Application Stage with recruitment log history
  */
+/**
+ * SEC-005 — this had no role check and no ownership check, only "is there a
+ * session". Because it maps targetStage onto a real ApplicationStatus, any
+ * signed-in user — including a freelancer acting on their own application —
+ * could set any application on the platform to HIRED, or reject every
+ * competing candidate.
+ *
+ * It is now restricted to the company that owns the project.
+ */
 export async function transitionApplicationStage(
   applicationId: string,
   targetStage: string,
   notes?: string,
   interviewData?: { date: string; meetingLink: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user) {
-    throw new Error("Unauthorized");
-  }
+  const owned = await requireApplicationOwner(applicationId);
+  if (!owned.ok) throw new Error(owned.error);
+  const session = { user: { id: owned.data.userId, name: owned.data.company.companyName } };
 
   const app = await db.application.findUnique({
     where: { id: applicationId },
@@ -417,15 +433,25 @@ export async function bulkTransitionApplicants(
 /**
  * 5. Sign Digital Contract
  */
+/**
+ * SEC-006 — this checked only that a session existed, while the *signing party*
+ * and the recorded *IP address* both arrived as caller-supplied arguments. Any
+ * user could forge either signature on any contract, with an attacker-chosen IP
+ * in the audit trail, and completing both signatures flipped the project to
+ * IN_PROGRESS.
+ *
+ * The signing party is now derived from the session's relationship to the
+ * project, and the IP is read from the request headers server-side. The `role`
+ * and `ipAddress` parameters are gone.
+ */
 export async function signDigitalContract(
-  applicationId: string,
-  role: "FREELANCER" | "CLIENT",
-  ipAddress: string = "127.0.0.1"
+  applicationId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user) {
-    throw new Error("Unauthorized");
-  }
+  const party = await requireApplicationParty(applicationId);
+  if (!party.ok) return { success: false, error: party.error };
+
+  const role: "FREELANCER" | "CLIENT" = party.data.role === "COMPANY" ? "CLIENT" : "FREELANCER";
+  const ipAddress = await callerIpAddress();
 
   const app = await db.application.findUnique({
     where: { id: applicationId },
@@ -512,14 +538,21 @@ export async function signDigitalContract(
 /**
  * 6. Release Milestone Escrow Funds
  */
+/**
+ * SEC-007 — role was checked, ownership was not, so any COMPANY user could
+ * release another company's milestones; releasing the last one also forced
+ * that company's project to COMPLETED.
+ *
+ * Ownership is now enforced. The project-completion side effect is addressed
+ * separately under LIFE-001/MF-001, which make completeProject the sole writer
+ * of ProjectStatus.COMPLETED.
+ */
 export async function releaseMilestonePayment(
   applicationId: string,
   milestoneIndex: number
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    throw new Error("Unauthorized");
-  }
+  const owned = await requireApplicationOwner(applicationId);
+  if (!owned.ok) throw new Error(owned.error);
 
   const app = await db.application.findUnique({
     where: { id: applicationId },
@@ -538,11 +571,23 @@ export async function releaseMilestonePayment(
   }
 
   const meta = parseApplicationMetadata(app.coverLetter);
-  if (!meta.digitalContract || !meta.digitalContract.milestones[milestoneIndex]) {
+  // Bounds-check the caller-supplied index rather than trusting it to address
+  // a real element (COMP-012).
+  if (
+    !meta.digitalContract ||
+    !Number.isInteger(milestoneIndex) ||
+    milestoneIndex < 0 ||
+    milestoneIndex >= meta.digitalContract.milestones.length
+  ) {
     throw new Error("Milestone not found");
   }
 
   const milestone = meta.digitalContract.milestones[milestoneIndex];
+  // Idempotency: releasing the same index twice re-ran the whole side-effect
+  // chain, including a duplicate payout notification (COMP-012).
+  if (milestone.status === "RELEASED") {
+    return { success: false, error: "This milestone has already been released." };
+  }
   milestone.status = "RELEASED";
 
   // Lock in next milestone as Escrowed if it exists
@@ -605,10 +650,31 @@ export async function releaseMilestonePayment(
 /**
  * 7. Submit Pre-Application Discussion Question
  */
+/** SEC-012 — bounds on a write path that any authenticated user can reach. */
+const MAX_DISCUSSION_QUESTION_LENGTH = 500;
+const MAX_DISCUSSION_QUESTIONS_PER_PROJECT = 100;
+const MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT = 5;
+
+/**
+ * SEC-012 — this required only a session: no role check, no relationship to the
+ * project, no length cap and no rate limit. Any user could append unbounded
+ * arbitrary text to any project's description on repeat — the same column that
+ * carries the payment metadata — which made it a denial-of-service against a
+ * project record as well as a content-injection path.
+ */
 export async function submitDiscussionQuestion(projectId: string, question: string) {
-  const session = await auth();
-  if (!session?.user) {
-    throw new Error("Unauthorized");
+  const actor = await requireRole(Role.FREELANCER);
+  if (!actor.ok) return { success: false, error: actor.error };
+
+  const text = (question ?? "").trim();
+  if (!text) {
+    return { success: false, error: "Enter a question." };
+  }
+  if (text.length > MAX_DISCUSSION_QUESTION_LENGTH) {
+    return {
+      success: false,
+      error: `Questions are limited to ${MAX_DISCUSSION_QUESTION_LENGTH} characters.`,
+    };
   }
 
   const project = await db.project.findUnique({
@@ -616,16 +682,34 @@ export async function submitDiscussionQuestion(projectId: string, question: stri
   });
 
   if (!project) {
-    throw new Error("Project not found");
+    return { success: false, error: "Project not found" };
+  }
+  // A closed or completed listing is not taking questions.
+  if (project.status !== "OPEN" && project.status !== "IN_PROGRESS") {
+    return { success: false, error: "This project is no longer accepting questions." };
   }
 
   const meta = getProjectMetadataDirect(project.description);
-  
+
   if (!meta.faq) meta.faq = [];
-  
+
+  // Per-project and per-asker caps, standing in for a real rate limiter.
+  const authorTag = `[Discussion Question by ${actor.data.name || "Freelancer"}]`;
+  const existingQuestions = meta.faq.filter((f) => f.question.startsWith("[Discussion Question by"));
+  if (existingQuestions.length >= MAX_DISCUSSION_QUESTIONS_PER_PROJECT) {
+    return { success: false, error: "This project has reached its question limit." };
+  }
+  const mine = existingQuestions.filter((f) => f.question.startsWith(authorTag));
+  if (mine.length >= MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT) {
+    return {
+      success: false,
+      error: `You can ask at most ${MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT} questions on a project.`,
+    };
+  }
+
   // Store the pre-application discussion question as a specific FAQ layout format with empty answer
   meta.faq.push({
-    question: `[Discussion Question by ${session.user.name || "Freelancer"}]: ${question}`,
+    question: `${authorTag}: ${text}`,
     answer: "",
   });
 
@@ -647,23 +731,18 @@ export async function submitDiscussionQuestion(projectId: string, question: stri
 /**
  * 8. Submit Recruiter Reply to Pre-Application Discussion Question
  */
+/**
+ * SEC-012 (companion) — role was checked but not ownership, so any company
+ * could answer questions on another company's listing.
+ */
 export async function replyToDiscussionQuestion(projectId: string, faqIndex: number, answer: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.COMPANY) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-  });
-
-  if (!project) {
-    return { success: false, error: "Project not found" };
-  }
+  const owned = await requireProjectOwner(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
+  const project = owned.data.project;
 
   const meta = getProjectMetadataDirect(project.description);
-  
-  if (!meta.faq || !meta.faq[faqIndex]) {
+
+  if (!meta.faq || !Number.isInteger(faqIndex) || faqIndex < 0 || !meta.faq[faqIndex]) {
     return { success: false, error: "Question not found" };
   }
 
@@ -1098,15 +1177,48 @@ export async function respondToOfferLetterAction(
 /**
  * 15. Send a pre-hire DM message between recruiter and candidate
  */
+/**
+ * SEC-014 — this required only a session and then wrote a Message plus a
+ * Notification for any projectId to any recipientUserId, with no check that
+ * either party was connected to the project. It was an open spam channel to
+ * every user on the platform.
+ *
+ * Both ends are now verified: the sender must be a party to the project, and
+ * the recipient must be a counterpart on it (the owning company, or a
+ * freelancer who has applied to it — this is the pre-hire DM channel, so an
+ * applicant is a legitimate counterpart before being hired).
+ */
 export async function sendDMMessageAction(
   projectId: string,
   recipientUserId: string,
   content: string
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const actor = await requireUser();
+  if (!actor.ok) return { success: false, error: actor.error };
+  const senderId = actor.data.userId;
 
-  const senderId = session.user.id;
+  if (!content?.trim()) return { success: false, error: "Message cannot be empty." };
+  if (recipientUserId === senderId) {
+    return { success: false, error: "You cannot message yourself." };
+  }
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: {
+      company: { select: { userId: true } },
+      applications: { select: { freelancer: { select: { userId: true } } } },
+    },
+  });
+  if (!project) return { success: false, error: "Project not found" };
+
+  const companyUserId = project.company.userId;
+  const applicantUserIds = new Set(project.applications.map((a) => a.freelancer.userId));
+  const isParty = (id: string) => id === companyUserId || applicantUserIds.has(id);
+
+  if (!isParty(senderId) || !isParty(recipientUserId)) {
+    return { success: false, error: "Not found, or you do not have access to it." };
+  }
+
   const ids = [senderId, recipientUserId].sort();
   const channel = `dm:${ids[0]}:${ids[1]}`;
 
@@ -1119,7 +1231,7 @@ export async function sendDMMessageAction(
     data: {
       userId: recipientUserId,
       title: "New Message",
-      message: `${session.user.name || "Someone"} sent you a message.`,
+      message: `${actor.data.name || "Someone"} sent you a message.`,
     },
   });
 

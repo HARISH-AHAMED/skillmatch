@@ -38,6 +38,19 @@ export async function saveProjectRoles(
     return { success: false, error: "Not your project." };
   }
 
+  /**
+   * ROLE-001 — ownership was checked once, on the *project*, and each submitted
+   * role id was then trusted straight into `projectRole.update`. A foreign id
+   * was not found in `project.roles`, so `hired` computed as 0 and the
+   * capacity-reduction guard below was skipped entirely before the update ran
+   * against another project's role.
+   */
+  const knownRoleIds = new Set(project.roles.map((r) => r.id));
+  const unknown = roles.filter((r) => r.id && !knownRoleIds.has(r.id));
+  if (unknown.length > 0) {
+    return { success: false, error: "One or more roles do not belong to this project." };
+  }
+
   const keptIds = roles.map((r) => r.id).filter(Boolean) as string[];
 
   // Refuse to delete a role that people have already applied to — silently

@@ -138,7 +138,9 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
   const handleSignContract = async () => {
     setSigning(true);
     try {
-      const res = await signDigitalContract(app.id, "FREELANCER");
+      // SEC-006: the signing party is derived server-side from the session,
+      // so it is no longer passed by the client.
+      const res = await signDigitalContract(app.id);
       if (res.success) { alert("Contract signed! The project workspace is now active."); router.refresh(); }
       else alert(res.error || "Failed to sign contract.");
     } catch (err: any) {
