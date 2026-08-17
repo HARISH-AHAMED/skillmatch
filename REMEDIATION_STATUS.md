@@ -307,6 +307,59 @@ Total **154 passing**.
 
 ---
 
+## Phase 2 Step 6 — Remaining P3s: COMPLETE
+
+1 commit (`8293ea0`). `npm test` **159 passing / 12 files** · `tsc --noEmit` clean ·
+`next build` exit 0.
+**No migration applied. No backfill run. No DB probes. Nothing deployed.**
+
+**Phase 2 is now complete.** No backlog item remains in `Not Started`.
+
+### Per-finding outcome
+| ID | Outcome | Evidence |
+|---|---|---|
+| SEC-009 | **Fixed & Tested** — `/workspace` added to the proxy's guarded prefixes; non-members get `forbidden()` instead of a misleading `/login` redirect | `proxy.ts:15`, `:41`, `workspace/[applicationId]/page.tsx:145` |
+| COMP-009 | **Verified as already resolved in Step 2** — not reimplemented | `schema.prisma:617` (unique `(applicationId, workDate, description)`), `hourlyLogActions.ts:83` (P2002 → friendly error) |
+| LEG-004 | **Fixed & Tested** — corrupt metadata now distinguishable from absent | `workflowHelpers.ts` `safeJsonParse` / `isMetadataCorrupt` |
+| RESP-002 | **Fixed & Tested** — `h-screen` → `h-dvh` | `WorkspaceView.tsx:1330` |
+| UX-005 | **Fixed & Tested** — failed sync surfaces in the Step 5 error banner rather than a new mechanism | `WorkspaceView.tsx` poll `catch` |
+
+### Notes on two of these
+
+**SEC-009 was deliberately not "fixed" by adding a role check.** The workspace is
+shared by companies and freelancers, so it has no single expected role;
+membership is a per-project question the page already answers correctly. The
+proxy now only requires a session, which is the defence-in-depth the other
+authenticated areas get. Adding a role gate here would have broken the route
+for one of the two legitimate audiences.
+
+**LEG-004 is intentionally still non-throwing.** The audit's complaint was that
+corruption was *indistinguishable from emptiness*, not that it failed to crash.
+An absent or non-JSON payload returns the fallback quietly — both normal states
+— while a present-but-unparseable block logs an error with the offending prefix
+and is recorded for `isMetadataCorrupt()`. Since Step 2 moved financial state
+into real tables, a corrupt block now degrades presentation only, so taking a
+page down over it would be the wrong trade.
+
+### Terminology correction
+The brief described LEG-004 as a "legal/compliance fix". The `LEG-` prefix in
+the audit is **Legacy Compatibility**, not legal. LEG-004 is the silent
+metadata parse failure, which is what was implemented. No legal or policy
+change was made, and none is implied by this work.
+
+### Tests
+`tests/step6.test.ts` — 5 tests covering the corrupt-vs-absent distinction:
+error-level logging on corruption, detectability via `isMetadataCorrupt`,
+non-throwing fallback, and that neither absent metadata nor valid metadata is
+misreported as corrupt. Total **159 passing**.
+
+### Explicitly NOT touched in this step
+`PERF-002`, `COMP-016`, `SEC-015` (object storage), `DEP-001` (remaining version
+bumps) and `COMP-001` retain their existing partial/deferred status. No
+migration or backfill was run in an attempt to close any of them.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -363,7 +416,7 @@ Logged per ground rule 1 rather than chased.
 | SEC-006 | P0 | 2 | **Fixed & Tested** |
 | SEC-007 | P0 | 2 | **Fixed & Tested** |
 | SEC-008 | P0 | 1 | **Fixed & Tested** |
-| SEC-009 | P3 | 8 | Not Started |
+| SEC-009 | P3 | 8 | **Fixed & Tested**|
 | SEC-010 | P1 | 1 | **Fixed & Tested** |
 | SEC-011 | P1 | 2 | **Fixed & Tested** |
 | SEC-012 | P1 | 2 | **Fixed & Tested** |
@@ -438,7 +491,7 @@ Logged per ground rule 1 rather than chased.
 | LEG-001 | — | — | **Withdrawn in audit session 2** — finding was incorrect; no work item |
 | LEG-002 | P2 | 7 | **Fixed & Tested**|
 | LEG-003 | P2 | 7 | **Fixed & Tested**|
-| LEG-004 | P3 | 8 | Not Started |
+| LEG-004 | P3 | 8 | **Fixed & Tested**|
 
 ### Roles — session 2
 | ID | Sev | Phase | Status |
@@ -498,9 +551,9 @@ Logged per ground rule 1 rather than chased.
 | UX-002 | P2 | 7 | **Fixed & Tested**|
 | UX-003 | P2 | 7 | **Fixed & Tested**|
 | UX-004 | P3 | 6 | **Fixed & Tested** (closes with DATA-007) |
-| UX-005 | P3 | 7 | Not Started |
+| UX-005 | P3 | 7 | **Fixed & Tested**|
 | RESP-001 | P2 | 7 | **Fixed & Tested**|
-| RESP-002 | P3 | 8 | Not Started |
+| RESP-002 | P3 | 8 | **Fixed & Tested**|
 | SSR-001 | P2 | 6 | **Fixed & Tested** |
 | SSR-002 | P2 | 6 | **Fixed & Tested** |
 
@@ -516,10 +569,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 84 |
+| Fixed & Tested | 88 |
 | Partially fixed | 4 (SEC-015 SVG half, DEP-001 non-breaking half, COMP-016, PERF-002) |
 | Deferred (explicit decision) | 1 (COMP-001) |
 | Needs Decision | 9 |
-| Not Started | 2 (Step 6 P3s) |
+| Not Started | 0 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001) |
