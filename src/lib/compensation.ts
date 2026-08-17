@@ -91,6 +91,63 @@ export async function getProjectCompensation(projectId: string): Promise<Resolve
  * Shared by the resolver above and by the backfill script, so both interpret
  * legacy metadata identically.
  */
+/**
+ * WS-003 / DATA-008 — the authoritative financial summary for a project.
+ *
+ * The workspace Overview used to compute "escrowed" and "paid" by running a
+ * regex over `ProjectUpdate` titles (`[Value: $X] …`), which meant those tiles
+ * showed money derived from prose, unrelated to the real payment records shown
+ * one tab away in the Funding panel. Both surfaces now read this.
+ *
+ * Committed = funded but not yet released. Paid = released. Both come from the
+ * payment tables and the ledger, never from display text.
+ */
+export interface ProjectFinancialSummary {
+  currency: string;
+  type: CompensationTypeEnum;
+  budget: number;
+  committed: number;
+  paid: number;
+}
+
+export async function getProjectFinancialSummary(
+  projectId: string
+): Promise<ProjectFinancialSummary> {
+  const comp = await getProjectCompensation(projectId);
+  const currency = comp?.currency ?? DEFAULT_CURRENCY;
+  const type = comp?.type ?? "FIXED";
+  const budget = comp ? Number(comp.totalBudget) : 0;
+
+  const [items, releases] = await Promise.all([
+    db.paymentItem.findMany({
+      where: { projectId },
+      select: { fundedAmount: true, releasedAmount: true },
+    }),
+    // Hourly and stipend payouts have no PaymentItem, so the ledger is the
+    // only place they are visible.
+    db.paymentTransaction.findMany({
+      where: { projectId, type: "RELEASE", paymentItemId: null },
+      select: { amount: true },
+    }),
+  ]);
+
+  const itemFunded = items.reduce((t, i) => t.plus(i.fundedAmount), new Prisma.Decimal(0));
+  const itemReleased = items.reduce((t, i) => t.plus(i.releasedAmount), new Prisma.Decimal(0));
+  const otherReleased = releases.reduce(
+    (t, r) => t.plus(r.amount.abs()),
+    new Prisma.Decimal(0)
+  );
+
+  return {
+    currency,
+    type,
+    budget,
+    // Committed but not yet paid out.
+    committed: Number(itemFunded.minus(itemReleased)),
+    paid: Number(itemReleased.plus(otherReleased)),
+  };
+}
+
 export function deriveFromMetadata(description: string | null, budget: number): ResolvedCompensation {
   const meta = getProjectMetadataDirect(description);
   const type = normaliseType(meta.compensationType ?? meta.paymentCategory);

@@ -1,7 +1,8 @@
 "use client";
 
 import { WorkspaceFunding } from "@/components/WorkspaceFunding";
-import { getProjectMetadataDirect as getProjMetaForFunding, formatCompensation } from "@/lib/workflowHelpers";
+import { getProjectMetadataDirect as getProjMetaForFunding, formatCompensation, getCurrencySymbol } from "@/lib/workflowHelpers";
+import { groupByDateKey, sortDateKeysDesc, filterDateKeys, formatDateKey } from "@/lib/dates";
 import React, { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -172,6 +173,14 @@ interface WorkspaceViewProps {
   initialFiles: SharedFileItem[];
   initialUpdates: ProjectUpdateItem[];
   initialTasks: TaskItem[];
+  /** WS-003/DATA-008/DATA-009: authoritative figures from the payment tables. */
+  financials: {
+    currency: string;
+    type: "FIXED" | "HOURLY" | "MILESTONE" | "STIPEND" | "UNPAID";
+    budget: number;
+    committed: number;
+    paid: number;
+  };
 }
 
 interface DeliverableMeta {
@@ -456,6 +465,7 @@ export function WorkspaceView({
   initialFiles,
   initialUpdates,
   initialTasks,
+  financials,
 }: WorkspaceViewProps) {
 
   const router = useRouter();
@@ -706,8 +716,15 @@ export function WorkspaceView({
   // AI Chat Assistant
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [aiInput, setAiInput] = useState("");
-  const [aiConversation, setAiConversation] = useState<{ sender: "user" | "ai"; text: string; time: Date }[]>([
-    { sender: "ai", text: "Hello! I am your Talentra AI Workspace Assistant. Ask me anything about your project milestones, deadlines, budget, or tasks.", time: new Date() }
+  const [aiConversation, setAiConversation] = useState<{ sender: "user" | "ai"; text: string; time: Date | null }[]>([
+    /**
+     * SSR-002 — `time: new Date()` in a useState initialiser is evaluated once
+     * on the server and again on the client, producing different values in the
+     * server HTML and the hydrated tree. The greeting carries no meaningful
+     * timestamp, so it now has none; subsequent messages are created in event
+     * handlers, which run client-side only and are safe.
+     */
+    { sender: "ai", text: "Hello! I am your Talentra AI Workspace Assistant. Ask me anything about your project milestones, deadlines, budget, or tasks.", time: null }
   ]);
   const [isAITyping, setIsAITyping] = useState(false);
   const aiScrollRef = useRef<HTMLDivElement>(null);
@@ -736,7 +753,6 @@ export function WorkspaceView({
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
   const [newMilestoneDesc, setNewMilestoneDesc] = useState("");
-  const [newMilestoneValue, setNewMilestoneValue] = useState("");
   const [isSubmittingMilestone, setIsSubmittingMilestone] = useState(false);
 
   // Invoice generator
@@ -932,17 +948,22 @@ export function WorkspaceView({
   // HANDLER: Milestones CRUD
   const handleCreateMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMilestoneTitle.trim() || !newMilestoneValue.trim() || isSubmittingMilestone) return;
+    if (!newMilestoneTitle.trim() || isSubmittingMilestone) return;
 
     setIsSubmittingMilestone(true);
-    const amountVal = parseFloat(newMilestoneValue.replace(/[^0-9.]/g, "")) || 0;
-    const formattedTitle = `[Value: $${amountVal.toLocaleString()}] ${newMilestoneTitle.trim()}`;
-
-    const result = await createProjectUpdate(projectId, formattedTitle, newMilestoneDesc, "PENDING");
+    /**
+     * WS-003 / WS-004 — the amount used to be encoded into the title as
+     * `[Value: $X]` and recovered later by regex. That made a progress note the
+     * carrier of financial data, and because the value was written with
+     * `toLocaleString()` and read back with a comma-assuming pattern, a German
+     * or French locale stored 5,000 and read back 5.
+     *
+     * ProjectUpdate is a progress record. Money lives in the payment tables.
+     */
+    const result = await createProjectUpdate(projectId, newMilestoneTitle.trim(), newMilestoneDesc, "PENDING");
     setIsSubmittingMilestone(false);
     setNewMilestoneTitle("");
     setNewMilestoneDesc("");
-    setNewMilestoneValue("");
     setShowAddMilestoneModal(false);
 
     if (result.error) {
@@ -1073,20 +1094,11 @@ export function WorkspaceView({
         const doneCount = tasks.filter(t => t.status === "DONE").length;
         reply = `There are currently **${tasks.length} tasks** in the Kanban Board: \n• **${todoCount}** in To Do\n• **${progressCount}** In Progress\n• **${doneCount}** Done.\nLet me know if you would like me to list them by priority!`;
       } else if (lower.includes("budget") || lower.includes("escrow") || lower.includes("money") || lower.includes("pay")) {
-        // Calculate milestones values
-        let released = 0;
-        let held = 0;
-        let pending = 0;
-        updates.forEach(u => {
-          const { amount } = parseMilestoneAmount(u.title, u.description);
-          if (u.status === "COMPLETED") released += amount;
-          else if (u.status === "IN_PROGRESS") held += amount;
-          else pending += amount;
-        });
-
+        // WS-003 — figures come from the payment tables, not from parsing
+        // ProjectUpdate title prose.
         // COMP-001 is deferred: the platform holds no funds, so this must not
         // describe an escrow balance.
-        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** ${projectBudget.toLocaleString()}\n• **Committed:** ${held.toLocaleString()} (approved for payment, not yet marked paid)\n• **Marked paid:** ${released.toLocaleString()}\n• **Not yet committed:** ${pending.toLocaleString()}.`;
+        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** ${money(projectBudget)}\n• **Committed:** ${money(fundsEscrowed)} (approved for payment, not yet marked paid)\n• **Marked paid:** ${money(fundsPaid)}\n• **Not yet committed:** ${money(Math.max(0, projectBudget - fundsEscrowed - fundsPaid))}.`;
       } else if (lower.includes("deadline") || lower.includes("date") || lower.includes("timeline")) {
         reply = `The final project timeline deadline is scheduled for **December 28, 2026**. Please coordinate tasks and milestones accordingly to prevent delivery lags.`;
       } else if (lower.includes("deliverable") || lower.includes("file") || lower.includes("submission")) {
@@ -1122,22 +1134,22 @@ export function WorkspaceView({
     return matchesStatus && matchesSearch && matchesFreelancer;
   });
 
-  const groupedTimeline: { [key: string]: TaskItem[] } = {};
-  completedTasks.forEach(task => {
+  /**
+   * TIME-001 — grouped, sorted and filtered on a stable ISO key. This used to
+   * key on a localised display string and then feed that string back into
+   * new Date() to sort and filter, which produced Invalid Date (and therefore
+   * arbitrary ordering and a dead filter) in every non-English locale.
+   * Formatting now happens only at render.
+   */
+  const groupedTimeline = groupByDateKey(completedTasks, (task) =>
     // Scheduled date wins; completion/creation timestamps are only a fallback
     // for tasks that genuinely carry no date of their own.
-    const source = task.dueDate ?? task.updatedAt ?? task.createdAt;
-    const dateStr = new Date(source).toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-    if (!groupedTimeline[dateStr]) {
-      groupedTimeline[dateStr] = [];
-    }
-    groupedTimeline[dateStr].push(task);
-  });
+    task.dueDate ?? task.updatedAt ?? task.createdAt
+  );
 
-  // Sort completion dates descending (newest first)
-  const sortedDates = Object.keys(groupedTimeline)
-    .filter((d) => !timelineDate || new Date(d).toDateString() === new Date(timelineDate + "T00:00:00").toDateString())
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedDates = sortDateKeysDesc(
+    filterDateKeys(Object.keys(groupedTimeline), timelineDate)
+  );
 
   // MILESTONE COMPLETION CALCULATION
   const completedMilestones = updates.filter((u) => u.status === "COMPLETED").length;
@@ -1145,7 +1157,22 @@ export function WorkspaceView({
 
   // Compensation model drives the Funding / Payments module. Projects predating
   // the field fall through to the original milestone escrow UI unchanged.
-  const compensationType = getProjMetaForFunding(projectDescription || "").compensationType || "MILESTONE";
+  /**
+   * DATA-009 — this defaulted to "MILESTONE" while WorkspaceFunding defaulted
+   * to "FIXED" for the same project, so one workspace could describe its own
+   * compensation two different ways. Both now use the value the server resolved
+   * from ProjectCompensation.
+   */
+  const compensationType = financials.type;
+
+  /**
+   * DATA-007 / UX-004 — one money formatter for this component. Amounts were
+   * rendered with a literal "$" while the contract line beside them used the
+   * project's real currency, so an INR project showed "₹50,00,000 Fixed" above
+   * "$5000000". Never parse the output of this back into a number.
+   */
+  const money = (amount: number) =>
+    `${getCurrencySymbol(financials.currency)}${(amount || 0).toLocaleString()}`;
   // Contract declaration: type, value and currency all read from the stored
   // project configuration; never defaulted, never inferred from UI state.
   const contractLabel =
@@ -1155,17 +1182,14 @@ export function WorkspaceView({
       ? "Unpaid / Volunteer"
       : formatCompensation({ budget: projectBudget, description: projectDescription });
 
-  // ESCROW CALCULATIONS
-  let fundsEscrowed = 0;
-  let fundsPaid = 0;
-  updates.forEach((u) => {
-    const { amount } = parseMilestoneAmount(u.title, u.description);
-    if (u.status === "COMPLETED") {
-      fundsPaid += amount;
-    } else if (u.status === "IN_PROGRESS") {
-      fundsEscrowed += amount;
-    }
-  });
+  /**
+   * WS-003 / DATA-008 — these totals used to be summed by running a regex over
+   * ProjectUpdate titles, so the Overview showed money derived from prose that
+   * bore no relation to the real payment records in the Funding tab one tab
+   * away. They now come from the payment tables via the server.
+   */
+  const fundsEscrowed = financials.committed;
+  const fundsPaid = financials.paid;
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#F8F9FB] text-[#1A1D29] font-sans overflow-hidden">
@@ -1576,15 +1600,15 @@ export function WorkspaceView({
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/10 text-xs">
                         <div>
                           <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Total Contract Value</span>
-                          <span className="font-semibold text-white text-sm mt-0.5 block">${projectBudget.toLocaleString()}</span>
+                          <span className="font-semibold text-white text-sm mt-0.5 block">{money(projectBudget)}</span>
                         </div>
                         <div>
                           <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Funds Paid to Date</span>
-                          <span className="font-semibold text-success text-sm mt-0.5 block">${fundsPaid.toLocaleString()}</span>
+                          <span className="font-semibold text-success text-sm mt-0.5 block">{money(fundsPaid)}</span>
                         </div>
                         <div>
                           <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Committed</span>
-                          <span className="font-semibold text-[#2159C9] text-sm mt-0.5 block">${fundsEscrowed.toLocaleString()}</span>
+                          <span className="font-semibold text-[#2159C9] text-sm mt-0.5 block">{money(fundsEscrowed)}</span>
                         </div>
                         <div>
                           <span className="text-[#5B6272] block text-[11px] font-medium uppercase tracking-wider">Contract Deadline</span>
@@ -1629,7 +1653,7 @@ export function WorkspaceView({
                         ) : (
                           (() => {
                             const nextMilestone = updates.filter(u => u.status !== "COMPLETED").reverse()[0];
-                            const { amount, cleanTitle } = parseMilestoneAmount(nextMilestone.title, nextMilestone.description);
+                            const { cleanTitle } = parseMilestoneAmount(nextMilestone.title, nextMilestone.description);
                             return (
                               <div className="mt-3.5 space-y-2">
                                 <div className="flex items-center gap-2">
@@ -1642,7 +1666,7 @@ export function WorkspaceView({
                                   {nextMilestone.description || "No description provided."}
                                 </p>
                                 <div className="flex justify-between items-center pt-3 border-t border-[#E3E5EA] text-xs">
-                                  <span className="font-medium text-[#5B6272]">Milestone Value: <span className="font-semibold text-[#1A1D29]">${amount.toLocaleString()}</span></span>
+                                  <span className="font-medium text-[#5B6272]">Progress milestone</span>
                                   {role === "COMPANY" && nextMilestone.status === "PENDING" && (
                                     <Button
                                       onClick={() => handleUpdateMilestoneStatus(nextMilestone.id, "IN_PROGRESS")}
@@ -3013,7 +3037,9 @@ export function WorkspaceView({
                               {/* Date Header */}
                               <div className="inline-block bg-[#152C55]/5 border border-[#1A1D29]/10 rounded-lg px-3 py-1">
                                 <span className="text-[11px] font-bold text-[#1A1D29] uppercase tracking-wider">
-                                  {dateStr}
+                                  {/* TIME-001/SSR-001 — formatted only here, deterministically,
+                                      preserving the previous "Weekday, Month D, YYYY" appearance. */}
+                                  {formatDateKey(dateStr, { weekday: true })}
                                 </span>
                               </div>
 
@@ -3346,7 +3372,7 @@ export function WorkspaceView({
                       </Card>
                     ) : (
                       [...updates].reverse().map((milestone, idx) => {
-                        const { amount, cleanTitle } = parseMilestoneAmount(milestone.title, milestone.description || "");
+                        const { cleanTitle } = parseMilestoneAmount(milestone.title, milestone.description || "");
                         return (
                           <Card 
                             key={milestone.id} 
@@ -3376,10 +3402,8 @@ export function WorkspaceView({
                                   {milestone.description || "No deliverable description specified."}
                                 </p>
                               </div>
-                              <div className="text-left sm:text-right shrink-0">
-                                <span className="text-[11px] font-bold text-[#5B6272] uppercase tracking-widest block">Phase Value</span>
-                                <span className="text-base font-bold text-[#1A1D29] mt-0.5 block">${amount.toLocaleString()}</span>
-                              </div>
+                              {/* WS-003 — a ProjectUpdate carries no money; the
+                                  Funding tab is the source of truth for value. */}
                             </div>
 
                             {/* Actions block */}
@@ -3640,18 +3664,6 @@ export function WorkspaceView({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[#5B6272] uppercase tracking-wider">Milestone Budget Value ($)</label>
-                <Input
-                  type="text"
-                  required
-                  placeholder="e.g. 1500"
-                  value={newMilestoneValue}
-                  onChange={(e) => setNewMilestoneValue(e.target.value)}
-                  className="bg-white border-[#E3E5EA] text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-[#5B6272] uppercase tracking-wider">Deliverable Criteria Description</label>
                 <textarea
                   placeholder="Explain exactly what criteria the freelancer needs to satisfy to release this payment amount..."
@@ -3666,7 +3678,7 @@ export function WorkspaceView({
                 <Button onClick={() => setShowAddMilestoneModal(false)} variant="outline" className="text-xs font-bold px-4 cursor-pointer">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmittingMilestone || !newMilestoneTitle.trim() || !newMilestoneValue.trim()} className="bg-[#152C55] text-white hover:bg-[#FFF3DC] text-xs font-bold px-4 cursor-pointer">
+                <Button type="submit" disabled={isSubmittingMilestone || !newMilestoneTitle.trim()} className="bg-[#152C55] text-white hover:bg-[#FFF3DC] text-xs font-bold px-4 cursor-pointer">
                   {isSubmittingMilestone ? "Creating..." : "Fund Milestone Phase"}
                 </Button>
               </div>

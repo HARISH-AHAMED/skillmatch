@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
 import { WorkspaceView } from "@/components/WorkspaceView";
 import { visibleChannelsFor } from "@/lib/authz";
+import { getProjectFinancialSummary } from "@/lib/compensation";
 
 interface PageProps {
   params: Promise<{
@@ -198,6 +199,13 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
   // Shared roster (null for zero-role projects, panel then not rendered).
   const teamRoster = await getProjectTeam(project.id);
 
+  /**
+   * WS-003 / DATA-008 / DATA-009 — the authoritative financial figures and
+   * compensation type, read from the payment tables rather than derived from
+   * ProjectUpdate title prose on the client.
+   */
+  const financials = await getProjectFinancialSummary(project.id);
+
   return (
     <WorkspaceView
       teamRoster={teamRoster}
@@ -217,6 +225,7 @@ export default async function StandaloneWorkspacePage({ params }: PageProps) {
       initialFiles={visibleFiles as any}
       initialUpdates={project.projectUpdates as any}
       initialTasks={project.tasks as any}
+      financials={financials}
     />
   );
 }
