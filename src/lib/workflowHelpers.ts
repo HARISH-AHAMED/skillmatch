@@ -853,17 +853,41 @@ export function parseProjectMetadata(descriptionField: string | null | undefined
   return parsed;
 }
 
+/**
+ * ARCH-002 — `Project.description` grew without bound on every save.
+ *
+ * `serializeProjectMetadata` appends a generated `Objectives: …` line before the
+ * JSON block. Callers pass it `getProjectDescriptionText(description)`, which
+ * returns everything before the marker — *including the line appended by the
+ * previous save*. Every funding, release, work-log review, stipend payout and
+ * FAQ reply therefore added another copy, permanently.
+ *
+ * This strips any previously-generated trailing sections before re-appending,
+ * which both stops the growth and repairs already-affected rows the next time
+ * they are written. `serializeProjectMetadata` is the only producer of this
+ * line, and it always emits it last, so anchoring to the end of the string
+ * cannot eat a description the user actually wrote.
+ */
+const GENERATED_OBJECTIVES_SUFFIX = /(?:\n\nObjectives:[^\n]*)+$/;
+
+export function stripGeneratedSections(text: string): string {
+  return text.replace(GENERATED_OBJECTIVES_SUFFIX, "");
+}
+
 export function serializeProjectMetadata(originalDescription: string, data: ProjectWizardData): string {
-  const plainTextSummary = `${originalDescription}\n\nObjectives: ${data.objectives.join(". ")}`;
+  const cleanDescription = stripGeneratedSections(originalDescription);
+  const plainTextSummary = `${cleanDescription}\n\nObjectives: ${data.objectives.join(". ")}`;
   return `${plainTextSummary}\n\nMETADATA_JSON_BLOCK:${JSON.stringify(data)}`;
 }
 
 export function getProjectDescriptionText(fullDescription: string | null | undefined): string {
   if (!fullDescription) return "";
-  if (fullDescription.includes("\n\nMETADATA_JSON_BLOCK:")) {
-    return fullDescription.split("\n\nMETADATA_JSON_BLOCK:")[0];
-  }
-  return fullDescription;
+  const beforeMetadata = fullDescription.includes("\n\nMETADATA_JSON_BLOCK:")
+    ? fullDescription.split("\n\nMETADATA_JSON_BLOCK:")[0]
+    : fullDescription;
+  // Rows written before ARCH-002 was fixed carry accumulated generated lines;
+  // strip them so the prose reads correctly even before the row is rewritten.
+  return stripGeneratedSections(beforeMetadata);
 }
 
 export function getProjectMetadataDirect(fullDescription: string | null | undefined): ProjectWizardData {

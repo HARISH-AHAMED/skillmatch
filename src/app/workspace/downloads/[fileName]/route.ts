@@ -1,40 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import fs from "fs";
 import path from "path";
+import { db } from "@/lib/db";
+import { requireProjectParty } from "@/lib/authz";
+
+/**
+ * SEC-008 — this route previously joined the caller-supplied file name straight
+ * into a filesystem path with no normalization, so `..%2f..%2f.env` escaped the
+ * uploads directory and returned server secrets. It also served any file to any
+ * authenticated user, with no check that they belonged to the owning project.
+ *
+ * Both are fixed here:
+ *   1. The file is resolved from the SharedFile table, not from the URL. The
+ *      caller's input is only ever used to *look up a row*, never to build a
+ *      path — so traversal has nothing to act on.
+ *   2. Membership of that row's project is enforced with the shared guard.
+ *   3. The resolved path is still containment-checked before any read, as
+ *      defence in depth against a malformed stored fileUrl.
+ */
+
+const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ fileName: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return new Response("Unauthorized", { status: 401 });
+  const { fileName } = await params;
+  const requested = decodeURIComponent(fileName);
+
+  // Look the file up as data. Matching on the stored basename keeps existing
+  // links working without ever treating the input as a path.
+  const record = await db.sharedFile.findFirst({
+    where: { fileUrl: { endsWith: `/${requested}` } },
+    select: { id: true, projectId: true, fileName: true, fileUrl: true },
+  });
+
+  if (!record) {
+    return new Response("Not found", { status: 404 });
   }
 
-  const { fileName } = await params;
-  const decodedFileName = decodeURIComponent(fileName);
+  // Only a party to the owning project may download it.
+  const access = await requireProjectParty(record.projectId);
+  if (!access.ok) {
+    return new Response("Not found", { status: 404 });
+  }
 
-  // Check if file exists in public/uploads
-  const filePath = path.join(process.cwd(), "public", "uploads", decodedFileName);
-
-  if (fs.existsSync(filePath)) {
-    const fileBuffer = fs.readFileSync(filePath);
-    return new Response(fileBuffer, {
+  // A stored data: URL has no file on disk — hand back the decoded bytes.
+  if (record.fileUrl.startsWith("data:")) {
+    const [meta, b64] = record.fileUrl.split(",", 2);
+    const mime = meta.slice(5).replace(/;base64$/, "") || "application/octet-stream";
+    return new Response(Buffer.from(b64 ?? "", "base64"), {
       headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(decodedFileName)}"`,
+        "Content-Type": mime,
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(record.fileName)}"`,
       },
     });
   }
 
-  // Fallback: if it's a seeded/mock file, return a placeholder file so it downloads successfully!
-  const mockContent = `This is a mock placeholder content for the shared workspace deliverable: ${decodedFileName}.\nUpload a new file in the workspace to test real file uploads and downloads.`;
-  
-  return new Response(mockContent, {
+  // Defence in depth: resolve and confirm containment before touching disk.
+  const basename = path.basename(record.fileUrl);
+  const filePath = path.resolve(UPLOAD_DIR, basename);
+  if (filePath !== path.join(UPLOAD_DIR, basename) || !filePath.startsWith(UPLOAD_DIR + path.sep)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const fileBuffer = fs.readFileSync(filePath);
+  return new Response(fileBuffer, {
     headers: {
-      "Content-Type": "text/plain",
-      "Content-Disposition": `attachment; filename="${encodeURIComponent(decodedFileName)}"`,
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(record.fileName)}"`,
     },
   });
 }

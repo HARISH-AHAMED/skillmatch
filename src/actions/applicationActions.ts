@@ -88,17 +88,41 @@ export async function applyToProject(
   };
   const serializedCoverLetter = serializeApplicationMetadata(coverLetter, meta);
 
-  const application = await db.application.create({
-    data: {
-      projectId,
-      freelancerId: freelancer.id,
-      coverLetter: serializedCoverLetter,
-      aiScore,
-      status: ApplicationStatus.PENDING,
-      ...(roleId ? { roleId } : {}),
-      ...(isApprentice ? { isApprentice: true } : {}),
-    },
+  /**
+   * SEC-017 — there was no duplicate check here at all; a second application
+   * raised an unhandled Prisma P2002 on the @@unique([projectId, freelancerId])
+   * constraint, which surfaced to the user as a 500.
+   *
+   * Pre-checking alone would still race, so the constraint stays the real
+   * guarantee and the violation is translated into a friendly message.
+   */
+  const alreadyApplied = await db.application.findUnique({
+    where: { projectId_freelancerId: { projectId, freelancerId: freelancer.id } },
+    select: { id: true },
   });
+  if (alreadyApplied) {
+    return { success: false, error: "You have already applied to this project." };
+  }
+
+  let application;
+  try {
+    application = await db.application.create({
+      data: {
+        projectId,
+        freelancerId: freelancer.id,
+        coverLetter: serializedCoverLetter,
+        aiScore,
+        status: ApplicationStatus.PENDING,
+        ...(roleId ? { roleId } : {}),
+        ...(isApprentice ? { isApprentice: true } : {}),
+      },
+    });
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { success: false, error: "You have already applied to this project." };
+    }
+    throw err;
+  }
 
   // Notify the company user
   await db.notification.create({
