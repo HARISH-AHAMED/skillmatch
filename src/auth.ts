@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
+import { verifyPassword, hashPassword } from "@/lib/password";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db) as any,
@@ -26,65 +27,48 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = (credentials.email as string).toLowerCase();
         const password = credentials.password as string;
 
-        // Find user in DB
-        let user = await db.user.findUnique({
+        const user = await db.user.findUnique({
           where: { email },
         });
 
-        // For developer convenience, if it is local development and the user doesn't exist, we automatically create them!
-        if (!user) {
-          let role: Role = Role.FREELANCER;
-          if (email.includes("admin")) {
-            role = Role.ADMIN;
-          } else if (email.includes("company")) {
-            role = Role.COMPANY;
-          } else if (credentials.role) {
-            const passedRole = (credentials.role as string).toUpperCase();
-            if (passedRole === "ADMIN" || passedRole === "COMPANY" || passedRole === "FREELANCER") {
-              role = passedRole as Role;
-            }
-          }
+        /**
+         * SEC-003. This branch previously *created* an account for any unknown
+         * email, deriving the role from substrings ("admin" in the address
+         * granted ADMIN) or from a client-supplied `role` credential — so
+         * anyone could self-provision an administrator from the login form.
+         *
+         * Unknown credentials now simply fail. Account creation happens only
+         * through registerUser, which validates the role against an allowlist
+         * that excludes ADMIN (SEC-010).
+         */
+        if (!user) return null;
 
-          user = await db.user.create({
-            data: {
-              email,
-              name: email.split("@")[0].replace(/^\w/, (c: string) => c.toUpperCase()),
-              role,
-              passwordHash: password,
-            },
-          });
+        /**
+         * SEC-002. Verify against a bcrypt hash, or against a legacy plaintext
+         * value during the migration window. A user with no credential set
+         * (e.g. an OAuth-only account) cannot sign in with a password.
+         */
+        if (!user.passwordHash) return null;
 
-          // Automatically create corresponding role profile
-          if (role === Role.FREELANCER) {
-            await db.freelancer.create({
+        const { valid, needsRehash } = await verifyPassword(password, user.passwordHash);
+        if (!valid) return null;
+
+        // The password has just been proven correct, so this is the one moment
+        // the plaintext is legitimately available to upgrade in place.
+        if (needsRehash) {
+          try {
+            await db.user.update({
+              where: { id: user.id },
               data: {
-                userId: user.id,
-                bio: "Expert React, Next.js, and Node.js developer with 5+ years of software design experience.",
-                skills: ["typescript", "react", "next.js", "tailwind", "node.js", "postgresql", "python"],
-                experienceYears: 5,
-                portfolioUrl: "https://github.com",
-                rating: 4.9,
-                completedProjects: 14,
-                completionRate: 98.0,
+                passwordHash: await hashPassword(password),
+                passwordChangeRequired: true,
               },
             });
-          } else if (role === Role.COMPANY) {
-            await db.company.create({
-              data: {
-                userId: user.id,
-                companyName: "Quantum Labs AI",
-                description: "Innovating AI products and scalable modern platforms.",
-                industry: "Technology",
-                website: "https://quantumlabs.ai",
-                location: "Austin, TX",
-              },
-            });
+          } catch (err) {
+            // A failed upgrade must not block a valid login; the next
+            // successful sign-in retries it.
+            console.error("Failed to upgrade legacy password hash:", err);
           }
-        }
-
-        // Validate password (basic comparison for demo credentials)
-        if (user.passwordHash && user.passwordHash !== password) {
-          return null;
         }
 
         return {

@@ -40,7 +40,13 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(FREELANCER)
-  passwordHash  String?   // Add passwordHash for developer Credentials Login
+  /// bcrypt digest. Historically this column held plaintext (SEC-002); values
+  /// are upgraded in place on the owner's next successful login.
+  passwordHash  String?
+  /// Set when a credential was migrated from legacy plaintext storage, so the
+  /// user can be prompted to choose a new password they know was never stored
+  /// in the clear.
+  passwordChangeRequired Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -38,7 +38,7 @@ export function AddUserModal() {
       const res = await registerUser({
         name,
         email,
-        passwordHash: password,
+        password,
         role,
       });
 

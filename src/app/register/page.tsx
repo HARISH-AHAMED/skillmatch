@@ -34,7 +34,7 @@ export default function RegisterPage() {
       const res = await registerUser({
         name,
         email,
-        passwordHash: password,
+        password,
         role,
       });
 
