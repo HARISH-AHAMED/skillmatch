@@ -147,6 +147,13 @@ export function WorkspaceFunding({
 
   const submitStage = async () => {
     if (!projectId) return;
+    // COMP-002 / MF-003 — a stage with no assignee could previously be created,
+    // and was then claimable by whichever hired freelancer submitted it first.
+    // Every stage now names the freelancer it pays.
+    if (!form.applicationId) {
+      setStageError("Choose which freelancer this stage pays.");
+      return;
+    }
     setSaving(true);
     setStageError(null);
     const res = await savePaymentStage(projectId, {
@@ -154,7 +161,7 @@ export function WorkspaceFunding({
       title: form.title,
       description: form.description,
       amount: Number(form.amount),
-      applicationId: form.applicationId || undefined,
+      applicationId: form.applicationId,
     });
     if (res.success) {
       setStageList(res.stages || []);
