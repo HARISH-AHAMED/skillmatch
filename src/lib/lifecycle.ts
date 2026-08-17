@@ -200,6 +200,37 @@ export interface ContractMilestone {
   status: "PENDING" | "ESCROWED" | "RELEASED";
 }
 
+/**
+ * MF-007 — skills credited on a certificate.
+ *
+ * `roleTitle` previously read `role.title`, a field ProjectRole does not have
+ * (it is `name`), so every certificate silently fell through to the generic
+ * "Project Contributor". Skills came from `project.requiredSkills`, giving a
+ * designer and a backend engineer on the same project identical lists.
+ *
+ * A role's name and description are the only role-specific signals the schema
+ * carries, so skills named there are credited. A role naming none, or a project
+ * using no roles at all, falls back to the project's required skills.
+ */
+export function deriveRoleSkills(
+  role: { name: string; description: string | null } | null | undefined,
+  projectSkills: string[]
+): string[] {
+  if (!role) return projectSkills.slice(0, 8);
+  const haystack = `${role.name} ${role.description ?? ""}`.toLowerCase();
+  const matched = projectSkills.filter((skill) => haystack.includes(skill.toLowerCase()));
+  return (matched.length > 0 ? matched : projectSkills).slice(0, 8);
+}
+
+/** MF-007 — the role title credited on a certificate. */
+export function deriveRoleTitle(
+  role: { name: string } | null | undefined,
+  isApprentice: boolean
+): string {
+  const base = role?.name?.trim() || "Project Contributor";
+  return isApprentice ? `${base} (Apprentice)` : base;
+}
+
 export function buildContractMilestones(params: {
   offerMilestones?: { title: string; budget: number }[];
   configuredItems?: { title: string; amount: Prisma.Decimal | number }[];

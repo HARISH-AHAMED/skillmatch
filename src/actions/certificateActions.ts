@@ -1,4 +1,5 @@
 "use server";
+import { deriveRoleSkills, deriveRoleTitle } from "@/lib/lifecycle";
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
@@ -153,25 +154,6 @@ export async function setCertificateVisibility(certificateId: string, visible: b
  * Returns `needsDesign` when the company opted into certificates but never
  * designed one — the caller nudges them rather than issuing something unstyled.
  */
-/**
- * MF-007 — skills credited on a certificate.
- *
- * A role's own description is the only role-specific signal the schema carries,
- * so skills named in it are credited. If the role names none, the certificate
- * falls back to the project's required skills — correct for a project that uses
- * no roles, and no worse than the previous behaviour for one that does.
- */
-function deriveRoleSkills(
-  role: { name: string; description: string | null } | null | undefined,
-  projectSkills: string[]
-): string[] {
-  if (!role) return projectSkills.slice(0, 8);
-
-  const haystack = `${role.name} ${role.description ?? ""}`.toLowerCase();
-  const matched = projectSkills.filter((skill) => haystack.includes(skill.toLowerCase()));
-  return (matched.length > 0 ? matched : projectSkills).slice(0, 8);
-}
-
 export async function issueProjectCertificates(
   projectId: string
 ): Promise<{ issued: number; needsDesign: boolean }> {
@@ -209,7 +191,6 @@ export async function issueProjectCertificates(
      * from project-wide data when the project uses no roles at all.
      */
     const role = app.role;
-    const roleTitle = role?.name?.trim() || "Project Contributor";
     const roleSkills = deriveRoleSkills(role, project.requiredSkills);
 
     const certificate = await db.certificate.create({
@@ -218,7 +199,7 @@ export async function issueProjectCertificates(
         projectId: project.id,
         freelancerId: app.freelancerId,
         companyId: project.companyId,
-        roleTitle: app.isApprentice ? `${roleTitle} (Apprentice)` : roleTitle,
+        roleTitle: deriveRoleTitle(role, app.isApprentice),
         skills: roleSkills,
         issuerName: project.company.companyName,
         recipientName: app.freelancer.user?.name || "Freelancer",
