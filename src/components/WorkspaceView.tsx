@@ -1259,10 +1259,18 @@ export function WorkspaceView({
    * arbitrary ordering and a dead filter) in every non-English locale.
    * Formatting now happens only at render.
    */
-  const groupedTimeline = groupByDateKey(completedTasks, (task) =>
-    // Scheduled date wins; completion/creation timestamps are only a fallback
-    // for tasks that genuinely carry no date of their own.
-    task.dueDate ?? task.updatedAt ?? task.createdAt
+  /**
+   * TIME-003 — this view lists DONE tasks and presents itself as a record of
+   * completed work, but it keyed on the *scheduled* date, so a task completed
+   * today but due next month filed under next month.
+   *
+   * Task has no completedAt column, so updatedAt — last written when the task
+   * was moved to DONE — is the closest available completion signal. The
+   * scheduled date is now only a fallback.
+   */
+  const groupedTimeline = groupByDateKey(
+    completedTasks,
+    (task) => task.updatedAt ?? task.dueDate ?? task.createdAt
   );
 
   const sortedDates = sortDateKeysDesc(
