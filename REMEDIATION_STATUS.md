@@ -180,6 +180,59 @@ separate change.
 
 ---
 
+## Phase 2 Step 4 — Localization & SSR Root-Cause Sweep: COMPLETE
+
+1 commit (`a5933fa`). `npm test` **144 passing / 10 files** · `tsc --noEmit` clean ·
+`next build` exit 0. **No migration applied; nothing deployed.**
+
+Treated as one sweep because the audit's root cause is shared: *a formatted
+display string was being used as application data.*
+
+### Per-finding outcome
+| ID | Outcome | Evidence |
+|---|---|---|
+| TIME-001 | **Fixed & Tested** — grouping/sorting/filtering on a stable `YYYY-MM-DD` key; formatting only at render | `src/lib/dates.ts:22`, `:38`, `:52`, `WorkspaceView.tsx:1128` |
+| TIME-002 | **Verified as already resolved** — no second implementation added | `hourlyLogActions.ts:29` (midday-UTC anchor), `schema.prisma:599` (`@db.Date`) |
+| WS-003 | **Fixed & Tested** — read side verified, **write side was still open and is now closed** | `WorkspaceView.tsx:944` (no `[Value: $X]` written), modal budget field removed |
+| WS-004 | **Verified as already resolved** — amounts are a `Decimal` column, never round-tripped through a display string | `schema.prisma:562`, `:603`, `:631` |
+| DATA-007 | **Fixed & Tested** — one `money()` formatter using the authoritative currency | `WorkspaceView.tsx:1172` |
+| DATA-008 | **Fixed & Tested** — Overview totals read the payment tables + ledger, not title prose | `compensation.ts:78` (`getProjectFinancialSummary`), `WorkspaceView.tsx:1159` |
+| DATA-009 | **Fixed & Tested** — completed; both surfaces use the server-resolved type | `WorkspaceView.tsx:1148`, `compensation.ts:62` |
+| SSR-001 | **Fixed & Tested** — deterministic formatter, no `Intl` on the SSR path | `src/lib/dates.ts:70` |
+| SSR-002 | **Fixed & Tested** — non-deterministic `new Date()` removed from initial state | `WorkspaceView.tsx:719` |
+| UX-004 | **Fixed & Tested** — closed with DATA-007 | `WorkspaceView.tsx:1172` |
+
+### Two findings the "verify only" instruction did not fully cover
+The brief listed WS-003 and DATA-009 as already resolved. Verification showed
+both were only **half** done by Step 2:
+
+- **WS-003** — the backfill stripped value tags from existing rows, but
+  `handleCreateMilestone` still *wrote* `[Value: $X]` into new titles, and the
+  Overview still parsed them. Recreating the exact defect on every new record.
+  Both the write path and the modal's budget input are now removed.
+- **DATA-009** — `compensation.ts` existed, but `WorkspaceView` still defaulted
+  to `"MILESTONE"` while `WorkspaceFunding` defaulted to `"FIXED"` for the same
+  project. Reported as partially addressed, now genuinely closed.
+
+### Tests
+`tests/dates.test.ts` — 15 tests: ISO key derivation, locale-independent
+sorting (asserting the localised strings the old comparator relied on are
+genuinely unparseable), date-picker filter matching without parsing, timezone
+stability, and preservation of the previous visible format
+("Monday, August 17, 2026").
+
+Two draft tests were removed rather than kept: they set `process.env.LANG` in
+a loop, which does not influence `Intl` in Node, so they would have passed
+trivially while appearing to prove locale-independence.
+
+### Not covered by this step
+Money formatting outside the workspace (applicant and application detail
+screens) still renders some amounts directly. Those surfaces were not in the
+audit's DATA-007 evidence and are left for Step 5's UX pass rather than
+widened into here.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -332,7 +385,7 @@ Logged per ground rule 1 rather than chased.
 ### Timeline / Kanban — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| TIME-001 | P1 | 6 | Not Started |
+| TIME-001 | P1 | 6 | **Fixed & Tested** |
 | TIME-002 | P1 | 6 | **Fixed & Tested** |
 | TIME-003 | P2 | 7 | Not Started |
 | TIME-004 | P2 | 5 | **Needs Decision** |
@@ -360,8 +413,8 @@ Logged per ground rule 1 rather than chased.
 ### Data consistency — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| DATA-007 | P1 | 6 | Not Started |
-| DATA-008 | P2 | 6 | Not Started |
+| DATA-007 | P1 | 6 | **Fixed & Tested** |
+| DATA-008 | P2 | 6 | **Fixed & Tested** |
 | DATA-009 | P2 | 6 | **Fixed & Tested** — one compensation resolver (src/lib/compensation.ts) |
 
 ### UX / responsive / SSR — session 2
@@ -370,12 +423,12 @@ Logged per ground rule 1 rather than chased.
 | UX-001 | P2 | 7 | Not Started |
 | UX-002 | P2 | 7 | Not Started |
 | UX-003 | P2 | 7 | Not Started |
-| UX-004 | P3 | 6 | Not Started (closes with DATA-007) |
+| UX-004 | P3 | 6 | **Fixed & Tested** (closes with DATA-007) |
 | UX-005 | P3 | 7 | Not Started |
 | RESP-001 | P2 | 7 | Not Started |
 | RESP-002 | P3 | 8 | Not Started |
-| SSR-001 | P2 | 6 | Not Started |
-| SSR-002 | P2 | 6 | Not Started |
+| SSR-001 | P2 | 6 | **Fixed & Tested** |
+| SSR-002 | P2 | 6 | **Fixed & Tested** |
 
 ### New — this remediation
 | ID | Sev | Phase | Status |
@@ -389,10 +442,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 58 |
+| Fixed & Tested | 64 |
 | Partially fixed | 2 (SEC-015 SVG half, DEP-001 non-breaking half) |
 | Deferred (explicit decision) | 1 (COMP-001) |
 | Needs Decision | 9 |
-| Not Started | 30 |
+| Not Started | 24 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001) |
