@@ -67,6 +67,60 @@ identical shape**, all in `collaborationActions.ts`, all now fixed:
 
 ---
 
+## Phase 2 Step 2 — Financial Model Rebuild: COMPLETE
+
+5 commits (`f011859` → `0b3fdaf`). `npm test` **105 passing** · `tsc --noEmit` clean.
+Production build not re-run this step — the changed surface is server actions and
+one client component; it will run in the final phase verification.
+
+**Approved decisions applied:** COMP-001 → Option A (internal ledger only).
+WS-003 → `ProjectUpdate` is non-financial; value tags are not imported.
+
+### What was built
+| Module | Purpose |
+|---|---|
+| `prisma/schema.prisma:565-760` | 5 tables, 5 enums. All amounts `Decimal(18,2)`; currency stored beside every amount |
+| `prisma/migrations/20260817000002_financial_model/` | 32 DDL statements, all additive. **Not applied anywhere** |
+| `src/lib/paymentRules.ts` | Business rules as pure functions — no DB, so money logic is testable without one |
+| `src/lib/payments.ts:41` | `SELECT … FOR UPDATE` row locking inside `$transaction` |
+| `src/lib/payments.ts:80` | Ledger append; unique `idempotencyKey` rejects replays |
+| `src/lib/payments.ts:168` | `reconcileItem()` so cache-vs-ledger drift is assertable |
+| `src/lib/compensation.ts` | One compensation resolver (DATA-002/DATA-009/COMP-018) |
+| `prisma/backfill/financial.ts` | Dry-run-by-default, idempotent backfill; issues report |
+
+### Transaction-safety checklist
+| Requirement | How |
+|---|---|
+| Double release cannot occur | Unique `idempotencyKey` keyed on the resulting released total — `payments.ts:98`; a status check alone cannot close this, since concurrent callers read the same pre-state |
+| Concurrent funding cannot exceed limits | `lockProjectItems()` locks all items before the aggregate budget check — `paymentStageActions.ts:150` |
+| Per-application isolation | `applicationId` required on every financial row; hourly balances computed per application |
+| Idempotency prevents duplicate ledger rows | `PaymentTransaction.idempotencyKey` unique index |
+| Invalid status races | `assertTransition()` evaluated against freshly-locked state |
+| DB-level constraints, not just app checks | unique `(applicationId, periodIndex)`, unique `(applicationId, workDate, description)`, unique `idempotencyKey` |
+
+### Tests run
+`npm test` → **105 passed / 7 files**. `npx tsc --noEmit` → clean.
+New this step: `tests/paymentRules.test.ts` (37), `tests/ledger.test.ts` (7).
+
+### Migration state
+- `0_init` — written, **not applied**.
+- `20260817000001_sec002_password_rotation_flag` — written, **not applied**.
+- `20260817000002_financial_model` — written, **not applied**.
+- Backfill — written, **never executed**, not even in dry-run against the live DB.
+- **No database deployment occurred at any point.**
+
+### Deferred out of this step
+| ID | Reason |
+|---|---|
+| COMP-011 | Hardcoded 30/40/30 contract split is entangled with the contract/offer lifecycle; moved to Step 3 with LIFE-002 |
+| COMP-016 | Partially fixed — amount now from `ProjectCompensation`; the legacy `?? budget` fallback survives in the resolver until backfill runs |
+
+### Remaining in Phase 2
+Step 3 (LIFE-001…007, MF-001…007, COMP-011), Step 4 (localization/SSR),
+Step 5 (remaining P2s), Step 6 (P3s).
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -136,24 +190,24 @@ Logged per ground rule 1 rather than chased.
 ### Compensation — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| COMP-001 | P0 | 3 | **Needs Decision** |
-| COMP-002 | P1 | 3 | Not Started |
-| COMP-003 | P2 | 3 | Not Started |
-| COMP-004 | P2 | 3 | Not Started |
-| COMP-005 | P2 | 3 | Not Started |
-| COMP-006 | P1 | 3 | Not Started |
-| COMP-007 | P2 | 3 | Not Started |
-| COMP-008 | P2 | 3 | Not Started |
-| COMP-009 | P3 | 3 | Not Started |
-| COMP-010 | P0 | 3 | **Needs Plan** |
-| COMP-011 | P1 | 3 | Not Started |
+| COMP-001 | P0 | — | **Deferred — real payment-provider integration is outside this pass.** Internal ledger built; externalRef reserved so a provider needs no schema change. |
+| COMP-002 | P1 | 3 | **Fixed & Tested** |
+| COMP-003 | P2 | 3 | **Fixed & Tested** |
+| COMP-004 | P2 | 3 | **Fixed & Tested** |
+| COMP-005 | P2 | 3 | **Fixed & Tested** |
+| COMP-006 | P1 | 3 | **Fixed & Tested** |
+| COMP-007 | P2 | 3 | **Fixed & Tested** |
+| COMP-008 | P2 | 3 | **Fixed & Tested** |
+| COMP-009 | P3 | 3 | **Fixed & Tested** |
+| COMP-010 | P0 | 3 | **Fixed & Tested** |
+| COMP-011 | P1 | 2 Step 3 | Not Started — entangled with the contract/offer lifecycle (LIFE-002); moved to Step 3 |
 | COMP-012 | P1 | 3 | **Fixed & Tested** |
-| COMP-013 | P2 | 3 | Not Started |
-| COMP-014 | P2 | 3 | Not Started |
-| COMP-015 | P2 | 3 | Not Started |
-| COMP-016 | P3 | 3 | Not Started |
-| COMP-017 | P2 | 3 | Not Started |
-| COMP-018 | P1 | 3 | Not Started |
+| COMP-013 | P2 | 3 | **Fixed & Tested** |
+| COMP-014 | P2 | 3 | **Fixed & Tested** |
+| COMP-015 | P2 | 3 | **Fixed & Tested** |
+| COMP-016 | P3 | 2 Step 3 | Partially fixed — stipend amount now read from ProjectCompensation, not live metadata; legacy `?? budget` fallback remains in the resolver |
+| COMP-017 | P2 | 3 | **Fixed & Tested** |
+| COMP-018 | P1 | 3 | **Fixed & Tested** |
 
 ### Multi-freelancer — session 1
 | ID | Sev | Phase | Status |
@@ -180,12 +234,12 @@ Logged per ground rule 1 rather than chased.
 ### Architecture / data / perf / test — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| ARCH-001 | P0 | 3 | **Needs Plan** |
+| ARCH-001 | P0 | 3 | **Fixed & Tested** |
 | ARCH-002 | P1 | 1 | **Fixed & Tested** |
 | DATA-001 | — | — | **N/A — orphan reference.** Cited in audit §1 alongside ARCH-001 but never defined as its own finding. Treated as covered by ARCH-001; no separate work item. |
-| DATA-002 | P1 | 3 | Not Started |
-| DATA-003 | P1 | 3 | Not Started |
-| DATA-004 | P1 | 3 | Not Started |
+| DATA-002 | P1 | 3 | **Fixed & Tested** |
+| DATA-003 | P1 | 3 | **Fixed & Tested** |
+| DATA-004 | P1 | 3 | **Fixed & Tested** |
 | DATA-005 | P2 | 7 | Not Started (backfill question flagged above) |
 | DATA-006 | P2 | 7 | Not Started |
 | PERF-001 | P2 | 7 | Not Started |
@@ -220,7 +274,7 @@ Logged per ground rule 1 rather than chased.
 | ID | Sev | Phase | Status |
 |---|---|---|---|
 | TIME-001 | P1 | 6 | Not Started |
-| TIME-002 | P1 | 6 | Not Started |
+| TIME-002 | P1 | 6 | **Fixed & Tested** |
 | TIME-003 | P2 | 7 | Not Started |
 | TIME-004 | P2 | 5 | **Needs Decision** |
 | TIME-005 | P2 | 7 | Not Started |
@@ -235,8 +289,8 @@ Logged per ground rule 1 rather than chased.
 |---|---|---|---|
 | WS-001 | P1 | 2 | **Fixed & Tested** |
 | WS-002 | P1 | 2 | **Fixed & Tested** |
-| WS-003 | P1 | 3 | **Needs Plan** (milestone consolidation) |
-| WS-004 | P1 | 6 | Not Started (may close via Phase 3) |
+| WS-003 | P1 | 3 | **Fixed & Tested** (milestone consolidation) |
+| WS-004 | P1 | 6 | **Fixed & Tested** — amounts are a Decimal column; never round-tripped through a display string |
 | WS-005 | P2 | 7 | Not Started |
 | WS-006 | P2 | 7 | Not Started |
 | WS-007 | P2 | 7 | Not Started (expected to close via LIFE-001) |
@@ -249,7 +303,7 @@ Logged per ground rule 1 rather than chased.
 |---|---|---|---|
 | DATA-007 | P1 | 6 | Not Started |
 | DATA-008 | P2 | 6 | Not Started |
-| DATA-009 | P2 | 6 | Not Started |
+| DATA-009 | P2 | 6 | **Fixed & Tested** — one compensation resolver (src/lib/compensation.ts) |
 
 ### UX / responsive / SSR — session 2
 | ID | Sev | Phase | Status |
@@ -276,9 +330,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 22 |
-| Partially fixed | 2 (SEC-015 SVG half, DEP-001 non-breaking half) |
-| Needs Decision / Needs Plan | 16 |
-| Not Started | 62 |
+| Fixed & Tested | 43 |
+| Partially fixed | 3 (SEC-015 SVG half, DEP-001 non-breaking half, COMP-016) |
+| Deferred (explicit decision) | 1 (COMP-001) |
+| Needs Decision | 9 |
+| Not Started | 46 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
-| New findings logged this pass | 1 (DEP-001) |
+| New findings logged | 1 (DEP-001) |
