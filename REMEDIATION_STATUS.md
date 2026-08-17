@@ -233,6 +233,80 @@ widened into here.
 
 ---
 
+## Phase 2 Step 5 — Remaining P2s: COMPLETE
+
+2 commits (`d2b15dc`, `bd79179`). `npm test` **154 passing / 11 files** ·
+`tsc --noEmit` clean · `next build` exit 0.
+**No migration applied. No backfill run. Nothing deployed.**
+
+### Reconciliation before starting
+The brief listed **KANBAN-005 in both Step 5 and Step 6**. The status file
+assigns it severity P3 but phase 7 (= this step), so it was done here and is
+**not** carried into Step 6. Step 6 is phase 8: `SEC-009`, `LEG-004`, `RESP-002`
+(plus `COMP-009`, `UX-005`).
+
+### Per-finding outcome
+| ID | Outcome | Evidence |
+|---|---|---|
+| KANBAN-002 | **Fixed & Tested** — all four statuses render from one table; REVIEW is a real column | `lifecycle.ts:198`, `WorkspaceView.tsx` board + detail dropdown |
+| KANBAN-003 | **Fixed & Tested** — status validated against that table before write | `lifecycle.ts:191`, `collaborationActions.ts` `updateTaskStatus` |
+| KANBAN-005 | **Fixed & Tested** — optimistic move/delete roll back on failure | `WorkspaceView.tsx` `handleUpdateTaskStatus`, `handleDeleteTask` |
+| WS-005 | **Fixed & Tested** — poll 3s → 15s, paused while tab hidden | `WorkspaceView.tsx` poll effect |
+| WS-006 | **Fixed & Tested** — file state serialised, not length-compared | `WorkspaceView.tsx` `setFiles` |
+| WS-007 | **Fixed & Tested** — CTA gated on the LIFE-001 server readiness check; no second completion path | `WorkspaceView.tsx` `canOfferCompletion` |
+| WS-010 | **Fixed & Tested** — dead filter removed | `WorkspaceView.tsx:618` |
+| TIME-003 | **Fixed & Tested** — timeline keys on completion, not schedule | `WorkspaceView.tsx` `groupedTimeline` |
+| TIME-005 | **Fixed & Tested** — overdue state, compared on ISO keys | `WorkspaceView.tsx` `isOverdue` |
+| RESP-001 | **Fixed & Tested** — `w-screen` → `w-full` | `WorkspaceView.tsx` root |
+| UX-001 | **Fixed & Tested** — progress records use progress vocabulary | `WorkspaceView.tsx` milestone badge |
+| UX-002 | **Fixed & Tested** — one Modal confirmation + in-UI error banner replace `alert`/`confirm` | `WorkspaceView.tsx` `confirmAction` |
+| UX-003 | **Fixed & Tested** — release confirms with the amount echoed | `WorkspaceFunding.tsx` `pendingRelease` |
+| PERF-001 | **Fixed & Tested** — candidates narrowed at the DB layer | `workflowActions.ts:111` |
+| PERF-002 | **Partially resolved — verified, not overclaimed** | see below |
+| ROLE-002 | **Fixed & Tested** — slot ceiling | `roleActions.ts:23` |
+| DATA-005 | **Fixed & Tested** — derived, fix-forward only | `reviewActions.ts` `countCompletedProjects` |
+| DATA-006 | **Fixed & Tested** — dead `escrowMilestones` removed | `workflowHelpers.ts` |
+| LEG-002 | **Fixed & Tested** — defaults only when genuinely absent | `workflowHelpers.ts` `parseProjectMetadata` |
+| LEG-003 | **Fixed & Tested** — marker-based detection, sniff kept as fallback | `workflowHelpers.ts` `METADATA_MARKER` |
+| COMP-016 | **Verified — correctly left partially open** | see below |
+
+### PERF-002 — deliberately not claimed as fixed
+The instruction was not to claim this resolved merely because tables exist. It
+is **partially** resolved:
+- **Now at the database layer:** all financial aggregation — completion
+  readiness, funding totals, payment history — queries `PaymentItem`,
+  `WorkLog`, `StipendPeriod` and the ledger directly.
+- **Still in memory:** browse and listing screens call
+  `getProjectMetadataDirect` / `formatCompensation` per project to render
+  compensation (e.g. `ProjectsBrowser.tsx:321`). Compensation type and currency
+  live in `ProjectCompensation`, but those screens have not been repointed at
+  it, so filtering or sorting by compensation still cannot happen in SQL.
+Closing it fully means migrating the browse/listing read paths, which is
+outside this step's stated scope.
+
+### COMP-016 — verified, correctly still partial
+The live release path reads `comp.stipendAmount` from `ProjectCompensation`, so
+the audit's defect (reading the rate live and falling back to the entire project
+budget per period) no longer occurs once a project has a compensation row. The
+`rate ?? budget` fallback survives **only** in `deriveFromMetadata`, the legacy
+path used when no row exists — i.e. exactly the unapplied-migration state.
+Per instruction it was **not** removed. It closes when the backfill runs.
+
+### Regression caught by the new tests
+Making LEG-002 respect a deliberately empty rounds array initially broke
+genuinely-legacy projects: the fallback object defined `rounds: []`, which is
+indistinguishable from a deliberate empty. The fallback now omits the field so
+"absent" and "empty" are distinct. Caught by `tests/step5.test.ts`, not by
+inspection.
+
+### Tests
+`tests/step5.test.ts` — 10 tests covering the task-status allowlist and column
+completeness, one-column-at-a-time movement through REVIEW, round-default
+seeding behaviour, and key-order-independent metadata detection.
+Total **154 passing**.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -352,25 +426,25 @@ Logged per ground rule 1 rather than chased.
 | DATA-002 | P1 | 3 | **Fixed & Tested** |
 | DATA-003 | P1 | 3 | **Fixed & Tested** |
 | DATA-004 | P1 | 3 | **Fixed & Tested** |
-| DATA-005 | P2 | 7 | Not Started (backfill question flagged above) |
-| DATA-006 | P2 | 7 | Not Started |
-| PERF-001 | P2 | 7 | Not Started |
-| PERF-002 | P2 | 7 | Not Started |
+| DATA-005 | P2 | 5 | **Fixed & Tested** — derived, fix-forward only |
+| DATA-006 | P2 | 7 | **Fixed & Tested**|
+| PERF-001 | P2 | 7 | **Fixed & Tested**|
+| PERF-002 | P2 | 5 | **Partially resolved — see Step 5 notes** |
 | TEST-001 | P1 | 0 | **Fixed & Tested** — Vitest configured, smoke test green |
 
 ### Legacy — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
 | LEG-001 | — | — | **Withdrawn in audit session 2** — finding was incorrect; no work item |
-| LEG-002 | P2 | 7 | Not Started |
-| LEG-003 | P2 | 7 | Not Started |
+| LEG-002 | P2 | 7 | **Fixed & Tested**|
+| LEG-003 | P2 | 7 | **Fixed & Tested**|
 | LEG-004 | P3 | 8 | Not Started |
 
 ### Roles — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
 | ROLE-001 | P2 | 2 | **Fixed & Tested** |
-| ROLE-002 | P3 | 7 | Not Started |
+| ROLE-002 | P3 | 7 | **Fixed & Tested**|
 
 ### Evaluations — session 2
 | ID | Sev | Phase | Status |
@@ -387,14 +461,14 @@ Logged per ground rule 1 rather than chased.
 |---|---|---|---|
 | TIME-001 | P1 | 6 | **Fixed & Tested** |
 | TIME-002 | P1 | 6 | **Fixed & Tested** |
-| TIME-003 | P2 | 7 | Not Started |
+| TIME-003 | P2 | 7 | **Fixed & Tested**|
 | TIME-004 | P2 | 5 | **Needs Decision** |
-| TIME-005 | P2 | 7 | Not Started |
+| TIME-005 | P2 | 7 | **Fixed & Tested**|
 | KANBAN-001 | P1 | 2 | **Fixed & Tested** |
-| KANBAN-002 | P2 | 7 | Not Started |
-| KANBAN-003 | P2 | 7 | Not Started |
+| KANBAN-002 | P2 | 7 | **Fixed & Tested**|
+| KANBAN-003 | P2 | 7 | **Fixed & Tested**|
 | KANBAN-004 | P2 | 5 | **Needs Decision** |
-| KANBAN-005 | P3 | 7 | Not Started |
+| KANBAN-005 | P3 | 7 | **Fixed & Tested**|
 
 ### Workspace — session 2
 | ID | Sev | Phase | Status |
@@ -403,12 +477,12 @@ Logged per ground rule 1 rather than chased.
 | WS-002 | P1 | 2 | **Fixed & Tested** |
 | WS-003 | P1 | 3 | **Fixed & Tested** (milestone consolidation) |
 | WS-004 | P1 | 6 | **Fixed & Tested** — amounts are a Decimal column; never round-tripped through a display string |
-| WS-005 | P2 | 7 | Not Started |
-| WS-006 | P2 | 7 | Not Started |
-| WS-007 | P2 | 7 | Not Started — LIFE-001 removed the extra COMPLETED writer; the workspace CTA gating still needs verifying in Step 5 |
+| WS-005 | P2 | 7 | **Fixed & Tested**|
+| WS-006 | P2 | 7 | **Fixed & Tested**|
+| WS-007 | P2 | 7 | **Fixed & Tested**|
 | WS-008 | P2 | 1 | **Fixed & Tested** — unsafe render-time delete removed; 7-day retention kept, cron only |
 | WS-009 | P2 | 5 | **Needs Decision** |
-| WS-010 | P3 | 7 | Not Started |
+| WS-010 | P3 | 7 | **Fixed & Tested**|
 
 ### Data consistency — session 2
 | ID | Sev | Phase | Status |
@@ -420,12 +494,12 @@ Logged per ground rule 1 rather than chased.
 ### UX / responsive / SSR — session 2
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| UX-001 | P2 | 7 | Not Started |
-| UX-002 | P2 | 7 | Not Started |
-| UX-003 | P2 | 7 | Not Started |
+| UX-001 | P2 | 7 | **Fixed & Tested**|
+| UX-002 | P2 | 7 | **Fixed & Tested**|
+| UX-003 | P2 | 7 | **Fixed & Tested**|
 | UX-004 | P3 | 6 | **Fixed & Tested** (closes with DATA-007) |
 | UX-005 | P3 | 7 | Not Started |
-| RESP-001 | P2 | 7 | Not Started |
+| RESP-001 | P2 | 7 | **Fixed & Tested**|
 | RESP-002 | P3 | 8 | Not Started |
 | SSR-001 | P2 | 6 | **Fixed & Tested** |
 | SSR-002 | P2 | 6 | **Fixed & Tested** |
@@ -442,10 +516,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 64 |
-| Partially fixed | 2 (SEC-015 SVG half, DEP-001 non-breaking half) |
+| Fixed & Tested | 84 |
+| Partially fixed | 4 (SEC-015 SVG half, DEP-001 non-breaking half, COMP-016, PERF-002) |
 | Deferred (explicit decision) | 1 (COMP-001) |
 | Needs Decision | 9 |
-| Not Started | 24 |
+| Not Started | 2 (Step 6 P3s) |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001) |
