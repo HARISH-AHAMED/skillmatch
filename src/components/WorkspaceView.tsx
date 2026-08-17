@@ -38,6 +38,7 @@ import {
   Play,
   Pause,
   Mic,
+  MicOff,
   Bot,
   Printer,
   Search,
@@ -238,211 +239,27 @@ function parseMilestoneAmount(title: string, description: string): { amount: num
   return { amount: 0, cleanTitle: title };
 }
 
-function VoiceMessagePlayer({ content, isMe }: { content: string; isMe: boolean }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0 to 1
-  const audioContextRef = useRef<any>(null);
-  const playTimerRef = useRef<any>(null);
-  const startTimeRef = useRef<number>(0);
-  const pausedAtRef = useRef<number>(0);
-
-  // Parse duration
-  let voiceDur = "0:00";
-  const durMatch = content.match(/duration:([^\]]+)/);
-  if (durMatch) voiceDur = durMatch[1];
-
-  const [minStr, secStr] = voiceDur.split(":");
-  const totalSeconds = (parseInt(minStr) || 0) * 60 + (parseInt(secStr) || 0) || 5; // fallback to 5s if parsing fails
-
-  // Deterministic bar heights to avoid layout shifts / constant random jittering
-  const barHeights = [12, 6, 14, 8, 16, 10, 15, 7, 18, 9, 14, 6, 13, 8, 15, 7, 12, 10];
-
-  const stopAudio = () => {
-    if (audioContextRef.current) {
-      try {
-        audioContextRef.current.close();
-      } catch (e) {}
-      audioContextRef.current = null;
-    }
-    if (playTimerRef.current) {
-      clearInterval(playTimerRef.current);
-      playTimerRef.current = null;
-    }
-    setIsPlaying(false);
-  };
-
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      // Pause
-      if (startTimeRef.current > 0) {
-        pausedAtRef.current = (Date.now() - startTimeRef.current) / 1000;
-      }
-      stopAudio();
-    } else {
-      // Play
-      setIsPlaying(true);
-      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) {
-        // Fallback animation if Web Audio API not supported
-        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
-        playTimerRef.current = setInterval(() => {
-          const elapsed = (Date.now() - startTimeRef.current) / 1000;
-          if (elapsed >= totalSeconds) {
-            setProgress(0);
-            pausedAtRef.current = 0;
-            stopAudio();
-          } else {
-            setProgress(elapsed / totalSeconds);
-          }
-        }, 100);
-        return;
-      }
-
-      try {
-        const ctx = new AudioCtx();
-        audioContextRef.current = ctx;
-        if (ctx.state === "suspended") {
-          ctx.resume();
-        }
-
-        const osc = ctx.createOscillator();
-        const filter = ctx.createBiquadFilter();
-        const gain = ctx.createGain();
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        // Warm triangle wave has higher-order harmonics, which are easily hearable on laptop/phone speakers
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(320, ctx.currentTime);
-
-        // Bandpass filter centered at 700Hz with high resonance simulates a speech formant (vowels)
-        filter.type = "bandpass";
-        filter.frequency.setValueAtTime(700, ctx.currentTime);
-        filter.Q.setValueAtTime(1.8, ctx.currentTime);
-
-        // Sound start
-        gain.gain.setValueAtTime(0.001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.08);
-
-        // Speech simulation notes
-        const durationSec = totalSeconds - pausedAtRef.current;
-        let time = ctx.currentTime + 0.15;
-        const step = 0.12;
-        while (time < ctx.currentTime + durationSec - 0.15) {
-          // Vary the pitch slightly inside vocal range (300Hz - 420Hz)
-          const freq = 300 + Math.random() * 120;
-          osc.frequency.setValueAtTime(freq, time);
-
-          // Sweep the bandpass filter frequency to simulate vocal formant changes
-          const filterFreq = 500 + Math.random() * 700;
-          filter.frequency.setValueAtTime(filterFreq, time);
-
-          // Modulate volume to simulate speech rhythms & word breaks
-          const vol = Math.random() > 0.4 ? 0.3 : 0.015;
-          gain.gain.linearRampToValueAtTime(vol, time);
-          time += step;
-        }
-
-        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime + durationSec - 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationSec);
-
-        osc.start();
-        osc.stop(ctx.currentTime + durationSec);
-
-        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
-
-        playTimerRef.current = setInterval(() => {
-          const elapsed = (Date.now() - startTimeRef.current) / 1000;
-          if (elapsed >= totalSeconds) {
-            setProgress(0);
-            pausedAtRef.current = 0;
-            stopAudio();
-          } else {
-            setProgress(elapsed / totalSeconds);
-          }
-        }, 100);
-
-      } catch (err) {
-        console.error("Audio playback error:", err);
-        // Fail-safe visual animation
-        startTimeRef.current = Date.now() - (pausedAtRef.current * 1000);
-        playTimerRef.current = setInterval(() => {
-          const elapsed = (Date.now() - startTimeRef.current) / 1000;
-          if (elapsed >= totalSeconds) {
-            setProgress(0);
-            pausedAtRef.current = 0;
-            stopAudio();
-          } else {
-            setProgress(elapsed / totalSeconds);
-          }
-        }, 100);
-      }
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (audioContextRef.current) {
-        try {
-          audioContextRef.current.close();
-        } catch (e) {}
-      }
-      if (playTimerRef.current) {
-        clearInterval(playTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Compute how many bars are highlighted based on progress
-  const activeBarsCount = Math.floor(progress * barHeights.length);
-
-  // Dynamic styling based on sender/receiver (isMe)
-  const buttonBgClass = isMe
-    ? "bg-white/20 hover:bg-white/30 text-white"
-    : "bg-[#EAF1FE] hover:bg-[#EAF1FE] text-[#1A1D29] border border-[#C7CBD6]/40";
-  const iconClass = isMe ? "text-white fill-white" : "text-[#5B6272] fill-[#1E3D71]";
-  const textClass = isMe ? "text-white/85" : "text-[#5B6272]";
-
+/**
+ * WS-009 — this used to render a play button, progress bar and waveform, and
+ * synthesise tones with Web Audio + Math.random(). No audio was ever captured
+ * or stored: the message body is only a text token. A recipient heard generated
+ * noise, indistinguishable from a working feature.
+ *
+ * Voice capture is removed, so no new tokens are created. Tokens already in
+ * message history render as an honest placeholder rather than fake audio.
+ */
+function VoiceMessagePlayer({ isMe }: { content: string; isMe: boolean }) {
   return (
-    <div className="flex items-center gap-3.5 min-w-[200px]">
-      <button
-        type="button"
-        onClick={handlePlayPause}
-        className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 cursor-pointer border-none transition-colors ${buttonBgClass}`}
-      >
-        {isPlaying ? (
-          <Pause className={`h-4 w-4 ${isMe ? "fill-white text-white" : "fill-[#1E3D71] text-[#5B6272]"}`} />
-        ) : (
-          <Play className={`h-4 w-4 ${iconClass}`} />
-        )}
-      </button>
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center gap-0.5 h-6">
-          {barHeights.map((h, i) => {
-            const isPlayed = i <= activeBarsCount && progress > 0;
-            const barBgClass = isMe
-              ? isPlayed ? "bg-white" : "bg-white/30"
-              : isPlayed ? "bg-[#152C55]" : "bg-[#EAF1FE]";
-            return (
-              <div
-                key={i}
-                className={`w-0.5 rounded-lg transition-all duration-150 ${barBgClass}`}
-                style={{ height: `${h}px` }}
-              />
-            );
-          })}
-        </div>
-        <div className={`flex justify-between text-[11px] font-bold uppercase tracking-wider ${textClass}`}>
-          <span>Voice Message</span>
-          <span>
-            {isPlaying
-              ? `${Math.floor((progress * totalSeconds) / 60)}:${(Math.floor(progress * totalSeconds) % 60) < 10 ? "0" : ""}${Math.floor(progress * totalSeconds) % 60}`
-              : voiceDur}
-          </span>
-        </div>
-      </div>
+    <div
+      className={
+        "flex items-center gap-2.5 min-w-[200px] rounded-lg border px-3 py-2 " +
+        (isMe ? "border-white/25 bg-white/10" : "border-[#E3E5EA] bg-[#F8F9FB]")
+      }
+    >
+      <MicOff className={"h-4 w-4 shrink-0 " + (isMe ? "text-white/70" : "text-[#5B6272]")} />
+      <span className={"text-[11px] font-semibold " + (isMe ? "text-white/85" : "text-[#5B6272]")}>
+        Voice message — playback not available
+      </span>
     </div>
   );
 }
@@ -800,22 +617,9 @@ export function WorkspaceView({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceWave, setVoiceWave] = useState<number[]>([]);
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
-
-  // AI Chat Assistant
+  // WS-009 — the assistant panel remains, but its conversation state, input
+  // and typing indicator are gone with the simulation that produced them.
   const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [aiInput, setAiInput] = useState("");
-  const [aiConversation, setAiConversation] = useState<{ sender: "user" | "ai"; text: string; time: Date | null }[]>([
-    /**
-     * SSR-002 — `time: new Date()` in a useState initialiser is evaluated once
-     * on the server and again on the client, producing different values in the
-     * server HTML and the hydrated tree. The greeting carries no meaningful
-     * timestamp, so it now has none; subsequent messages are created in event
-     * handlers, which run client-side only and are safe.
-     */
-    { sender: "ai", text: "Hello! I am your Talentra AI Workspace Assistant. Ask me anything about your project milestones, deadlines, budget, or tasks.", time: null }
-  ]);
-  const [isAITyping, setIsAITyping] = useState(false);
-  const aiScrollRef = useRef<HTMLDivElement>(null);
 
   // Modals
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -858,12 +662,6 @@ export function WorkspaceView({
       chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, activeView]);
-
-  useEffect(() => {
-    if (aiScrollRef.current) {
-      aiScrollRef.current.scrollTop = aiScrollRef.current.scrollHeight;
-    }
-  }, [aiConversation, showAIAssistant]);
 
   // Formatter bytes
   const formatBytes = (bytes: number, decimals = 2) => {
@@ -1159,77 +957,22 @@ export function WorkspaceView({
       setActionError(result.error);
     }
   };
+  /**
+   * WS-009 — startVoiceRecording / stopAndSendVoice / cancelVoiceRecording were
+   * a simulation: a timer, a Math.random() waveform, and a text token emitted as
+   * if it were audio. Removed. Voice messaging is not implemented, and the UI no
+   * longer suggests otherwise.
+   */
 
-  // SIMULATION: Voice recording
-  const startVoiceRecording = () => {
-    setIsRecordingVoice(true);
-    setRecordingSeconds(0);
-    setVoiceWave([2, 5, 2, 8, 2, 4, 3]);
-    recordingTimer.current = setInterval(() => {
-      setRecordingSeconds((prev) => prev + 1);
-      // random wave height simulation
-      setVoiceWave(Array.from({ length: 15 }, () => Math.floor(Math.random() * 28) + 4));
-    }, 1000);
-  };
-
-  const stopAndSendVoice = async () => {
-    if (recordingTimer.current) clearInterval(recordingTimer.current);
-    setIsRecordingVoice(false);
-
-    const minutes = Math.floor(recordingSeconds / 60);
-    const seconds = recordingSeconds % 60;
-    const durStr = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-    const simulatedVoiceMsg = `[VOICE:voice_rec_${Date.now()}.mp3|duration:${durStr}]`;
-
-    await handleSendMessage(null as any, simulatedVoiceMsg);
-  };
-
-  const cancelVoiceRecording = () => {
-    if (recordingTimer.current) clearInterval(recordingTimer.current);
-    setIsRecordingVoice(false);
-  };
-
-  // SIMULATION: AI Chatbot responses
-  const handleAISubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiInput.trim()) return;
-
-    const userText = aiInput;
-    setAiInput("");
-    setAiConversation((prev) => [...prev, { sender: "user", text: userText, time: new Date() }]);
-    setIsAITyping(true);
-
-    setTimeout(() => {
-      const lower = userText.toLowerCase();
-      let reply = "";
-
-      if (lower.includes("task") || lower.includes("to do") || lower.includes("kanban")) {
-        const todoCount = tasks.filter(t => t.status === "TODO").length;
-        const progressCount = tasks.filter(t => t.status === "IN_PROGRESS").length;
-        const doneCount = tasks.filter(t => t.status === "DONE").length;
-        reply = `There are currently **${tasks.length} tasks** in the Kanban Board: \n• **${todoCount}** in To Do\n• **${progressCount}** In Progress\n• **${doneCount}** Done.\nLet me know if you would like me to list them by priority!`;
-      } else if (lower.includes("budget") || lower.includes("escrow") || lower.includes("money") || lower.includes("pay")) {
-        // WS-003 — figures come from the payment tables, not from parsing
-        // ProjectUpdate title prose.
-        // COMP-001 is deferred: the platform holds no funds, so this must not
-        // describe an escrow balance.
-        reply = `Here is the current financial standing for **${projectTitle}**:\n• **Total budget:** ${money(projectBudget)}\n• **Committed:** ${money(fundsEscrowed)} (approved for payment, not yet marked paid)\n• **Marked paid:** ${money(fundsPaid)}\n• **Not yet committed:** ${money(Math.max(0, projectBudget - fundsEscrowed - fundsPaid))}.`;
-      } else if (lower.includes("deadline") || lower.includes("date") || lower.includes("timeline")) {
-        reply = `The final project timeline deadline is scheduled for **December 28, 2026**. Please coordinate tasks and milestones accordingly to prevent delivery lags.`;
-      } else if (lower.includes("deliverable") || lower.includes("file") || lower.includes("submission")) {
-        const approved = files.filter(f => parseDeliverableMeta(f.fileSize).status === "APPROVED").length;
-        const pending = files.filter(f => parseDeliverableMeta(f.fileSize).status === "PENDING").length;
-        reply = `In the Deliverables archive, there are **${files.length} submissions** in total:\n• **${approved}** Approved deliverables\n• **${pending}** Pending client review.\nYou can view, approve, or request revisions directly in the Deliverables tab.`;
-      } else if (lower.includes("draft") || lower.includes("write")) {
-        reply = `Here is a drafted message for your collaborator:\n\n*"Hi, just checking in on the progress of the milestone deliverables. Let me know if you need any resources or have questions. Thanks!"*\n\nCopy and paste this into the Messages tab to send!`;
-      } else {
-        reply = `I can help you audit this project. Ask me about tasks ("list tasks"), budget escrow status ("show wallet balance"), or file submissions ("check deliverables").`;
-      }
-
-      setAiConversation((prev) => [...prev, { sender: "ai", text: reply, time: new Date() }]);
-      setIsAITyping(false);
-    }, 850);
-  };
+  /**
+   * WS-009 — this was presented as "your Talentra AI Workspace Assistant" but
+   * was keyword matching over canned replies (lower.includes("task") /
+   * "budget" / "deadline"...). There is no model behind it.
+   *
+   * Removed rather than left looking functional. The panel now states plainly
+   * that the assistant is unavailable; input is disabled so nothing appears to
+   * be answered.
+   */
 
   // CRITICAL: Filter tasks
   /**
@@ -2460,36 +2203,7 @@ export function WorkspaceView({
                       <div ref={chatBottomRef} />
                     </div>
 
-                    {/* Voice Recording Simulation Visual Overlay */}
-                    {isRecordingVoice && (
-                      <div className="absolute inset-x-0 bottom-0 bg-white/95 text-[#1A1D29] p-5 flex flex-col items-center justify-center gap-3 border-t border-[#E3E5EA] z-20">
-                        <div className="flex items-center gap-3">
-                          <span className="h-2.5 w-2.5 rounded-full bg-[#C22B2B] animate-ping" />
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Recording Voice Message</span>
-                        </div>
-                        <div className="flex items-end gap-1.5 h-8">
-                          {voiceWave.map((h, i) => (
-                            <div
-                              key={i}
-                              className="w-1.5 bg-[#EAF1FE] rounded-lg transition-all duration-300 shadow-md shadow-[#2E6BEA]/20"
-                              style={{ height: `${h}px` }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-bold text-[#5B6272]">
-                          {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60) < 10 ? "0" : ""}{recordingSeconds % 60}
-                        </span>
-                        <div className="flex gap-3 mt-1.5 text-xs">
-                          <Button size="sm" variant="ghost" onClick={cancelVoiceRecording} className="text-[#5B6272] hover:text-[#1A1D29] hover:bg-[#E8F1FE] cursor-pointer">
-                            Cancel
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={stopAndSendVoice} className="bg-[#14713D] hover:bg-[#14713D] text-white cursor-pointer">
-                            Send Message
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
+                    {/* WS-009 — simulated recording overlay removed. */}
                     {/* Chat Input form bar */}
                     <form onSubmit={(e) => handleSendMessage(e)} className="p-3.5 bg-[#F8F9FB] border-t border-[#E3E5EA] flex gap-2 items-center shrink-0">
                       <input
@@ -2507,15 +2221,9 @@ export function WorkspaceView({
                       >
                         <Paperclip className="h-4 w-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={startVoiceRecording}
-                        disabled={isRecordingVoice}
-                        className="p-2.5 bg-white hover:bg-[#F0F3F9] text-[#BC2A2A] border border-[#E3E5EA]/80 rounded-full cursor-pointer transition-all"
-                        title="Record simulated voice message"
-                      >
-                        <Mic className="h-4 w-4" />
-                      </button>
+                      {/* WS-009 — the microphone button never captured audio; it started a
+                          timer and animated waveform, then emitted a text token. Removed
+                          rather than left looking functional. */}
                       <Input
                         type="text"
                         value={newMessage}
@@ -2553,43 +2261,17 @@ export function WorkspaceView({
                         </button>
                       </div>
 
-                      {/* Conversation thread */}
-                      <div ref={aiScrollRef} className="flex-1 overflow-y-auto py-3 space-y-3 text-[11px] leading-relaxed">
-                        {aiConversation.map((msg, idx) => (
-                          <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
-                            <span className="text-[11px] text-[#5B6272] font-bold uppercase tracking-wider mb-0.5">
-                              {msg.sender === "user" ? "You" : "Talentra Assistant"}
-                            </span>
-                            <div className={`p-3 rounded-lg max-w-[90%] leading-relaxed whitespace-pre-line ${
-                              msg.sender === "user"
-                                ? "bg-white text-[#1A1D29] border border-[#E3E5EA]/60 rounded-tr-none"
-                                : "bg-[#152C55] text-white rounded-tl-none"
-                            }`}>
-                              {msg.text}
-                            </div>
-                          </div>
-                        ))}
-                        {isAITyping && (
-                          <div className="flex items-center gap-1.5 py-1 text-[#5B6272] font-bold uppercase text-[11px]">
-                            <Sparkles className="h-3.5 w-3.5 animate-spin text-[#2159C9]" />
-                            <span>AI is processing project state...</span>
-                          </div>
-                        )}
+                      {/* WS-009 — the assistant was keyword-matched canned replies with
+                          no model behind it. Replaced with a plain statement of
+                          unavailability rather than a simulation. */}
+                      <div className="flex-1 flex flex-col items-center justify-center gap-2 py-8 text-center">
+                        <Sparkles className="h-6 w-6 text-[#5B6272]" />
+                        <span className="text-xs font-bold text-[#1A1D29]">Assistant not available</span>
+                        <p className="text-[11px] text-[#5B6272] leading-relaxed max-w-[220px]">
+                          The workspace assistant is not implemented yet. Project figures are
+                          shown on the Overview and Funding tabs.
+                        </p>
                       </div>
-
-                      {/* AI input form */}
-                      <form onSubmit={handleAISubmit} className="mt-2 flex gap-1.5">
-                        <Input
-                          type="text"
-                          value={aiInput}
-                          onChange={(e) => setAiInput(e.target.value)}
-                          placeholder="Ask AI assistant..."
-                          className="text-[11px] bg-white h-8 py-1 focus:ring-[#152C55]/20"
-                        />
-                        <Button type="submit" size="sm" className="h-8 cursor-pointer bg-[#152C55] text-white">
-                          <Send className="h-3 w-3" />
-                        </Button>
-                      </form>
                     </motion.div>
                   )}
 
