@@ -34,25 +34,25 @@ enum ApplicationStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          Role      @default(FREELANCER)
+  id                     String    @id @default(cuid())
+  name                   String?
+  email                  String?   @unique
+  emailVerified          DateTime?
+  image                  String?
+  role                   Role      @default(FREELANCER)
   /// bcrypt digest. Historically this column held plaintext (SEC-002); values
   /// are upgraded in place on the owner's next successful login.
-  passwordHash  String?
+  passwordHash           String?
   /// Set when a credential was migrated from legacy plaintext storage, so the
   /// user can be prompted to choose a new password they know was never stored
   /// in the clear.
-  passwordChangeRequired Boolean @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  passwordChangeRequired Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  
+  accounts Account[]
+  sessions Session[]
+
   freelancerProfile Freelancer?
   companyProfile    Company?
   notifications     Notification[]
@@ -67,18 +67,18 @@ model User {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -117,68 +117,68 @@ model Freelancer {
   completionRate    Float    @default(100.0) // Percentage (0-100)
 
   // New fields for freelancer profile options
-  domain               String?   @default("Other")
+  domain               String?  @default("Other")
   professionalHeadline String?
-  experience           Json?     // Array of Experience objects: { id, title, company, startDate, endDate, current, description }
-  certifications       Json?     // Array of Certification objects: { id, name, issuer, year }
-  portfolioItems       Json?     // Array of PortfolioItem objects: { id, title, description, type, url, fileUrl }
-  responseTime         String?   @default("Within 24 hours")
-  availabilityStatus   String?   @default("AVAILABLE") // AVAILABLE, BUSY, UNAVAILABLE
-  gender               String?   @default("ANY")
-  verificationBadges   String[]  @default([])
+  experience           Json? // Array of Experience objects: { id, title, company, startDate, endDate, current, description }
+  certifications       Json? // Array of Certification objects: { id, name, issuer, year }
+  portfolioItems       Json? // Array of PortfolioItem objects: { id, title, description, type, url, fileUrl }
+  responseTime         String?  @default("Within 24 hours")
+  availabilityStatus   String?  @default("AVAILABLE") // AVAILABLE, BUSY, UNAVAILABLE
+  gender               String?  @default("ANY")
+  verificationBadges   String[] @default([])
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applications    Application[]
-  recommendations Recommendation[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications     Application[]
+  recommendations  Recommendation[]
   savedByCompanies SavedFreelancer[]
-  savedProjects   SavedProject[]
-  certificates    Certificate[]
+  savedProjects    SavedProject[]
+  certificates     Certificate[]
 }
 
 model Company {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  companyName String
-  description String?  @db.Text
-  industry    String?
-  website     String?
-  location    String?
-  bannerUrl   String?   @default("")
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  companyName     String
+  description     String?  @db.Text
+  industry        String?
+  website         String?
+  location        String?
+  bannerUrl       String?  @default("")
   officeLocations String[] @default([])
 
   // New fields for extended Company Profile page
-  logoUrl            String?   @default("")
-  companySize        String?   @default("10-50 employees")
-  foundedYear        Int?      @default(2020)
-  linkedin           String?   @default("")
-  email              String?   @default("")
-  phone              String?   @default("")
-  missionVision      String?   @db.Text @default("")
-  workCulture        String?   @db.Text @default("")
-  hiringPhilosophy   String?   @db.Text @default("")
-  galleryPhotos      String[]  @default([])
-  galleryVideos      String[]  @default([])
-  benefits           String[]  @default([])
-  teamMembers        Json?     @default("[]") // Array of { name, role, photoUrl }
-  verificationBadges String[]  @default([]) // e.g. ["Identity Verified", "Business Verified", ...]
-  trustScore         Int       @default(90)
-  reputationScore    Int       @default(90)
-  sentimentAnalysis  String?   @db.Text @default("")
-  completionRate     Float     @default(100.0)
-  retentionRate      Float     @default(100.0)
-  paymentReliability Float     @default(100.0)
-  avgResponseTime    String?   @default("Within 24 hours")
-  avgTimeToHire      String?   @default("14 days")
-  hiringSuccessRate  Float     @default(100.0)
-  followers          String[]  @default([]) // User IDs of followers
-  watchlistUsers     String[]  @default([]) // User IDs watchlisting
-  talentCommunity    String[]  @default([]) // User IDs in talent community
-  jobAlertsUsers     String[]  @default([]) // User IDs subscribed to job alerts
+  logoUrl            String?  @default("")
+  companySize        String?  @default("10-50 employees")
+  foundedYear        Int?     @default(2020)
+  linkedin           String?  @default("")
+  email              String?  @default("")
+  phone              String?  @default("")
+  missionVision      String?  @default("") @db.Text
+  workCulture        String?  @default("") @db.Text
+  hiringPhilosophy   String?  @default("") @db.Text
+  galleryPhotos      String[] @default([])
+  galleryVideos      String[] @default([])
+  benefits           String[] @default([])
+  teamMembers        Json?    @default("[]") // Array of { name, role, photoUrl }
+  verificationBadges String[] @default([]) // e.g. ["Identity Verified", "Business Verified", ...]
+  trustScore         Int      @default(90)
+  reputationScore    Int      @default(90)
+  sentimentAnalysis  String?  @default("") @db.Text
+  completionRate     Float    @default(100.0)
+  retentionRate      Float    @default(100.0)
+  paymentReliability Float    @default(100.0)
+  avgResponseTime    String?  @default("Within 24 hours")
+  avgTimeToHire      String?  @default("14 days")
+  hiringSuccessRate  Float    @default(100.0)
+  followers          String[] @default([]) // User IDs of followers
+  watchlistUsers     String[] @default([]) // User IDs watchlisting
+  talentCommunity    String[] @default([]) // User IDs in talent community
+  jobAlertsUsers     String[] @default([]) // User IDs subscribed to job alerts
 
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects          Project[]
-  savedFreelancers  SavedFreelancer[]
-  certificates      Certificate[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects         Project[]
+  savedFreelancers SavedFreelancer[]
+  certificates     Certificate[]
 }
 
 model SavedFreelancer {
@@ -213,42 +213,52 @@ model Project {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  applications    Application[]
-  recommendations Recommendation[]
-  reviews         Review[]
+  company            Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications       Application[]
+  recommendations    Recommendation[]
+  reviews            Review[]
   savedByFreelancers SavedProject[]
-  roles           ProjectRole[]
-  messages        Message[]
-  sharedFiles     SharedFile[]
-  projectUpdates  ProjectUpdate[]
-  tasks           Task[]
-  certificates    Certificate[]
+  roles              ProjectRole[]
+  messages           Message[]
+  sharedFiles        SharedFile[]
+  projectUpdates     ProjectUpdate[]
+  tasks              Task[]
+  certificates       Certificate[]
+
+  compensation        ProjectCompensation?
+  paymentItems        PaymentItem[]
+  workLogs            WorkLog[]
+  stipendPeriods      StipendPeriod[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([companyId])
   @@index([status])
 }
 
 model Application {
-  id           String            @id @default(cuid())
-  projectId    String
-  freelancerId String
+  id              String            @id @default(cuid())
+  projectId       String
+  freelancerId    String
   /// Which role slot this application targets. Null for listings posted before
   /// roles existed, or for projects that do not use them.
-  roleId       String?
+  roleId          String?
   /// Applying as an apprentice (shadowing) rather than as the primary hire.
-  isApprentice Boolean           @default(false)
+  isApprentice    Boolean           @default(false)
   /// Set when the freelancer confirms after seeing the assembled team.
   teamConfirmedAt DateTime?
-  coverLetter  String            @db.Text
-  aiScore      Float             @default(0.0)
-  status       ApplicationStatus @default(PENDING)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  coverLetter     String            @db.Text
+  aiScore         Float             @default(0.0)
+  status          ApplicationStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   freelancer Freelancer   @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
   role       ProjectRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  paymentItems   PaymentItem[]
+  workLogs       WorkLog[]
+  stipendPeriods StipendPeriod[]
 
   @@unique([projectId, freelancerId])
   @@index([freelancerId])
@@ -271,13 +281,13 @@ model Recommendation {
 }
 
 model Review {
-  id          String   @id @default(cuid())
-  projectId   String
-  reviewerId  String
-  revieweeId  String
-  rating      Int      // 1 to 5
-  comment     String   @db.Text
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  projectId  String
+  reviewerId String
+  revieweeId String
+  rating     Int // 1 to 5
+  comment    String   @db.Text
+  createdAt  DateTime @default(now())
 
   // New sub-scores for company reviews by freelancers
   communicationScore      Int?
@@ -331,71 +341,71 @@ model AdminLog {
 }
 
 model Message {
-  id            String   @id @default(cuid())
-  projectId     String
-  senderId      String
-  content       String   @db.Text
-  channel       String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
-  seen          Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id        String   @id @default(cuid())
+  projectId String
+  senderId  String
+  content   String   @db.Text
+  channel   String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
+  seen      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sender        User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([senderId])
 }
 
 model SharedFile {
-  id            String   @id @default(cuid())
-  projectId     String
-  uploadedById  String
-  fileName      String
-  fileUrl       String   @db.Text
-  fileSize      String?
-  channel       String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
-  uploadedAt    DateTime @default(now())
+  id           String   @id @default(cuid())
+  projectId    String
+  uploadedById String
+  fileName     String
+  fileUrl      String   @db.Text
+  fileSize     String?
+  channel      String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
+  uploadedAt   DateTime @default(now())
 
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedBy    User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([uploadedById])
 }
 
 model ProjectUpdate {
-  id            String   @id @default(cuid())
-  projectId     String
-  createdById   String
-  title         String
-  description   String   @db.Text
-  status        String   // e.g. "PENDING", "IN_PROGRESS", "COMPLETED"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  projectId   String
+  createdById String
+  title       String
+  description String   @db.Text
+  status      String // e.g. "PENDING", "IN_PROGRESS", "COMPLETED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([createdById])
 }
 
 model Task {
-  id            String    @id @default(cuid())
-  projectId     String
-  title         String
-  description   String?   @db.Text
-  status        String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
-  priority      String    @default("MEDIUM") // LOW, MEDIUM, HIGH
-  dueDate       DateTime?
-  assignedToId  String?   // User ID of the assigned user
-  createdById   String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  projectId    String
+  title        String
+  description  String?   @db.Text
+  status       String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  priority     String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  dueDate      DateTime?
+  assignedToId String? // User ID of the assigned user
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignedTo    User?     @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy     User      @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?   @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User    @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([assignedToId])
@@ -407,25 +417,25 @@ model Task {
 /// Freelancer.certifications JSON — this one is issued by a company, tied to a real
 /// project, and resolvable at /verify/{publicId} so a third party can confirm it.
 model Certificate {
-  id           String   @id @default(cuid())
+  id            String    @id @default(cuid())
   /// Short, human-shareable code shown on the certificate and used in the verify URL.
-  publicId     String   @unique
-  projectId    String
-  freelancerId String
-  companyId    String
+  publicId      String    @unique
+  projectId     String
+  freelancerId  String
+  companyId     String
   /// Snapshot of the details at issue time. Deliberately denormalised: a certificate
   /// must keep saying what it said when issued, even if the project or profile changes.
-  roleTitle    String
-  skills       String[] @default([])
-  durationText String?
-  summary      String?  @db.Text
-  issuerName   String
+  roleTitle     String
+  skills        String[]  @default([])
+  durationText  String?
+  summary       String?   @db.Text
+  issuerName    String
   recipientName String
-  projectTitle String
-  issuedAt     DateTime @default(now())
+  projectTitle  String
+  issuedAt      DateTime  @default(now())
   /// Revocation keeps the record for auditability rather than deleting it.
-  revokedAt    DateTime?
-  revokeReason String?
+  revokedAt     DateTime?
+  revokeReason  String?
 
   project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
@@ -441,20 +451,232 @@ model Certificate {
 /// "2 × Frontend Developer". Optional by design: a project with no roles keeps
 /// the original one-candidate-per-listing behaviour untouched.
 model ProjectRole {
-  id          String  @id @default(cuid())
-  projectId   String
-  name        String
-  description String? @db.Text
+  id              String   @id @default(cuid())
+  projectId       String
+  name            String
+  description     String?  @db.Text
   /// How many people are wanted in this role.
-  slots       Int     @default(1)
+  slots           Int      @default(1)
   /// Whether a junior may shadow this role (apprentice programme).
-  allowApprentice Boolean @default(false)
+  allowApprentice Boolean  @default(false)
   /// Display order in the wizard and applicant review tabs.
-  sortOrder   Int     @default(0)
-  createdAt   DateTime @default(now())
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
 
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   applications Application[]
 
   @@index([projectId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Financial model — see FINANCIAL_ARCHITECTURE_PLAN.md
+//
+// Replaces the JSON-in-a-text-column storage that ARCH-001 identified: payment
+// stages, funding, releases, work logs and stipend payouts were all serialized
+// into Project.description, mutated with an unsynchronised read-modify-write.
+//
+// Amounts are Decimal(18,2), never Float (DATA-004), and every amount is stored
+// with the currency it is denominated in (DATA-003).
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum CompensationTypeEnum {
+  FIXED
+  HOURLY
+  MILESTONE
+  STIPEND
+  UNPAID
+}
+
+enum StipendFrequencyEnum {
+  ONE_TIME
+  WEEKLY
+  MONTHLY
+}
+
+enum PaymentItemStatus {
+  PENDING
+  FUNDED
+  SUBMITTED
+  /// Sent back for changes. Distinct from PENDING so a rejected submission is
+  /// not indistinguishable from one that was never made (COMP-004).
+  CHANGES_REQUESTED
+  APPROVED
+  RELEASED
+  CANCELLED
+}
+
+enum WorkLogStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LedgerEntryType {
+  FUND
+  RELEASE
+  REFUND
+  ADJUSTMENT
+}
+
+/// DATA-002 — the single source of truth for how a project pays. Replaces the
+/// four unsynchronised representations (compensationType, paymentCategory,
+/// stipendType, offerLetter.paymentCategory).
+model ProjectCompensation {
+  id               String               @id @default(cuid())
+  projectId        String               @unique
+  type             CompensationTypeEnum
+  currency         String
+  totalBudget      Decimal              @db.Decimal(18, 2)
+  budgetNegotiable Boolean              @default(false)
+
+  hourlyRate     Decimal? @db.Decimal(18, 2)
+  /// COMP-006 — now enforceable rather than decorative.
+  estimatedHours Int?
+  maxHours       Int?
+
+  stipendAmount    Decimal?              @db.Decimal(18, 2)
+  stipendFrequency StipendFrequencyEnum?
+  /// COMP-013 — bounds the number of payable periods.
+  stipendPeriods   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// COMP-010 + WS-003 — one table replacing all five milestone representations:
+/// paymentStages, digitalContract.milestones, escrowMilestones (dead),
+/// offerLetter.milestones, and the ProjectUpdate "[Value: $X]" title regex.
+model PaymentItem {
+  id            String            @id @default(cuid())
+  projectId     String
+  /// Required. Every financial record is attributed to exactly one hired
+  /// application, which closes COMP-002 and MF-003 structurally rather than by
+  /// a runtime check.
+  applicationId String
+  title         String
+  description   String?           @db.Text
+  sortOrder     Int               @default(0)
+  amount        Decimal           @db.Decimal(18, 2)
+  currency      String
+  status        PaymentItemStatus @default(PENDING)
+  dueDate       DateTime?         @db.Date
+
+  /// Caches over the ledger, written in the same transaction as the ledger
+  /// entry. PaymentTransaction remains authoritative.
+  fundedAmount   Decimal @default(0) @db.Decimal(18, 2)
+  releasedAmount Decimal @default(0) @db.Decimal(18, 2)
+
+  submissionNote String?   @db.Text
+  reviewNote     String?   @db.Text
+  revisionCount  Int       @default(0)
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  releasedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  application Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  ledger      PaymentTransaction[]
+
+  @@index([projectId])
+  @@index([applicationId])
+  @@index([projectId, status])
+}
+
+/// COMP-007 — rateSnapshot freezes the rate in force when the work was logged,
+/// so editing the project rate no longer retroactively reprices approved work.
+model WorkLog {
+  id            String        @id @default(cuid())
+  projectId     String
+  applicationId String
+  /// TIME-002 — date-only, so a date-picker value cannot shift a day across
+  /// timezones.
+  workDate      DateTime      @db.Date
+  hours         Decimal       @db.Decimal(6, 2)
+  description   String        @db.Text
+  status        WorkLogStatus @default(PENDING)
+  rateSnapshot  Decimal       @db.Decimal(18, 2)
+  currency      String
+  reviewedAt    DateTime?
+  reviewedById  String?
+  /// COMP-008 — a reason on rejection, so a mistaken rejection is explicable.
+  reviewNote    String?       @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// COMP-009 — duplicate-date guard at the database level.
+  @@unique([applicationId, workDate, description])
+  @@index([projectId])
+  @@index([applicationId, status])
+}
+
+/// COMP-013 / COMP-015 — periods are enumerable and bounded, and a period can
+/// be paid exactly once, enforced by the database rather than an array scan.
+model StipendPeriod {
+  id            String            @id @default(cuid())
+  projectId     String
+  applicationId String
+  periodIndex   Int
+  periodStart   DateTime?         @db.Date
+  periodEnd     DateTime?         @db.Date
+  amount        Decimal           @db.Decimal(18, 2)
+  currency      String
+  status        PaymentItemStatus @default(PENDING)
+  releasedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, periodIndex])
+  @@index([projectId])
+}
+
+/// ARCH-001 — append-only ledger. Every movement of value is a row here. Never
+/// updated, never deleted; a correction is a new compensating entry.
+model PaymentTransaction {
+  id              String          @id @default(cuid())
+  projectId       String
+  applicationId   String
+  paymentItemId   String?
+  workLogId       String?
+  stipendPeriodId String?
+  type            LedgerEntryType
+  /// Signed: FUND positive, RELEASE negative, REFUND positive.
+  amount          Decimal         @db.Decimal(18, 2)
+  currency        String
+  actorUserId     String
+  note            String?         @db.Text
+
+  /// Replay protection. A retried or double-clicked mutation reuses the same
+  /// key and is rejected by the unique index rather than creating a second
+  /// movement — closing the double-release race that a status check alone
+  /// cannot, because that check reads state a concurrent transaction is
+  /// changing.
+  idempotencyKey String @unique
+
+  /// Payment-provider reference. Null under the internal-ledger-only scope
+  /// (COMP-001 deferred); present if a provider is integrated later, so that
+  /// work needs no schema change.
+  externalRef String?
+
+  createdAt DateTime @default(now())
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  paymentItem PaymentItem? @relation(fields: [paymentItemId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([applicationId])
+  @@index([paymentItemId])
 }
