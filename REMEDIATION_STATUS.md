@@ -121,6 +121,65 @@ Step 5 (remaining P2s), Step 6 (P3s).
 
 ---
 
+## Phase 2 Step 3 — Lifecycle & Multi-Freelancer: COMPLETE
+
+2 commits (`b089dc6`, `4f0bd1b`). `npm test` **129 passing / 9 files** ·
+`tsc --noEmit` clean · `next build` exit 0. **No migration applied; nothing deployed.**
+
+All 15 IDs closed: LIFE-001…007, MF-001…007, COMP-011.
+
+New module `src/lib/lifecycle.ts` holds the single project/application state
+machine, the one authoritative capacity calculation, and the contract-schedule
+builder. Every finding in this step existed because the same rule was
+re-implemented at each call site.
+
+### Lifecycle
+| ID | Fix | Evidence |
+|---|---|---|
+| LIFE-001 | `completeProject` is the sole writer of COMPLETED; the side effect removed from `releaseMilestonePayment`. CLOSED/COMPLETED terminal; `assertProjectMutable` guards edit/visibility/due-date | `lifecycle.ts:24`, `workflowActions.ts:593`, `reviewActions.ts:134`, `projectActions.ts:200` |
+| LIFE-002 | One path to HIRED. `transitionApplicationStage` refuses to produce it; offer acceptance checks capacity first | `workflowActions.ts:389`, `:1183`, `applicationActions.ts:265` |
+| LIFE-003 | Explicit transition tables for both entities | `lifecycle.ts:24`, `:79` |
+| LIFE-004 | Terminal projects take no applications | `applicationActions.ts:65` |
+| LIFE-005 | `isVisible`, PRIVATE and INVITE_ONLY enforced | `applicationActions.ts:70` |
+| LIFE-006 | `roleId` validated against the project | `applicationActions.ts:87` |
+| LIFE-007 | Required screening questions enforced server-side | `applicationActions.ts:105` |
+
+### Multi-freelancer
+| ID | Fix | Evidence |
+|---|---|---|
+| MF-001 | **Verified**, not reimplemented — completion is project-level only once LIFE-001 removed the per-application writer | `workflowActions.ts:593` |
+| MF-002 | Project moves to IN_PROGRESS only when every hired freelancer has signed | `workflowActions.ts:553` |
+| MF-003 | **Verified structurally** — `PaymentItem.applicationId` is required (Step 2), so an unassigned claimable stage cannot exist. No runtime check re-added | `schema.prisma` `PaymentItem` |
+| MF-004 / MF-005 | `getCapacity()` used by both apply and hire; hire runs under a row lock so concurrent hires cannot both see the last slot | `lifecycle.ts:133`, `:178`, `applicationActions.ts:121`, `:265` |
+| MF-006 | Removal refused while committed-unreleased items or approved-unpaid hours exist, with the amount stated | `applicationActions.ts:395` |
+| MF-007 | `role.name` (not the non-existent `role.title`); per-role skills; apprentices labelled | `lifecycle.ts:196`, `:216`, `certificateActions.ts:193` |
+
+### COMP-011
+`buildContractMilestones()` replaces the hardcoded 30/40/30 split at **both**
+call sites (`workflowActions.ts:388`, `:507`), deriving the schedule from offer
+milestones → configured payment items → a single full-value milestone.
+
+### Tests added
+`tests/lifecycle.test.ts` — 24 tests covering all ten required cases: CLOSED
+cannot be reopened or mutated, only the authoritative path produces COMPLETED,
+invalid transitions rejected, HIRED only via the authoritative path, capacity
+cannot be exceeded (including the role-less-project gap), per-role certificate
+title and skills, and an explicit assertion that the 30/40/30 split never
+reappears.
+
+Two notes on how these were tested. `deriveRoleSkills`/`deriveRoleTitle` moved
+from `certificateActions` into `lifecycle.ts` because a `"use server"` module
+cannot export sync helpers — without the move the MF-007 assertions would have
+been vacuous. And the MF-007 skills test asserts two roles on the *same* project
+receive *different* skills, which is the precise defect rather than a proxy for it.
+
+### Not done in this step (correctly out of scope)
+WS-007's workspace CTA gating still needs verifying in Step 5; LIFE-001 removed
+the extra COMPLETED writer it depended on, but the CTA's own condition is a
+separate change.
+
+---
+
 ## Decisions Required Before I Reach Them
 
 ### Hard stops — Phase 3 (financial architecture). Plan first, no code.
@@ -200,7 +259,7 @@ Logged per ground rule 1 rather than chased.
 | COMP-008 | P2 | 3 | **Fixed & Tested** |
 | COMP-009 | P3 | 3 | **Fixed & Tested** |
 | COMP-010 | P0 | 3 | **Fixed & Tested** |
-| COMP-011 | P1 | 2 Step 3 | Not Started — entangled with the contract/offer lifecycle (LIFE-002); moved to Step 3 |
+| COMP-011 | P1 | 2 Step 3 | **Fixed & Tested** — buildContractMilestones() replaces the 30/40/30 split at both call sites |
 | COMP-012 | P1 | 3 | **Fixed & Tested** |
 | COMP-013 | P2 | 3 | **Fixed & Tested** |
 | COMP-014 | P2 | 3 | **Fixed & Tested** |
@@ -212,24 +271,24 @@ Logged per ground rule 1 rather than chased.
 ### Multi-freelancer — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| MF-001 | P0 | 4 | Not Started |
-| MF-002 | P1 | 4 | Not Started |
-| MF-003 | P1 | 4 | Not Started |
-| MF-004 | P2 | 4 | Not Started |
-| MF-005 | P2 | 4 | Not Started |
-| MF-006 | P2 | 4 | Not Started |
-| MF-007 | P2 | 4 | Not Started |
+| MF-001 | P0 | 4 | **Fixed & Tested** |
+| MF-002 | P1 | 4 | **Fixed & Tested** |
+| MF-003 | P1 | 4 | **Fixed & Tested** |
+| MF-004 | P2 | 4 | **Fixed & Tested** |
+| MF-005 | P2 | 4 | **Fixed & Tested** |
+| MF-006 | P2 | 4 | **Fixed & Tested** |
+| MF-007 | P2 | 4 | **Fixed & Tested** |
 
 ### Lifecycle — session 1
 | ID | Sev | Phase | Status |
 |---|---|---|---|
-| LIFE-001 | P0 | 4 | Not Started |
-| LIFE-002 | P1 | 4 | Not Started |
-| LIFE-003 | P1 | 4 | Not Started |
-| LIFE-004 | P2 | 4 | Not Started |
-| LIFE-005 | P2 | 4 | Not Started |
-| LIFE-006 | P2 | 4 | Not Started |
-| LIFE-007 | P2 | 4 | Not Started |
+| LIFE-001 | P0 | 4 | **Fixed & Tested** |
+| LIFE-002 | P1 | 4 | **Fixed & Tested** |
+| LIFE-003 | P1 | 4 | **Fixed & Tested** |
+| LIFE-004 | P2 | 4 | **Fixed & Tested** |
+| LIFE-005 | P2 | 4 | **Fixed & Tested** |
+| LIFE-006 | P2 | 4 | **Fixed & Tested** |
+| LIFE-007 | P2 | 4 | **Fixed & Tested** |
 
 ### Architecture / data / perf / test — session 1
 | ID | Sev | Phase | Status |
@@ -293,7 +352,7 @@ Logged per ground rule 1 rather than chased.
 | WS-004 | P1 | 6 | **Fixed & Tested** — amounts are a Decimal column; never round-tripped through a display string |
 | WS-005 | P2 | 7 | Not Started |
 | WS-006 | P2 | 7 | Not Started |
-| WS-007 | P2 | 7 | Not Started (expected to close via LIFE-001) |
+| WS-007 | P2 | 7 | Not Started — LIFE-001 removed the extra COMPLETED writer; the workspace CTA gating still needs verifying in Step 5 |
 | WS-008 | P2 | 1 | **Fixed & Tested** — unsafe render-time delete removed; 7-day retention kept, cron only |
 | WS-009 | P2 | 5 | **Needs Decision** |
 | WS-010 | P3 | 7 | Not Started |
@@ -330,10 +389,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 43 |
-| Partially fixed | 3 (SEC-015 SVG half, DEP-001 non-breaking half, COMP-016) |
+| Fixed & Tested | 58 |
+| Partially fixed | 2 (SEC-015 SVG half, DEP-001 non-breaking half) |
 | Deferred (explicit decision) | 1 (COMP-001) |
 | Needs Decision | 9 |
-| Not Started | 46 |
+| Not Started | 30 |
 | Withdrawn / N/A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001) |
