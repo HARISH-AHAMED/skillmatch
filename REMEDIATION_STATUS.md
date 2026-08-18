@@ -9,6 +9,128 @@ Statuses: `Not Started` · `In Progress` · `Fixed & Tested` · `Deferred (reaso
 
 ---
 
+## FINAL CLOSEOUT — Phase 3 Step 3
+
+**Verification run once, at closeout:**
+`npm test` -> **159 passed / 12 files** · `npx tsc --noEmit` -> **clean (exit 0)** ·
+`npx next build` -> **exit 0**.
+
+**Nothing was deployed. No migration was applied. No backfill was executed. No
+database probe or connection was made during closeout.**
+
+### Reconciliation — 102 actionable findings, each in exactly one final state
+
+| State | Count |
+|---|---|
+| **Fixed & Tested** | **96** |
+| **Deferred** (explicit product decision) | **3** — COMP-001, KANBAN-004, TIME-004 |
+| **Partial / follow-up** | **3** — SEC-015, COMP-016, PERF-002 |
+| **Total** | **102** |
+
+Outside the 102: **LEG-001** withdrawn (the finding was wrong — the route it
+called legacy is the only workspace implementation), **DATA-001** N/A (cited in
+the audit summary but never defined as its own finding; covered by ARCH-001),
+and **DEP-001** newly logged during remediation (partial — see below).
+
+**No ID remains `Not Started` or `Needs Decision`.**
+
+> **Count correction.** Earlier phase reports stated 95 Fixed & Tested. The
+> reconciliation above gives **96**, and reclassifies **SEC-015** from
+> Fixed & Tested to **Partial** — its SVG half is complete but its
+> object-storage half is deferred, so recording it as fully fixed overstated it.
+> The corrected figures are the ones above.
+
+### Deferred — 3
+| ID | Reason |
+|---|---|
+| **COMP-001** | Real payment-provider integration is outside this remediation. The internal ledger is built and `PaymentTransaction.externalRef` is reserved, so adding a provider later needs no schema change. |
+| **KANBAN-004** | Product decision: button-driven Kanban is the intended design. Its correctness issues (KANBAN-001/002/003/005) are all fixed. |
+| **TIME-004** | Product decision: due-date-only model retained. No task start-date column added. |
+
+### Partial / follow-up — 3
+| ID | Reason |
+|---|---|
+| **SEC-015** | SVG upload restriction **Fixed & Tested** (blocked on both MIME and extension). Object-storage migration **deferred** as a separate initiative — needs a provider, credentials and a backfill of existing base64 blobs. |
+| **COMP-016** | **Blocked on migration.** The live path reads `ProjectCompensation.stipendAmount`; the legacy `rate ?? budget` fallback survives only in `deriveFromMetadata`, the pre-backfill path. Closes when the backfill runs. |
+| **PERF-002** | **Technically pending.** Financial aggregation now queries the database directly, but browse/listing screens still parse project metadata per row, so compensation cannot yet be filtered in SQL. |
+
+### P0 / P1 validation — PASSED
+
+Validated against existing tests; no redundant tests were added.
+
+| Requirement | Covered by | Result |
+|---|---|---|
+| SEC-001 admin authz, self-delete, last-admin | `authActions.test.ts` — unauthenticated/freelancer/company callers refused on both actions; self-deletion and last-admin demotion refused | Pass |
+| SEC-002 hashing + legacy rotation | `password.test.ts` (10), `authActions.test.ts` — bcrypt on write, salted, detect-verify-rehash for plaintext, near-miss digests not misread | Pass |
+| SEC-003 login auto-create | Branch removed from `auth.ts`; unknown credentials return null. No test — the fix is a deletion | Pass (by inspection) |
+| SEC-004 / SEC-005 ownership | `authz.test.ts` — cross-company IDOR on application ids refused; freelancer refused | Pass |
+| SEC-011 / WS-002 channel isolation | `authz.test.ts` — group/freelancers/DM visibility, incl. the id-suffix false-positive case | Pass |
+| Cross-project record scoping | `recordScoping.test.ts` (9) — task update/edit/delete, file delete, message delete all refuse foreign-project ids | Pass |
+| Payment mutation protections | `paymentRules.test.ts` (37) — budget cap, no-shrink-below-committed, no-reassign-once-funded, no-release-before-funded | Pass |
+| Duplicate release protection | `paymentRules.test.ts` + `ledger.test.ts` — status guard **and** unique `idempotencyKey` replay rejection | Pass |
+| Financial isolation | `paymentRules.test.ts` — per-application submit guard, rate-snapshot arithmetic | Pass |
+| Lifecycle state machine | `lifecycle.test.ts` (24) — invalid transitions rejected, all valid ones preserved | Pass |
+| CLOSED terminal behaviour | `lifecycle.test.ts` — cannot reopen, complete, or mutate | Pass |
+| Capacity / hiring | `lifecycle.test.ts` — primaries-only counting, role-less project still limited, role vs project independence | Pass |
+| SSR / date / money | `dates.test.ts` (15), `workflowHelpers.test.ts` (6) — ISO keys, locale-independent sort, timezone stability, deterministic formatting, no unbounded description growth | Pass |
+
+**Remaining concern:** SEC-003 and the SEC-006/007/012/013/014/016 ownership
+guards are verified by inspection and through the shared `authz.ts` helpers the
+tested guards exercise, not by a dedicated test each. The guard *set* is tested;
+a few individual call sites are covered transitively rather than directly.
+
+### DATA-005 caveat
+`completedProjects` is now **derived from actual COMPLETED projects** the
+freelancer was hired on as a primary, rather than incremented once per review.
+Repeated reviews can no longer inflate it, and a completed-but-unreviewed
+project is no longer lost.
+
+**Fix-forward only, as approved. No historical backfill was performed.** Existing
+profiles keep their current stored number until their next review recalculates
+it, so historical values may remain wrong until then.
+
+### DEP-001 — dependency upgrades
+**Resolved during remediation:**
+- `@auth/core` -> 0.41.3 (3 critical CVEs). `next-auth` and `@auth/prisma-adapter`
+  pin their own nested copies, so this needed an npm `overrides` entry; verified
+  with typecheck and a full build.
+- `nanoid` -> 6.0.1 (2 high CVEs).
+
+**Deferred — not upgraded, require breaking-range changes and their own
+regression pass:** `next`, `postcss`, `sharp`, `next-auth` (pinned to a
+`5.0.0-beta`, so not a patch-level action).
+
+### Migration and database state — UNRESOLVED
+- `prisma/migrations/0_init` — **written, NOT applied**
+- `prisma/migrations/20260817000001_sec002_password_rotation_flag` — **written, NOT applied**
+- `prisma/migrations/20260817000002_financial_model` — **written, NOT applied**
+- `prisma/backfill/financial.ts` — **written, NEVER executed** (not even a dry run)
+
+No `migrate deploy`, `migrate resolve`, `db push`, backfill or probe was ever run
+against the configured Neon database, which has not been confirmed as
+non-production.
+
+> **Active blocker.** `User.passwordChangeRequired` exists in the Prisma schema
+> and generated client but **not in the database**. Until `0_init` is marked
+> applied and `20260817000001` deployed, `/admin/users` and any other
+> `user.findMany()` path **errors at query time**. `next build` still exits 0 —
+> the failure appears only at runtime, and shows in the build log as a
+> `prisma:error` during static generation. This is the documented, expected state
+> of this branch, not a regression.
+
+### Production readiness
+**This branch is NOT production-ready**, for one reason: the migration state
+above is unresolved. Every P0 and P1 finding is Fixed & Tested, and the test
+suite, typecheck and build all pass — but the schema the code expects does not
+exist in the database, so deploying as-is would break admin user management
+immediately.
+
+Once the migrations are applied and the financial backfill has been run and its
+issues report reviewed, the P0/P1 position supports a release decision. That step
+is deliberately left to whoever can confirm the target database.
+
+---
+
 ## Phase 0 — Setup: COMPLETE
 
 | Item | Result |
@@ -487,7 +609,7 @@ Logged per ground rule 1 rather than chased.
 | SEC-012 | P1 | 2 | **Fixed & Tested** |
 | SEC-013 | P2 | 2 | **Fixed & Tested** |
 | SEC-014 | P2 | 2 | **Fixed & Tested** |
-| SEC-015 | P2 | 1 / 3 | **Fixed & Tested** (SVG blocked) · object storage → Needs Decision |
+| SEC-015 | P2 | 1 / deferred | **Partial** — SVG blocked (Fixed & Tested); object-storage migration deferred (Phase 3 decision B) |
 | SEC-016 | P3 | 2 | **Fixed & Tested** |
 | SEC-017 | P3 | 1 | **Fixed & Tested** |
 
@@ -634,10 +756,10 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 95 |
-| Deferred (explicit product decision) | 3 (KANBAN-004, TIME-004, COMP-001) |
-| Partially fixed / pending | 4 (SEC-015 object storage, DEP-001 version bumps, COMP-016, PERF-002) |
+| Fixed & Tested | 96 |
+| Deferred (product decision) | 3 (COMP-001, KANBAN-004, TIME-004) |
+| Partial / follow-up | 3 (SEC-015, COMP-016, PERF-002) |
 | Needs Decision | 0 |
 | Not Started | 0 |
-| Withdrawn / N/A | 2 (LEG-001, DATA-001) |
-| New findings logged | 1 (DEP-001) |
+| Withdrawn / N-A | 2 (LEG-001, DATA-001) |
+| New findings logged | 1 (DEP-001, partial) |
