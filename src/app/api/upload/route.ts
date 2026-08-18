@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { auth } from "@/auth";
+import { validateUpload, buildUploadFilename } from "@/lib/uploads";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -17,64 +18,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const fileType = file.type;
-    const fileName = file.name.toLowerCase();
-    
-    let allowed = false;
-    let category = "";
-    
-    if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-      allowed = true;
-      category = "pdf";
-    } else if (
-      // SEC-015 — SVG is deliberately excluded. It is an active content type:
-      // a crafted SVG rendered inline executes script in the app's origin.
-      // Both the MIME check and the extension check must reject it, since
-      // either alone can be spoofed by the client.
-      (fileType.startsWith("image/") && fileType !== "image/svg+xml") ||
-      /\.(png|jpe?g|webp|gif)$/.test(fileName)
-    ) {
-      if (fileType === "image/svg+xml" || /\.svg$/.test(fileName)) {
-        return NextResponse.json(
-          { error: "SVG uploads are not supported. Use PNG, JPEG, WebP or GIF." },
-          { status: 400 }
-        );
-      }
-      allowed = true;
-      category = "image";
-    } else if (fileType === "image/svg+xml" || /\.svg$/.test(fileName)) {
-      return NextResponse.json(
-        { error: "SVG uploads are not supported. Use PNG, JPEG, WebP or GIF." },
-        { status: 400 }
-      );
-    } else if (fileType.startsWith("video/") || /\.(mp4|webm|ogv|mov)$/.test(fileName)) {
-      allowed = true;
-      category = "video";
-    }
-    
-    if (!allowed) {
-      return NextResponse.json({ error: "Unsupported file type. Allowed: PDF, Images, Videos" }, { status: 400 });
+    // SEC-015 — MIME type and extension must agree on one allowlist entry.
+    // SVG is rejected here by both signals.
+    const validated = validateUpload({ type: file.type, name: file.name });
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: validated.status });
     }
 
-    // Validate size (max 20MB for videos, 5MB for others)
-    const maxSize = category === "video" ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json({ error: `File size exceeds the limit (${category === "video" ? "20MB" : "5MB"})` }, { status: 400 });
+    const limitLabel = `${Math.round(validated.maxSize / (1024 * 1024))}MB`;
+    if (file.size > validated.maxSize) {
+      return NextResponse.json({ error: `File size exceeds the limit (${limitLabel})` }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create unique filename using user ID, random UUID, and correct extension
-    const uniqueId = crypto.randomUUID();
-    const ext = path.extname(file.name) || (category === "image" ? ".png" : category === "video" ? ".mp4" : ".pdf");
-    const filename = `upload-${session.user.id}-${uniqueId}${ext}`;
+    // The declared size is the client's claim; the received bytes are not.
+    if (buffer.length > validated.maxSize) {
+      return NextResponse.json({ error: `File size exceeds the limit (${limitLabel})` }, { status: 400 });
+    }
+
+    // Extension comes from the validated allowlist entry, never from file.name.
+    const filename = buildUploadFilename(session.user.id ?? "user", crypto.randomUUID(), validated.extension);
 
     // Serverless hosts (Vercel) have a read-only filesystem and no persistence
     // between invocations, so disk writes 500 and the saved URL later 404s.
     // There, return a data URL the client can store and render directly.
     if (process.env.VERCEL || process.env.NODE_ENV === "production") {
-      const dataUrl = `data:${file.type || "application/octet-stream"};base64,${buffer.toString("base64")}`;
+      // Content type is the validated one, so a mislabelled upload cannot be
+      // stored as an active type such as text/html.
+      const dataUrl = `data:${validated.contentType};base64,${buffer.toString("base64")}`;
       return NextResponse.json({ url: dataUrl });
     }
 

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { db } from "@/lib/db";
 import { requireProjectParty } from "@/lib/authz";
+import { safeContentType } from "@/lib/uploads";
 
 /**
  * SEC-008 — this route previously joined the caller-supplied file name straight
@@ -48,10 +49,14 @@ export async function GET(
   // A stored data: URL has no file on disk — hand back the decoded bytes.
   if (record.fileUrl.startsWith("data:")) {
     const [meta, b64] = record.fileUrl.split(",", 2);
-    const mime = meta.slice(5).replace(/;base64$/, "") || "application/octet-stream";
+    // SEC-015 — records written before upload validation was hardened can carry
+    // any MIME the client declared, so anything off the allowlist is downgraded
+    // rather than echoed back. Served as an attachment either way.
+    const mime = safeContentType(meta.slice(5).replace(/;base64$/, ""));
     return new Response(Buffer.from(b64 ?? "", "base64"), {
       headers: {
         "Content-Type": mime,
+        "X-Content-Type-Options": "nosniff",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(record.fileName)}"`,
       },
     });
