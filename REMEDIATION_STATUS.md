@@ -763,3 +763,78 @@ Logged per ground rule 1 rather than chased.
 | Not Started | 0 |
 | Withdrawn / N-A | 2 (LEG-001, DATA-001) |
 | New findings logged | 1 (DEP-001, partial) |
+
+---
+
+## Production migration — executed 2026-08-18
+
+Rehearsed first on Neon branch `remediation-rehearsal` (branched from `production`
+with data and schema), then applied to production. Production dry run was
+byte-identical to the rehearsal before any write was authorised.
+
+### Schema
+
+| Migration | Result |
+|---|---|
+| `0_init` | Baselined via `migrate resolve --applied` — SQL **not** executed; the schema already existed |
+| `20260817000001_sec002_password_rotation_flag` | Applied |
+| `20260817000002_financial_model` | Applied |
+
+`prisma migrate status` reports **Database schema is up to date!**
+`User.passwordChangeRequired` now exists, closing the known runtime failure on
+`/admin/users` and other `user.findMany()` paths.
+
+### Financial backfill
+
+Executed once with `--apply`. All write phases completed, including the
+`ProjectUpdate` title strip, which is the final write in the script.
+
+| Table | Rows |
+|---|---|
+| ProjectCompensation | 15 (all 15 projects) |
+| PaymentItem | 9 |
+| WorkLog | 4 |
+| StipendPeriod | 5 |
+| PaymentTransaction | 19 (6 FUND / 13 RELEASE) |
+| ProjectUpdate titles cleaned | 16 |
+| Skipped (blocking) | 3 |
+
+Verified read-only after the run:
+
+- `released > funded`: 0 — invariant holds
+- `funded > amount`: 0
+- zero-value PaymentItems: 0
+- duplicate idempotency keys: 0
+- orphaned PaymentItems (bad project/application FK): 0
+- WorkLog natural keys `(applicationId, workDate, description)`: 4 rows / 4 unique — the anticipated P2002 collision did not occur
+- StipendPeriod `(applicationId, periodIndex)`: 5 rows / 5 unique
+- ledger FUND total `3300` reconciles exactly with `PaymentItem.fundedAmount` total `3300`
+- projects without compensation: 0
+- `ProjectUpdate` titles still carrying a `[Value: $X]` tag: 0
+
+### Known skipped records — accepted, unchanged
+
+Three zero-budget contract milestones on application
+`cmrfyilgb001vdluwui85q87f` (`Project Kickoff` RELEASED, `Mid Delivery`
+ESCROWED, `Final Delivery` PENDING — all `budget: 0`). Product decision: do not
+import as zero-value PaymentItems, do not alter the source data. They remain
+recorded in `migration-issues.json` and are absent from `PaymentItem`
+(confirmed: 0 rows with the `cm:cmrfyilgb…` id prefix).
+
+Because of these, the backfill exits 1 by design. Exit code alone is not a
+failure signal here; the writes and the issue report are.
+
+No new issues appeared in production that were not present in the rehearsal.
+
+### COMP-016 — remains OPEN, deliberately
+
+The backfill established `ProjectCompensation` for all 15 existing projects, so
+the fallback in `getProjectCompensation` is dead for **existing** data. It was
+still **not** removed, because project creation
+(`src/actions/projectActions.ts`) does not write a `ProjectCompensation` row —
+compensation for a newly created project still lives only in the `description`
+JSON, and the fallback is the sole path that resolves it.
+
+Removing the fallback today would break every project created from now on. The
+correct close is to make project creation write `ProjectCompensation` first;
+only then is the fallback genuinely obsolete. COMP-016 stays **Partial**.
