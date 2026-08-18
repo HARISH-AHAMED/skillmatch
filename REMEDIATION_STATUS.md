@@ -756,9 +756,9 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 97 |
+| Fixed & Tested | 98 |
 | Deferred (product decision) | 3 (COMP-001, KANBAN-004, TIME-004) |
-| Partial / follow-up | 2 (SEC-015, PERF-002) — COMP-016 closed, see production section |
+| Partial / follow-up | 1 (SEC-015 object storage) — COMP-016 and PERF-002 closed, see sections below |
 | Needs Decision | 0 |
 | Not Started | 0 |
 | Withdrawn / N-A | 2 (LEG-001, DATA-001) |
@@ -879,3 +879,47 @@ transactional atomicity, and a no-regression check on the project payload.
 
 Suite after the change: **166 passing / 13 files**, `tsc --noEmit` clean,
 `next build` exit 0.
+
+### PERF-002 — CLOSED
+
+Closed in two steps, neither of which changed schema or data.
+
+**1. Redundant parsing removed.** Browse and listing screens resolved the same
+project description several times per row — the payment-category filter, then
+`formatCompensation`, `getProjectCurrency` and `formatProjectBudget` per card —
+each re-running `JSON.parse` over the whole metadata block. `getProjectMetadataDirect`
+now memoises on the description string (bounded at 256 entries, oldest evicted).
+The description is the entire input to the parse, so identical strings cannot
+yield different metadata; the cache can only skip work, never change a result.
+Callers receive a shallow copy, because some paths assign to the result
+(`meta.faq = []` in `workflowActions`) and must not corrupt the cached value.
+
+**2. Compensation filtering moved into SQL.** The browse query
+(`src/app/freelancer/projects/page.tsx`) now constrains on the
+`ProjectCompensation` relation via `rewardWhere` (`src/lib/browseFilters.ts`)
+instead of fetching every match and discarding rows in memory:
+
+| Filter | Before (in memory) | Now (SQL) |
+|---|---|---|
+| `ALL` | no constraint | no constraint |
+| `NON_MONETARY` | `paymentCategory === "NON_MONETARY"` | `compensation.is.type = UNPAID` |
+| `PAID` | `paymentCategory !== "NON_MONETARY"` | `compensation.is.type != UNPAID` **OR** no compensation row |
+
+The no-row branch preserves the old `paymentCategory \|\| "FIXED"` default. The
+fragment is applied under `AND` so it cannot collide with the text-search `OR`.
+Capacity filtering stays in memory: it depends on the included application
+count, not on metadata.
+
+**HYBRID retired.** It was a selectable filter option that no project used
+(read-only probe: 0 of 16), that the current project wizard cannot produce, and
+that `ProjectCompensation` cannot represent — `normaliseType` maps it onto
+`FIXED`. Keeping it in SQL would have meant returning every fixed-price project
+under it, or returning nothing. The dead option was removed rather than given a
+lossy meaning.
+
+The metadata parser and its cache remain: display paths and other consumers
+still need the full metadata.
+
+Tests: 25 across `tests/projectMetadataCache.test.ts` (14) and
+`tests/browseFilters.test.ts` (11), the latter asserting the SQL filter against
+the exact in-memory predicate it replaced.

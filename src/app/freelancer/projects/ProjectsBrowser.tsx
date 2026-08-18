@@ -206,7 +206,6 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
                 { value: "ALL", label: "All Reward Types" },
                 { value: "PAID", label: "Paid (cash)" },
                 { value: "NON_MONETARY", label: "Certificate / Non-Monetary" },
-                { value: "HYBRID", label: "Cash + Benefits" },
               ]}
               value={reward}
               onChange={(e) => setReward(e.target.value)}

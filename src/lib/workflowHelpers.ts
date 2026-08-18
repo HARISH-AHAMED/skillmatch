@@ -973,13 +973,55 @@ export function getProjectDescriptionText(fullDescription: string | null | undef
   return stripGeneratedSections(beforeMetadata);
 }
 
-export function getProjectMetadataDirect(fullDescription: string | null | undefined): ProjectWizardData {
-  if (!fullDescription) return parseProjectMetadata("");
-  if (fullDescription.includes("\n\nMETADATA_JSON_BLOCK:")) {
-    const jsonStr = fullDescription.split("\n\nMETADATA_JSON_BLOCK:")[1];
+/**
+ * PERF-002 — browse and listing screens resolve the same project description
+ * several times per row: once to filter on payment category, then again for the
+ * compensation line, the currency and the budget. Each call re-ran JSON.parse
+ * over the whole serialised metadata block, so a page of N projects paid for
+ * several times N parses of strings it had already parsed.
+ *
+ * The parse is now memoised on the description string itself. The description
+ * is the entire input to the parse, so identical strings cannot yield different
+ * metadata — the cache can never change a result, only skip repeated work.
+ *
+ * Callers receive a shallow copy rather than the cached object, because a few
+ * paths assign to the result (`meta.faq = []` in workflowActions). Copying keeps
+ * those writes local, exactly as a fresh parse did.
+ */
+const METADATA_CACHE_LIMIT = 256;
+const projectMetadataCache = new Map<string, ProjectWizardData>();
+
+function parseProjectMetadataUncached(fullDescription: string): ProjectWizardData {
+  if (fullDescription.includes(METADATA_MARKER)) {
+    const jsonStr = fullDescription.split(METADATA_MARKER)[1];
     return safeJsonParse(jsonStr, parseProjectMetadata(""));
   }
   return parseProjectMetadata(fullDescription);
+}
+
+export function getProjectMetadataDirect(fullDescription: string | null | undefined): ProjectWizardData {
+  if (!fullDescription) return parseProjectMetadata("");
+
+  let parsed = projectMetadataCache.get(fullDescription);
+  if (!parsed) {
+    parsed = parseProjectMetadataUncached(fullDescription);
+    // Bounded so a long-lived server process cannot grow it without limit;
+    // the oldest insertion is evicted first.
+    if (projectMetadataCache.size >= METADATA_CACHE_LIMIT) {
+      const oldest = projectMetadataCache.keys().next().value;
+      if (oldest !== undefined) projectMetadataCache.delete(oldest);
+    }
+    projectMetadataCache.set(fullDescription, parsed);
+  }
+
+  // A copy per call: callers that assign to the result must not affect the
+  // cached value or each other.
+  return { ...parsed };
+}
+
+/** Test seam — lets a test prove the cache is not changing results. */
+export function __clearProjectMetadataCache(): void {
+  projectMetadataCache.clear();
 }
 
 // Application Metadata Parser & Serializer

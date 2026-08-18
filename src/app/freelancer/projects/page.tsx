@@ -2,7 +2,7 @@ import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { ProjectsBrowser } from "./ProjectsBrowser";
-import { getProjectMetadataDirect } from "@/lib/workflowHelpers";
+import { rewardWhere } from "@/lib/browseFilters";
 
 interface PageProps {
   searchParams: Promise<{
@@ -39,6 +39,9 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
         isVisible: true,
         budget: { gte: minBudget },
         experienceRequired: { lte: maxExperience },
+        // PERF-002 — compensation filtering happens in SQL, before any rows
+        // are returned. AND keeps it independent of the text-search OR.
+        ...(rewardWhere(reward) ? { AND: [rewardWhere(reward)!] } : {}),
         ...(priority && priority !== "ALL" && { priority: priority as any }),
         ...(domain && domain !== "ALL" && { domain }),
         ...(query && {
@@ -96,19 +99,9 @@ export default async function FreelancerProjectsPage({ searchParams }: PageProps
     );
   }
 
-  // Filter in-memory to only show projects where the hiring limit is not reached.
-  // The reward filter is also applied here rather than in the query, because the
-  // payment category lives in the description metadata JSON, not a column.
-  const activeProjects = projects
-    .filter((p) => p.applications.length < p.freelancersLimit)
-    .filter((p) => {
-      if (reward === "ALL") return true;
-      const category = getProjectMetadataDirect(p.description).paymentCategory || "FIXED";
-      if (reward === "NON_MONETARY") return category === "NON_MONETARY";
-      if (reward === "HYBRID") return category === "HYBRID";
-      // "PAID" means any cash-bearing arrangement, including hybrid.
-      return category !== "NON_MONETARY";
-    });
+  // Capacity is still applied here: it depends on the included application
+  // count, not on metadata. The reward filter now runs in SQL (PERF-002).
+  const activeProjects = projects.filter((p) => p.applications.length < p.freelancersLimit);
 
   const appliedProjectIds = applications.map((app) => app.projectId);
   const savedProjectIds = savedProjects.map((sp) => sp.projectId);
