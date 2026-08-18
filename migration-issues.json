@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-08-18T04:26:34.126Z",
+  "counts": {
+    "compensation": 15,
+    "paymentItems": 9,
+    "workLogs": 4,
+    "stipendPeriods": 5,
+    "ledgerEntries": 19,
+    "skipped": 3
+  },
+  "issues": [
+    {
+      "kind": "contractMilestone",
+      "sourceId": "cmrfyilgb001vdluwui85q87f/0",
+      "reason": "Non-positive or non-numeric budget.",
+      "raw": {
+        "title": "Milestone 1: Project Kickoff",
+        "budget": 0,
+        "status": "RELEASED"
+      }
+    },
+    {
+      "kind": "contractMilestone",
+      "sourceId": "cmrfyilgb001vdluwui85q87f/1",
+      "reason": "Non-positive or non-numeric budget.",
+      "raw": {
+        "title": "Milestone 2: Mid Delivery",
+        "budget": 0,
+        "status": "ESCROWED"
+      }
+    },
+    {
+      "kind": "contractMilestone",
+      "sourceId": "cmrfyilgb001vdluwui85q87f/2",
+      "reason": "Non-positive or non-numeric budget.",
+      "raw": {
+        "title": "Milestone 3: Final Delivery",
+        "budget": 0,
+        "status": "PENDING"
+      }
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr4gebk30009ju04q660dwtq",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $100] TESTING III"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr4hsjlf0001l504ikpmq59w",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $100] App Design"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmqqez1sp0005l604h7qp7h4u",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] test"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmsk7vp200015dlpgfmgwa41a",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] Total Project"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr1pg3l10001l504060tsef1",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] APP DESIGN"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr1pgtup000hl404k3bhj1q6",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] APP DESIGN"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmsmqjqgh000xdll01bcagzzy",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $8,000] completed"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr1sq8fp0005jj04flqzrfqd",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] front end"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr1sqsgo000fjj04xwdfdqr8",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] backend"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr1tafhz000hjv04yz77knrc",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] testing"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr4g1mkw0001l204gn94klyg",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $0] DEPLOYMENT"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmspudq820001jl04e7f17y4z",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $1] 2000"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr4g309r000fl204n38n9ldl",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $500] COMPLETED"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmr4gdqs30001l404vsmnl39t",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $0] TESTING II"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmspuemjc0007jl04q4znyonf",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $2,000] phase-2"
+    },
+    {
+      "kind": "projectUpdate.valueTag",
+      "sourceId": "cmsrabnls000hdln868snq8yb",
+      "reason": "Value tag removed from title; not imported as a financial record (WS-003).",
+      "raw": "[Value: $1] 1"
+    }
+  ]
+}

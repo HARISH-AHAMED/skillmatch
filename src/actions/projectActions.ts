@@ -6,6 +6,26 @@ import { Role, ProjectPriority, ProjectStatus, ApplicationStatus } from "@prisma
 import { recalculateRecommendationsForProject } from "@/services/aiRecommendation";
 import { revalidatePath } from "next/cache";
 import { assertProjectTransition, assertProjectMutable } from "@/lib/lifecycle";
+import { deriveFromMetadata } from "@/lib/compensation";
+
+/**
+ * COMP-016 — the canonical compensation for a project comes from the metadata
+ * block serialised into its description. Projects and their ProjectCompensation
+ * row are written together so no project can exist without one.
+ */
+function compensationData(description: string, budget: number) {
+  const c = deriveFromMetadata(description, budget);
+  return {
+    type: c.type,
+    currency: c.currency,
+    totalBudget: c.totalBudget,
+    budgetNegotiable: c.budgetNegotiable,
+    hourlyRate: c.hourlyRate,
+    estimatedHours: c.estimatedHours,
+    stipendAmount: c.stipendAmount,
+    stipendFrequency: c.stipendFrequency,
+  };
+}
 
 export async function createProject(formData: {
   title: string;
@@ -36,22 +56,31 @@ export async function createProject(formData: {
 
   const skillsCleaned = formData.requiredSkills.map(s => s.toLowerCase().trim()).filter(Boolean);
 
-  const project = await db.project.create({
-    data: {
-      companyId: company.id,
-      title: formData.title,
-      description: formData.description,
-      budget: formData.budget,
-      priority: formData.priority,
-      requiredSkills: skillsCleaned,
-      experienceRequired: formData.experienceRequired,
-      status: ProjectStatus.OPEN,
-      freelancersLimit: formData.freelancersLimit ?? 1,
-      isVisible: formData.isVisible ?? true,
-      preferredGender: formData.preferredGender ?? "ANY",
-      domain: formData.domain ?? "Other",
-      bannerUrl: formData.bannerUrl ?? null,
-    },
+  const project = await db.$transaction(async (tx) => {
+    const created = await tx.project.create({
+      data: {
+        companyId: company.id,
+        title: formData.title,
+        description: formData.description,
+        budget: formData.budget,
+        priority: formData.priority,
+        requiredSkills: skillsCleaned,
+        experienceRequired: formData.experienceRequired,
+        status: ProjectStatus.OPEN,
+        freelancersLimit: formData.freelancersLimit ?? 1,
+        isVisible: formData.isVisible ?? true,
+        preferredGender: formData.preferredGender ?? "ANY",
+        domain: formData.domain ?? "Other",
+        bannerUrl: formData.bannerUrl ?? null,
+      },
+    });
+
+    // COMP-016 — atomic with the project itself.
+    await tx.projectCompensation.create({
+      data: { projectId: created.id, ...compensationData(formData.description, formData.budget) },
+    });
+
+    return created;
   });
 
   // Calculate AI Recommendations for this new project
@@ -143,6 +172,15 @@ export async function editProject(
       domain: formData.domain ?? "Other",
       bannerUrl: formData.bannerUrl ?? null,
     },
+  });
+
+  // COMP-016 — an edit can change the compensation metadata, so the canonical
+  // row is kept in step with the description it is derived from.
+  const comp = compensationData(formData.description, formData.budget);
+  await db.projectCompensation.upsert({
+    where: { projectId },
+    create: { projectId, ...comp },
+    update: comp,
   });
 
   // Recalculate match recommendations

@@ -77,14 +77,11 @@ export async function getProjectCompensation(projectId: string): Promise<Resolve
     };
   }
 
-  // Not yet backfilled — derive from the JSON so nothing regresses meanwhile.
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    select: { description: true, budget: true },
-  });
-  if (!project) return null;
-
-  return deriveFromMetadata(project.description, project.budget);
+  // COMP-016 — the pre-backfill JSON fallback is gone. Every project has a
+  // ProjectCompensation row: the backfill created them for existing projects,
+  // and createProject writes one atomically for every new project. A missing
+  // row now means a missing project, not un-migrated data.
+  return null;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { PrismaClient, Role, ProjectPriority, ProjectStatus, ApplicationStatus } from "@prisma/client";
+import { deriveFromMetadata } from "../src/lib/compensation";
 import { computeRecommendationScore } from "../src/services/aiRecommendation";
 
 const prisma = new PrismaClient();
@@ -473,6 +474,23 @@ async function main() {
         freelancersLimit: p.freelancersLimit,
       },
     });
+
+    // COMP-016 — no project exists without its compensation row.
+    const comp = deriveFromMetadata(p.description, p.budget);
+    await prisma.projectCompensation.create({
+      data: {
+        projectId: project.id,
+        type: comp.type,
+        currency: comp.currency,
+        totalBudget: comp.totalBudget,
+        budgetNegotiable: comp.budgetNegotiable,
+        hourlyRate: comp.hourlyRate,
+        estimatedHours: comp.estimatedHours,
+        stipendAmount: comp.stipendAmount,
+        stipendFrequency: comp.stipendFrequency,
+      },
+    });
+
     projects.push(project);
   }
 

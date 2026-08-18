@@ -38,7 +38,7 @@ export function createDbMock() {
     upsert: vi.fn(),
   });
 
-  return {
+  const client: Record<string, unknown> = {
     user: model(),
     company: model(),
     freelancer: model(),
@@ -53,13 +53,18 @@ export function createDbMock() {
     adminLog: model(),
     review: model(),
     certificate: model(),
-    // $transaction receives an array of already-invoked promises in this
-    // codebase's usage, so resolving them all matches real behaviour closely
-    // enough for authorization assertions.
-    $transaction: vi.fn(async (ops: unknown) =>
-      Array.isArray(ops) ? Promise.all(ops) : (ops as () => unknown)()
-    ),
+    projectCompensation: model(),
   };
+
+  // $transaction is used two ways here: with an array of already-invoked
+  // promises, and with an interactive callback that receives a client. The
+  // callback form is handed the same mock so writes inside it are asserted
+  // exactly like writes outside it.
+  client.$transaction = vi.fn(async (ops: unknown) =>
+    Array.isArray(ops) ? Promise.all(ops) : (ops as (tx: unknown) => unknown)(client)
+  );
+
+  return client as ReturnType<typeof model> extends never ? never : any;
 }
 
 export const ADMIN: SessionUser = { id: "admin-1", role: Role.ADMIN, name: "Root Admin" };

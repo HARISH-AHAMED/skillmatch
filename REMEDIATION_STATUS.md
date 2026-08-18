@@ -758,7 +758,7 @@ Logged per ground rule 1 rather than chased.
 | Actionable backlog IDs | 102 |
 | Fixed & Tested | 96 |
 | Deferred (product decision) | 3 (COMP-001, KANBAN-004, TIME-004) |
-| Partial / follow-up | 3 (SEC-015, COMP-016, PERF-002) |
+| Partial / follow-up | 2 (SEC-015, PERF-002) — COMP-016 closed, see production section |
 | Needs Decision | 0 |
 | Not Started | 0 |
 | Withdrawn / N-A | 2 (LEG-001, DATA-001) |
@@ -838,3 +838,44 @@ JSON, and the fallback is the sole path that resolves it.
 Removing the fallback today would break every project created from now on. The
 correct close is to make project creation write `ProjectCompensation` first;
 only then is the fallback genuinely obsolete. COMP-016 stays **Partial**.
+
+### COMP-016 — CLOSED
+
+Closed after the production backfill, by removing the cause rather than the
+symptom.
+
+The fallback was never only about un-migrated rows: `createProject` wrote no
+`ProjectCompensation` record at all, so the JSON-derived path in
+`getProjectCompensation` was the only thing resolving compensation for any newly
+created project. Deleting it alone would have broken every project created after
+the backfill. Project creation was fixed first.
+
+**Creation paths now writing ProjectCompensation**
+
+| Path | How |
+|---|---|
+| `projectActions.ts` → `createProject` | Inside `db.$transaction` with the `project.create` — atomic |
+| `projectActions.ts` → `updateProject` | `upsert` after the edit, so changed compensation metadata stays canonical |
+| `prisma/seed.ts` | `create` alongside each seeded project |
+
+All three derive from `deriveFromMetadata(description, budget)` — the same
+function the backfill used, so creation-time and migrated records are
+interpreted identically. No new business rules were introduced.
+
+**Fallback removed:** the pre-backfill JSON branch in `getProjectCompensation`
+(`src/lib/compensation.ts`). The resolver now reads `ProjectCompensation` only,
+returning `null` when the project itself does not exist.
+
+**Remaining `?? budget` occurrences — audited, each still load-bearing**
+
+| Location | Verdict |
+|---|---|
+| `compensation.ts:162` — `rate ?? budget` in `deriveFromMetadata` | **Kept.** No longer a legacy fallback; it is the canonical creation-time derivation, shared with the backfill. Removing it would silently change stipend amounts for projects that set a budget but no explicit rate. |
+| `workflowHelpers.ts:367,370` | **Kept.** Browse/listing display labels rendered from metadata. Part of PERF-002, explicitly out of scope here. |
+
+Tests: 7 new cases in `tests/projectCompensation.test.ts` covering FIXED,
+HOURLY, STIPEND and UNPAID creation, currency and negotiable propagation,
+transactional atomicity, and a no-regression check on the project payload.
+
+Suite after the change: **166 passing / 13 files**, `tsc --noEmit` clean,
+`next build` exit 0.
