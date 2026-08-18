@@ -756,7 +756,7 @@ Logged per ground rule 1 rather than chased.
 | | Count |
 |---|---|
 | Actionable backlog IDs | 102 |
-| Fixed & Tested | 96 |
+| Fixed & Tested | 97 |
 | Deferred (product decision) | 3 (COMP-001, KANBAN-004, TIME-004) |
 | Partial / follow-up | 2 (SEC-015, PERF-002) — COMP-016 closed, see production section |
 | Needs Decision | 0 |
