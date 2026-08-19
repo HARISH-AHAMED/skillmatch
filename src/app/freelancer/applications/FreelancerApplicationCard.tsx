@@ -448,7 +448,7 @@ export function FreelancerApplicationCard({ app, currentUserId }: FreelancerAppl
                   disabled={offerLoading !== null || !!pendingNegotiation}
                   title={pendingNegotiation ? "Waiting for the company to respond to your counter-offer" : undefined}
                   onClick={() => handleOfferResponse("ACCEPT")}
-                  className="flex-1 bg-[#F1F2F4] hover:bg-[#E4F7EC] text-white font-bold cursor-pointer disabled:opacity-50"
+                  className="flex-1 bg-white hover:bg-[#E8F1FE] text-[#152C55] font-bold cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {offerLoading === "ACCEPT" ? "Accepting..." : "Accept Offer & Start Project"}

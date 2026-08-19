@@ -68,7 +68,38 @@ function SolidWaves({ color }: { color: string }) {
 }
 
 /** One signature column: signature rule, name, designation. */
-function Signatory({ name, designation, color }: { name: string; designation: string; color: string }) {
+/**
+ * Requirement #13 — renders an uploaded signature image when one exists, and
+ * falls back to the script-font name when it does not, so certificates issued
+ * before signature uploads existed keep rendering exactly as before.
+ */
+function Signatory({
+  name,
+  designation,
+  color,
+  signatureUrl,
+}: {
+  name: string;
+  designation: string;
+  color: string;
+  signatureUrl?: string | null;
+}) {
+  if (signatureUrl) {
+    return (
+      <div className="min-w-0 flex-1 text-center">
+        <img
+          src={signatureUrl}
+          alt={name ? `${name} signature` : "Signature"}
+          className="mx-auto max-h-[clamp(1.4rem,3.5vw,2.6rem)] w-auto object-contain pb-1"
+        />
+        <div className="mx-auto h-px w-full" style={{ backgroundColor: color }} />
+        <p className="mt-1 truncate text-[clamp(0.5rem,0.95vw,0.75rem)] font-bold text-[#1A1D29]">
+          {name || "—"}
+        </p>
+        <p className="truncate text-[clamp(0.42rem,0.8vw,0.62rem)] text-[#5B6272]">{designation || ""}</p>
+      </div>
+    );
+  }
   return (
     <div className="min-w-0 flex-1 text-center">
       <p
@@ -184,7 +215,7 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
 
         {/* Signatories with award seal between them */}
         <div className="flex w-full items-end justify-center gap-[6%]">
-          <Signatory name={c.signatoryName} designation={c.signatoryDesignation} color={accent} />
+          <Signatory name={c.signatoryName} designation={c.signatoryDesignation} color={accent} signatureUrl={c.signatureUrl} />
 
           <svg className="h-[clamp(1.8rem,5vw,3.4rem)] w-auto shrink-0" viewBox="0 0 64 88" aria-hidden="true">
             <path d="M22 52l-10 30 12-6 8 10 8-32z" fill={accent} opacity="0.75" />
@@ -198,6 +229,7 @@ export function CertificatePreview({ config: c, data }: PreviewProps) {
             name={c.signatory2Name || ""}
             designation={c.signatory2Designation || ""}
             color={accent}
+            signatureUrl={c.signature2Url}
           />
         </div>
 
@@ -263,6 +295,25 @@ export function CertificateControls({ value, onChange, disabled }: DesignerProps
           onChange={(e) => set("signatory2Name", e.target.value)}
           disabled={disabled}
         />
+
+        {/*
+          Requirement #13 — signature images use the same upload component as
+          the logo above, so there is one storage path and one validation set.
+          Both are optional: leave them empty and the signature renders as the
+          typed name, exactly as certificates did before this existed.
+        */}
+        <div className="sm:col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ProjectBannerUpload
+            value={cfg.signatureUrl ?? null}
+            onChange={(url) => set("signatureUrl", url)}
+            label="Signatory 1 Signature Image (Optional)"
+          />
+          <ProjectBannerUpload
+            value={cfg.signature2Url ?? null}
+            onChange={(url) => set("signature2Url", url)}
+            label="Signatory 2 Signature Image (Optional)"
+          />
+        </div>
         <Input
           label="Signatory 2 Designation (Optional)"
           value={cfg.signatory2Designation || ""}

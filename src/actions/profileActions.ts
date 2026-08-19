@@ -24,6 +24,8 @@ export async function updateFreelancerProfile(formData: {
   verificationBadges?: string[];
   gender?: string;
   domain?: string;
+  /** Profile banner. Null/empty removes it; undefined leaves it untouched. */
+  bannerUrl?: string | null;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.FREELANCER) {
@@ -61,6 +63,9 @@ export async function updateFreelancerProfile(formData: {
       skills: skillsCleaned,
       experienceYears: formData.experienceYears,
       portfolioUrl: formData.portfolioUrl || "",
+      // Requirement #4 — undefined leaves the existing banner alone; an empty
+      // string or null clears it. Legacy profiles simply have none.
+      ...(formData.bannerUrl !== undefined ? { bannerUrl: formData.bannerUrl || null } : {}),
       resumeUrl: formData.resumeUrl || "",
       professionalHeadline: formData.professionalHeadline || "",
       experience: formData.experience || [],
@@ -78,6 +83,9 @@ export async function updateFreelancerProfile(formData: {
       skills: skillsCleaned,
       experienceYears: formData.experienceYears,
       portfolioUrl: formData.portfolioUrl || "",
+      // Requirement #4 — undefined leaves the existing banner alone; an empty
+      // string or null clears it. Legacy profiles simply have none.
+      ...(formData.bannerUrl !== undefined ? { bannerUrl: formData.bannerUrl || null } : {}),
       resumeUrl: formData.resumeUrl || "",
       professionalHeadline: formData.professionalHeadline || "",
       experience: formData.experience || [],

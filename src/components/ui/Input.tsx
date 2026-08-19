@@ -48,7 +48,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "h-10 w-full rounded-md border bg-white px-3.5 text-sm text-[#1A1D29]",
             "placeholder:text-[#8A90A0]",
             "transition-[border-color,box-shadow] duration-[180ms] focus:outline-none",
-            "disabled:cursor-not-allowed disabled:bg-[#F1F2F4] disabled:text-[#B7BBC6]",
+            "disabled:cursor-not-allowed disabled:bg-[#F1F2F4] disabled:text-[#5B6272]",
             error
               ? "border-[#D33636] focus:border-[#D33636] focus:shadow-[0_0_0_3px_rgba(211,54,54,0.15)]"
               : "border-[#E3E5EA] focus:border-[#2E6BEA] focus:shadow-[0_0_0_3px_rgba(46,107,234,0.15)]",

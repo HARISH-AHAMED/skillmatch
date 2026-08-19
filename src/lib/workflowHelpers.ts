@@ -391,9 +391,12 @@ export interface CertificateConfig {
   achievementText: string;
   signatoryName: string;
   signatoryDesignation: string;
+  /** Uploaded signature image for signatory 1. Optional: a name alone is valid. */
+  signatureUrl?: string | null;
   /** Optional co-signatory, mirroring the dual-signature convention on printed certificates. */
   signatory2Name?: string;
   signatory2Designation?: string;
+  signature2Url?: string | null;
   footerText: string;
   layout: "CLASSIC" | "MODERN" | "MINIMAL";
   logoPosition: "LEFT" | "CENTER" | "RIGHT";
@@ -958,9 +961,18 @@ export function stripGeneratedSections(text: string): string {
 }
 
 export function serializeProjectMetadata(originalDescription: string, data: ProjectWizardData): string {
+  /**
+   * Requirement #7 — objectives used to be appended to the prose here *and*
+   * stored in the metadata JSON, so any view rendering the description next to
+   * `meta.objectives` showed every objective twice. The JSON is the single
+   * source of truth; the prose is now just the prose.
+   *
+   * `stripGeneratedSections` still runs below, so a legacy row sheds its
+   * duplicated suffix the next time it is saved, and `getProjectDescriptionText`
+   * keeps cleaning the rows that have not been saved since.
+   */
   const cleanDescription = stripGeneratedSections(originalDescription);
-  const plainTextSummary = `${cleanDescription}\n\nObjectives: ${data.objectives.join(". ")}`;
-  return `${plainTextSummary}\n\nMETADATA_JSON_BLOCK:${JSON.stringify(data)}`;
+  return `${cleanDescription}\n\nMETADATA_JSON_BLOCK:${JSON.stringify(data)}`;
 }
 
 export function getProjectDescriptionText(fullDescription: string | null | undefined): string {

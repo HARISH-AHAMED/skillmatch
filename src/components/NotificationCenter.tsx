@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { markAsRead, markAllAsRead, getNotificationRedirectUrl } from "@/actions/notificationActions";
 import { cn } from "@/lib/utils";
+import { formatTimestamp } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 
 interface NotificationItem {
@@ -108,9 +109,21 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+          {/*
+            #12 — the panel sat at z-40 while the Navbar is `sticky top-0 z-50`,
+            so on mobile it rendered *underneath* the header. Both layers now sit
+            above the header and still below Modal (z-[400]).
+
+            On mobile it is bounded top and bottom (`top-16 bottom-4`) instead of
+            growing downward from a fixed top, so it can never overflow the
+            viewport, and `dvh` accounts for mobile browser chrome. It clears the
+            header rather than covering it.
+          */}
+          <div className="fixed inset-0 z-[55]" onClick={() => setIsOpen(false)} />
           <div className={cn(
-            "fixed inset-x-4 top-16 md:absolute md:top-auto md:mt-2.5 md:w-96 md:max-w-none bg-white border border-[#E3E5EA] shadow-lg rounded-lg p-4 z-40 animate-in fade-in slide-in-from-top-3 duration-150",
+            "fixed inset-x-4 top-16 bottom-4 flex flex-col",
+            "md:absolute md:inset-x-auto md:bottom-auto md:top-auto md:mt-2.5 md:w-96 md:max-w-none",
+            "bg-white border border-[#E3E5EA] shadow-lg rounded-lg p-4 z-[60] animate-in fade-in slide-in-from-top-3 duration-150",
             align === "left" ? "md:left-0 md:right-auto" : "md:right-0 md:left-auto"
           )}>
             <div className="flex items-center justify-between border-b border-[#E3E5EA] pb-2.5 mb-3">
@@ -126,7 +139,7 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
               )}
             </div>
 
-            <div className="max-h-[calc(100vh-12rem)] md:max-h-96 overflow-y-auto space-y-2 pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-2 pr-1 md:max-h-96 md:flex-none">
               {notifications.length === 0 ? (
                 <p className="text-xs text-[#5B6272] text-center py-6">No notifications yet.</p>
               ) : (
@@ -135,27 +148,35 @@ export function NotificationCenter({ initialNotifications = [], align = "right" 
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
                     className={cn(
+                      // #3 — unread is carried by a left accent rail and a solid
+                      // white card; read items lose the rail but keep full-strength
+                      // text. The previous `opacity-80` on grey-on-grey was the
+                      // low-contrast state, not a legibility-safe one.
                       "p-3 rounded-lg border transition-all flex justify-between gap-2.5 items-start cursor-pointer hover:border-[#C7CBD6] hover:bg-[#F8F9FB]",
                       notif.read
-                        ? "bg-[#F8F9FB] border-[#E3E5EA] text-[#5B6272] opacity-80"
-                        : "bg-white border-[#E3E5EA] text-[#1A1D29]"
+                        ? "bg-[#F8F9FB] border-[#E3E5EA]"
+                        : "bg-white border-[#C7D9F7] border-l-[3px] border-l-[#2159C9]"
                     )}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-xs font-semibold text-[#1A1D29] tracking-tight">{notif.title}</p>
+                      <div className="flex items-start gap-1.5 flex-wrap">
+                        <p
+                          className={cn(
+                            "text-xs tracking-tight text-[#1A1D29]",
+                            notif.read ? "font-medium" : "font-bold"
+                          )}
+                        >
+                          {notif.title}
+                        </p>
                         {!notif.read && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#C22B2B] shrink-0" />
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C22B2B]" />
                         )}
                       </div>
                       <p className="text-xs text-[#5B6272] mt-1 leading-relaxed font-normal break-words">
                         {notif.message}
                       </p>
-                      <p className="text-[11px] text-[#5B6272] font-medium uppercase tracking-wider mt-1.5">
-                        {new Date(notif.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <p className="mt-1.5 text-[11px] font-medium text-[#5B6272]">
+                        {formatTimestamp(notif.createdAt)}
                       </p>
                     </div>
                     {!notif.read && (

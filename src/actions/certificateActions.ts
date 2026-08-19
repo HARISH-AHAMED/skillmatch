@@ -25,6 +25,25 @@ function generatePublicId(): string {
  * project and the freelancer must have been hired on it. Details are snapshotted
  * so the certificate keeps saying what it said at issue time.
  */
+/**
+ * Requirement #13 - the signer block is snapshotted onto the certificate row at
+ * issue time, like every other field there: a certificate must keep saying what
+ * it said when issued. Every column is nullable, so certificates issued before
+ * two-signer support keep rendering from issuerName alone and are never
+ * backfilled with invented signers.
+ */
+function signerSnapshot(config: CertificateConfig | undefined | null) {
+  if (!config) return {};
+  return {
+    signer1Name: config.signatoryName || null,
+    signer1Title: config.signatoryDesignation || null,
+    signer1SignatureUrl: config.signatureUrl || null,
+    signer2Name: config.signatory2Name || null,
+    signer2Title: config.signatory2Designation || null,
+    signer2SignatureUrl: config.signature2Url || null,
+  };
+}
+
 export async function issueCertificate(input: {
   projectId: string;
   freelancerId: string;
@@ -202,6 +221,7 @@ export async function issueProjectCertificates(
         roleTitle: deriveRoleTitle(role, app.isApprentice),
         skills: roleSkills,
         issuerName: project.company.companyName,
+        ...signerSnapshot(meta.certificate),
         recipientName: app.freelancer.user?.name || "Freelancer",
         projectTitle: project.title,
       },

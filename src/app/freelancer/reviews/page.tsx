@@ -3,6 +3,7 @@ import { EmptyStateAstronaut } from "@/components/ui/AppBlocks";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/Card";
+import { formatTimestamp } from "@/lib/dates";
 import { Badge } from "@/components/ui/Badge";
 import { Star, MessageSquareQuote } from "lucide-react";
 
@@ -129,25 +130,49 @@ export default async function FreelancerReviewsPage() {
             
           </Card>
         ) : (
+          /*
+            #6 — review-card layout: reviewer avatar, name, rating, date and
+            project context in a scannable header, with the comment as the body.
+            Display only; every field already present is still rendered.
+          */
           reviews.map((rev) => (
-            <Card key={rev.id} className="p-6 border-[#E3E5EA] bg-white space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-[#E3E5EA]">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-[#1A1D29]">{rev.project.title}</h3>
-                  <p className="text-[11px] text-[#5B6272]">
-                    Reviewed by {rev.reviewer.name} ({rev.project.company.companyName})
-                  </p>
+            <Card key={rev.id} className="space-y-3 border-[#E3E5EA] bg-white p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {rev.reviewer.image ? (
+                    <img
+                      src={rev.reviewer.image}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#152C55] text-sm font-bold text-white">
+                      {(rev.reviewer.name ?? "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#1A1D29]">
+                      {rev.reviewer.name}
+                    </p>
+                    <p className="truncate text-[11px] text-[#5B6272]">
+                      {rev.project.company.companyName} · {rev.project.title}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-0.5">
-                  {renderStars(rev.rating)}
+
+                <div className="flex flex-col items-end gap-0.5">
+                  <div className="flex gap-0.5" aria-label={`${rev.rating} out of 5`}>
+                    {renderStars(rev.rating)}
+                  </div>
+                  <span className="text-[11px] text-[#5B6272]">
+                    {formatTimestamp(rev.createdAt)}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex gap-3.5 items-start">
-                <MessageSquareQuote className="h-5 w-5 text-[#1A1D29]/70 shrink-0 mt-0.5" />
-                <p className="text-xs text-[#5B6272] italic leading-relaxed">
-                  &quot;{rev.comment}&quot;
-                </p>
+              <div className="flex items-start gap-3 border-t border-[#E3E5EA] pt-3">
+                <MessageSquareQuote className="mt-0.5 h-4 w-4 shrink-0 text-[#5B6272]" />
+                <p className="text-xs leading-relaxed text-[#1A1D29]">{rev.comment}</p>
               </div>
             </Card>
           ))

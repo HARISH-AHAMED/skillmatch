@@ -321,50 +321,29 @@ export default async function FreelancerDashboard() {
 
             <div className="space-y-4">
               {activeApplications.length === 0 ? (
-                /* Mock applications showing structure */
-                <>
-                  <Card className="p-5 bg-white border border-[#E3E5EA] rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-[#152C55] flex items-center justify-center text-white font-medium text-sm">
-                        <Briefcase className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1A1D29]">Stellar Systems</h4>
-                        <p className="text-xs text-[#5B6272]">Senior DevOps Engineer</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="primary" className="uppercase text-[11px]">
-                        INTERVIEWING
-                      </Badge>
-                      <div className="text-xs text-[#5B6272] flex items-center gap-1.5 font-normal">
-                        <Calendar className="h-3.5 w-3.5" />
-                        May 12, 10:00 AM
-                      </div>
-                      <Button variant="outline" size="sm" className="gap-1 text-xs px-4">
-                        <PhoneCall className="h-3 w-3 mr-1" />
-                        Join Call
-                      </Button>
-                    </div>
-                  </Card>
-
-                  <Card className="p-5 bg-white border border-[#E3E5EA] rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-[#152C55] flex items-center justify-center text-white font-medium text-sm">
-                        <Briefcase className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1A1D29]">NeoCode Lab</h4>
-                        <p className="text-xs text-[#5B6272]">Node.js Engineer</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="neutral" className="uppercase text-[11px]">
-                        APPLIED
-                      </Badge>
-                    </div>
-                  </Card>
-                </>
+                /*
+                  #7 — this slot previously rendered two fabricated applications
+                  ("Stellar Systems", "NeoCode Lab") whenever the real list was
+                  empty, which read as live data. The real query was already
+                  wired; only the empty branch was fake.
+                */
+                <Card className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[#C7CBD6] bg-white px-6 py-10 text-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F0F3F9]">
+                    <Briefcase className="h-5 w-5 text-[#5B6272]" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-[#1A1D29]">No active applications</h4>
+                    <p className="mx-auto max-w-sm text-xs leading-relaxed text-[#5B6272]">
+                      Once you apply to a project, you will track its progress here — screening
+                      rounds, interviews and offers.
+                    </p>
+                  </div>
+                  <Link href="/freelancer/projects">
+                    <Button size="sm" variant="outline" className="cursor-pointer text-xs font-bold">
+                      Browse projects
+                    </Button>
+                  </Link>
+                </Card>
               ) : (
                 activeApplications.map((app) => (
                   <Card key={app.id} className="p-5 bg-white border border-[#E3E5EA] rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

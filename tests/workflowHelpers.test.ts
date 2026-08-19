@@ -16,7 +16,14 @@ const baseMeta = () => parseProjectMetadata("");
  * Audit "Validate": repeated saves must not accumulate generated sections.
  */
 describe("ARCH-002: description does not grow on repeated saves", () => {
-  it("does not accumulate Objectives lines across repeated save cycles", () => {
+  /**
+   * Requirement #7 tightened this. ARCH-002 originally allowed exactly one
+   * generated `Objectives:` line in the prose, but that line duplicated
+   * `meta.objectives`, so any view rendering both showed each objective twice.
+   * The prose now carries none at all — the metadata is the only source — and
+   * the no-accumulation guarantee still holds across repeated saves.
+   */
+  it("writes no generated Objectives line, however many times it is saved", () => {
     const meta = { ...baseMeta(), objectives: ["Ship it", "Ship it well"] };
 
     let description = "A real project description written by the company.";
@@ -24,8 +31,9 @@ describe("ARCH-002: description does not grow on repeated saves", () => {
       description = serializeProjectMetadata(getProjectDescriptionText(description), meta);
     }
 
-    const occurrences = (description.match(/Objectives:/g) ?? []).length;
-    expect(occurrences).toBe(1);
+    expect((description.match(/Objectives:/g) ?? []).length).toBe(0);
+    // The objectives themselves survive — in the metadata block, once each.
+    expect(getProjectMetadataDirect(description).objectives).toEqual(["Ship it", "Ship it well"]);
   });
 
   it("keeps the description stable in length after the first save", () => {

@@ -387,7 +387,7 @@ export function FreelancerSearch({
       {activeTab === "search" && (
         <div className="space-y-4">
           {/* Sticky search header — results scroll underneath, never behind it */}
-          <div className="sticky top-0 z-40 -mx-4 space-y-3 border-b border-[#E3E5EA] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
+          <div className="sticky top-[60px] md:top-0 z-20 -mx-4 space-y-3 border-b border-[#E3E5EA] bg-white px-4 pb-3 pt-3 shadow-[0_6px_16px_-12px_rgba(24,29,38,0.5)] sm:-mx-6 sm:px-6">
           {/* Search Bar + Sort + Filter toggle row */}
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center bg-white p-3 rounded-lg border border-[#E3E5EA]">
             {/* Keyword search */}

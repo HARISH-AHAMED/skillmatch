@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createProject } from "@/actions/projectActions";
+import { createProject, saveProjectDraft, getMyProjectDrafts, getProjectDraft } from "@/actions/projectActions";
 import { ProjectBannerUpload } from "@/components/ProjectBannerUpload";
 import { saveProjectRoles, type RoleInput } from "@/actions/roleActions";
 import { RoleSlotsEditor } from "@/components/RoleSlotsEditor";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { serializeProjectMetadata, ProjectWizardData, RecruitmentRound, PAYMENT_CATEGORIES, PaymentCategory, CURRENCIES, DEFAULT_CURRENCY, getCurrencySymbol, NON_MONETARY_BENEFITS, NonMonetaryBenefit, isNonMonetary, supportsBenefits, COMPENSATION_TYPES, CompensationType, STIPEND_FREQUENCIES, StipendFrequency, estimatedHourlyTotal } from "@/lib/workflowHelpers";
+import { serializeProjectMetadata, getProjectMetadataDirect, getProjectDescriptionText, ProjectWizardData, RecruitmentRound, PAYMENT_CATEGORIES, PaymentCategory, CURRENCIES, DEFAULT_CURRENCY, getCurrencySymbol, NON_MONETARY_BENEFITS, NonMonetaryBenefit, isNonMonetary, supportsBenefits, COMPENSATION_TYPES, CompensationType, STIPEND_FREQUENCIES, StipendFrequency, estimatedHourlyTotal } from "@/lib/workflowHelpers";
 import { ROUND_TYPE_CATALOG, isRoundTypeSupported, roundTypeLabel } from "@/lib/workflowHelpers";
 import { RoundConfigPanel } from "@/components/RoundConfigPanel";
 import { FileText, DollarSign, Calendar, HelpCircle, Eye, ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Move } from "lucide-react";
@@ -33,6 +33,17 @@ export default function NewProjectPage() {
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE" | "INVITE_ONLY">("PUBLIC");
   const [preferredGender, setPreferredGender] = useState("ANY");
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  /**
+   * Requirement #3 — draft autosave. Debounced, never per keystroke, and it
+   * reuses one draft row for the whole session so navigating back and forth
+   * cannot mint duplicates. A draft is written with DRAFT status and
+   * isVisible:false server-side, so it can never reach public browse, and
+   * publishing still runs the full validation in publishProjectDraft.
+   */
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftState, setDraftState] = useState<"idle" | "unsaved" | "saving" | "saved">("idle");
+  const [resumableDraft, setResumableDraft] = useState<{ id: string; title: string } | null>(null);
+
   // Optional team roles. Empty means a classic single-hire listing.
   const [roles, setRoles] = useState<RoleInput[]>([]);
 
@@ -121,6 +132,153 @@ export default function NewProjectPage() {
   const [mcOption3, setMcOption3] = useState("");
   const [mcOption4, setMcOption4] = useState("");
 
+  /**
+   * Requirement #3 — debounced autosave.
+   *
+   * The timer restarts on each change and only fires after two idle seconds,
+   * so typing a title is one save, not one per character. A ref holds the
+   * in-flight draft id so two saves racing at startup cannot each create a
+   * row. Nothing here weakens publish validation: the draft is written with
+   * whatever exists so far, and the real checks run on submit.
+   */
+  const draftIdRef = useRef<string | null>(null);
+  const savingRef = useRef(false);
+  const firstRenderRef = useRef(true);
+  /**
+   * Bumped on every change. A save stamps the seq it wrote; if newer state
+   * arrived while the request was in flight, the run re-fires instead of
+   * dropping it, so a slow save can neither lose a change nor land on top of
+   * a newer one.
+   */
+  const seqRef = useRef(0);
+  const savedSeqRef = useRef(0);
+
+  useEffect(() => {
+    if (firstRenderRef.current) { firstRenderRef.current = false; return; }
+    seqRef.current += 1;
+    setDraftState("unsaved");
+
+    const timer = setTimeout(async function run() {
+      if (savingRef.current) return;
+      const writing = seqRef.current;
+      if (writing === savedSeqRef.current) return;
+      savingRef.current = true;
+      setDraftState("saving");
+      try {
+        const res = await saveProjectDraft({
+          draftId: draftIdRef.current,
+          title,
+          // The complete wizard payload, through the same metadata block the
+          // saved project uses, so a resumed draft restores every field.
+          description: serializeProjectMetadata(description, buildWizardMeta()),
+          budget: Number(budget) || 0,
+          priority,
+          requiredSkills,
+          experienceRequired: Number(experienceRequired) || 0,
+          freelancersLimit: roles.length > 0 ? roles.reduce((n, r) => n + (Number(r.slots) || 0), 0) : 1,
+          domain,
+          bannerUrl,
+          preferredGender,
+        });
+        if (res.success && res.draftId) {
+          draftIdRef.current = res.draftId;
+          setDraftId(res.draftId);
+          savedSeqRef.current = writing;
+          savingRef.current = false;
+          // A change landed mid-flight: save again rather than lose it.
+          if (seqRef.current !== writing) { run(); return; }
+          setDraftState("saved");
+        } else {
+          savingRef.current = false;
+          setDraftState("unsaved");
+        }
+      } catch {
+        savingRef.current = false;
+        setDraftState("unsaved");
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, budget, priority, requiredSkills, experienceRequired, domain, bannerUrl, preferredGender, objectives, deliverables, responsibilities, dailyTasks, preferredSkills, category, subcategory, duration, currency, compensationType, paymentCategory, paymentRate, estimatedHours, stipendFrequency, stipendDetails, budgetNegotiable, certificateIncluded, nonMonetaryBenefits, nonMonetaryDetails, workingDays, timingType, appDeadline, projectStart, expectedCompletion, rounds, roles, visibility]);
+
+  /** Offers the most recent draft on arrival. Server-scoped to this company. */
+  useEffect(() => {
+    let cancelled = false;
+    getMyProjectDrafts().then((drafts) => {
+      if (cancelled || drafts.length === 0) return;
+      setResumableDraft({ id: drafts[0].id, title: drafts[0].title });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  /** Loads a saved draft back into the form. */
+  /**
+   * Restores a saved draft into every wizard field. The metadata block written
+   * by autosave is parsed back with the same helper the saved project uses, so
+   * what comes out is what went in. Each value falls back to current state when
+   * a legacy draft predates that field.
+   */
+  const resumeDraft = async (id: string) => {
+    const d = await getProjectDraft(id);
+    if (!d) return;
+    const meta = getProjectMetadataDirect(d.description);
+
+    draftIdRef.current = id;
+    setDraftId(id);
+
+    // Project columns
+    setTitle(d.title === "Untitled draft" ? "" : d.title);
+    setDescription(getProjectDescriptionText(d.description));
+    setBudget(d.budget ?? 0);
+    setPriority(d.priority);
+    setRequiredSkills(d.requiredSkills ?? []);
+    setExperienceRequired(d.experienceRequired ?? 0);
+    setDomain(d.domain ?? "Other");
+    setBannerUrl(d.bannerUrl ?? null);
+    setPreferredGender(d.preferredGender ?? "ANY");
+
+    // Wizard metadata
+    if (meta.objectives) setObjectives(meta.objectives);
+    if (meta.deliverables) setDeliverables(meta.deliverables);
+    if (meta.responsibilities) setResponsibilities(meta.responsibilities);
+    if (meta.dailyTasks) setDailyTasks(meta.dailyTasks);
+    if (meta.preferredSkills) setPreferredSkills(meta.preferredSkills);
+    if (meta.category) setCategory(meta.category);
+    if (meta.subcategory) setSubcategory(meta.subcategory);
+    if (meta.duration) setDuration(meta.duration);
+    if (meta.visibility) setVisibility(meta.visibility);
+    if (meta.currency) setCurrency(meta.currency);
+    if (meta.compensationType) setCompensationType(meta.compensationType);
+    if (meta.paymentCategory) setPaymentCategory(meta.paymentCategory);
+    if (meta.paymentRate !== undefined) setPaymentRate(meta.paymentRate);
+    if (meta.estimatedHours !== undefined) setEstimatedHours(meta.estimatedHours);
+    if (meta.stipendFrequency) setStipendFrequency(meta.stipendFrequency);
+    if (meta.stipendType) setStipendType(meta.stipendType);
+    if (meta.stipendDetails) setStipendDetails(meta.stipendDetails);
+    if (meta.budgetNegotiable !== undefined) setBudgetNegotiable(meta.budgetNegotiable);
+    if (meta.certificateIncluded !== undefined) setCertificateIncluded(meta.certificateIncluded);
+    if (meta.nonMonetaryBenefits) setNonMonetaryBenefits(meta.nonMonetaryBenefits);
+    if (meta.nonMonetaryDetails) setNonMonetaryDetails(meta.nonMonetaryDetails);
+    if (meta.workingDays) setWorkingDays(meta.workingDays);
+    if (meta.timingType) setTimingType(meta.timingType);
+
+    // Rounds carry their own configuration and their questions, in order.
+    if (meta.rounds && meta.rounds.length > 0) {
+      setRounds(meta.rounds);
+      const firstScreening = meta.rounds.find((r) => r.type === "SCREENING_QUESTIONS");
+      if (firstScreening) setSelectedRoundId(firstScreening.id);
+    }
+    if (meta.timeline) {
+      if (meta.timeline.applicationDeadline) setAppDeadline(meta.timeline.applicationDeadline);
+      if (meta.timeline.projectStart) setProjectStart(meta.timeline.projectStart);
+      if (meta.timeline.expectedCompletion) setExpectedCompletion(meta.timeline.expectedCompletion);
+    }
+
+    setResumableDraft(null);
+    setDraftState("saved");
+  };
+
   const handleAddRound = () => {
     if (!newRoundName.trim()) return;
     const round: RecruitmentRound = {
@@ -178,6 +336,36 @@ export default function NewProjectPage() {
     setMcOption4("");
   };
 
+  /**
+   * Requirement #8 — reorder by stable id. The array order is what gets
+   * persisted, but identity never comes from the index, so a submitted answer
+   * keyed on the question id stays correctly attributed after a move.
+   */
+  const handleMoveQuestion = (roundId: string, qId: string, direction: "up" | "down") => {
+    setRounds(rounds.map((r) => {
+      if (r.id !== roundId) return r;
+      const qs = [...(r.questions || [])];
+      const i = qs.findIndex((q) => q.id === qId);
+      const j = direction === "up" ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= qs.length) return r;
+      [qs[i], qs[j]] = [qs[j], qs[i]];
+      return { ...r, questions: qs };
+    }));
+  };
+
+  /** Edits the text in place; the id, type and options are preserved. */
+  const handleEditQuestion = (roundId: string, qId: string, current: string) => {
+    const next = prompt("Edit question", current);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed) return;
+    setRounds(rounds.map((r) => (
+      r.id !== roundId
+        ? r
+        : { ...r, questions: (r.questions || []).map((q) => (q.id === qId ? { ...q, question: trimmed } : q)) }
+    )));
+  };
+
   const handleRemoveQuestionFromRound = (roundId: string, qId: string) => {
     setRounds(rounds.map(r => {
       if (r.id === roundId) {
@@ -210,19 +398,19 @@ export default function NewProjectPage() {
     setDraggedRoundIndex(null);
   };
 
-  const handlePublish = async () => {
-    if (!title || !description) {
-      setError("Please complete title and description.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
+  /**
+   * Requirement #3/#14 — ONE authoritative wizard payload.
+   *
+   * Autosave, the final preview and submit all call this, so the preview shows
+   * exactly the object that will be serialised and saved, and a resumed draft
+   * restores exactly what was entered. Previously the payload was built inline
+   * in the submit handler only, which is why the draft could not round-trip it.
+   */
+  const buildWizardMeta = (): ProjectWizardData => {
     const allQuestions = rounds
       .filter((r) => r.type === "SCREENING_QUESTIONS")
       .flatMap((r) => r.questions || []);
-
+  
     // Build serialized metadata structure
     const wizardMeta: ProjectWizardData = {
       objectives,
@@ -271,6 +459,19 @@ export default function NewProjectPage() {
       duration,
       rounds,
     };
+    return wizardMeta;
+  };
+
+  const handlePublish = async () => {
+    if (!title || !description) {
+      setError("Please complete title and description.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    const wizardMeta = buildWizardMeta();
 
     // Serialize metadata directly inside project description field
     const fullSerializedDescription = serializeProjectMetadata(description, wizardMeta);
@@ -321,10 +522,49 @@ export default function NewProjectPage() {
             <h1 className="text-2xl font-bold text-[#1A1D29]">Opportunity Creation Wizard</h1>
             <p className="text-xs text-[#5B6272] mt-0.5">Define your project requirements, screening stages, and milestones</p>
           </div>
-          <Badge variant="primary" className="px-3.5 py-1.5 rounded-full bg-[#E8F1FE] text-[#1A1D29] border border-[#C7CBD6]">
-            Step {step} of 5
-          </Badge>
+          <div className="flex items-center gap-3">
+            {/* Requirement #3 — quiet autosave state; never blocks the form. */}
+            {draftState !== "idle" && (
+              <span className="text-[11px] font-semibold text-[#5B6272]">
+                {draftState === "saving"
+                  ? "Saving draft..."
+                  : draftState === "saved"
+                  ? "Draft saved"
+                  : "Unsaved changes"}
+              </span>
+            )}
+            <Badge variant="primary" className="px-3.5 py-1.5 rounded-full bg-[#E8F1FE] text-[#1A1D29] border border-[#C7CBD6]">
+              Step {step} of 5
+            </Badge>
+          </div>
         </div>
+
+        {/* A draft from a previous visit — this company's own, resolved server-side. */}
+        {resumableDraft && !draftId && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2">
+            <p className="text-xs text-[#1A1D29]">
+              You have an unfinished draft: <strong>{resumableDraft.title}</strong>
+            </p>
+            <div className="flex gap-1.5">
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => resumeDraft(resumableDraft.id)}
+                className="h-7 cursor-pointer px-2.5 text-[11px] font-bold"
+              >
+                Resume draft
+              </Button>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => setResumableDraft(null)}
+                className="h-7 cursor-pointer px-2.5 text-[11px] font-bold"
+              >
+                Start fresh
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Wizard indicator progress */}
         <div className="grid grid-cols-5 gap-2 pt-2">
@@ -1075,13 +1315,48 @@ export default function NewProjectPage() {
                                 <p className="text-[11px] text-[#2159C9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
                               )}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveQuestionFromRound(activeRound.id, q.id)}
-                              className="text-[#BC2A2A] hover:text-[#BC2A2A] cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {/*
+                              Requirement #8 — edit and reorder act on the
+                              question's stable id, never its array position, so
+                              an answer already submitted against `q.id` stays
+                              attached to this question after either operation.
+                            */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                title="Move up"
+                                disabled={idx === 0}
+                                onClick={() => handleMoveQuestion(activeRound.id, q.id, "up")}
+                                className="cursor-pointer text-[#5B6272] disabled:opacity-30"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Move down"
+                                disabled={idx === (activeRound.questions?.length ?? 0) - 1}
+                                onClick={() => handleMoveQuestion(activeRound.id, q.id, "down")}
+                                className="cursor-pointer text-[#5B6272] disabled:opacity-30"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Edit question"
+                                onClick={() => handleEditQuestion(activeRound.id, q.id, q.question)}
+                                className="cursor-pointer text-[#2159C9]"
+                              >
+                                <Move className="h-4 w-4 rotate-90" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Delete question"
+                                onClick={() => handleRemoveQuestionFromRound(activeRound.id, q.id)}
+                                className="text-[#BC2A2A] hover:text-[#BC2A2A] cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -1192,9 +1467,21 @@ export default function NewProjectPage() {
                     <h3 className="text-xl font-bold text-[#1A1D29] leading-tight">{title || "Opportunity Title"}</h3>
                     <p className="text-xs text-[#5B6272] font-medium">Category: {category} • {subcategory}</p>
                   </div>
+                  {/*
+                    Requirement #6 — this read `${budget} Total` with a literal
+                    dollar sign, so a project priced in any other currency
+                    previewed as USD and then saved as something else. Symbol,
+                    amount and compensation type all come from the live form
+                    state that is about to be serialised.
+                  */}
                   <div className="text-right">
-                    <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Budget / Stipend</span>
-                    <span className="text-base font-bold text-[#1A1D29]">${budget} Total</span>
+                    <span className="text-[11px] text-[#5B6272] font-bold uppercase block">
+                      {COMPENSATION_TYPES.find((c) => c.value === compensationType)?.label ?? "Compensation"}
+                    </span>
+                    <span className="text-base font-bold text-[#1A1D29]">
+                      {getCurrencySymbol(currency)}
+                      {Number(budget || 0).toLocaleString()} {currency}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1231,17 +1518,139 @@ export default function NewProjectPage() {
                   <h4 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Recruitment Process / Assessment Rounds</h4>
                   <div className="space-y-2">
                     {rounds.map((r, idx) => (
-                      <div key={r.id} className="p-3 bg-white border border-[#E3E5EA]/60 rounded-lg text-xs flex justify-between items-start">
-                        <div>
-                          <span className="font-bold text-[#1A1D29]">Round {idx + 1}: {r.name}</span>
-                          <p className="text-[11px] text-[#5B6272] mt-0.5">{r.description}</p>
+                      <div key={r.id} className="p-3 bg-white border border-[#E3E5EA]/60 rounded-lg text-xs">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <span className="font-bold text-[#1A1D29]">Round {idx + 1}: {r.name}</span>
+                            <p className="text-[11px] text-[#5B6272] mt-0.5">{r.description}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <Badge variant="neutral" className="text-[11px] capitalize py-0.5">{roundTypeLabel(r.type)}</Badge>
+                            {!isRoundTypeSupported(r.type) && (
+                              <Badge variant="warning" className="text-[11px] py-0.5">Coming soon</Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant="neutral" className="text-[11px] capitalize py-0.5 shrink-0">{r.type.toLowerCase().replace("_", " ")}</Badge>
+
+                        {/* Requirement #14 — the configuration actually stored on this round. */}
+                        {r.config && Object.keys(r.config).length > 0 && (
+                          <p className="mt-1.5 text-[11px] text-[#5B6272]">
+                            {Object.entries(r.config)
+                              .filter(([, v]) => v !== undefined && v !== null && v !== "")
+                              .map(([k, v]) => `${k}: ${String(v)}`)
+                              .join(" • ")}
+                          </p>
+                        )}
+
+                        {/* Screening questions, in the persisted order, by id. */}
+                        {r.questions && r.questions.length > 0 && (
+                          <ol className="mt-2 space-y-1 border-t border-[#E3E5EA]/60 pt-2">
+                            {r.questions.map((q, qi) => (
+                              <li key={q.id} className="text-[11px] text-[#5B6272]">
+                                <span className="font-semibold text-[#1A1D29]">Q{qi + 1}.</span> {q.question}
+                                <span className="ml-1 text-[#8A90A0]">
+                                  ({q.type.replace(/_/g, " ").toLowerCase()}{q.required ? ", required" : ""})
+                                </span>
+                                {q.options && q.options.length > 0 && (
+                                  <span className="ml-1 text-[#2159C9]">— {q.options.join(" | ")}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ol>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/*
+                Requirement #14 — the remaining configured values, read from the
+                same live state that buildWizardMeta() serialises on submit, so
+                what is previewed is what is saved.
+              */}
+              <div className="grid grid-cols-1 gap-4 border-t border-[#E3E5EA] pt-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Objectives</h4>
+                  {objectives.length === 0 ? (
+                    <p className="text-[11px] text-[#5B6272]">None added</p>
+                  ) : (
+                    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-[#5B6272]">
+                      {objectives.map((o, i) => (
+                        <li key={`${o}-${i}`}>{o}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Required skills</h4>
+                  {requiredSkills.length === 0 ? (
+                    <p className="text-[11px] text-[#5B6272]">None added</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {requiredSkills.map((s) => (
+                        <Badge key={s} variant="neutral" className="text-[11px]">{s}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Compensation</h4>
+                  <p className="text-[11px] text-[#5B6272]">
+                    {COMPENSATION_TYPES.find((c) => c.value === compensationType)?.label ?? compensationType}
+                    {" · "}
+                    {getCurrencySymbol(currency)}
+                    {Number(budget || 0).toLocaleString()} {currency}
+                    {compensationType === "HOURLY" && paymentRate
+                      ? ` · ${getCurrencySymbol(currency)}${paymentRate}/hr`
+                      : ""}
+                    {compensationType === "STIPEND" ? ` · ${stipendFrequency}` : ""}
+                    {budgetNegotiable ? " · Negotiable" : ""}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Visibility & domain</h4>
+                  <p className="text-[11px] text-[#5B6272]">
+                    {visibility} · {domain} · Priority {priority}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Dates</h4>
+                  <p className="text-[11px] text-[#5B6272]">
+                    Applications close {appDeadline} · Starts {projectStart} · Expected {expectedCompletion}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Requirements</h4>
+                  <p className="text-[11px] text-[#5B6272]">
+                    {experienceRequired} yr experience · {timingType} · {workingDays} · {duration}
+                    {certificateIncluded ? " · Certificate included" : ""}
+                  </p>
+                </div>
+
+                {deliverables.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Deliverables</h4>
+                    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-[#5B6272]">
+                      {deliverables.map((d, i) => (
+                        <li key={`${d}-${i}`}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {bannerUrl && (
+                  <div className="space-y-1 sm:col-span-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Banner</h4>
+                    <img src={bannerUrl} alt="Project banner" className="aspect-[16/9] w-full max-w-xs rounded-lg object-cover" />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">

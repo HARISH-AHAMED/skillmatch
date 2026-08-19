@@ -116,7 +116,7 @@ export function DropdownItem({
       className={cn(
         "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px]",
         "transition-colors duration-[120ms] cursor-pointer",
-        "disabled:cursor-not-allowed disabled:text-[#B7BBC6]",
+        "disabled:cursor-not-allowed disabled:text-[#5B6272]",
         destructive
           ? "text-[#BC2A2A] hover:bg-[#FDEAEA]"
           : "text-[#1A1D29] hover:bg-[#F0F3F9]",

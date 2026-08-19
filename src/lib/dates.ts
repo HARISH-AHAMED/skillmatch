@@ -88,3 +88,17 @@ export function formatDateKeyShort(key: string): string {
   if (!y || !m || !d) return key;
   return `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}`;
 }
+
+/**
+ * Deterministic display for a raw timestamp, e.g. "17 Aug 2026".
+ *
+ * Same reasoning as SSR-001 above: `toLocaleDateString()` reads the runtime's
+ * locale and timezone, so the server and the browser can render the same
+ * instant differently and React reports a hydration mismatch. Routing through
+ * the UTC date key makes both sides agree.
+ */
+export function formatTimestamp(value: Date | string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  const key = toDateKey(value);
+  return key ? formatDateKeyShort(key) : "";
+}

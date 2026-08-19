@@ -82,7 +82,7 @@ export function Tabs({
             className={cn(
               "inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-[13px] font-medium",
               "transition-colors duration-[180ms] cursor-pointer",
-              "disabled:cursor-not-allowed disabled:text-[#B7BBC6]",
+              "disabled:cursor-not-allowed disabled:text-[#5B6272]",
               variant === "underline"
                 ? cn(
                     "-mb-px border-b-2 px-0.5 pb-2.5 pt-1",

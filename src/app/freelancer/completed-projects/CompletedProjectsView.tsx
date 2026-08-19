@@ -10,6 +10,8 @@ import { EmptyStateAstronaut, StipendChip } from "@/components/ui/AppBlocks";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import Link from "next/link";
 import { fileToBase64 } from "@/lib/utils";
 import {
   Briefcase,
@@ -29,8 +31,7 @@ import {
   X,
   Upload,
   CheckCircle2,
-  Pencil
-} from "lucide-react";
+  Pencil, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { getProjectDescriptionText, formatProjectBudget, getProjectMetadataDirect, defaultCertificateConfig } from "@/lib/workflowHelpers";
 import { CertificatePreview } from "@/components/CertificateConfigurator";
 
@@ -67,6 +68,9 @@ interface PortfolioItem {
 }
 
 export function CompletedProjectsView({ freelancer, completedProjects, certificates = [] }: CompletedProjectsViewProps) {
+  // #9 — card/table switch, reusing the pill Tabs pattern already used by
+  // Review Applicants rather than introducing a second toggle style.
+  const [projectView, setProjectView] = useState<"card" | "table">("card");
   const [activeTab, setActiveTab] = useState<"platform" | "portfolio" | "certificates">("platform");
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>(
     (freelancer.portfolioItems as PortfolioItem[]) || []
@@ -444,18 +448,109 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
       {/* Platform Gigs Content */}
       {activeTab === "platform" && (
         <div className="space-y-4">
+          {completedProjects.length > 0 && (
+            <div className="flex justify-end">
+              <Tabs
+                label="Result layout"
+                variant="pill"
+                value={projectView}
+                onChange={(id) => setProjectView(id as "card" | "table")}
+                items={[
+                  { id: "card", label: "Cards", icon: <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> },
+                  { id: "table", label: "Table", icon: <TableIcon className="h-3.5 w-3.5" aria-hidden="true" /> },
+                ]}
+              />
+            </div>
+          )}
+
+          {/*
+            Table mode carries the same facts as the cards — company, budget,
+            certificate, and both review scores — so switching density never
+            drops information.
+          */}
+          {projectView === "table" && completedProjects.length > 0 && (
+            <Card className="overflow-hidden rounded-lg border-[#E3E5EA] bg-white">
+              <div className="overflow-x-auto p-5">
+                <Table className="w-full min-w-[820px] whitespace-nowrap">
+                  <THead>
+                    <TR>
+                      <TH>Project</TH>
+                      <TH>Company</TH>
+                      <TH align="center">Budget</TH>
+                      <TH align="center">Certificate</TH>
+                      <TH align="center">Rating received</TH>
+                      <TH align="center">Review given</TH>
+                    </TR>
+                  </THead>
+                  <TBody>
+                    {completedProjects.map((project) => {
+                      const received = project.reviews.find((r: any) => r.revieweeId === freelancer.userId);
+                      const given = project.reviews.find((r: any) => r.reviewerId === freelancer.userId);
+                      const cert = project.certificates?.[0];
+                      return (
+                        <TR key={project.id}>
+                          <TD className="font-semibold text-[#1A1D29]">{project.title}</TD>
+                          <TD>{project.company.companyName}</TD>
+                          <TD align="center">{formatProjectBudget(project)}</TD>
+                          <TD align="center">
+                            {cert ? (
+                              <Link
+                                href={`/freelancer/certificates/${cert.publicId}`}
+                                className="text-[11px] font-bold text-[#2159C9] hover:underline"
+                              >
+                                View
+                              </Link>
+                            ) : (
+                              <span className="text-[11px] text-[#5B6272]">—</span>
+                            )}
+                          </TD>
+                          <TD align="center">
+                            {received ? (
+                              <span className="text-[11px] font-semibold text-[#1A1D29]">{received.rating}/5</span>
+                            ) : (
+                              <span className="text-[11px] text-[#5B6272]">Pending</span>
+                            )}
+                          </TD>
+                          <TD align="center">
+                            {given ? (
+                              <span className="text-[11px] font-semibold text-[#1A1D29]">{given.rating}/5</span>
+                            ) : (
+                              <span className="text-[11px] text-[#5B6272]">Not yet</span>
+                            )}
+                          </TD>
+                        </TR>
+                      );
+                    })}
+                  </TBody>
+                </Table>
+              </div>
+            </Card>
+          )}
           {completedProjects.length === 0 ? (
             <Card className="p-10 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg">
               <Briefcase className="h-8 w-8 text-[#2159C9] mx-auto mb-3" />
               
             </Card>
           ) : (
-            completedProjects.map((project) => {
+            projectView === "card" && completedProjects.map((project) => {
               const reviewOfFreelancer = project.reviews.find((r: any) => r.revieweeId === freelancer.userId);
               const reviewOfCompany = project.reviews.find((r: any) => r.reviewerId === freelancer.userId);
 
               return (
-                <Card key={project.id} className="p-6 bg-white border border-[#E3E5EA]/80 rounded-lg space-y-4">
+                <Card key={project.id} className="overflow-hidden bg-white border border-[#E3E5EA]/80 rounded-lg">
+                  {/* #9 — banner heads the card; projects without one keep a neutral placeholder. */}
+                  {project.bannerUrl ? (
+                    <img
+                      src={project.bannerUrl}
+                      alt=""
+                      className="aspect-[16/5] w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-[16/5] w-full items-center justify-center bg-[#F0F3F9]">
+                      <Briefcase className="h-6 w-6 text-[#5B6272]" />
+                    </div>
+                  )}
+                  <div className="space-y-4 p-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-base font-bold text-[#1A1D29]">{project.title}</h3>
@@ -539,6 +634,7 @@ export function CompletedProjectsView({ freelancer, completedProjects, certifica
                         </Button>
                       </div>
                     )}
+                  </div>
                   </div>
                 </Card>
               );

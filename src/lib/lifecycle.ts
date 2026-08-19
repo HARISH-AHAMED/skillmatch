@@ -22,13 +22,35 @@ import type { Tx } from "@/lib/payments";
  * withdrawing a listing); COMPLETED only from a live state via completeProject.
  */
 const PROJECT_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
-  OPEN: ["IN_PROGRESS", "COMPLETED", "CLOSED"],
-  IN_PROGRESS: ["OPEN", "COMPLETED", "CLOSED"],
-  COMPLETED: [],
-  CLOSED: [],
+  // A draft is unpublished: it can only be published or dropped.
+  DRAFT: ["OPEN", "CANCELLED", "ARCHIVED"],
+  OPEN: ["IN_PROGRESS", "COMPLETED", "CLOSED", "CANCELLED", "ARCHIVED"],
+  IN_PROGRESS: ["OPEN", "COMPLETED", "CLOSED", "CANCELLED", "ARCHIVED"],
+  COMPLETED: ["ARCHIVED"],
+  CLOSED: ["ARCHIVED"],
+  // Cancelled work can still be filed away; archiving is the last stop.
+  CANCELLED: ["ARCHIVED"],
+  ARCHIVED: [],
 };
 
-export const TERMINAL_PROJECT_STATUSES: ProjectStatus[] = ["COMPLETED", "CLOSED"];
+/**
+ * Terminal for the purposes of mutation. CANCELLED and ARCHIVED join the
+ * original two: history stays readable, but nothing further may be changed.
+ */
+export const TERMINAL_PROJECT_STATUSES: ProjectStatus[] = ["COMPLETED", "CLOSED", "CANCELLED", "ARCHIVED"];
+
+/** Statuses a public browse or search may ever return. */
+export const PUBLICLY_BROWSEABLE_STATUSES: ProjectStatus[] = ["OPEN", "IN_PROGRESS"];
+
+/** A project that is not yet published: owner-only, no applications. */
+export function isDraft(status: ProjectStatus): boolean {
+  return status === "DRAFT";
+}
+
+/** Whether the project may still accept new applications. */
+export function acceptsApplications(status: ProjectStatus): boolean {
+  return status === "OPEN" || status === "IN_PROGRESS";
+}
 
 /** A terminal project is read-only: no payments, no tasks, no hiring, no edits. */
 export function isProjectMutable(status: ProjectStatus): boolean {
@@ -65,6 +87,12 @@ export function assertProjectMutable(
   }
   if (status === "COMPLETED") {
     return { ok: false, error: `This project is complete, so you cannot ${action} it.` };
+  }
+  if (status === "CANCELLED") {
+    return { ok: false, error: `This project was cancelled, so you cannot ${action} it.` };
+  }
+  if (status === "ARCHIVED") {
+    return { ok: false, error: `This project is archived, so you cannot ${action} it.` };
   }
   return { ok: true };
 }

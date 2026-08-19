@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { formatTimestamp } from "@/lib/dates";
 import { Card } from "@/components/ui/Card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
@@ -570,7 +571,7 @@ export function WorkspaceFunding({
                     <TR key={p.id}>
                       <TD>{p.freelancerName}</TD>
                       <TD align="center">{p.periodIndex}</TD>
-                      <TD>{new Date(p.date).toLocaleDateString()}</TD>
+                      <TD>{formatTimestamp(p.date)}</TD>
                       <TD align="right">{money(p.amount)}</TD>
                     </TR>
                   ))}

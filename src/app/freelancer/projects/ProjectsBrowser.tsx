@@ -126,7 +126,7 @@ export function ProjectsBrowser({ projects, appliedProjectIds, savedProjectIds, 
   return (
     <div className="space-y-6">
       {/* Search & Filters form */}
-      <Card className="p-4 sm:p-6 bg-white border border-[#E3E5EA] shadow-md sticky top-0 z-40">
+      <Card className="p-4 sm:p-6 bg-white border border-[#E3E5EA] shadow-md sticky top-[60px] md:top-0 z-20">
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow relative">

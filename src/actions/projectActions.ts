@@ -289,3 +289,204 @@ export async function updateProjectDueDate(projectId: string, dueDateString: str
 
   return { success: true, dueDate: updatedProject.dueDate };
 }
+
+/**
+ * Ownership guard shared by every lifecycle action below. The project is
+ * loaded and its company compared against the session — a caller-supplied id
+ * is only ever a lookup key, never proof of ownership.
+ */
+async function requireOwnedProject(projectId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const company = await db.company.findUnique({ where: { userId: session.user.id } });
+  if (!company) return { ok: false as const, error: "Unauthorized" };
+
+  const project = await db.project.findUnique({ where: { id: projectId } });
+  if (!project || project.companyId !== company.id) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  return { ok: true as const, project, company, session };
+}
+
+/**
+ * Draft autosave. One draft per creation session: the caller passes the id it
+ * was given the first time, and subsequent saves update that row rather than
+ * accumulating drafts. Drafts are DRAFT status, so public browse — which only
+ * returns OPEN/IN_PROGRESS — can never surface them, and applicationActions
+ * already refuses applications to anything outside those two states.
+ *
+ * Autosave deliberately does not validate: a draft is allowed to be
+ * incomplete. The publish path below runs the real validation.
+ */
+export async function saveProjectDraft(input: {
+  draftId?: string | null;
+  title?: string;
+  description?: string;
+  budget?: number;
+  priority?: ProjectPriority;
+  requiredSkills?: string[];
+  experienceRequired?: number;
+  freelancersLimit?: number;
+  domain?: string;
+  bannerUrl?: string | null;
+  preferredGender?: string;
+}) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) {
+    return { success: false, error: "Unauthorized" };
+  }
+  const company = await db.company.findUnique({ where: { userId: session.user.id } });
+  if (!company) return { success: false, error: "Complete your company profile first." };
+
+  const data = {
+    title: input.title?.trim() || "Untitled draft",
+    description: input.description ?? "",
+    budget: Number.isFinite(input.budget) ? Number(input.budget) : 0,
+    priority: input.priority ?? ProjectPriority.MEDIUM,
+    requiredSkills: (input.requiredSkills ?? []).map((s) => s.toLowerCase().trim()).filter(Boolean),
+    experienceRequired: input.experienceRequired ?? 0,
+    freelancersLimit: input.freelancersLimit ?? 1,
+    domain: input.domain ?? "Other",
+    bannerUrl: input.bannerUrl ?? null,
+    preferredGender: input.preferredGender ?? "ANY",
+    // A draft is never publicly discoverable, on either signal.
+    isVisible: false,
+    status: ProjectStatus.DRAFT,
+  };
+
+  if (input.draftId) {
+    const owned = await requireOwnedProject(input.draftId);
+    if (!owned.ok) return { success: false, error: owned.error };
+    if (owned.project.status !== ProjectStatus.DRAFT) {
+      return { success: false, error: "This project is already published." };
+    }
+    const updated = await db.project.update({ where: { id: input.draftId }, data });
+    return { success: true, draftId: updated.id, savedAt: updated.updatedAt };
+  }
+
+  const created = await db.project.create({ data: { ...data, companyId: company.id } });
+  return { success: true, draftId: created.id, savedAt: created.updatedAt };
+}
+
+/**
+ * A single draft, with the full serialised wizard payload, for resuming into
+ * the form. Ownership is re-derived from the session, so one company can never
+ * read another's draft.
+ */
+export async function getProjectDraft(draftId: string) {
+  const owned = await requireOwnedProject(draftId);
+  if (!owned.ok) return null;
+  if (owned.project.status !== ProjectStatus.DRAFT) return null;
+  const p = owned.project;
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    budget: p.budget,
+    priority: p.priority,
+    requiredSkills: p.requiredSkills,
+    experienceRequired: p.experienceRequired,
+    freelancersLimit: p.freelancersLimit,
+    domain: p.domain,
+    bannerUrl: p.bannerUrl,
+    preferredGender: p.preferredGender,
+  };
+}
+
+/** The company's resumable drafts, newest first. Scoped to the caller's company. */
+export async function getMyProjectDrafts() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.COMPANY) return [];
+  const company = await db.company.findUnique({ where: { userId: session.user.id } });
+  if (!company) return [];
+
+  return db.project.findMany({
+    where: { companyId: company.id, status: ProjectStatus.DRAFT },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, title: true, updatedAt: true, budget: true, domain: true },
+  });
+}
+
+/**
+ * Publishes a draft. Runs the same required-field validation the normal
+ * creation path enforces, so autosave cannot be used to sneak an incomplete
+ * project into the public listing.
+ */
+export async function publishProjectDraft(draftId: string, isVisible = true) {
+  const owned = await requireOwnedProject(draftId);
+  if (!owned.ok) return { success: false, error: owned.error };
+  if (owned.project.status !== ProjectStatus.DRAFT) {
+    return { success: false, error: "Only a draft can be published." };
+  }
+
+  const p = owned.project;
+  const missing: string[] = [];
+  if (!p.title.trim() || p.title === "Untitled draft") missing.push("title");
+  if (!p.description.trim()) missing.push("description");
+  if (!(p.budget > 0)) missing.push("budget");
+  if (p.requiredSkills.length === 0) missing.push("required skills");
+  if (missing.length > 0) {
+    return { success: false, error: `Add a ${missing.join(", ")} before publishing.` };
+  }
+
+  const transition = assertProjectTransition(p.status, ProjectStatus.OPEN);
+  if (!transition.ok) return { success: false, error: transition.error };
+
+  const published = await db.project.update({
+    where: { id: draftId },
+    data: { status: ProjectStatus.OPEN, isVisible },
+  });
+
+  // Compensation is written on every creation path (COMP-016).
+  const existing = await db.projectCompensation.findUnique({ where: { projectId: draftId } });
+  if (!existing) {
+    await db.projectCompensation.create({
+      data: { projectId: draftId, ...compensationData(published.description, published.budget) },
+    });
+  }
+
+  await recalculateRecommendationsForProject(draftId);
+  revalidatePath("/company/projects");
+  revalidatePath("/freelancer/projects");
+  return { success: true, projectId: published.id };
+}
+
+/**
+ * Requirement #1/#10 — the single lifecycle path behind "Delete".
+ *
+ * Nothing is hard-deleted: applications, workspaces, reviews, certificates and
+ * the whole financial ledger reference the project, and destroying the row
+ * would orphan all of it. A draft, which has no history, is archived too — the
+ * same transition, so there is only one implementation to reason about.
+ */
+export async function setProjectLifecycle(
+  projectId: string,
+  to: "CANCELLED" | "ARCHIVED"
+) {
+  const owned = await requireOwnedProject(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
+
+  const transition = assertProjectTransition(owned.project.status, to as ProjectStatus);
+  if (!transition.ok) return { success: false, error: transition.error };
+
+  await db.project.update({
+    where: { id: projectId },
+    // Removed from public discovery on the authoritative flag as well.
+    data: { status: to as ProjectStatus, isVisible: false },
+  });
+
+  revalidatePath("/company/projects");
+  revalidatePath("/freelancer/projects");
+  revalidatePath(`/company/projects/${projectId}`);
+  return { success: true, status: to };
+}
+
+/** "Delete" in the UI: cancel a published project, archive an unpublished one. */
+export async function deleteProject(projectId: string) {
+  const owned = await requireOwnedProject(projectId);
+  if (!owned.ok) return { success: false, error: owned.error };
+  const target = owned.project.status === ProjectStatus.DRAFT ? "ARCHIVED" : "CANCELLED";
+  return setProjectLifecycle(projectId, target);
+}

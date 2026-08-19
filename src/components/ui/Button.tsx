@@ -29,7 +29,7 @@ export function Button({
     "relative inline-flex items-center justify-center gap-2 rounded-full font-semibold",
     "transition-colors duration-[180ms] ease-out",
     "focus:outline-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2E6BEA]/15 focus-visible:border-[#2E6BEA]",
-    "disabled:cursor-not-allowed disabled:bg-[#F1F2F4] disabled:text-[#B7BBC6] disabled:border-transparent disabled:shadow-none"
+    "disabled:cursor-not-allowed disabled:bg-[#F1F2F4] disabled:text-[#5B6272] disabled:border-transparent disabled:shadow-none"
   );
 
   const variants = {
@@ -64,7 +64,7 @@ export function Button({
     xs: "h-8 px-4 text-[13px]",
     sm: "h-9 px-5 text-[13px]",
     md: "h-10 px-6 text-sm",
-    lg: "h-11 px-7 text-sm",
+    lg: "h-11 px-8 py-4 text-sm",
   };
 
   return (

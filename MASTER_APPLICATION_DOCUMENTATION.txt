@@ -1,0 +1,2865 @@
+================================================================================
+TALENTRA — MASTER APPLICATION DOCUMENTATION
+Production rebuild specification. Version 1.0
+================================================================================
+
+Purpose: a complete implementation specification. A development team with no
+access to the original source should be able to rebuild Talentra exactly from
+this document.
+
+Codebase identity: package name "skillmatch", product name "Talentra".
+
+TECH STACK (exact)
+- next 16.2.7 (App Router, Server Actions, React Server Components)
+- react 19.2.4 / react-dom 19.2.4
+- typescript 5, eslint 9 + eslint-config-next
+- tailwindcss 4 (@tailwindcss/postcss), design tokens via @theme in globals.css
+- framer-motion 12.40, lucide-react 1.17, three 0.184 (marketing visuals only)
+- class-variance-authority, clsx, tailwind-merge (cn helper)
+- prisma 6.2.1 + @prisma/client 6.2.1, PostgreSQL (Neon)
+- next-auth 5.0.0-beta.25 + @auth/core 0.41.3 + @auth/prisma-adapter
+- bcryptjs 3.0.3, nanoid 6
+- vitest 3.2.7 (unit tests), tsx (seed/scripts)
+Scripts: dev, build, start, lint, test (vitest run), test:watch, postinstall
+(prisma generate). Prisma seed: npx tsx prisma/seed.ts.
+
+
+================================================================================
+# 1. APPLICATION OVERVIEW
+================================================================================
+
+## 1.1 Vision
+A single collaboration platform where companies publish work, discover talent by
+AI match score, hire teams into named roles, and run the whole engagement —
+contracts, escrow-style funding, tasks, chat, meetings, deliverables, reviews,
+and verifiable certificates — inside one project workspace.
+
+## 1.2 Goals
+- Replace fragmented hiring (job board + chat + contract + payment tools).
+- Make money movement auditable: an append-only ledger, never mutable JSON.
+- Make team composition explicit: roles, slots, apprentices, capacity.
+- Give freelancers portable proof of work: publicly verifiable certificates.
+- Keep every authorization decision in one guard layer, not per call site.
+
+## 1.3 User types
+Guest, Freelancer, Company, Admin. Role is an enum on User: ADMIN, COMPANY,
+FREELANCER. Default on registration is FREELANCER. ADMIN can never be
+self-assigned.
+
+## 1.4 Platform purpose (functional summary)
+1. Company creates a project (5-step wizard) with compensation model, roles,
+   screening rounds, certificate template, visibility.
+2. Freelancers browse/filter, apply (3-step wizard) to a project or a role slot,
+   optionally as apprentice.
+3. Company screens applicants (AI score, screening answers, pipeline stages),
+   sends an offer letter, negotiates, hires.
+4. On hire, a workspace opens: overview, funding/payments, tasks (kanban),
+   deliverables, chat, meetings, team.
+5. Company funds and releases payments per the compensation model. Every
+   movement writes a PaymentTransaction ledger row.
+6. Company completes the project once all financials are settled. Certificates
+   are issued. Both sides review each other.
+
+
+================================================================================
+# 2. USER ROLES
+================================================================================
+
+## 2.1 GUEST (unauthenticated)
+
+### Permissions
+- View marketing pages: /, /about, /features, /contact
+- View /login, /register
+- View public certificate verification: /verify/[publicId]
+- View public profile pages: /freelancers/[id], /companies/[id]
+
+### Restrictions
+- Cannot apply, message, upload, view workspaces, or read notifications.
+- All server actions call requireUser()/requireRole() and return "Unauthorized".
+- Session strategy is JWT; absence of session = guest.
+
+### Actions
+Register, sign in with Google, sign in with email+password, verify a
+certificate code.
+
+## 2.2 FREELANCER
+
+### Permissions
+- Own profile CRUD (/freelancer/profile), including banner, resume, portfolio
+  items, experience, education, availability calendar, languages, skills.
+- Browse and filter projects (only OPEN/IN_PROGRESS + isVisible + not PRIVATE).
+- Apply to a project once (unique [projectId, freelancerId]).
+- Track applications, view pipeline history, respond to offers, counter-offer.
+- Confirm or decline a team placement (teamConfirmedAt).
+- Access the workspace of every project they are HIRED on.
+- Send messages in "group", "freelancers", and their own DM channels.
+- Upload/share files and deliverable versions; upload new deliverable versions.
+- Log hours (HOURLY projects), submit payment stages for review.
+- Accept/decline meeting invitations.
+- Review the company after project completion (with 3 sub-scores).
+- View, hide/show, and download earned certificates.
+- Save/unsave projects; follow companies; join talent community; job alerts.
+
+### Restrictions
+- Cannot create projects, hire, fund, release payments, or issue certificates.
+- Cannot read the company-side of a DM they are not party to.
+- Cannot see other freelancers' work logs or payment items.
+- Cannot apply to PRIVATE projects, nor INVITE_ONLY without a pending invite.
+- Cannot apply when the project is at capacity (unless applying as apprentice).
+- Cannot apply to a role belonging to a different project.
+- Cannot apply as apprentice to a role with allowApprentice = false.
+
+### Accessible pages
+/freelancer/dashboard, /freelancer/profile, /freelancer/projects,
+/freelancer/projects/[id], /freelancer/projects/[id]/apply,
+/freelancer/applications, /freelancer/applications/[id],
+/freelancer/workspace, /freelancer/workspace/[applicationId],
+/workspace/[applicationId], /freelancer/completed-projects,
+/freelancer/certificates, /freelancer/certificates/[publicId],
+/freelancer/reviews, plus all public pages.
+
+## 2.3 COMPANY
+
+### Permissions
+- Company profile CRUD, gallery, logo, banner, team members, benefits.
+- Create/edit/publish/close/cancel/archive projects; toggle visibility.
+- Autosave drafts; resume drafts; publish drafts.
+- Define ProjectRoles (name, slots, allowApprentice, sortOrder).
+- Configure screening rounds and screening questions.
+- Design the certificate template; issue certificates.
+- Search freelancers, save freelancers, invite freelancers to a project.
+- Review applicants: shortlist, reject, hire, bulk transition, remove.
+- Send/negotiate/withdraw offer letters; sign digital contracts.
+- Create payment stages, fund, review submissions, release, refund.
+- Approve/reject work logs; release hourly payments; release stipend periods.
+- Create tasks, assign them, move them across kanban columns.
+- Schedule/update/cancel meetings.
+- Mark project complete; review hired freelancers.
+
+### Restrictions
+- Cannot see the "freelancers"-only chat channel (explicitly blocked on write
+  and filtered out on read).
+- Cannot act on another company's project/application/role/file (every guard
+  re-derives ownership from the session).
+- Cannot mutate a terminal project (COMPLETED, CLOSED, CANCELLED, ARCHIVED).
+- Cannot hire beyond freelancersLimit or beyond role slots.
+- Cannot remove a freelancer who still has committed funds or unpaid approved
+  hours.
+- Cannot delete a payment stage holding funded/released money.
+- Cannot reduce role slots below the number already hired into that role.
+- Cannot request more than 2 revisions on a deliverable or payment item.
+
+### Accessible pages
+/company/dashboard, /company/profile, /company/projects,
+/company/projects/new, /company/projects/[id],
+/company/projects/edit/[projectId], /company/projects/[id]/certificate,
+/company/applicants, /company/applicants/[id], /company/freelancers,
+/company/freelancers/[id], /company/workspace,
+/company/workspace/[applicationId], /workspace/[applicationId],
+/company/reviews, plus all public pages.
+
+## 2.4 ADMIN
+
+### Permissions
+- View/manage all users (create, change role, delete).
+- View all freelancer profiles, all companies, all projects.
+- Moderate reviews. Adjust system settings.
+- Every admin action calls requireAdmin() directly — the /admin layout guard is
+  not treated as protection for server actions.
+
+### Restrictions
+- ADMIN role cannot be created through public registration (role allowlist
+  excludes ADMIN). Admins are provisioned by seed or by an existing admin.
+- Admin is not automatically a party to project workspaces; workspace guards
+  check company ownership or hired-freelancer membership only.
+
+### Accessible pages
+/admin/dashboard, /admin/users, /admin/freelancers, /admin/companies,
+/admin/projects, /admin/reviews, /admin/settings.
+
+### Audit
+AdminLog rows (adminId, action, createdAt) record administrative actions.
+
+
+================================================================================
+# 3. COMPLETE FEATURE LIST
+================================================================================
+
+## 3.1 Identity & accounts
+- Email + password credentials login (bcrypt).
+- Legacy plaintext password upgrade-in-place on first successful login, setting
+  passwordChangeRequired = true.
+- Google OAuth login.
+- JWT sessions; role, name, image refreshed from DB on each JWT callback.
+- data: URL avatars are stripped from the token/session (size protection).
+- Registration with role allowlist (FREELANCER, COMPANY only).
+- Profile-shape bootstrapping: Freelancer or Company row created per role.
+
+## 3.2 Projects
+- 5-step creation wizard, draft autosave, resume drafts, publish validation.
+- Rich metadata block serialized into Project.description.
+- Compensation models: FIXED, HOURLY, MILESTONE, STIPEND, UNPAID.
+- 46 supported ISO-4217 currencies.
+- Banner upload, domain/category, priority, required + preferred skills.
+- Visibility: PUBLIC, PRIVATE, INVITE_ONLY, plus isVisible boolean.
+- Preferred gender field (ANY/MALE/FEMALE).
+- Due date, timeline (application deadline, start, expected completion).
+- Objectives, deliverables, responsibilities, daily tasks, FAQ.
+- Working days, timing type, duration.
+- Roles with slots and apprentice permission.
+- Screening rounds catalog (13 types; only SCREENING_QUESTIONS is runnable).
+- Certificate template designer.
+- Lifecycle: DRAFT, OPEN, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED, ARCHIVED.
+
+## 3.3 Discovery & matching
+- AI recommendation score (deterministic weighted formula, see 21.x).
+- Cached Recommendation rows: top 10 freelancers per OPEN project.
+- Freelancer browse with reward filter resolved in SQL.
+- Company freelancer search with saved-freelancer shortlist.
+- Company invitations to apply (stored on Freelancer metadata).
+- "New Match Found" notification broadcast on project creation.
+
+## 3.4 Applications
+- 3-step apply wizard, cover letter + screening answers + review.
+- Role targeting and apprentice flag.
+- Statuses: PENDING, SHORTLISTED, REJECTED, HIRED.
+- Pipeline history events with recruiter attribution.
+- Team-match confirmation before final commitment.
+- Offer letters, counter-offers (negotiation history), accept/decline.
+- Digital contract with dual signature + server-derived IP capture.
+
+## 3.5 Team system
+- ProjectRole with slots and allowApprentice.
+- Capacity computed by one shared function for both apply and hire paths.
+- Apprentices never consume a slot.
+- Role lock: once a role's primaries are full, remaining open applicants on that
+  role are auto-rejected.
+- Apprentice → primary handover (swap isApprentice, keep both on the roster).
+
+## 3.6 Workspace
+Tabs: Overview, Funding/Payments, Tasks, Deliverables, Chat, Meetings, Team.
+
+## 3.7 Financial system
+- ProjectCompensation (single source of truth for how a project pays).
+- PaymentItem (milestone/stage), WorkLog (hourly), StipendPeriod (stipend).
+- PaymentTransaction: append-only ledger with idempotency keys.
+- Row-level locking (SELECT … FOR UPDATE) on every financial mutation.
+- Decimal(18,2) money, currency stored with every amount.
+- Reconciliation helper comparing cached aggregates against the ledger.
+
+## 3.8 Collaboration
+- Three chat channel kinds: group, freelancers-only, DM.
+- 7-day message retention with a cron cleanup endpoint.
+- File sharing per channel; deliverable versioning with revision cap 2.
+- Project updates (status posts).
+- Kanban tasks: TODO, IN_PROGRESS, REVIEW, DONE.
+- Company discussion board (FAQ Q&A on a listing).
+
+## 3.9 Meetings
+Scheduled by the company, attendees filtered to genuine project parties,
+accept/decline per attendee, upcoming/past split, cancellation notices.
+
+## 3.10 Certificates
+Company-designed template, issued at completion, snapshotted fields, public
+verification page, dual signatories, revocation, per-certificate visibility
+toggle, client-side download.
+
+## 3.11 Reviews & reputation
+- Company → freelancer review (rating 1–5).
+- Freelancer → company review (rating + communication + payment reliability +
+  project clarity sub-scores).
+- Freelancer.rating recomputed from primary (non-apprentice) reviews only.
+- Apprentice score kept separately in freelancer metadata.
+- completedProjects derived, never incremented.
+- Company trustScore, reputationScore, paymentReliability recomputed on review.
+
+## 3.12 Notifications
+In-app Notification rows, polled REST endpoint, notification center dropdown,
+deep-link resolution, mark one / mark all read.
+
+## 3.13 Uploads
+MIME + extension allowlist, size caps by category, SVG rejected, canonical
+extension and content type stored from the allowlist, safe download route.
+
+
+================================================================================
+# 4. INFORMATION ARCHITECTURE
+================================================================================
+
+## 4.1 Shells
+- Public/marketing shell: Navbar + page + footer.
+- Authenticated shell: DashboardLayout = Sidebar (left) + content.
+- Route-group layouts: /company/layout.tsx, /freelancer/layout.tsx,
+  /admin/layout.tsx — each renders the shell and enforces the role.
+
+## 4.2 Sidebar (collapsed 68px / expanded 260px, tokens
+--spacing-sidebar-collapsed / --spacing-sidebar-expanded)
+
+### ADMIN items
+Dashboard (/admin/dashboard, LayoutDashboard)
+Users Management (/admin/users, Users)
+Freelancers Profile (/admin/freelancers, UserCircle)
+Companies List (/admin/companies, Building)
+Projects Monitor (/admin/projects, Briefcase)
+Moderate Reviews (/admin/reviews, Star)
+System Settings (/admin/settings, Settings)
+
+### COMPANY items
+Dashboard (/company/dashboard)
+My Profile (/company/profile)
+My Projects (/company/projects, exact match)
+Post New Project (/company/projects/new)
+Review Applicants (/company/applicants)
+Project Workspace (/company/workspace)
+Search Freelancers (/company/freelancers)
+Freelancer Reviews (/company/reviews)
+
+### FREELANCER items
+Dashboard (/freelancer/dashboard)
+My Profile (/freelancer/profile)
+Project Workspace (/freelancer/workspace)
+Completed Projects (/freelancer/completed-projects)
+Browse Projects (/freelancer/projects)
+Track Applications (/freelancer/applications)
+My Ratings & Reviews (/freelancer/reviews)
+
+### Sidebar dynamic section: Workspaces
+Fetched from GET /api/workspaces. Freelancer: one entry per HIRED application
+on an OPEN/IN_PROGRESS project. Company: grouped by project (one link per
+project, applicationIds collected). Each row links to /workspace/{applicationId}
+and offers an "open in new tab" affordance.
+
+### Sidebar top/bottom
+Top: Talentra logo → "/". Avatar → profileHref from GET /api/profile
+(/freelancers/{id} or /companies/{id}). A primary action button (e.g. Post New
+Project for companies). Bottom: profile link, sign out.
+
+### Active state rule
+exact === true → pathname === href. Otherwise pathname === href ||
+pathname.startsWith(href + "/").
+
+## 4.3 Navbar (public)
+Logo, marketing links (Features, About, Contact), Login, Register. For
+authenticated users it exposes NotificationCenter and the avatar menu.
+
+## 4.4 Dashboard structure
+- Company dashboard: KPI tiles (active projects, applicants, hires, spend),
+  recent applications, AnalyticsChart, TopFreelancers, notifications.
+- Freelancer dashboard: KPI tiles (applications, active projects, earnings,
+  rating), pending project invitations, DashboardNotifications, leaderboard
+  sidebar, recommended projects.
+- Admin dashboard: platform-wide counts and moderation entry points.
+
+
+================================================================================
+# 5. DATABASE DESIGN
+================================================================================
+
+Provider: postgresql. Client: prisma-client-js. All ids are cuid() unless
+stated. All money is Decimal(18,2). Dates that must not shift across timezones
+use @db.Date.
+
+## 5.1 ENUMS
+Role: ADMIN, COMPANY, FREELANCER
+ProjectPriority: LOW, MEDIUM, HIGH
+ProjectStatus: DRAFT, OPEN, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED, ARCHIVED
+ApplicationStatus: PENDING, SHORTLISTED, REJECTED, HIRED
+CompensationTypeEnum: FIXED, HOURLY, MILESTONE, STIPEND, UNPAID
+StipendFrequencyEnum: ONE_TIME, WEEKLY, MONTHLY
+PaymentItemStatus: PENDING, FUNDED, SUBMITTED, CHANGES_REQUESTED, APPROVED,
+                   RELEASED, CANCELLED
+WorkLogStatus: PENDING, APPROVED, REJECTED
+LedgerEntryType: FUND, RELEASE, REFUND, ADJUSTMENT
+MeetingStatus: SCHEDULED, CANCELLED, COMPLETED
+MeetingAttendeeStatus: INVITED, ACCEPTED, DECLINED
+
+## 5.2 User
+Purpose: the authentication identity. One per human.
+Fields: id, name?, email? @unique, emailVerified?, image?, role (default
+FREELANCER), passwordHash?, passwordChangeRequired (default false), createdAt,
+updatedAt.
+Relations: accounts[], sessions[], freelancerProfile?, companyProfile?,
+notifications[], reviewsWritten[], reviewsReceived[], adminLogs[], messages[],
+sharedFiles[], projectUpdates[], assignedTasks[], createdTasks[],
+meetingsOrganized[], meetingAttendance[].
+Rules:
+- passwordHash null ⇒ password login impossible (OAuth-only account).
+- passwordChangeRequired is set when a legacy plaintext credential was migrated.
+- role change is admin-only.
+
+## 5.3 Account / Session / VerificationToken
+Standard Auth.js adapter models.
+Account: unique [provider, providerAccountId], index userId, cascade delete.
+Session: sessionToken unique, expires, index userId, cascade delete.
+VerificationToken: token unique, unique [identifier, token].
+Note: session strategy is JWT, so Session rows are largely unused but the
+adapter schema is retained.
+
+## 5.4 Freelancer
+Purpose: the talent-side profile.
+Fields: id, userId @unique, bio? (Text — also carries the serialized metadata
+block), skills String[] (stored lowercase for indexing), experienceYears (0),
+portfolioUrl?, bannerUrl?, resumeUrl?, rating Float (0.0), completedProjects
+Int (0), completionRate Float (100.0), domain? ("Other"),
+professionalHeadline?, experience Json?, certifications Json?, portfolioItems
+Json?, responseTime? ("Within 24 hours"), availabilityStatus? ("AVAILABLE" |
+"BUSY" | "UNAVAILABLE"), gender? ("ANY"), verificationBadges String[].
+Relations: user (cascade), applications[], recommendations[],
+savedByCompanies[], savedProjects[], certificates[].
+Rules:
+- skills are lowercased and trimmed on every write.
+- rating is the mean of non-apprentice reviews, 1 decimal.
+- completedProjects is DERIVED (count of COMPLETED projects where the freelancer
+  was HIRED and isApprentice = false).
+- certifications JSON now stores { hiddenCertificateIds: string[] } — the
+  self-reported credential list was retired.
+- bio contains free text + "\n\nMETADATA_JSON_BLOCK:" + JSON payload
+  (FreelancerOnboardingData).
+
+## 5.5 Company
+Purpose: the employer-side profile.
+Fields: id, userId @unique, companyName, description? (Text; also carries the
+metadata block), industry?, website?, location?, bannerUrl? (""),
+officeLocations String[], logoUrl? (""), companySize? ("10-50 employees"),
+foundedYear? (2020), linkedin?, email?, phone?, missionVision? (Text),
+workCulture? (Text), hiringPhilosophy? (Text), galleryPhotos String[],
+galleryVideos String[], benefits String[], teamMembers Json ("[]"),
+verificationBadges String[], trustScore Int (90), reputationScore Int (90),
+sentimentAnalysis? (Text), completionRate Float (100), retentionRate Float
+(100), paymentReliability Float (100), avgResponseTime? ("Within 24 hours"),
+avgTimeToHire? ("14 days"), hiringSuccessRate Float (100), followers String[],
+watchlistUsers String[], talentCommunity String[], jobAlertsUsers String[].
+Relations: user (cascade), projects[], savedFreelancers[], certificates[].
+Rules:
+- trustScore = min(100, round(((avgComm + avgPayment + avgClarity) / 15) * 100))
+- reputationScore = min(100, round((avgRating / 5) * 100))
+- paymentReliability = min(100, round((avgPayment / 5) * 100))
+- follower/watchlist/talentCommunity/jobAlerts arrays hold User ids and are
+  toggled idempotently.
+
+## 5.6 Project
+Purpose: a unit of work a company publishes.
+Fields: id, companyId, title, description (Text; free text + metadata block),
+budget Float, priority (MEDIUM), requiredSkills String[], experienceRequired Int
+(0), status (default OPEN), freelancersLimit Int (1), isVisible Boolean (true),
+domain? ("Other"), bannerUrl?, preferredGender? ("ANY"), dueDate?, createdAt,
+updatedAt.
+Relations: company (cascade), applications[], recommendations[], reviews[],
+savedByFreelancers[], roles[], messages[], sharedFiles[], projectUpdates[],
+tasks[], certificates[], meetings[], compensation? (1:1), paymentItems[],
+workLogs[], stipendPeriods[], paymentTransactions[].
+Indexes: companyId, status.
+Rules:
+- Every project MUST have exactly one ProjectCompensation row; it is created in
+  the same transaction as the project.
+- Project.budget (Float) is a display/legacy field; ProjectCompensation
+  .totalBudget (Decimal) is authoritative for money math.
+- DRAFT is never publicly browseable and has isVisible = false.
+- Terminal statuses are read-only.
+
+## 5.7 Application
+Purpose: a freelancer's bid for a project (or a specific role slot).
+Fields: id, projectId, freelancerId, roleId?, isApprentice (false),
+teamConfirmedAt?, coverLetter (Text; free text + metadata block), aiScore Float
+(0.0), status (PENDING), createdAt, updatedAt.
+Relations: project (cascade), freelancer (cascade), role (SetNull),
+paymentItems[], workLogs[], stipendPeriods[].
+Constraints: @@unique [projectId, freelancerId]; indexes freelancerId, status,
+roleId.
+Rules:
+- One application per freelancer per project, enforced by the DB; the P2002
+  violation is translated into a friendly message.
+- roleId must belong to the same project (verified server-side).
+- isApprentice = true requires role.allowApprentice = true.
+- teamConfirmedAt is set only after HIRED and only by the freelancer.
+- All financial records key off applicationId, never off freelancerId, so money
+  is isolated per hire.
+
+## 5.8 ProjectRole
+Purpose: a named position with a fixed number of openings.
+Fields: id, projectId, name, description? (Text), slots Int (1),
+allowApprentice Boolean (false), sortOrder Int (0), createdAt.
+Relations: project (cascade), applications[]. Index projectId.
+Rules:
+- 1 ≤ slots ≤ 100 (MAX_ROLE_SLOTS).
+- slots may never be reduced below the number of hired primaries in that role.
+- A role with any applications cannot be deleted.
+- Roles are optional: zero roles = original one-candidate-per-listing behaviour.
+
+## 5.9 ProjectCompensation
+Purpose: the single source of truth for how a project pays.
+Fields: id, projectId @unique, type (CompensationTypeEnum), currency (ISO 4217),
+totalBudget Decimal(18,2), budgetNegotiable Boolean (false), hourlyRate?
+Decimal, estimatedHours? Int, maxHours? Int, stipendAmount? Decimal,
+stipendFrequency? enum, stipendPeriods? Int, createdAt, updatedAt.
+Relation: project (cascade, 1:1).
+Rules:
+- Written atomically with project creation and upserted on project edit.
+- Every amount elsewhere must be denominated in this currency.
+- maxHours bounds cumulative logged hours for HOURLY.
+- stipendPeriods bounds the number of payable periods; ONE_TIME forces 1.
+
+## 5.10 PaymentItem (payment stage / milestone)
+Purpose: one payable unit of work assigned to exactly one hired application.
+Fields: id, projectId, applicationId (REQUIRED), title, description? (Text),
+sortOrder Int (0), amount Decimal(18,2), currency, status (PENDING), dueDate?
+(@db.Date), fundedAmount Decimal (0), releasedAmount Decimal (0),
+submissionNote? (Text), reviewNote? (Text), revisionCount Int (0), submittedAt?,
+reviewedAt?, releasedAt?, createdAt, updatedAt.
+Relations: project (cascade), application (cascade), ledger[].
+Indexes: projectId, applicationId, [projectId, status].
+Rules:
+- fundedAmount/releasedAmount are caches over the ledger, written in the same
+  transaction as the ledger row. The ledger is authoritative.
+- Sum of all items' amounts ≤ project budget.
+- An item's amount may never drop below max(fundedAmount, releasedAmount).
+- An item holding committed money cannot be deleted or reassigned.
+
+## 5.11 WorkLog
+Purpose: an hourly work entry.
+Fields: id, projectId, applicationId, workDate (@db.Date), hours Decimal(6,2),
+description (Text), status (PENDING), rateSnapshot Decimal(18,2), currency,
+reviewedAt?, reviewedById?, reviewNote? (Text), createdAt, updatedAt.
+Constraints: @@unique [applicationId, workDate, description]; indexes projectId,
+[applicationId, status].
+Rules:
+- rateSnapshot freezes the hourly rate in force when the work was logged, so
+  editing the project rate never reprices approved work.
+- hours ≤ 16 per log (MAX_DAILY_HOURS).
+- Cumulative hours ≤ ProjectCompensation.maxHours when set.
+- Only APPROVED logs are payable.
+
+## 5.12 StipendPeriod
+Purpose: one payable stipend period for one application.
+Fields: id, projectId, applicationId, periodIndex Int, periodStart? (@db.Date),
+periodEnd? (@db.Date), amount Decimal, currency, status (PENDING), releasedAt?,
+createdAt, updatedAt.
+Constraints: @@unique [applicationId, periodIndex]; index projectId.
+Rules:
+- A period can be paid exactly once, enforced by the unique index.
+- periodIndex is 1-based and bounded by maxStipendPeriods().
+
+## 5.13 PaymentTransaction (ledger)
+Purpose: append-only record of every movement of value.
+Fields: id, projectId, applicationId, paymentItemId?, workLogId?,
+stipendPeriodId?, type (LedgerEntryType), amount Decimal (signed: FUND
+positive, RELEASE negative, REFUND positive), currency, actorUserId, note?
+(Text), idempotencyKey String @unique, externalRef?, createdAt.
+Relations: project (cascade), paymentItem? (SetNull).
+Indexes: projectId, applicationId, paymentItemId.
+Rules:
+- Never updated, never deleted. A correction is a new compensating entry.
+- idempotencyKey is the replay guard: a retried/double-clicked mutation derives
+  the same key and is rejected by the unique index (P2002 →
+  LedgerReplayError → "This operation has already been recorded.").
+- Key format: `${scope}:${id}:${operation}` or with a trailing `:${nonce}` for
+  operations that may legitimately repeat (e.g. incremental funding).
+- externalRef is reserved for a future payment provider; no schema change needed
+  when one is integrated.
+
+## 5.14 Meeting
+Purpose: a scheduled workspace meeting.
+Fields: id, projectId, organizerUserId, title, description? (Text), startsAt,
+durationMinutes Int (30), meetingUrl?, location?, status (SCHEDULED), createdAt,
+updatedAt.
+Relations: project (cascade), organizer (cascade), attendees[].
+Indexes: projectId, [projectId, startsAt].
+Rules:
+- Organizer is always the owning company's user, set server-side.
+- Attendee list is filtered to genuine project parties before insert.
+- Past = status COMPLETED or startsAt + durationMinutes < now.
+
+## 5.15 MeetingAttendee
+Fields: id, meetingId, userId, status (INVITED).
+Constraints: @@unique [meetingId, userId]; index userId.
+Rules: an attendee may only change their own row, located by the composite key.
+The organizer is inserted with ACCEPTED.
+
+## 5.16 Notification
+Fields: id, userId, title, message, read (false), createdAt. Index userId.
+Rules: fire-and-forget; no delivery guarantees; polled by the client.
+
+## 5.17 Message (chat)
+Fields: id, projectId, senderId, content (Text), channel (default "group"),
+seen Boolean (false), createdAt. Indexes projectId, senderId.
+Channel grammar: "group" | "freelancers" | "dm:{userIdA}:{userIdB}".
+Rules:
+- Retention 7 days; older rows deleted by the cleanup job and excluded from
+  workspace reads.
+- Channel visibility enforced by visibleChannelsFor() on every read path.
+
+## 5.18 SharedFile
+Fields: id, projectId, uploadedById, fileName, fileUrl (Text — a path or a
+data: URL), fileSize? (repurposed: JSON string carrying deliverable metadata),
+channel (default "group"), uploadedAt. Indexes projectId, uploadedById.
+Deliverable metadata JSON shape stored in fileSize:
+{ size, status: "PENDING"|"APPROVED"|"REVISION_REQUESTED", version, feedback,
+  revisionCount, revisionCap }
+Rules: same channel visibility rules as Message.
+
+## 5.19 ProjectUpdate
+Fields: id, projectId, createdById, title, description (Text), status (string:
+PENDING / IN_PROGRESS / COMPLETED), createdAt, updatedAt. Indexes projectId,
+createdById.
+Rule: purely narrative. Financial figures must NEVER be derived from update
+titles (a historical defect); money comes from the payment tables.
+
+## 5.20 Task (kanban card)
+Fields: id, projectId, title, description? (Text), status (default "TODO"),
+priority (default "MEDIUM"), dueDate?, assignedToId?, createdById, createdAt,
+updatedAt. Indexes projectId, assignedToId, createdById.
+Rules: status must be one of TODO, IN_PROGRESS, REVIEW, DONE — validated by
+isTaskStatus() before write (the column is a bare String).
+
+## 5.21 Certificate
+Purpose: platform-issued, publicly verifiable credential.
+Fields: id, publicId @unique (format XXXXX-XXXXX from alphabet
+"ABCDEFGHJKMNPQRSTUVWXYZ23456789"), projectId, freelancerId, companyId,
+roleTitle, skills String[], durationText?, summary? (Text), issuerName,
+recipientName, projectTitle, issuedAt, signer1Name?, signer1Title?,
+signer1SignatureUrl?, signer2Name?, signer2Title?, signer2SignatureUrl?,
+revokedAt?, revokeReason?.
+Constraints: @@unique [projectId, freelancerId]; indexes freelancerId,
+companyId, publicId.
+Rules:
+- Deliberately denormalised: it must keep saying what it said at issue time.
+- Revocation preserves the row (revokedAt + reason), never deletes.
+- One certificate per freelancer per project; re-issue returns the existing one.
+
+## 5.22 Review
+Fields: id, projectId, reviewerId, revieweeId, rating Int (1–5), comment (Text),
+createdAt, communicationScore? Int, paymentReliabilityScore? Int,
+projectClarityScore? Int. Indexes projectId, reviewerId, revieweeId.
+Rules:
+- Project must be COMPLETED.
+- Reviewer must be a genuine party (owning company / hired freelancer).
+- One review per (project, reviewer, reviewee) — duplicates return the existing
+  row with duplicate: true rather than erroring.
+- Sub-scores exist only on freelancer→company reviews.
+
+## 5.23 Recommendation
+Fields: id, projectId, freelancerId, score Float, createdAt.
+Constraints: @@unique [projectId, freelancerId]; index freelancerId.
+Rule: cache of the top 10 scored freelancers per OPEN project; fully replaced
+(deleteMany + createMany) on recalculation.
+
+## 5.24 SavedProject / SavedFreelancer
+SavedProject: freelancerId + projectId, unique pair, savedAt.
+SavedFreelancer: companyId + freelancerId, unique pair, savedAt.
+Both cascade on delete of either side. Toggle semantics (create or delete).
+
+## 5.25 AdminLog
+Fields: id, adminId, action, createdAt. Index adminId. Cascade on admin delete.
+
+## 5.26 Models named in the brief that are NOT separate tables
+- "Invitation": stored inside Freelancer.bio metadata as
+  projectInvites[] { projectId, projectTitle, companyId, companyName, message?,
+  roleId?, roleName?, isApprentice?, status: PENDING|APPLIED|DISMISSED,
+  invitedAt, respondedAt? }. Deliberate: the invite survives whether or not an
+  Application row is ever created.
+- "Workspace": derived, not stored. A workspace exists for a project as soon as
+  any application on it is HIRED and the project is OPEN or IN_PROGRESS.
+  It is addressed by applicationId in the URL.
+- "Kanban": the Task table plus TASK_COLUMNS.
+- "Chat": the Message table plus channel grammar.
+- "Activity": the ProjectUpdate table plus Application pipelineHistory events.
+- "Analytics": computed at read time from Project/Application/Review/ledger
+  aggregates; rendered by AnalyticsChart. No analytics table.
+- "Admin": the User row with role = ADMIN, plus AdminLog.
+
+
+================================================================================
+# 6. COMPLETE USER FLOWS
+================================================================================
+
+## 6.1 Guest flow
+1. Land on "/" — hero, FeaturedCarousel, DomainCardRow, marketing blocks.
+2. Browse /features, /about, /contact.
+3. Open a public freelancer or company profile from marketing surfaces.
+4. Verify a certificate: enter or open /verify/{publicId}. Page shows recipient,
+   issuer, project, role, skills, issue date; or "revoked" / "not found".
+5. Choose Register or Login. Any protected route redirects to /login.
+
+## 6.2 Registration flow
+1. /register. Fields: name, email, password, role selector (Freelancer or
+   Company only).
+2. registerUser validates: required fields; email format; email unique; password
+   minimum policy; role ∈ {FREELANCER, COMPANY} (ADMIN rejected).
+3. Password hashed with bcrypt. User row created.
+4. Role-shaped profile row created: Freelancer (defaults: skills [],
+   experienceYears 0, rating 0, completionRate 100, availabilityStatus
+   AVAILABLE) or Company (companyName from input, trustScore 90, etc.).
+5. Redirect to /login (or auto sign-in) → role home:
+   FREELANCER → /freelancer/dashboard, COMPANY → /company/dashboard,
+   ADMIN → /admin/dashboard.
+6. Company users are prompted through CompanyOnboardingWizard (legal name,
+   registration number, GST, HQ, company email, business phone, recruiter team).
+
+## 6.3 Login flow
+Credentials:
+1. Submit email + password to the Credentials provider.
+2. Email lowercased; user looked up by email. Unknown email → null (no account
+   is ever auto-created).
+3. passwordHash null → null (OAuth-only account cannot use a password).
+4. verifyPassword returns { valid, needsRehash }. Invalid → null.
+5. If needsRehash (legacy plaintext), re-hash with bcrypt and set
+   passwordChangeRequired = true. A failed upgrade must not block the login.
+6. JWT issued; role/name/image refreshed from DB on every jwt callback; data:
+   URL images stripped.
+Google:
+1. Google provider → PrismaAdapter creates/links Account + User.
+2. Role defaults to FREELANCER; the profile row is created on first profile save
+   if absent.
+Failure: pages.signIn and pages.error both point to /login.
+
+## 6.4 Freelancer flow (end to end)
+1. Complete profile: headline, bio, domain, skills, experience years, education,
+   languages, availability calendar, portfolio items, resume, banner, avatar.
+2. Browse /freelancer/projects. Filter by search, domain, skills, reward
+   (ALL / PAID / NON_MONETARY), experience.
+3. Open /freelancer/projects/[id] — full listing, roles, rounds, FAQ, company
+   card, discussion board.
+4. Apply via /freelancer/projects/[id]/apply:
+   Step 1 cover letter (+ role selection, + apprentice toggle if allowed)
+   Step 2 screening questions (required ones enforced server-side)
+   Step 3 review and submit.
+5. Track at /freelancer/applications: status, AI score, pipeline history.
+6. Receive an offer letter → accept, decline, or counter-offer with proposed
+   amount/category/currency/benefits and a message.
+7. On acceptance the company signs; the freelancer signs the digital contract
+   (IP captured server-side from x-forwarded-for / x-real-ip).
+8. On hire with roles: see the assembled team, then Confirm or Decline.
+   Declining sets the application back to REJECTED and frees the slot.
+9. Work in the workspace: chat, tasks, deliverables, meetings, work logs.
+10. Submit payment stages for review; upload deliverable versions.
+11. On completion: receive certificate, review the company, see the project
+    under /freelancer/completed-projects.
+
+## 6.5 Company flow (end to end)
+1. Complete company profile and onboarding wizard.
+2. Post a project through the 5-step wizard (autosaved as a DRAFT).
+3. Publish (validation: title present and not "Untitled draft", description,
+   budget > 0, at least one required skill).
+4. Optionally define roles and slots; optionally invite specific freelancers.
+5. Review applicants at /company/applicants — sort by AI score, read screening
+   answers, move through pipeline stages, bulk transition.
+6. Shortlist → send offer letter → negotiate → hire.
+7. On hire: capacity re-checked under a row lock; role auto-locks when full;
+   project flips OPEN → IN_PROGRESS when all primary slots are filled.
+8. Set up payment stages / approve work logs / release stipend periods.
+9. Run the workspace: tasks, meetings, files, updates, chat.
+10. Design the certificate template at /company/projects/[id]/certificate.
+11. Mark the project complete once readiness passes. Certificates issue
+    automatically. Review each hired freelancer.
+
+## 6.6 Admin flow
+1. Sign in as an ADMIN user (seeded or promoted).
+2. /admin/dashboard — platform counts.
+3. /admin/users — directory table, AddUserModal (create user with role),
+   change role, delete user.
+4. /admin/freelancers, /admin/companies, /admin/projects — read/monitor.
+5. /admin/reviews — moderate.
+6. /admin/settings — system configuration.
+Every action re-checks requireAdmin() server-side.
+
+
+================================================================================
+# 7. PROJECT SYSTEM
+================================================================================
+
+## 7.1 Creation wizard (/company/projects/new) — 5 steps
+
+### Step 1 — Basic Details
+Fields: title, category (Software Engineering, Data & AI, Design & UX,
+Marketing & Sales, Product & Project Management, Writing & Translation,
+Admin & Support, Finance & Accounting, Legal, Other), subcategory, domain,
+banner upload, freelancersLimit, visibility (PUBLIC "Listed in Directory",
+PRIVATE "Hidden, Invited only", INVITE_ONLY "Searchable but apply blocked"),
+preferredGender (ANY / MALE Only / FEMALE Only).
+
+### Step 2 — Job Description
+description free text, objectives[], deliverables[], responsibilities[],
+dailyTasks[], requiredSkills[], preferredSkills[], experienceRequired, FAQ
+entries { question, answer }.
+
+### Step 3 — Budget & Timeline
+currency (46 ISO-4217 options rendered as "CODE — Name (symbol)"),
+compensationType (FIXED / HOURLY / MILESTONE / STIPEND / UNPAID),
+budget or paymentRate depending on type,
+budgetNegotiable toggle (FIXED),
+estimatedHours + maxHours (HOURLY),
+stipendAmount + stipendFrequency (ONE_TIME / WEEKLY / MONTHLY) + stipendPeriods
+(STIPEND),
+non-monetary benefits multi-select + free-text detail,
+workingDays (5 Days/Week, 6 Days/Week, Flexible days),
+timingType (Full Time 8h/day, Part Time 4h/day, Hourly contract),
+priority (LOW/MEDIUM/HIGH urgency),
+timeline (applicationDeadline, projectStart, expectedCompletion), duration,
+dueDate.
+
+### Step 4 — Screening Rounds
+Add rounds from ROUND_TYPE_CATALOG. Only SCREENING_QUESTIONS is runnable;
+every other type renders labelled "(Coming soon)" and cannot be newly selected,
+but rounds already configured on existing projects render read-only and are
+never deleted.
+Question types: MULTIPLE_CHOICE, YES_NO, PARAGRAPH, PORTFOLIO, VIDEO_INTRO,
+CODING_ASSESSMENT, ASSIGNMENT. Each has id, question, options?, required.
+Also here: role definitions (RoleSlotsEditor) and the certificate toggle.
+
+### Step 5 — Preview & Publish
+Full read-only render of the listing exactly as freelancers will see it, then
+Publish or Save Draft.
+
+## 7.2 Draft autosave
+- saveProjectDraft(input) creates or updates ONE draft row per creation session
+  (the caller passes back the draftId it was given).
+- Drafts are status DRAFT, isVisible false — invisible on both signals.
+- Autosave deliberately does not validate; a draft may be incomplete.
+- getProjectDraft(draftId) and getMyProjectDrafts() are scoped to the caller's
+  company; another company's draft resolves to null.
+
+## 7.3 Publish validation (publishProjectDraft)
+Rejects with "Add a {fields} before publishing." when any of:
+- title empty or equal to "Untitled draft"
+- description empty
+- budget not > 0
+- requiredSkills empty
+Then asserts the DRAFT → OPEN transition, sets status OPEN + isVisible,
+creates the ProjectCompensation row if missing, and recalculates
+recommendations.
+
+## 7.4 Compensation types (semantics)
+FIXED     — one agreed total. Optional payment stages fund/release against it.
+HOURLY    — hourlyRate + estimatedHours + maxHours. Work logs → approval →
+            release. rateSnapshot per log.
+MILESTONE — total derives from the milestone (PaymentItem) values.
+STIPEND   — stipendAmount at stipendFrequency for stipendPeriods periods.
+UNPAID    — no cash. Non-monetary benefits only. Always "ready" to complete.
+Legacy vocabulary mapping (normaliseType): "MONTHLY" → STIPEND,
+"NON_MONETARY" → UNPAID, "HYBRID" → FIXED, anything unknown → FIXED.
+HYBRID as a browse filter was retired (unrepresentable in
+ProjectCompensation).
+
+## 7.5 Editing
+editProject requires COMPANY role + ownership + non-terminal status. It
+rewrites the project row, then UPSERTS ProjectCompensation from the derived
+metadata so the canonical row never drifts from the description it came from,
+then recalculates recommendations.
+
+## 7.6 Status model
+
+### Allowed transitions
+DRAFT       → OPEN, CANCELLED, ARCHIVED
+OPEN        → IN_PROGRESS, COMPLETED, CLOSED, CANCELLED, ARCHIVED
+IN_PROGRESS → OPEN, COMPLETED, CLOSED, CANCELLED, ARCHIVED
+COMPLETED   → ARCHIVED
+CLOSED      → ARCHIVED
+CANCELLED   → ARCHIVED
+ARCHIVED    → (none)
+Same-state transitions are allowed and are no-ops.
+
+### Derived predicates
+TERMINAL_PROJECT_STATUSES = COMPLETED, CLOSED, CANCELLED, ARCHIVED
+PUBLICLY_BROWSEABLE_STATUSES = OPEN, IN_PROGRESS
+acceptsApplications(s) = s ∈ {OPEN, IN_PROGRESS}
+isProjectMutable(s) = s ∉ TERMINAL
+
+### Error messages (exact)
+CLOSED source: "This project is closed and cannot be reopened."
+COMPLETED source: "This project is already complete and cannot change state."
+Other: "A project cannot move from {FROM} to {TO}."
+Mutation guard: "This project is {closed|complete|cancelled|archived}, so you
+cannot {action} it."
+
+## 7.7 Closing, cancelling, archiving, deleting
+- closeProject: transition to CLOSED (company withdrawing a listing).
+- setProjectLifecycle(projectId, "CANCELLED" | "ARCHIVED"): also sets
+  isVisible = false.
+- deleteProject: NOTHING is hard-deleted. A DRAFT is ARCHIVED; anything else is
+  CANCELLED. Rationale: applications, workspaces, reviews, certificates and the
+  entire ledger reference the project row.
+- toggleProjectVisibility: flips isVisible; blocked on terminal projects.
+- updateProjectDueDate: blocked on terminal projects.
+
+## 7.8 Auto status changes
+- OPEN → IN_PROGRESS automatically when hiring fills the last primary slot
+  (capacity.projectFull true and current status is OPEN).
+- → COMPLETED only through completeProject, which is the sole writer.
+
+
+================================================================================
+# 8. APPLICATION SYSTEM
+================================================================================
+
+## 8.1 Statuses and transitions
+PENDING     → SHORTLISTED, REJECTED, HIRED
+SHORTLISTED → HIRED, REJECTED, PENDING
+HIRED       → REJECTED (release a hire)
+REJECTED    → PENDING, SHORTLISTED (reconsider; never straight to HIRED)
+Same-state: allowed, except HIRED → HIRED which errors
+"This applicant is already hired."
+Otherwise: "An application cannot move from {from} to {to}."
+
+## 8.2 Apply (applyToProject)
+Order of checks — all server-side:
+1. Session exists and role is FREELANCER, else
+   "Unauthorized: Only freelancers can apply to projects."
+2. Freelancer profile exists, else
+   "Please complete your freelancer profile before applying."
+3. Project exists, else "Project not found."
+4. status ∈ {OPEN, IN_PROGRESS}, else
+   "This project is no longer accepting applications."
+5. isVisible true and metadata.visibility ≠ PRIVATE, else
+   "This project is not open to applications."
+6. If visibility = INVITE_ONLY, the freelancer must hold an invite for this
+   project, else "This project is invite-only."
+7. If roleId given: it must belong to this project, else
+   "That role does not belong to this project."
+8. If isApprentice: role.allowApprentice must be true, else
+   "This role does not accept apprentices."
+9. Every required screening question must be answered (non-blank), else
+   'Please answer the required question: "{question}"'
+10. Capacity: if projectFull and not applying as apprentice →
+    "This project has already reached its hiring limit."
+11. aiScore computed.
+12. Duplicate pre-check, plus P2002 catch → "You have already applied to this
+    project."
+13. Application created with a pipelineHistory seed event
+    { stage: "Applied", recruiterName: "System" }.
+14. Company notified: "New Application Received" —
+    "{name} applied to '{title}'. AI Match Score: {score}%."
+15. Any matching PENDING invite is flipped to APPLIED with respondedAt.
+16. revalidatePath on freelancer applications/projects/dashboard and company
+    applicants/dashboard.
+
+## 8.3 Withdraw
+A freelancer withdrawal is modelled as the application returning to REJECTED
+from the freelancer side (declining a team placement, declining an offer).
+There is no hard delete of applications — history is preserved.
+
+## 8.4 Shortlist / Reject
+Both go through ownedApplicationOrThrow → requireApplicationOwner (company owns
+the project the application belongs to), then assertApplicationTransition.
+Notifications: "Application Shortlisted!" and "Application Update".
+
+## 8.5 Hire (hireApplicant) — the only path that produces HIRED
+Inside one transaction:
+1. lockApplicationsForCapacity(tx, projectId) — SELECT id FROM "Application"
+   WHERE projectId = ? FOR UPDATE.
+2. Re-read the application status; assert PENDING/SHORTLISTED → HIRED.
+3. assertProjectMutable(project.status, "hire on").
+4. getCapacity(tx, projectId, roleId). For non-apprentices:
+   - roleFull → "All {n} slot(s) for this role are already filled. Release a
+     slot before hiring another."
+   - projectFull → "This project already has its full complement of {n}
+     freelancer(s)."
+5. Update status to HIRED.
+After the transaction:
+6. Role lock: if the role now has ≥ slots primaries, updateMany sets every
+   PENDING/SHORTLISTED application on that role to REJECTED. Apprentice
+   applicants are spared while the role still accepts an apprentice. Never
+   touches HIRED/REJECTED rows. Safe to run repeatedly.
+7. If the project is now full and status is OPEN → set IN_PROGRESS.
+8. Notify the freelancer:
+   - with role: "Hired — confirm your team" / message directing them to Track
+     Applications to meet teammates and confirm.
+   - without role: "Hired!" / congratulations message.
+
+## 8.6 Remove a hired freelancer (removeFreelancer)
+Refuses while money is outstanding:
+- Any PaymentItem for that application with fundedAmount > releasedAmount →
+  "This freelancer still has {CUR} {total} committed across {n} payment
+  stage(s). Release or cancel those before removing them."
+- Approved but unpaid hourly value → equivalent refusal.
+Only when settled does the application move to REJECTED, with a "Removed from
+Project" notification.
+
+## 8.7 Invite (inviteFreelancerToProject)
+Checks: COMPANY role; company profile exists; freelancer exists; project exists;
+project owned by caller; project accepts applications; no existing application
+("This freelancer has already applied to this project."); role rules —
+- project has roles and no roleId → "This project uses roles — select one to
+  invite for."
+- roleId not on this project → "That role does not belong to this project."
+- apprentice invite to a role that disallows it → "This role does not accept
+  apprentices."
+- role primaries full → "All {n} slot(s) for this role are filled" (+ " — invite
+  as an apprentice instead." when allowed)
+- roleId supplied on a role-less project → "This project does not use roles."
+- duplicate pending invite → "You have already invited this freelancer to this
+  project."
+Then appends the invite to Freelancer metadata and notifies
+"You've Been Invited to Apply".
+
+## 8.8 Decline / dismiss an invite (respondToInvite)
+Sets the invite status to DISMISSED with respondedAt, and notifies the company
+("Invitation Declined"). Applying instead sets it to APPLIED.
+
+## 8.9 Offer letters
+sendOfferLetterAction — company composes offerText, amount, category, currency,
+milestones, non-monetary benefits. Status PENDING. Freelancer notified
+"You Received a Job Offer".
+negotiateOfferAction — freelancer raises a counter-offer with proposedAmount,
+proposedCategory, proposedCurrency, proposedBenefits, message. The previous
+terms are snapshotted onto the negotiation entry. Company notified
+"Counter-Offer Received". Offer status → NEGOTIATING.
+respondToNegotiationAction — company ACCEPTS (proposed terms are copied onto the
+offer, offer returns to PENDING for final acceptance) or REJECTS (original terms
+stand). Full history retained.
+respondToOfferLetterAction — freelancer ACCEPTED or DECLINED. Acceptance
+notifies "Offer Accepted — Project Started".
+
+## 8.10 Digital contract (signDigitalContract)
+Both parties may act (requireApplicationParty). Captures freelancerSigned /
+clientSigned with timestamps and IP addresses read from request headers
+(x-forwarded-for first entry, else x-real-ip, else "unknown") — never from a
+client argument. Status ladder DRAFT → SENT → SIGNED → ACTIVE → COMPLETED.
+The milestone schedule is derived, in priority order:
+1. the offer's agreed milestones,
+2. the project's configured PaymentItems for that application,
+3. a single full-value milestone titled "{projectTitle} — full engagement".
+
+
+================================================================================
+# 9. TEAM / ROLE SYSTEM
+================================================================================
+
+## 9.1 Roles
+Optional per project. A project with zero roles behaves exactly like a
+single-listing hire capped by freelancersLimit.
+
+## 9.2 Slots and capacity
+CapacityView = {
+  projectLimit,        // Project.freelancersLimit, default 1
+  hiredPrimaries,      // count of HIRED applications with isApprentice = false
+  projectFull,         // hiredPrimaries >= projectLimit
+  roleSlots,           // ProjectRole.slots when a roleId is supplied
+  roleHired,           // HIRED, isApprentice = false, on that role
+  roleFull             // roleHired >= roleSlots
+}
+getCapacity() is the ONLY capacity calculation. Both the apply path and the hire
+path call it, so they can never disagree. Apprentices consume no capacity in
+either count.
+
+## 9.3 Apprentices
+- allowApprentice per role.
+- An apprentice shadows a role, occupies no slot, and can be hired even when the
+  role and project are full.
+- Apprentice reviews never move Freelancer.rating; they accumulate into
+  metadata.apprenticeScore { rating, reviews, updatedAt }.
+- Apprentice work is excluded from completedProjects.
+
+## 9.4 Team invitations and confirmation
+confirmTeamMatch(applicationId, "CONFIRM" | "DECLINE", reason?):
+- Caller must be a FREELANCER and own the application.
+- Application must be HIRED, else "You have not been placed on this team yet."
+- Already confirmed → "You have already confirmed this team."
+- CONFIRM sets teamConfirmedAt and notifies "Team Member Confirmed".
+- DECLINE sets status REJECTED, clears teamConfirmedAt, frees the slot, and
+  notifies "Team Placement Declined" including the reason when given.
+
+## 9.5 Role editing (saveProjectRoles)
+- Caller must be COMPANY and own the project.
+- Any submitted role id not belonging to this project → "One or more roles do
+  not belong to this project."
+- Removing a role that has applications → refusal naming the roles: "…Reject or
+  withdraw their applications first, or keep the role and reduce its slot count
+  instead."
+- Every role needs a name and slots ≥ 1; slots ≤ 100.
+- Slots may not be reduced below hired primaries, with a message naming the role
+  and the minimum.
+- Applied as one transaction: deleteMany removed, then update/create each role
+  with sortOrder = array index.
+
+## 9.6 Handover (handoverRole)
+- Both applications must be HIRED on the SAME role.
+- The outgoing must be the primary; the incoming must be an apprentice.
+- Permitted actors: the owning company, or the outgoing primary stepping down.
+- Effect: the two applications swap isApprentice. Primary count is unchanged, so
+  capacity guards stay satisfied and nothing is destroyed.
+- A pipeline event is appended to BOTH applications ("Role Handed Over" /
+  "Promoted to Primary") with actor attribution.
+- Notifications: "You are now the primary on {role}", "Role handed over", and
+  "Role handover completed" to the company when it was not the actor.
+
+## 9.7 Team roster (getProjectTeam)
+Returns every role, its slots, and who fills them, plus isTeamComplete =
+roles.length > 0 && totalFilled >= totalSlots. Drives both the company assembly
+view (TeamRosterPanel) and the freelancer team reveal
+(TeamMatchConfirmation).
+
+
+================================================================================
+# 10. WORKSPACE SYSTEM
+================================================================================
+
+## 10.1 Addressing and existence
+URL: /workspace/[applicationId] (also reachable via
+/company/workspace/[applicationId] and /freelancer/workspace/[applicationId]).
+A workspace exists as soon as one application on the project is HIRED and the
+project status is OPEN or IN_PROGRESS. Companies see one workspace per project
+(applications grouped); freelancers see one per HIRED application.
+
+## 10.2 Access control
+Every read and write resolves through requireProjectParty(projectId):
+- the owning company's user, or
+- a freelancer with a HIRED application on that project.
+Anything else returns the generic denial "Not found, or you do not have access
+to it." — missing and forbidden are deliberately indistinguishable so ids
+cannot be probed.
+
+## 10.3 Tabs (exact ids and labels, in order)
+overview     — "Overview"          icon LayoutDashboard
+milestones   — "Funding / Payments" icon Sparkles
+tasks        — "Tasks"             icon CheckSquare
+deliverables — "Deliverables"      icon Archive
+messages     — "Chat"              icon MessageSquare
+meetings     — "Meetings"          icon CalendarClock
+team         — "Team"              icon Users
+
+## 10.4 Overview
+Components: project header (title, company, status pill, due date), financial
+summary tiles, recent activity (ProjectUpdate feed), team avatars, quick links.
+Financial tiles are computed by getProjectFinancialSummary() and NEVER by
+parsing text:
+  committed = Σ(item.fundedAmount) − Σ(item.releasedAmount)
+  paid      = Σ(item.releasedAmount) + Σ|ledger RELEASE rows with
+              paymentItemId = null|
+  budget    = ProjectCompensation.totalBudget
+Hourly and stipend payouts have no PaymentItem, so the ledger is the only place
+they appear — hence the second term.
+
+## 10.5 Funding / Payments (WorkspaceFunding component)
+Company view: create/edit/delete stages, fund, review submissions
+(approve / request changes), release (full or partial), plus work-log approval
+for HOURLY and period release for STIPEND.
+Freelancer view: read their own stages only, submit a stage for review with a
+note, add work logs, see the ledger of their own payments.
+Permissions: all mutations require requireProjectOwner except submit, which
+requires the assigned freelancer.
+
+## 10.6 Tasks (kanban)
+Columns: To Do (TODO), In Progress (IN_PROGRESS), Review (REVIEW), Done (DONE).
+Cards show title, assignee avatar, priority, due date.
+Movement is button-driven (adjacentTaskStatus forward/back) and clamped to the
+array bounds. Any status value outside the four is rejected before write.
+Company creates/assigns/deletes; both parties may move cards.
+
+## 10.7 Deliverables
+SharedFile rows whose fileSize column carries the deliverable JSON.
+Company: approve or request revision with feedback.
+Freelancer: upload a new version (version increments, status resets).
+Revision cap 2 (DELIVERABLE_REVISION_CAP). Exceeding it returns:
+"Revision limit reached (2 of 2 used). Approve the deliverable or agree new
+terms with the freelancer."
+
+## 10.8 Chat
+Channel selector: Group, Freelancers-only (freelancers only), and a DM per
+counterparty. See section 14.
+
+## 10.9 Meetings (WorkspaceMeetings component)
+Upcoming and past lists, attendee chips with RSVP state, join link or location,
+company-only scheduling controls. See section 16.
+
+## 10.10 Team
+Role roster with slots filled/open, apprentice badges, handover control,
+team-confirmation state per member.
+
+## 10.11 Timeline / Activity
+Rendered from ProjectUpdate rows (title, description, status, author, date) and
+Application pipelineHistory events. Read-only for freelancers except that both
+parties may post updates; status changes on an update require project party
+access and the update must be scoped to the project (scopedProjectUpdate).
+
+## 10.12 Workspace polling API
+GET /api/workspace/[projectId] returns messages (last 7 days, channel-filtered),
+sharedFiles (channel-filtered), projectUpdates, and tasks — each with the
+sender/uploader/assignee user summary. Used for near-real-time refresh.
+
+
+================================================================================
+# 11. FINANCIAL SYSTEM
+================================================================================
+
+## 11.1 Principles
+1. ProjectCompensation is the single source of truth for how a project pays.
+2. PaymentTransaction is an append-only ledger; it is the authority on money.
+3. PaymentItem.fundedAmount / releasedAmount are caches, written in the same
+   transaction as the ledger row.
+4. All money is Prisma.Decimal (18,2). Never Float. Never JS number arithmetic.
+5. Every amount carries its currency, and must equal the project currency.
+6. Every mutation follows the same shape:
+   a. lock the target row (SELECT … FOR UPDATE) inside an interactive
+      transaction,
+   b. validate against the freshly-locked state, never a stale read,
+   c. append a ledger entry whose unique idempotencyKey rejects replays,
+   d. update the cached aggregate in the same transaction.
+7. Isolation level ReadCommitted, timeout 10 000 ms.
+8. Financial records key off applicationId, so two freelancers on one project
+   can never see or affect each other's money.
+
+## 11.2 Ledger signing
+FUND    → amount stored positive
+RELEASE → amount stored negative
+REFUND  → amount stored positive
+ADJUSTMENT → signed as supplied by the compensating entry
+appendLedger applies the sign from the type; callers pass unsigned magnitudes.
+
+## 11.3 Idempotency
+transitionKey(scope, id, operation, nonce?) →
+  `${scope}:${id}:${operation}` or `${scope}:${id}:${operation}:${nonce}`
+A P2002 on idempotencyKey throws LedgerReplayError with the message
+"This operation has already been recorded."
+
+## 11.4 PaymentItem status machine
+PENDING           → FUNDED, CANCELLED
+FUNDED            → FUNDED (incremental top-up), SUBMITTED, CANCELLED
+SUBMITTED         → APPROVED, CHANGES_REQUESTED
+CHANGES_REQUESTED → SUBMITTED, FUNDED, CANCELLED
+APPROVED          → RELEASED
+RELEASED          → (terminal)
+CANCELLED         → (terminal)
+Rejection message: "Cannot move a {from} item to {to}."
+
+## 11.5 Rules — create / edit a stage (checkSaveItem)
+- title required → "Stage name is required."
+- amount finite and > 0 → "Enter a stage amount greater than zero."
+- currency must equal project currency → "This project is denominated in {CUR}."
+- committed = max(fundedAmount, releasedAmount)
+  - committed > 0 and reassigning to another application →
+    "This stage already has money funded or released and cannot be reassigned to
+    another freelancer."
+  - amount < committed →
+    "This stage already has {committed} funded or released. The amount cannot be
+    lowered below that."
+- otherItemsTotal + amount ≤ projectBudget, else
+  "Payment stages would total {X}, which exceeds the project budget of {B}."
+
+## 11.6 Rules — delete (checkDeleteItem)
+committed > 0 → "This stage already has {committed} funded or released and
+cannot be deleted. Release or reverse the funds first."
+
+## 11.7 Rules — fund (checkFund)
+- value > 0 → "Enter a funding amount greater than zero."
+- status RELEASED → "This stage has already been released and cannot be funded
+  again."
+- status CANCELLED → "This stage has been cancelled."
+- fundedAmount + value ≤ item.amount, else "Funding {v} would exceed this
+  stage's amount of {a}."
+- value ≤ (projectBudget − projectFundedTotal), else "Only {r} of the project
+  budget remains available to fund."
+Effect: ledger FUND row + fundedAmount += value; status → FUNDED.
+
+## 11.8 Rules — submit (checkSubmit)
+- item.applicationId must equal the caller's application, else "This payment
+  stage belongs to another freelancer."
+- status must be FUNDED or CHANGES_REQUESTED, else "Only a funded stage can be
+  submitted for review."
+Effect: status SUBMITTED, submittedAt set, submissionNote stored, company
+notified "Stage submitted for review".
+
+## 11.9 Rules — review (checkReview)
+- status must be SUBMITTED, else "Only a submitted stage can be reviewed."
+- rejecting when revisionCount ≥ REVISION_CAP (2) →
+  "Revision limit reached (2 of 2 used). Approve the stage or agree new terms
+  with the freelancer."
+Effect: APPROVED, or CHANGES_REQUESTED with revisionCount + 1, reviewNote,
+reviewedAt.
+
+## 11.10 Rules — release (checkRelease)
+- status must be APPROVED → "This stage must be approved before its payment can
+  be released."
+- fundedAmount ≥ amount → "This stage is only funded to {f} of {a}. Fund it in
+  full before releasing."
+- outstanding = amount − releasedAmount; ≤ 0 → "This stage has already been
+  released in full."
+- requested defaults to outstanding (full release, the historic behaviour).
+- requested > outstanding → "Only {o} remains to be released on this stage."
+- releasedAmount + amount ≤ fundedAmount, else "Cannot release more than the
+  amount funded for this stage."
+Effect: ledger RELEASE (negative) + releasedAmount += amount; status RELEASED
+when fully released; releasedAt set; freelancer notified "Escrow Funds
+Released".
+
+## 11.11 Hourly
+Constants: MAX_DAILY_HOURS = 16.
+checkAddWorkLog:
+- hours > 0 → "Enter a number of hours greater than zero."
+- hours ≤ 16 → "A single work log cannot exceed 16 hours."
+- date required → "Select the date the work was done."
+- description required → "Describe the work briefly."
+- alreadyLoggedHours + hours ≤ maxHours (when configured), else either
+  "This engagement's {max}-hour limit has already been reached." or
+  "Only {remaining} of the {max}-hour limit remains."
+DB guard: @@unique [applicationId, workDate, description] blocks duplicates.
+Approval: company approves or rejects with a mandatory reviewNote on rejection.
+Payable value:
+  approvedHourlyValue = Σ over APPROVED logs of (hours × rateSnapshot)
+checkHourlyRelease:
+  remaining = approvedValue − alreadyPaid
+  value > 0, remaining > 0 ("This freelancer's approved work has already been
+  paid in full."), value ≤ remaining ("Only {r} remains payable for this
+  freelancer's approved work.")
+Release writes a ledger RELEASE row with paymentItemId = null.
+
+## 11.12 Stipend
+maxStipendPeriods(frequency, configured):
+  ONE_TIME → 1
+  else configured when a positive integer, otherwise 1 (never unlimited)
+checkStipendRelease:
+- periodIndex integer ≥ 1 → "Invalid payment period."
+- periodIndex ≤ max → "A one-time stipend has only a single payment period." or
+  "This stipend has {max} payment period(s)."
+- amount > 0 → "This project has no stipend amount configured."
+- alreadyPaidTotal + amount ≤ projectBudget, else "Paying this period would
+  exceed the project budget. Only {r} remains."
+DB guard: @@unique [applicationId, periodIndex] — a period pays exactly once.
+Notification: "Stipend released".
+
+## 11.13 Escrow model
+There is no external payment provider in the current scope. "Escrow" is an
+internal ledger construct:
+- Funding moves value into the project's committed pool (FUND).
+- Releasing moves it out to the freelancer (RELEASE).
+- Refunding returns it to the company (REFUND, positive).
+- committed = funded − released, i.e. money held but not yet paid.
+externalRef on PaymentTransaction is reserved for a provider reference so that
+integrating one later needs no schema change.
+
+## 11.14 Reconciliation
+reconcileItem(itemId) compares:
+  ledgerFunded   = Σ FUND amounts for that item
+  ledgerReleased = Σ |RELEASE amounts| for that item
+against the cached fundedAmount / releasedAmount and returns
+consistent: boolean. Exposed so tests assert it rather than letting drift become
+the new truth.
+
+## 11.15 Completion readiness (getProjectCompletionReadiness)
+Requires project-party access (it exposes payment state).
+UNPAID              → ready.
+FIXED / MILESTONE   → ready when there are no PaymentItems, or when every item
+                      is RELEASED or CANCELLED; else "{n} payment stage(s) are
+                      still awaiting release."
+HOURLY              → no PENDING work logs ("{n} work log(s) are still pending
+                      review."), and for EVERY hired freelancer
+                      approvedValue − paid ≤ 0, else "{n} freelancer(s) have
+                      unpaid approved hours."
+STIPEND             → every hired freelancer must have all `expected` periods
+                      RELEASED, where expected = maxStipendPeriods(...), else
+                      "{n} freelancer(s) have unpaid stipend periods ({expected}
+                      expected each)."
+Already completed   → { ready: false, completed: true, reason: "This project is
+                      already completed." }
+
+
+================================================================================
+# 12. FILE MANAGEMENT
+================================================================================
+
+## 12.1 Upload endpoint
+POST /api/upload, multipart form field "file".
+1. Requires a session (401 "Unauthorized" otherwise).
+2. Missing file → 400 "No file uploaded".
+3. validateUpload({ type, name }) — see the allowlist below.
+4. Size check against the category cap, first on the declared size, then again
+   on the actual received byte length (the declared size is the client's claim).
+5. Filename = buildUploadFilename(userId, crypto.randomUUID(), canonicalExt);
+   userId and the unique id are stripped of anything outside [A-Za-z0-9_-].
+6. Storage:
+   - production / Vercel: returns a data: URL
+     `data:{allowlistContentType};base64,{...}` (read-only FS, no persistence).
+   - local dev: writes to public/uploads and returns /uploads/{filename}.
+7. Failure → 500 "Failed to upload file".
+
+## 12.2 Allowlist (MIME and extension must BOTH match the same entry)
+application/pdf   → .pdf                (pdf)
+image/png         → .png                (image)
+image/jpeg        → .jpg (canonical), .jpeg (image)
+image/webp        → .webp               (image)
+image/gif         → .gif                (image)
+video/mp4         → .mp4                (video)
+video/webm        → .webm               (video)
+video/ogg         → .ogv (canonical), .ogg (video)
+video/quicktime   → .mov                (video)
+
+## 12.3 Size caps (MAX_SIZES)
+video 20 MB, image 5 MB, pdf 5 MB. Error: "File size exceeds the limit (NMB)".
+
+## 12.4 Rejections (exact messages)
+SVG (by MIME image/svg+xml OR by .svg extension, checked independently):
+  "SVG uploads are not supported. Use PNG, JPEG, WebP or GIF."
+Unknown MIME:
+  "Unsupported file type. Allowed: PDF, PNG, JPEG, WebP, GIF, MP4, WebM, OGG,
+  MOV."
+No extension:
+  "File must have an extension matching its type."
+Mismatch:
+  "File extension {ext} does not match its content type {mime}."
+
+## 12.5 What is stored
+The canonical extension and the allowlist content type — never the client's
+file.type and never path.extname(file.name). A payload cannot be stored under an
+image extension and later served as HTML.
+
+## 12.6 Download route
+GET /workspace/downloads/[fileName]
+1. The requested name is used ONLY to look up a SharedFile row
+   (fileUrl endsWith "/" + requested). It is never joined into a path, so
+   traversal has nothing to act on.
+2. requireProjectParty(record.projectId) — non-members get 404, not 403.
+3. data: URL records: decode base64 and serve with
+   safeContentType(mime) (anything off the allowlist is downgraded to
+   application/octet-stream), plus X-Content-Type-Options: nosniff and
+   Content-Disposition: attachment.
+4. Disk records: basename resolved against public/uploads and containment-
+   checked before any read; missing file → 404. Served as
+   application/octet-stream, attachment.
+
+## 12.7 File permissions
+SharedFile carries the same channel column as Message and is filtered by the
+same visibleChannelsFor() predicate. Deleting a file requires project access and
+scopedSharedFile(fileId, projectId).
+
+## 12.8 Future storage
+Object storage replaces the data: URL branch. SharedFile.fileUrl becomes an
+object key or signed URL; the download route keeps its lookup-by-record shape so
+no authorization logic changes.
+
+
+================================================================================
+# 13. NOTIFICATION SYSTEM
+================================================================================
+
+## 13.1 Model
+In-app only. Notification { userId, title, message, read, createdAt }. No email
+or push in the current scope.
+
+## 13.2 Delivery
+- GET /api/notifications returns the caller's 8 most recent, newest first.
+  401 when unauthenticated, 500 on DB error.
+- NotificationCenter (bell + dropdown) polls this endpoint; RealtimeNotifications
+  and DashboardNotifications surface the same data in-page.
+- markAsRead(notificationId) — scoped to the caller's own rows.
+- markAllAsRead() — all of the caller's rows.
+- getNotificationRedirectUrl(notificationId) resolves a notification to its deep
+  link (application, workspace, certificate, etc.).
+
+## 13.3 Complete trigger list (title → receiver → cause)
+"New Match Found"              → freelancers with ≥1 matching skill → project created
+"New Application Received"     → company → freelancer applies
+"Application Shortlisted!"     → freelancer → shortlisted
+"Application Update"           → freelancer → rejected
+"Hired!" / "Hired — confirm your team" → freelancer → hired
+"Removed from Project"         → freelancer → removed by company
+"You've Been Invited to Apply" → freelancer → company invitation
+"Invitation Declined"          → company → freelancer dismisses invite
+"You Received a Job Offer"     → freelancer → offer letter sent
+"Counter-Offer Received"       → company → freelancer negotiates
+"Offer Accepted — Project Started" → company → freelancer accepts
+"Team Member Confirmed"        → company → freelancer confirms team
+"Team Placement Declined"      → company → freelancer declines team
+"You are now the primary on {role}" → incoming apprentice → handover
+"Role handed over"             → outgoing primary → handover
+"Role handover completed"      → company → handover done by the primary
+"New Milestone" / "Milestone Updated" → counterparties → payment item changes
+"Stage submitted for review"   → company → freelancer submits a stage
+"Escrow Funds Released"        → freelancer → release
+"Stipend released"             → freelancer → stipend period released
+"New Task Assigned"            → assignee → task assignment
+"Group Chat Update"            → all other project members → group message
+"Freelancers Chat Update"      → other hired freelancers → freelancers-channel message
+"New Direct Message"           → the other DM participant → DM
+"New Message"                  → counterparty → generic message paths
+"File Shared"                  → channel members → file shared
+"New Deliverable Version"      → counterparties → new version uploaded
+"Deliverable Update: {Approved|Revision Requested}" → counterparties → review
+"New meeting scheduled"        → invited attendees → meeting created
+"Meeting updated"              → attendees → meeting updated or cancelled
+"Interview Rescheduled" / "Interview Cancelled" → freelancer → interview change
+"Project Completed!"           → each hired freelancer → completion
+"Project Marked Complete"      → company → completion
+"Certificate Issued"           → freelancer → certificate issued
+"Design your certificate"      → company → completed with certificates enabled
+                                  but no template designed
+"New Review Received"          → freelancer → company reviews them
+"New Company Review"           → company → freelancer reviews them
+
+## 13.4 Message body conventions
+Chat notifications truncate the body at 50 characters and append "…".
+Notification creation never blocks the primary mutation; failures are logged.
+
+
+================================================================================
+# 14. CHAT SYSTEM
+================================================================================
+
+## 14.1 Channels
+"group"        — every party to the project (company + all hired freelancers)
+"freelancers"  — hired freelancers only; the company can neither write nor read
+"dm:{a}:{b}"   — exactly the two participants, ids sorted
+
+## 14.2 Write enforcement (sendMessage)
+1. Session required.
+2. verifyProjectWorkspaceAccess(projectId, userId) → COMPANY or FREELANCER, else
+   "Access denied" / "Project not found".
+3. channel === "freelancers" && role === "COMPANY" →
+   "Access denied to Freelancers-only channel".
+4. channel startsWith "dm:" → split must yield exactly 3 parts and must include
+   the caller's id, else "Access denied to private direct message channel".
+
+## 14.3 Read enforcement (visibleChannelsFor)
+Builds the Prisma where clause:
+  OR: [ { channel: "group" },
+        (FREELANCER only) { channel: "freelancers" },
+        { channel: { startsWith: `dm:${userId}:` } },
+        { channel: { endsWith: `:${userId}` } } ]
+Anchored prefix/suffix matching is used rather than `contains`, so a user whose
+id is a suffix of another id cannot read a conversation they are not part of.
+The SAME predicate is used by the polling API and the server-rendered page, so
+the two cannot drift apart.
+
+## 14.4 Messages
+Fields the UI renders: sender name, avatar, role badge, content, timestamp,
+seen state. Own messages may be edited (editDMMessageAction) and deleted
+(deleteMessage / deleteDMMessageAction, both scoped by scopedMessage).
+markMessagesAsRead(projectId, channel) and markDMMessagesAsSeenAction set seen.
+
+## 14.5 Retention
+Messages older than 7 days are excluded from workspace reads and deleted by
+GET/DELETE /api/cron/cleanup-messages (MESSAGE_TTL_DAYS = 7). The endpoint
+returns { success, deletedCount, cutoffDate }.
+
+## 14.6 Company discussion board
+Separate from workspace chat: pre-hire Q&A on a public listing.
+submitDiscussionQuestion(projectId, question) by a freelancer;
+replyToDiscussionQuestion(projectId, faqIndex, answer) by the owning company.
+Stored in the project metadata faq[] array.
+
+
+================================================================================
+# 15. KANBAN SYSTEM
+================================================================================
+
+## 15.1 Columns (TASK_COLUMNS, in order)
+TODO → "To Do"
+IN_PROGRESS → "In Progress"
+REVIEW → "Review"
+DONE → "Done"
+All four are real columns. A REVIEW task must never be invisible on the board.
+
+## 15.2 Cards
+Task fields rendered: title, description, priority (LOW/MEDIUM/HIGH), dueDate,
+assignedTo (avatar + name), createdBy.
+
+## 15.3 Movement
+adjacentTaskStatus(current, "forward" | "back") walks TASK_STATUSES and clamps
+at both ends. Movement is button-driven, not drag-and-drop.
+
+## 15.4 Validation
+updateTaskStatus rejects any value failing isTaskStatus(). The column is a bare
+String in the schema, so validation is the only guard.
+
+## 15.5 Permissions
+- createTask / updateTaskDetails / deleteTask: project party; the task must be
+  scoped to the project (scopedTask(taskId, projectId)).
+- Assignment notifies the assignee ("New Task Assigned").
+- Terminal projects reject task mutations.
+
+
+================================================================================
+# 16. MEETING SYSTEM
+================================================================================
+
+## 16.1 Scheduling (createMeeting)
+Caller must be the project owner (requireProjectOwner).
+Validation order:
+1. project exists → "Project not found."
+2. assertProjectMutable(status, "schedule meetings for")
+3. valid startsAt → "Provide a valid meeting date and time."
+4. non-empty title → "Give the meeting a title."
+Defaults: durationMinutes 30. meetingUrl and location are both optional and both
+trimmed to null when blank.
+
+## 16.2 Participants
+eligibleAttendeeIds(projectId) = the owning company's userId ∪ every HIRED
+application's freelancer userId. Any client-supplied id outside that set is
+silently dropped, not trusted. The organizer is always inserted with status
+ACCEPTED; invitees with INVITED. The set is de-duplicated.
+
+## 16.3 Notifications
+On create, every invitee except the organizer gets "New meeting scheduled":
+'{companyName} scheduled "{title}" for {projectTitle}.'
+On update or cancel, every attendee except the organizer gets "Meeting updated"
+with '"{title}" was cancelled.' or '"{title}" was updated.'
+
+## 16.4 Reads (getProjectMeetings)
+requireProjectParty. Ordered by startsAt ascending, then split:
+past = status COMPLETED OR (startsAt + durationMinutes × 60 000 < now).
+Past list is reversed (most recent first). Denied callers get
+{ success: false, error, upcoming: [], past: [] }.
+
+## 16.5 RSVP (respondToMeeting)
+Located by the composite key { meetingId, userId } so a caller can only change
+their own row. Not invited → "You are not invited to this meeting."
+Statuses: INVITED, ACCEPTED, DECLINED.
+
+## 16.6 Permissions summary
+Create / update / cancel: owning company only.
+Read: any project party.
+RSVP: the attendee themselves only.
+
+
+================================================================================
+# 17. CERTIFICATE SYSTEM
+================================================================================
+
+## 17.1 Template design (CertificateConfig)
+Stored in the project metadata. Fields: logoUrl, title, subtitle,
+achievementText, signatoryName, signatoryDesignation, signatureUrl,
+signatory2Name, signatory2Designation, signature2Url, footerText,
+layout (CLASSIC | MODERN | MINIMAL), logoPosition (LEFT | CENTER | RIGHT),
+textAlign (LEFT | CENTER | RIGHT), accentColor, borderStyle
+(SOLID | DOUBLE | NONE), certificateIdPrefix.
+Defaults: title "Certificate", subtitle "of Completion", achievementText
+"This certificate is proudly presented to", footerText "Issued via Talentra",
+layout CLASSIC, logoPosition CENTER, textAlign CENTER, accentColor "#1968E5",
+borderStyle SOLID, certificateIdPrefix "TAL-XXXXXX".
+Only presentation is configurable. Every factual value (recipient, role, skills,
+dates, certificate id) is filled from Talentra data at issue time.
+Editor: /company/projects/[id]/certificate (CertificateDesigner +
+CertificateConfigurator). Saved by saveCertificateDesign(projectId, config).
+
+## 17.2 Issuance
+Automatic: completeProject → issueProjectCertificates(projectId) issues to every
+hired freelancer using the designed template. Returns { issued, needsDesign }.
+needsDesign = certificates were enabled but no template was designed; the
+company is nudged with "Design your certificate" rather than issuing something
+unstyled.
+Manual: issueCertificate({ projectId, freelancerId, roleTitle, skills,
+durationText?, summary? }) — company must own the project; the freelancer must
+exist. Re-issue is idempotent: an existing certificate returns its publicId.
+
+## 17.3 Snapshotting
+roleTitle, skills, issuerName, recipientName, projectTitle and the signer block
+are copied onto the row at issue time. A certificate must keep saying what it
+said when issued, even if the project or profile later changes.
+roleTitle derivation: role.name trimmed, or "Project Contributor"; apprentices
+get " (Apprentice)" appended.
+Skills derivation: project skills whose text appears in the role's name or
+description; if none match, all project skills. Capped at 8.
+
+## 17.4 Public ID and verification
+publicId format: two 5-character groups joined by "-" drawn from
+"ABCDEFGHJKMNPQRSTUVWXYZ23456789" (ambiguous characters omitted).
+Verification page: /verify/[publicId] — public, no auth. Resolves via
+getCertificateByPublicId. Renders recipient, issuer, project, role, skills,
+duration, summary, issue date and signatories. A revoked certificate shows its
+revocation state and reason; an unknown code shows a not-found state.
+Freelancer-scoped view: /freelancer/certificates/[publicId].
+
+## 17.5 Visibility and revocation
+setCertificateVisibility(certificateId, visible) — the owning freelancer only.
+Hidden ids are stored in Freelancer.certifications as
+{ hiddenCertificateIds: string[] }. getFreelancerCertificates(freelancerId,
+{ includeHidden }) filters for public callers.
+Revocation sets revokedAt + revokeReason; revoked certificates are excluded
+from listings but the row is retained for auditability.
+
+## 17.6 Download
+Client-side generation (src/lib/downloadCertificate.ts) renders the certificate
+and triggers a download. EarnedCertificatesPanel and
+/freelancer/certificates/CertificateDownload expose it.
+
+
+================================================================================
+# 18. SEARCH & FILTERING
+================================================================================
+
+## 18.1 Project browse (/freelancer/projects)
+Base predicate: status ∈ {OPEN, IN_PROGRESS} AND isVisible = true AND metadata
+visibility ≠ PRIVATE.
+Filters: free-text query (title/description), domain/category, skills,
+experience level, priority, reward.
+Reward filter is resolved in SQL by rewardWhere():
+  "NON_MONETARY" → { compensation: { is: { type: "UNPAID" } } }
+  "PAID"         → OR [ compensation.type ≠ UNPAID, compensation is null ]
+  "ALL"/absent/unknown → no constraint
+A project with no compensation row counts as PAID (matching the historic
+default). HYBRID was removed as a filter option — it was unrepresentable.
+Sorting: newest first by default; AI match score when the viewer is a
+freelancer with a profile.
+
+## 18.2 Freelancer search (/company/freelancers)
+Filters: skills, domain, experience years, rating, availabilityStatus,
+verification badges, gender preference. Results show the match score against a
+selected project when one is chosen. Actions: save to shortlist
+(toggleSaveFreelancer), invite to project (InviteToProjectModal), open profile.
+
+## 18.3 Company discovery (/companies/[id])
+Public profile with description, industry, size, founded, locations, gallery,
+benefits, team, trust/reputation/payment-reliability scores, open projects, and
+follow / watchlist / talent-community / job-alert toggles.
+
+## 18.4 Admin search
+/admin/users, /admin/freelancers, /admin/companies, /admin/projects each expose
+a filterable table over the full dataset.
+
+## 18.5 Performance notes
+Metadata parsing is memoised (getProjectMetadataDirect with an internal cache,
+clearable via __clearProjectMetadataCache in tests) and filters that were once
+applied in JS after fetching every row are now expressed as relation filters
+resolved by the database.
+
+
+================================================================================
+# 19. UX DESIGN SYSTEM
+================================================================================
+
+Single source of truth: src/app/globals.css, @theme block. Components must never
+hardcode hex or px values — extend the token file instead.
+
+## 19.1 Palette (canonical)
+Surfaces: bg-app #F8F9FB, bg-surface #FFFFFF, bg-surface-alt #F8F9FB,
+bg-input-disabled #F1F2F4, bg-hover #F0F3F9, bg-selected #EAF1FE
+Text: primary #1A1D29, secondary #5B6272, muted #8A90A0, disabled #B7BBC6,
+inverse #FFFFFF
+Borders: default #E3E5EA, subtle #EDEEF2, emphasis #C7CBD6
+Brand: navy #152C55, navy-hover #1E3D71, blue #2E6BEA, blue-hover #245BC9,
+blue-active #1B49A8, gold #F5B942
+Status pairs (pastel background + saturated text, never a solid fill):
+  success #E4F7EC / #147A44 (border #BFE9D2)
+  warning #FFF3DC / #8F5E08 (border #F5DEB0)
+  error   #FDEAEA / #BC2A2A (border #F5C2C2)
+  info    #E8F1FE / #2159C9
+  neutral #F1F2F4 / #5B6272
+Data-viz accents (soft, low saturation only): lavender #EAE7FB, sky #E8F1FE,
+blush #FBE9EF
+Marketing-only brighter pastels: pink #FBE9EF/#C2557A, violet #EAE7FB,
+mint #E4F7EC, marigold #F5B942
+Persona accents: talent #2E6BEA, mentor #152C55, recruiter #5B6272
+Premium/locked: signature yellow #FFF3DC / deep #F5B942 / tint #FFF9EC,
+gold lock #8F5E08
+Links: #2159C9, active #245BC9. Focus: #2E6BEA. Star: #F5B942.
+Note: --color-border-strong is #5B6272 because it is used as a TEXT colour in
+~167 places and must stay AA-legible.
+
+## 19.2 Radius
+none 0, xs 4, sm 6, md 8, lg 12, xl/2xl/3xl 18, full 9999, circle 50%.
+Rule: pill for controls, 8–12px for containers. Nothing else.
+
+## 19.3 Elevation
+Border-based. Shadows only for true overlays.
+sm 0 1px 2px rgba(16,24,40,.05)
+md 0 4px 12px rgba(16,24,40,.08)
+lg/xl/2xl 0 12px 32px rgba(16,24,40,.14)
+focus ring 0 0 0 3px rgba(46,107,234,.15)
+
+## 19.4 Typography
+Font stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+Helvetica, Arial, sans-serif. Body 14px / line-height 1.5, antialiased.
+Scale: display 36, h1 26, h2 20, h3 17, h4 14, body-lg 15, body 14, body-sm 13,
+caption 12, label 13, button 14.
+
+## 19.5 Component sizing
+input-sm 36px, input-md 40px, input-lg 44px, header 60px, table-row 56px,
+sidebar collapsed 68px, sidebar expanded 260px, drawer 400px.
+
+## 19.6 Motion
+fast 120ms ease, base 180ms ease, slow 260ms ease. Framer Motion is used for
+page/section entrances and carousels; transitions must respect these durations.
+
+## 19.7 Z-index scale
+dropdown 100, sticky-header 200, drawer 300, modal-overlay 400, modal 410,
+toast 500.
+
+## 19.8 Utility surfaces
+.glass-panel: white, 1px #E3E5EA border, 12px radius, no shadow.
+.glass-panel-hover: hover → bg #F0F3F9, border #C7CBD6.
+.glass-navbar: white with a bottom hairline.
+.glass-input: white, 1px #E3E5EA, 8px radius.
+.no-scrollbar / .scrollbar-none: hide scrollbars cross-browser.
+Custom scrollbar: 6px, track #F0F3F9, thumb #C7CBD6 (hover #8A90A0), pill.
+
+## 19.9 Focus
+:focus-visible is never removed — 2px solid var(--color-brand-blue), 2px offset,
+2px radius.
+
+## 19.10 UI primitives (src/components/ui)
+Button (variants via cva: primary, secondary, ghost, danger; sizes sm/md/lg;
+loading state disables and shows a spinner), Input, Select, Dropdown, Tabs,
+Table, Card, Badge, Modal, Drawer, Toggle, StatusIndicator, AppBlocks.
+StatusIndicator maps a status string to the pastel/saturated pair above.
+
+## 19.11 Cards
+White surface, 1px hairline, 12px radius, 16–24px padding, no shadow at rest,
+hover shifts background and border only.
+
+## 19.12 Tables
+56px rows, hairline row separators, sticky header, right-aligned numerics,
+status rendered as a pill, actions in a trailing column or a row dropdown.
+Wide tables scroll inside their own horizontally scrollable container; the page
+body never scrolls horizontally.
+
+## 19.13 Forms
+Label above input (13px, secondary). Input heights from the sizing tokens.
+Inline validation text below the field in error colour. Disabled inputs use
+bg-input-disabled and text-disabled. Required fields marked in the label.
+Multi-step wizards show a numbered stepper with current/complete/upcoming
+states, and Back / Next / Save Draft actions in a sticky footer.
+
+## 19.14 Empty states
+Icon (muted), one-line headline (h3), one-line explanation (secondary), one
+primary action. Example: "No projects yet — post your first project to start
+receiving applications." + [Post New Project].
+
+## 19.15 Loading states
+Skeleton blocks matching the final layout (never spinners for page content).
+Buttons use an inline spinner and remain width-stable. Polling surfaces never
+show a loader on refresh — only on first load.
+
+## 19.16 Error states
+Inline field errors for validation. A page-level error banner (error pastel pair)
+for action failures, carrying the exact server message. Destructive actions
+require a confirmation modal naming the object.
+
+## 19.17 Desktop UX (≥1280px)
+Sidebar expanded (260px), content max width ~1200px, KPI tiles in a 4-up grid,
+workspace tabs horizontal, tables full width, drawer 400px for detail panes.
+
+## 19.18 Tablet UX (768–1279px)
+Sidebar collapsed to icons (68px) with tooltips. KPI tiles 2-up. Workspace tabs
+scroll horizontally without a scrollbar (.no-scrollbar). Tables reduce to the
+essential columns; the rest moves into an expandable row.
+
+## 19.19 Mobile UX (<768px)
+Sidebar becomes an off-canvas drawer opened from a header hamburger. KPI tiles
+stack 1-up. Workspace tabs become a horizontally scrollable pill row. Tables
+become stacked cards (label/value pairs). Modals become full-screen sheets.
+Multi-step wizards show only the current step number ("Step 3 of 5"). Chat takes
+the full viewport with a sticky composer. Touch targets ≥ 44px (input-lg).
+
+
+================================================================================
+# 20. UI PAGE-BY-PAGE DOCUMENTATION
+================================================================================
+
+Legend — Permissions: G guest, F freelancer, C company, A admin.
+
+## 20.1 / (src/app/page.tsx)
+Purpose: marketing home.
+Components: Navbar, hero, FeaturedCarousel, DomainCardRow, MarketingBlocks,
+TopFreelancers, footer.
+Actions: navigate to register/login/browse.
+Data: featured projects and top freelancers read server-side.
+Permissions: G/F/C/A.
+
+## 20.2 /about, /features, /contact
+Purpose: static marketing. Components: MarketingBlocks variants. No mutations.
+Permissions: all.
+
+## 20.3 /login
+Purpose: authenticate.
+Components: credentials form (email, password), Google button, links to
+/register.
+Actions: signIn("credentials"), signIn("google").
+Errors: invalid credentials render a generic failure (no account enumeration).
+Permissions: G.
+
+## 20.4 /register
+Purpose: create an account.
+Components: name, email, password, role selector (Freelancer / Company).
+Actions: registerUser → redirect to /login or role home.
+Validation: see 21.2. Permissions: G.
+
+## 20.5 /verify/[publicId]
+Purpose: public certificate verification.
+Data: getCertificateByPublicId(publicId).
+States: valid, revoked, not found. Permissions: all.
+
+## 20.6 /freelancers/[id] and /company/freelancers/[id]
+Purpose: freelancer public profile / company-side detail view.
+Components: FreelancerProfileDetail — header (avatar, banner, headline,
+availability, badges), skills, experience, education, portfolio, certificates
+(visible ones), reviews, rating.
+Actions (company view): save freelancer, invite to project.
+Permissions: public for /freelancers/[id]; C for the /company/ variant.
+
+## 20.7 /companies/[id]
+Purpose: company public profile (CompanyProfileView).
+Components: banner, logo, description, mission/vision, culture, hiring
+philosophy, gallery, benefits, team, trust/reputation scores, office locations,
+open projects, reviews.
+Actions: follow, watchlist, talent community, job alerts (F only).
+Permissions: public.
+
+## 20.8 /company/dashboard
+Purpose: company home.
+Components: KPI tiles, recent applicants, AnalyticsChart, TopFreelancers,
+DashboardNotifications, CompanyOnboardingWizard when onboarding is incomplete.
+Permissions: C.
+
+## 20.9 /company/profile
+Components: ProfileForm — identity, logo/banner upload, size, founded, contacts,
+mission/vision, culture, hiring philosophy, gallery, benefits, team members,
+office locations.
+Actions: updateCompanyProfile, updateCompanyDetailedProfile,
+updateCompanyGallery. Permissions: C.
+
+## 20.10 /company/projects
+Components: ProjectsList — filterable table/cards of the company's projects with
+status pill, applicant count, budget, due date, visibility toggle, row actions
+(view, edit, workspace, certificate, close, delete).
+Actions: toggleProjectVisibility, closeProject, deleteProject,
+setProjectLifecycle. Also lists resumable drafts (getMyProjectDrafts).
+Permissions: C (own projects only).
+
+## 20.11 /company/projects/new
+Purpose: 5-step creation wizard (section 7.1).
+Actions: saveProjectDraft (autosave), createProject, publishProjectDraft,
+saveProjectRoles, saveCertificateDesign.
+Components: stepper, RoundConfigPanel, RoleSlotsEditor, ProjectBannerUpload,
+CertificateConfigurator, preview.
+Permissions: C.
+
+## 20.12 /company/projects/edit/[projectId]
+Components: EditProjectForm — same fields as the wizard, flattened.
+Actions: editProject, saveProjectRoles, updateProjectDueDate.
+Blocked on terminal projects. Permissions: C + ownership.
+
+## 20.13 /company/projects/[id]
+Components: ProjectDetailsView — full listing, applicants summary, roles/roster,
+recommendations, discussion board, financial summary, lifecycle controls.
+Actions: lifecycle transitions, replyToDiscussionQuestion, open workspace.
+Permissions: C + ownership.
+
+## 20.14 /company/projects/[id]/certificate
+Components: CertificateDesigner + live preview.
+Actions: saveCertificateDesign, IssueCertificateModal → issueCertificate.
+Permissions: C + ownership.
+
+## 20.15 /company/applicants
+Components: ApplicantsList — all applicants across the company's projects,
+sortable by AI score, filterable by project/role/status; bulk selection.
+Actions: shortlistApplicant, rejectApplicant, hireApplicant,
+bulkTransitionApplicants, transitionApplicationStage.
+Permissions: C + ownership.
+
+## 20.16 /company/applicants/[id]
+Components: ApplicantDetailView — profile summary, cover letter, screening
+answers, pipeline history, AI score breakdown, offer letter composer, contract
+panel, interview scheduling.
+Actions: sendOfferLetterAction, respondToNegotiationAction,
+signDigitalContract, updateInterviewAction, cancelInterviewAction, hire/reject.
+Permissions: C + ownership.
+
+## 20.17 /company/freelancers
+Components: FreelancerSearch — filters, result cards with match score, save and
+invite actions.
+Actions: toggleSaveFreelancer, inviteFreelancerToProject, getInvitableProjects.
+Permissions: C.
+
+## 20.18 /company/workspace and /company/workspace/[applicationId]
+Index lists the company's active workspaces (one per project). The detail page
+renders WorkspaceView. Permissions: C + project party.
+
+## 20.19 /company/reviews
+Components: ReviewForm plus a list of completed projects awaiting review.
+Actions: submitReview (rating 1–5, comment). Permissions: C + ownership;
+project must be COMPLETED.
+
+## 20.20 /freelancer/dashboard
+Components: KPI tiles, pending project invitations (accept → apply, dismiss),
+recommended projects, active workspaces, LeaderboardSidebar, notifications.
+Actions: respondToInvite. Permissions: F.
+
+## 20.21 /freelancer/profile
+Components: ProfileForm — avatar/banner upload, headline, bio, domain, skills,
+experience years, experience entries, education, languages, availability
+calendar, portfolio items, resume upload, availability status, gender.
+Actions: updateFreelancerProfile, updateFreelancerCalendarAndProfile,
+setCertificateVisibility (via EarnedCertificatesPanel). Permissions: F.
+
+## 20.22 /freelancer/projects
+Components: ProjectsBrowser — search, filters (domain, skills, reward,
+experience), project cards with compensation line and match score, save toggle.
+API: rewardWhere-backed query. Actions: toggleSaveProject. Permissions: F.
+
+## 20.23 /freelancer/projects/[id]
+Components: ProjectDetailsView — description, objectives, deliverables,
+responsibilities, daily tasks, skills, timeline, compensation, roles with open
+slots, screening rounds summary, FAQ/discussion, company card.
+Actions: submitDiscussionQuestion, toggleSaveProject, Apply.
+Permissions: F (and blocked for PRIVATE listings).
+
+## 20.24 /freelancer/projects/[id]/apply
+Components: ProjectApplyWizard — Step 1 cover letter + role + apprentice
+toggle; Step 2 screening questions; Step 3 review and submit.
+Actions: applyToProject. Permissions: F.
+
+## 20.25 /freelancer/applications
+Components: ApplicationsListClient + FreelancerApplicationCard — status pill,
+AI score, project summary, pipeline progress, offer/contract/team-confirmation
+call-to-actions.
+Permissions: F (own applications only).
+
+## 20.26 /freelancer/applications/[id]
+Components: FreelancerApplicationDetailView — full pipeline history, screening
+answers, offer letter, negotiation panel, contract signing, TeamMatchConfirmation.
+Actions: respondToOfferLetterAction, negotiateOfferAction, signDigitalContract,
+confirmTeamMatch. Permissions: F + ownership.
+
+## 20.27 /freelancer/workspace and /freelancer/workspace/[applicationId]
+Index lists the freelancer's active workspaces. Detail renders WorkspaceView.
+Permissions: F + hired on the project.
+
+## 20.28 /workspace/[applicationId]
+Canonical role-agnostic workspace route. Renders WorkspaceView with the caller's
+role resolved server-side. Permissions: project party.
+
+## 20.29 /freelancer/completed-projects
+Components: CompletedProjectsView — completed engagements, earnings, issued
+certificate links, review call-to-action.
+Actions: submitCompanyReview. Permissions: F.
+
+## 20.30 /freelancer/certificates and /freelancer/certificates/[publicId]
+Components: EarnedCertificatesPanel, CertificateDownload.
+Actions: setCertificateVisibility, download. Permissions: F (own).
+
+## 20.31 /freelancer/reviews
+Components: reviews received, average rating, sub-score breakdown, apprentice
+score when present. Permissions: F.
+
+## 20.32 /admin/dashboard
+Platform counts (users, companies, freelancers, projects, applications,
+reviews), recent activity. Permissions: A.
+
+## 20.33 /admin/users
+Components: UsersDirectoryTable, AddUserModal.
+Actions: registerUser (admin path), updateUserRole, deleteUser. Permissions: A.
+
+## 20.34 /admin/freelancers, /admin/companies, /admin/projects
+Read/monitor tables with filters and drill-through links. Permissions: A.
+
+## 20.35 /admin/reviews
+Moderation table over all Review rows. Permissions: A.
+
+## 20.36 /admin/settings
+System configuration surface. Permissions: A.
+
+## 20.37 API routes (see section 21.9)
+/api/auth/[...nextauth], /api/upload, /api/notifications, /api/profile,
+/api/workspaces, /api/workspace/[projectId], /api/cron/cleanup-messages,
+/workspace/downloads/[fileName].
+
+
+================================================================================
+# 21. API / SERVER ACTION DOCUMENTATION
+================================================================================
+
+Convention: server actions return either { success: true, ... } or
+{ success: false, error } — EXCEPT a small set of legacy call sites
+(shortlist/reject/hire/remove, review submission, project create/edit/close)
+which throw Error, because their callers are written to catch. Preserve the
+existing contract per action when rebuilding.
+
+## 21.1 Authorization guards (src/lib/authz.ts)
+All return a discriminated Guard<T> = { ok: true, data } | { ok: false, error }.
+Denial message is ALWAYS "Not found, or you do not have access to it." so record
+existence cannot be probed. Unauthenticated is "Unauthorized".
+requireUser() → { userId, role, name }
+requireRole(role) → same, role-checked
+requireAdmin() → ADMIN only
+requireCompany() → { userId, company }; missing company profile →
+  "Complete your company profile first."
+requireProjectOwner(projectId) → { userId, company, project }
+requireApplicationOwner(applicationId) → company owns the application's project
+requireApplicationFreelancer(applicationId) → freelancer owns the application
+requireProjectParty(projectId) → { userId, role: COMPANY|FREELANCER, project,
+  applicationId | null }
+requireApplicationParty(applicationId) → either side of one application
+requireHiredFreelancer(projectId) → freelancer party only; else "Only a hired
+  freelancer can do this."
+callerIpAddress() → x-forwarded-for[0] || x-real-ip || "unknown", read from
+  request headers, never from an argument
+visibleChannelsFor(role, userId) → the channel where-clause
+scopedTask / scopedSharedFile / scopedMessage / scopedProjectUpdate(id,
+  projectId) → the record only if it belongs to that project
+
+## 21.2 authActions
+registerUser({ name, email, password, role })
+  Validation: all fields required; email unique; email lowercased; role ∈
+  {FREELANCER, COMPANY} (ADMIN rejected — self-provisioning an admin must be
+  impossible); password hashed with bcrypt.
+  Logic: create User, then create the role-shaped profile row.
+  Output: { success, userId } | { success: false, error }.
+deleteUser(userId) — ADMIN only. Cascades remove profiles, applications,
+  notifications, messages, files, sessions, accounts.
+updateUserRole(userId, role) — ADMIN only.
+
+## 21.3 projectActions
+createProject(formData) — COMPANY. Requires a company profile
+  ("Please complete your company profile before posting a project.").
+  Skills lowercased/trimmed/filtered. Creates Project + ProjectCompensation in
+  ONE transaction. Then recalculates recommendations and notifies every
+  freelancer with ≥1 matching skill. Throws on unauthorized.
+editProject(projectId, formData) — COMPANY + ownership + non-terminal.
+  Updates the row, upserts ProjectCompensation, recalculates recommendations.
+toggleProjectVisibility(projectId) — flips isVisible; blocked when terminal.
+closeProject(projectId) — asserts transition to CLOSED.
+updateProjectDueDate(projectId, dueDateString|null) — blocked when terminal.
+saveProjectDraft(input) → { success, draftId, savedAt }. No validation.
+getProjectDraft(draftId) → draft payload or null (ownership + DRAFT enforced).
+getMyProjectDrafts() → id, title, updatedAt, budget, domain, newest first.
+publishProjectDraft(draftId, isVisible = true) — validation in 7.3.
+setProjectLifecycle(projectId, "CANCELLED"|"ARCHIVED") — also isVisible = false.
+deleteProject(projectId) — DRAFT → ARCHIVED, otherwise → CANCELLED.
+
+## 21.4 applicationActions
+applyToProject(projectId, coverLetter, screeningAnswers?, roleId?,
+  isApprentice?) — full validation ladder in 8.2.
+shortlistApplicant / rejectApplicant(applicationId) — ownership + transition.
+hireApplicant(applicationId) — the transactional hire in 8.5.
+removeFreelancer(applicationId) — financial settlement check in 8.6.
+
+## 21.5 roleActions
+saveProjectRoles(projectId, RoleInput[]) — rules in 9.5. Output
+{ success, error? }.
+getProjectTeam(projectId) — roster + isTeamComplete.
+confirmTeamMatch(applicationId, decision, reason?) — rules in 9.4.
+handoverRole(roleId, fromApplicationId, toApplicationId) — rules in 9.6.
+
+## 21.6 Financial actions
+paymentStageActions:
+  getPaymentStages(projectId) — party-scoped; freelancers see only their own.
+  savePaymentStage(projectId, input) — checkSaveItem.
+  deletePaymentStage(projectId, stageId) — checkDeleteItem.
+  fundPaymentStage(projectId, stageId, amount) — lock, checkFund, ledger FUND,
+    cache update.
+  submitPaymentStage(projectId, stageId, note?) — checkSubmit.
+  reviewPaymentStage(projectId, stageId, approve, note) — checkReview.
+  releasePaymentStage(projectId, stageId, amount?) — checkRelease, ledger
+    RELEASE, cache update.
+hourlyLogActions:
+  addWorkLog(...) — checkAddWorkLog + unique-constraint guard; rateSnapshot
+    frozen from the current ProjectCompensation.hourlyRate.
+  getWorkLogs(projectId) — party-scoped, per-application isolation.
+  reviewWorkLog(projectId, logId, approve, note?) — company only; rejection
+    requires a reason.
+  deleteWorkLog(projectId, logId) — only while PENDING and only the owner.
+  releaseHourlyPayment(projectId, applicationId, value) — checkHourlyRelease,
+    ledger RELEASE with paymentItemId null.
+  getHourlyPayments(projectId).
+stipendPaymentActions:
+  releaseStipendPayment(projectId, applicationId, periodIndex) —
+    checkStipendRelease + unique [applicationId, periodIndex].
+  getStipendPayments(projectId).
+
+## 21.7 Collaboration / workspace actions
+sendMessage(projectId, content, channel) — channel rules in 14.2.
+shareFile(projectId, fileName, fileUrl, fileSize, channel) — same channel rules.
+deleteFile(projectId, fileId) — scopedSharedFile.
+deleteMessage(projectId, messageId) — scopedMessage.
+markMessagesAsRead(projectId, channel).
+createProjectUpdate / updateProjectUpdateStatus — scopedProjectUpdate.
+createTask / updateTaskDetails / updateTaskStatus / deleteTask — scopedTask,
+  isTaskStatus validation.
+updateDeliverableStatus(projectId, fileId, "APPROVED"|"REVISION_REQUESTED",
+  feedback) — revision cap 2.
+uploadDeliverableVersion(projectId, fileId, fileName, fileUrl, fileSizeStr) —
+  increments version, resets status.
+sendDMMessageAction / getDMMessagesAction / editDMMessageAction /
+  deleteDMMessageAction / markDMMessagesAsSeenAction.
+
+## 21.8 Other actions
+meetingActions: createMeeting, updateMeeting, cancelMeeting,
+  getProjectMeetings, respondToMeeting (section 16).
+certificateActions: issueCertificate, issueProjectCertificates,
+  getCertificateByPublicId, getFreelancerCertificates, getHiddenCertificateIds,
+  setCertificateVisibility, saveCertificateDesign (section 17).
+reviewActions: getProjectCompletionReadiness, completeProject,
+  getProjectReviewStatus, submitReview, submitCompanyReview (sections 11.15,
+  22.6).
+inviteActions: inviteFreelancerToProject, getInvitableProjects,
+  respondToInvite (section 8.7–8.8).
+notificationActions: markAsRead, markAllAsRead, getNotificationRedirectUrl.
+companyActions: updateCompanyDetailedProfile, updateCompanyGallery,
+  toggleFollowCompany, toggleJobAlerts, toggleWatchlist, toggleTalentCommunity,
+  toggleSaveProject.
+savedFreelancerActions: toggleSaveFreelancer.
+profileActions: updateFreelancerProfile, updateCompanyProfile.
+workflowActions: submitCompanyOnboarding, updateFreelancerCalendarAndProfile,
+  transitionApplicationStage, bulkTransitionApplicants, signDigitalContract,
+  releaseMilestonePayment, submitDiscussionQuestion, replyToDiscussionQuestion,
+  sendOfferLetterAction, negotiateOfferAction, respondToNegotiationAction,
+  respondToOfferLetterAction, updateInterviewAction, cancelInterviewAction.
+
+## 21.9 REST endpoints
+GET /api/notifications
+  Auth: session. Output: 8 newest Notification rows for the caller.
+  Errors: 401 Unauthorized, 500 Internal Server Error.
+GET /api/profile
+  Output: { role, profileId, href, image, verificationBadges }. href is
+  /freelancers/{id} or /companies/{id}, null when no profile exists.
+GET /api/workspaces
+  FREELANCER: one entry per HIRED application on an OPEN/IN_PROGRESS project
+  → { id, label, href: /workspace/{applicationId}, applicationIds, status }.
+  COMPANY: grouped by project — one entry per project, applicationIds collected.
+GET /api/workspace/[projectId]
+  Auth: requireProjectParty, else 403 Forbidden.
+  Output: { messages, sharedFiles, projectUpdates, tasks } with author/assignee
+  user summaries. Messages limited to the last 7 days AND filtered by
+  visibleChannelsFor. SharedFiles filtered by the same predicate.
+POST /api/upload — section 12.1.
+GET|DELETE /api/cron/cleanup-messages — deletes messages older than 7 days,
+  returns { success, deletedCount, cutoffDate }; 500 on failure.
+GET /workspace/downloads/[fileName] — section 12.6.
+/api/auth/[...nextauth] — Auth.js handlers.
+
+## 21.10 AI recommendation service
+calculateSkillMatch: 100 when the project lists no skills; otherwise
+  (matched project skills / total project skills) × 100, compared
+  case-insensitively on trimmed values.
+calculateExperienceMatch: 100 when requiredYears ≤ 0 or freelancerYears ≥
+  requiredYears; otherwise (freelancerYears / requiredYears) × 100.
+calculatePriorityMatch: HIGH → 100 when rating ≥ 4.3 AND completionRate ≥ 92,
+  else 70. MEDIUM → 90. LOW → 80.
+ratingMatch = (rating / 5) × 100. completionRateMatch = completionRate.
+FINAL FORMULA:
+  score = skillMatch×0.50 + experienceMatch×0.20 + ratingMatch×0.15
+        + completionRateMatch×0.10 + priorityMatch×0.05
+  rounded to 1 decimal place.
+recalculateRecommendationsForProject(projectId): only for OPEN projects; scores
+  every freelancer, sorts descending, keeps the top 10, replaces the cache in a
+  transaction (deleteMany + createMany).
+recalculateRecommendationsForFreelancer(freelancerId): re-runs the above for
+  every OPEN project.
+
+
+================================================================================
+# 22. SECURITY MODEL
+================================================================================
+
+## 22.1 Authentication
+- Auth.js v5, JWT session strategy, PrismaAdapter for account linking.
+- Providers: Google OAuth, Credentials.
+- Passwords: bcrypt. Legacy plaintext values are upgraded in place on the first
+  successful login (the one moment the plaintext is legitimately available) and
+  passwordChangeRequired is set so the user can be prompted to choose a new one.
+- Credentials NEVER create accounts. An unknown email fails. A client-supplied
+  "role" credential is ignored.
+- A user with passwordHash = null cannot sign in with a password.
+- data: URL images are stripped from the token and session.
+- trustHost: true; pages.signIn and pages.error both "/login".
+
+## 22.2 Authorization
+- Server actions are network endpoints. A layout guard on /admin or /company
+  protects NOTHING. Every action calls a guard directly.
+- Two failure classes the guard layer exists to prevent:
+  Class A — the caller's ROLE was checked but not that they OWN the object.
+  Class B — a project-access check passed, but the mutation then targeted a
+            record id belonging to a DIFFERENT project.
+- Class A is closed by requireProjectOwner / requireApplicationOwner /
+  requireApplicationFreelancer / requireProjectParty / requireHiredFreelancer.
+- Class B is closed by scopedTask / scopedSharedFile / scopedMessage /
+  scopedProjectUpdate, and by re-validating roleId against the project.
+- Guards never leak existence: "not found" and "not yours" return the same
+  message.
+
+## 22.3 Data ownership rules
+- A project belongs to exactly one company; every mutation re-derives ownership
+  from the session, never from a client-supplied companyId.
+- An application belongs to one freelancer and one project.
+- Every financial record belongs to exactly one application — enforced by a
+  required, non-nullable applicationId, so cross-freelancer leakage is
+  structurally impossible rather than checked at runtime.
+- A meeting attendee row is located by { meetingId, userId } so a caller can
+  only ever change their own RSVP.
+- A certificate's visibility can only be changed by the owning freelancer.
+
+## 22.4 Channel confidentiality
+See 14.3. DM matching is anchored (startsWith / endsWith) rather than
+`contains`, because a `contains` match would let a user whose id is a suffix of
+another id read a conversation they are not part of. The polling API and the
+server-rendered page use the same predicate so they cannot drift apart.
+
+## 22.5 Upload security
+- MIME AND extension must both match one allowlist entry (an OR would let either
+  signal alone admit a file).
+- SVG is rejected by both signals independently, because rendered inline it runs
+  script in our origin.
+- Stored extension and stored content type come from the allowlist entry, never
+  from the request.
+- Object key components are stripped to [A-Za-z0-9_-].
+- Size is validated against the real received byte length, not the declared size.
+- The download route looks a file up as DATA and never treats caller input as a
+  path, so traversal has nothing to act on; the resolved path is still
+  containment-checked as defence in depth.
+- Legacy data: URLs with off-allowlist MIME types are downgraded to
+  application/octet-stream and served with nosniff + attachment.
+
+## 22.6 Input validation of privileged values
+- Ratings and every sub-score are bounded 1–5 before reaching an aggregate.
+- The reviewer must have genuinely worked the project, and the project must
+  belong to the company being reviewed.
+- Screening answers marked required are enforced server-side, not only in the UI.
+- Signature IP addresses are read from request headers server-side; they were
+  never a caller argument.
+- Task status, application status, project status and payment item status all go
+  through explicit transition tables. Anything not listed is rejected.
+
+## 22.7 Concurrency safety
+- Hiring locks the project's application rows (FOR UPDATE) so two simultaneous
+  hires into the last slot cannot both see room.
+- Financial mutations lock the target PaymentItem row (FOR UPDATE) and validate
+  against the freshly-locked state.
+- The ledger's unique idempotencyKey rejects replays that a status check alone
+  cannot catch, because that check reads state a concurrent transaction is
+  changing.
+
+## 22.8 Known scope limits
+- No CSRF token beyond Auth.js defaults (Server Actions carry their own
+  protection).
+- No rate limiting on server actions or the upload endpoint.
+- The cron cleanup endpoint is unauthenticated (it only deletes data older than
+  its own TTL); a shared-secret header should be added before public exposure.
+- No external payment provider; funds are an internal ledger construct only.
+
+
+================================================================================
+# 23. PERFORMANCE STRATEGY
+================================================================================
+
+## 23.1 Query strategy
+- Filters are expressed as Prisma relation filters resolved by the database, not
+  applied in JavaScript after fetching every row (the reward filter is the
+  canonical example).
+- Concurrent independent reads use Promise.all (workspace API fetches messages,
+  files, updates and tasks in parallel).
+- Every hot foreign key is indexed: Project(companyId, status),
+  Application(freelancerId, status, roleId), PaymentItem(projectId,
+  applicationId, [projectId, status]), WorkLog([applicationId, status]),
+  Message(projectId, senderId), Meeting([projectId, startsAt]).
+
+## 23.2 Caching
+- Project metadata parsing is memoised in-process (getProjectMetadataDirect);
+  __clearProjectMetadataCache() exists for tests.
+- Recommendation rows are a materialised cache of the top 10 matches per OPEN
+  project, refreshed on project create/edit and on freelancer profile change.
+- PaymentItem.fundedAmount / releasedAmount are caches over the ledger, written
+  transactionally with it and verifiable via reconcileItem.
+- Next.js revalidatePath is called on every mutating action for the exact routes
+  affected (never a blanket revalidation).
+
+## 23.3 Pagination
+- Notifications: hard take of 8.
+- Messages: bounded by the 7-day retention window rather than by a page size.
+- Admin and listing tables paginate client-side over a server-filtered set;
+  convert to cursor pagination (createdAt + id) when a dataset exceeds a few
+  thousand rows.
+- Recommendations: capped at 10 per project by construction.
+
+## 23.4 Payload discipline
+- Every include uses an explicit `select` for user summaries (id, name, image,
+  role) rather than returning full User rows.
+- data: URL images are stripped from the JWT so the token stays small.
+- Deliverable metadata rides in an existing column rather than adding a join.
+
+## 23.5 Rendering
+- Server Components by default; client components only where interaction demands
+  it (wizards, chat, kanban, filters, uploads).
+- Skeletons match final layout so there is no cumulative layout shift.
+- Polling refreshes never show a loading state after first paint.
+
+
+================================================================================
+# 24. EDGE CASES
+================================================================================
+
+## 24.1 Authentication
+- Unknown email at login: fails silently; no account is created.
+- OAuth-only user attempting password login: fails (passwordHash null).
+- Legacy plaintext password: upgraded on successful login; a failed upgrade must
+  not block the login and is retried on the next sign-in.
+- DB unavailable during the JWT callback: cached token values are used and a
+  warning is logged rather than signing the user out.
+- data: URL avatar: stripped from token and session.
+
+## 24.2 Projects
+- Project with no compensation row: impossible for new projects; treated as PAID
+  by the browse filter for safety.
+- Draft never finished: stays DRAFT, invisible on both status and isVisible.
+- Publishing an incomplete draft: refused with the list of missing fields.
+- Editing a COMPLETED/CLOSED/CANCELLED/ARCHIVED project: refused.
+- Reopening a closed project: refused ("cannot be reopened").
+- Deleting a project with history: never hard-deleted; becomes CANCELLED.
+- Corrupt metadata block: parse failure is logged as an error and recorded so
+  callers can detect it; it returns the fallback rather than taking the page
+  down. Absence is quiet; corruption is loud, and the two are distinguishable.
+- Legacy project with no compensationType: defaults to FIXED, consistently
+  everywhere (previously different screens defaulted differently).
+
+## 24.3 Applications
+- Duplicate application: pre-checked AND caught at the unique constraint.
+- Applying to a role from another project: rejected.
+- Apprentice applying to a role that disallows apprentices: rejected.
+- Applying when the project is full: rejected unless applying as an apprentice.
+- Two hires racing for the last slot: serialised by the row lock; the loser gets
+  the capacity error.
+- Hiring an already-hired applicant: "This applicant is already hired."
+- Rejected → HIRED directly: forbidden; must pass through PENDING/SHORTLISTED.
+- Role fills while others are still pending: those applications are auto-
+  rejected, except apprentice applicants while the role still accepts one.
+- Freelancer declines the team after being hired: application returns to
+  REJECTED and the slot reopens.
+- Removing a freelancer with committed funds or unpaid approved hours: refused
+  with the outstanding amount named.
+
+## 24.4 Money
+- Double-clicked fund/release: the second call reuses the idempotency key and is
+  rejected by the ledger's unique index.
+- Partial release: supported; omitting the amount releases the full outstanding
+  balance (the historic behaviour).
+- Releasing more than funded: refused.
+- Editing a stage amount below what is already committed: refused.
+- Reassigning a funded stage to another freelancer: refused.
+- Stage total exceeding the project budget: refused with the projected total.
+- Currency mismatch between a stage and the project: refused.
+- Editing the hourly rate after work was approved: previously-approved logs keep
+  their rateSnapshot and are not repriced.
+- Same date + same description work log twice: blocked by the unique constraint.
+- Logging more than 16 hours in one entry: refused.
+- Exceeding maxHours cumulatively: refused with the remaining allowance.
+- Paying a stipend period twice: blocked by the unique constraint.
+- Stipend period index beyond the configured count: refused.
+- Stipend payouts exceeding the budget: refused with the remaining amount.
+- Hourly/stipend releases have no PaymentItem, so any financial summary MUST
+  also read ledger RELEASE rows with paymentItemId = null, or those payouts
+  become invisible.
+- Cached aggregate drift: detectable via reconcileItem; the ledger wins.
+
+## 24.5 Completion
+- Completing with open payment stages / pending work logs / unpaid approved
+  hours / unpaid stipend periods: refused with a specific reason.
+- Completing twice: returns { success: true, alreadyDone: true }.
+- Completing an UNPAID project: always ready.
+- Certificates enabled but no template designed: project still completes; the
+  company gets a "Design your certificate" nudge and no certificate is issued
+  unstyled.
+- Certificate already issued for a (project, freelancer): re-issue returns the
+  existing publicId.
+
+## 24.6 Workspace & collaboration
+- Hired while the project is still OPEN: the workspace must exist — both the
+  freelancer and company workspace queries include OPEN and IN_PROGRESS.
+- Company attempting to read the freelancers-only channel: filtered out on read
+  and refused on write.
+- A user id that is a suffix of another user id: anchored DM matching prevents
+  cross-reading.
+- Messages older than 7 days: excluded from reads and eventually deleted.
+- Task with a status outside the four columns: rejected at write time. A REVIEW
+  task must appear in its own column, not vanish while still counting in totals.
+- Requesting a third revision: refused at the cap of 2, for both deliverables
+  and payment items.
+- Acting on a record id from another project after passing the project check:
+  blocked by the scoped* lookups.
+
+## 24.7 Meetings
+- Client sends attendee ids that are not project parties: silently dropped.
+- Meeting on a terminal project: refused.
+- Invalid date: refused.
+- Non-attendee responding: "You are not invited to this meeting."
+- A meeting whose end time has passed: automatically classified as past.
+
+## 24.8 Roles
+- Reducing slots below hired primaries: refused, naming the minimum.
+- Deleting a role with applicants: refused, naming the roles.
+- Slots > 100: refused.
+- Handover to the same person, to a non-apprentice, or across roles: refused.
+- Handover by anyone other than the company or the outgoing primary: refused.
+
+## 24.9 Files
+- SVG upload: rejected by both MIME and extension.
+- Mislabelled file (png bytes declared as text/html): rejected at the allowlist.
+- Oversized file with an understated declared size: caught on the real byte
+  length.
+- Path traversal in a download filename: impossible — the name is only a lookup
+  key.
+- Legacy data: URL with an unknown MIME: downgraded to
+  application/octet-stream.
+- Serverless deployment: disk writes are impossible, so uploads return data:
+  URLs.
+
+## 24.10 Reviews
+- Reviewing before completion: refused.
+- Reviewing someone who was not hired on the project: refused.
+- Reviewing a company whose project you did not work: refused.
+- Duplicate review: returns the existing review with duplicate: true.
+- Out-of-range rating or sub-score: refused before aggregation.
+- Apprentice reviews: never move the primary rating; accumulate separately.
+- completedProjects: derived, so repeated reviews cannot inflate it and an
+  unreviewed completion is not lost.
+
+
+================================================================================
+# 25. ERROR HANDLING
+================================================================================
+
+## 25.1 Principles
+- Server actions return { success: false, error } with a human-readable message
+  intended for direct display. Legacy call sites that throw must keep throwing.
+- Authorization failures are deliberately generic and identical for missing and
+  forbidden records.
+- Validation errors name the exact constraint and, where useful, the exact
+  remaining allowance ("Only 250.00 of the project budget remains available to
+  fund.").
+- Errors never leak ids, table names, or stack traces to the client.
+
+## 25.2 User errors (400-class)
+Missing required fields, invalid dates, out-of-range ratings, unanswered
+required screening questions, duplicate application, duplicate invite, invalid
+status transition, capacity exceeded, budget exceeded, revision cap reached,
+currency mismatch, unsupported file type, oversized file. All rendered inline
+next to the offending control, or as a page-level banner for whole-action
+failures.
+
+## 25.3 Authorization errors (401/403-class)
+"Unauthorized" when unauthenticated.
+"Not found, or you do not have access to it." for every ownership failure.
+REST routes: 401 for no session, 403 for a non-party workspace read, 404 (not
+403) for a non-party file download so file existence is not revealed.
+
+## 25.4 Server errors (500-class)
+Wrapped in try/catch at the action boundary; the raw error is console.error'd
+server-side and a generic message is returned ("Failed to upload file",
+"Internal Server Error", "Failed to send message").
+
+## 25.5 Database errors
+P2002 (unique violation) is always translated, never surfaced raw:
+- Application [projectId, freelancerId] → "You have already applied to this
+  project."
+- PaymentTransaction.idempotencyKey → LedgerReplayError → "This operation has
+  already been recorded."
+- WorkLog [applicationId, workDate, description] → duplicate work-log message.
+- StipendPeriod [applicationId, periodIndex] → period already paid.
+Transaction timeouts (10 s) surface as a generic failure; the transaction rolls
+back, so no partial financial state can persist.
+Transient DB failures in the JWT callback degrade to cached token values.
+
+## 25.6 Parsing errors
+A metadata block that is absent returns the fallback quietly (a normal state).
+A block that is present but unparseable is logged as an error with the offending
+prefix and recorded in a corrupted-payload set so isMetadataCorrupt() can report
+it. Parsing is deliberately non-throwing: a corrupt block must not take a page
+down, and since financial state lives in real tables the blast radius is
+presentation only.
+
+## 25.7 Notification failures
+Never block the primary mutation. Logged and swallowed.
+
+
+================================================================================
+# 26. FUTURE FEATURES
+================================================================================
+
+## 26.1 Payment gateway
+Integrate a provider (Stripe Connect or equivalent). The ledger already carries
+externalRef, so no schema change is needed: FUND becomes a real charge/hold,
+RELEASE a transfer, REFUND a reversal. Add webhook reconciliation against
+PaymentTransaction using idempotencyKey, and a payout-account model per
+freelancer. Multi-currency settlement requires an FX rate snapshot per ledger
+row.
+
+## 26.2 Object storage
+Replace the data: URL branch of /api/upload with an S3-compatible presigned
+upload. SharedFile.fileUrl becomes an object key. The download route keeps its
+lookup-by-record shape, so no authorization logic changes; it issues a
+short-lived signed URL instead of streaming bytes. Add a background migration
+for existing data: URLs.
+
+## 26.3 AI features
+- Replace the deterministic weighted score with an embedding-based match over
+  profile and listing text, keeping the current formula as an explainable
+  fallback and as the cold-start default.
+- AI-assisted project description drafting in the wizard.
+- Automated screening-answer summarisation for recruiters.
+- Semantic freelancer search.
+- Anomaly detection on the ledger (unusual funding/release patterns).
+Any LLM integration should default to the latest Claude models.
+
+## 26.4 Kanban improvements
+Drag-and-drop with optimistic reordering, a persisted per-column sort order
+column, swimlanes by assignee or role, checklists and subtasks, WIP limits per
+column, and linking a task to a PaymentItem so completion can drive submission.
+
+## 26.5 Runtime for the remaining round types
+Twelve of the thirteen round types in ROUND_TYPE_CATALOG collect configuration
+but have no runtime: no per-round submission store, no reviewer workflow, no
+progression gating. Building it requires a RoundSubmission table
+(roundId, applicationId, payload, score, reviewerId, status) plus stage gating
+in the application pipeline. Until then they remain labelled "Coming soon" and
+cannot be newly selected — existing configuration is preserved, never deleted.
+
+## 26.6 Other
+Email and push notification delivery; a real-time transport (WebSocket/SSE)
+replacing polling; message retention configurable per project; a dispute
+resolution workflow (the schema already carries disputes[]); extension requests
+(schema already carries extensionRequests[]); recruiter sub-accounts with the
+existing RecruiterTeamMember roles (Owner, Admin, Recruiter, Finance, Viewer).
+
+
+================================================================================
+# 27. COMPLETE BUSINESS RULES
+================================================================================
+
+## Identity
+R1  Role is one of ADMIN, COMPANY, FREELANCER; default FREELANCER.
+R2  ADMIN can never be self-assigned through registration or login.
+R3  Login never creates an account.
+R4  A user without passwordHash cannot use password login.
+R5  A legacy plaintext password is upgraded on first successful login and flags
+    passwordChangeRequired.
+R6  Email is unique and stored/compared lowercased.
+
+## Projects
+R7  Every project has exactly one ProjectCompensation row, written atomically
+    with the project.
+R8  ProjectCompensation is authoritative for money; Project.budget is display.
+R9  DRAFT projects are never publicly browseable and always isVisible = false.
+R10 Only OPEN and IN_PROGRESS projects are publicly browseable.
+R11 Only OPEN and IN_PROGRESS projects accept applications.
+R12 COMPLETED, CLOSED, CANCELLED, ARCHIVED are terminal and read-only.
+R13 A closed project can never be reopened.
+R14 Publishing requires title (not "Untitled draft"), description, budget > 0,
+    and at least one required skill.
+R15 Nothing is ever hard-deleted; delete means CANCELLED (or ARCHIVED for a
+    draft).
+R16 Skills are stored lowercased and trimmed.
+R17 A project flips OPEN → IN_PROGRESS automatically when its last primary slot
+    is filled.
+R18 completeProject is the sole writer of COMPLETED.
+
+## Applications
+R19 One application per freelancer per project.
+R20 A roleId must belong to the project being applied to.
+R21 Apprentice applications require role.allowApprentice = true.
+R22 Required screening questions are enforced server-side.
+R23 PRIVATE listings accept no applications; INVITE_ONLY requires an invite.
+R24 A full project rejects new primary applications but still accepts
+    apprentices.
+R25 Application transitions follow the table in 8.1; REJECTED → HIRED is
+    forbidden.
+R26 An already-hired applicant cannot be hired again.
+R27 hireApplicant is the only path that produces HIRED.
+R28 Hiring enforces BOTH the project limit and the role limit, under a row lock.
+R29 Filling a role auto-rejects its remaining open applicants, sparing
+    apprentices while the role still accepts one.
+R30 A freelancer with committed funds or unpaid approved hours cannot be
+    removed.
+
+## Team
+R31 Apprentices never consume capacity in any count.
+R32 Role slots are between 1 and 100.
+R33 Role slots may never drop below hired primaries.
+R34 A role with applications cannot be deleted.
+R35 Declining a team placement returns the application to REJECTED and frees the
+    slot.
+R36 Handover swaps isApprentice between an existing primary and an existing
+    apprentice on the same role; nobody is removed.
+R37 Only the owning company or the outgoing primary may initiate a handover.
+
+## Money
+R38 All amounts are Decimal(18,2) and carry their currency.
+R39 An amount's currency must equal the project currency.
+R40 The ledger is append-only; corrections are compensating entries.
+R41 Every financial mutation locks its target row, validates against the locked
+    state, appends a ledger row, and updates the cache in one transaction.
+R42 Every financial mutation carries an idempotency key; replays are rejected.
+R43 Every financial record belongs to exactly one application.
+R44 The sum of payment stage amounts may not exceed the project budget.
+R45 A stage amount may not drop below max(funded, released).
+R46 A stage holding committed money cannot be deleted or reassigned.
+R47 Funding may not exceed the stage amount nor the remaining project budget.
+R48 Only the assigned freelancer may submit a stage, and only when FUNDED or
+    CHANGES_REQUESTED.
+R49 Only a SUBMITTED stage can be reviewed.
+R50 A maximum of 2 revisions may be requested on a stage or deliverable.
+R51 Release requires APPROVED and full funding; partial release is allowed but
+    never above the outstanding balance or the funded amount.
+R52 A single work log may not exceed 16 hours.
+R53 Cumulative hours may not exceed maxHours when configured.
+R54 Work logs are unique per (application, date, description).
+R55 Only APPROVED work logs are payable, valued at their own rateSnapshot.
+R56 Hourly payment may not exceed approvedValue − alreadyPaid.
+R57 A stipend period pays exactly once and its index is bounded by
+    maxStipendPeriods (ONE_TIME = 1, otherwise the configured count, default 1).
+R58 Cumulative stipend payouts may not exceed the project budget.
+R59 Financial summaries must read the payment tables and the ledger, never
+    display text.
+
+## Completion, certificates, reviews
+R60 Completion requires every compensation-type-specific settlement check to
+    pass.
+R61 Completing twice is a no-op returning alreadyDone.
+R62 Certificates are issued at completion, never at project creation.
+R63 One certificate per (project, freelancer); re-issue is idempotent.
+R64 Certificate content is snapshotted at issue time and never backfilled.
+R65 Revocation preserves the row.
+R66 Only the owning freelancer controls a certificate's profile visibility.
+R67 Reviews require a COMPLETED project and a genuine engagement.
+R68 Ratings and sub-scores are bounded 1–5.
+R69 One review per (project, reviewer, reviewee); duplicates are idempotent.
+R70 Freelancer.rating averages non-apprentice reviews only, to 1 decimal.
+R71 Apprentice reviews accumulate into a separate apprenticeScore.
+R72 completedProjects is derived from COMPLETED projects where the freelancer
+    was hired as a primary.
+R73 Company trust/reputation/paymentReliability recompute from all reviews on
+    every new review.
+
+## Collaboration
+R74 Channel visibility is enforced by one shared predicate on every read path.
+R75 A company can neither read nor write the freelancers-only channel.
+R76 A DM is visible only to its two participants, matched with anchored
+    prefix/suffix.
+R77 Messages are retained for 7 days.
+R78 Task status must be one of TODO, IN_PROGRESS, REVIEW, DONE.
+R79 All four task columns must be rendered.
+R80 Every record mutation must be scoped to the project the caller was granted
+    access to.
+
+## Meetings
+R81 Only the owning company may create, update or cancel a meeting.
+R82 Attendees are filtered to genuine project parties server-side.
+R83 The organizer is always the owning company's user and is auto-ACCEPTED.
+R84 An attendee may only change their own RSVP.
+R85 Meetings cannot be scheduled on a terminal project.
+
+## Files
+R86 MIME and extension must both match one allowlist entry.
+R87 SVG is always rejected.
+R88 Stored extension and content type come from the allowlist, never the
+    request.
+R89 Size limits: image 5 MB, pdf 5 MB, video 20 MB, checked on real bytes.
+R90 Downloads resolve files as data, never as paths, and require project
+    membership.
+
+## Security
+R91 Every server action calls its own guard; layout guards protect nothing.
+R92 Ownership is always re-derived from the session.
+R93 Missing and forbidden return an identical message.
+R94 Signature IP addresses are read from request headers server-side.
+
+
+================================================================================
+# 28. REBUILD GUIDE
+================================================================================
+
+## 28.1 Recommended build order
+Phase 0 — Foundation
+1. next@16 App Router project, TypeScript, Tailwind 4.
+2. Port globals.css verbatim from section 19 (tokens first — every component
+   depends on them).
+3. Build the ui primitives: Button, Input, Select, Dropdown, Tabs, Table, Card,
+   Badge, Modal, Drawer, Toggle, StatusIndicator.
+4. Prisma schema exactly as section 5, including every @@unique and @@index.
+   Run the initial migration.
+
+Phase 1 — Identity
+5. Auth.js config from section 6.3 / 22.1 (JWT strategy, PrismaAdapter, Google +
+   Credentials, the no-auto-create rule, the plaintext upgrade path).
+6. src/lib/password.ts (hashPassword, verifyPassword returning
+   { valid, needsRehash }).
+7. registerUser with the role allowlist; role-shaped profile creation.
+8. src/lib/authz.ts — ALL guards from 21.1 before writing any action. This is
+   the layer everything else depends on; writing actions first reproduces the
+   Class A / Class B bugs the guard layer exists to prevent.
+
+Phase 2 — Pure logic (no I/O, fully unit-testable)
+9.  src/lib/lifecycle.ts — project/application transition tables, capacity,
+    task statuses/columns, certificate role/skill derivation, contract
+    milestones.
+10. src/lib/paymentRules.ts — every check* function and constant from section
+    11, with the exact error strings.
+11. src/lib/compensation.ts — normaliseType, getProjectCompensation,
+    getProjectFinancialSummary, deriveFromMetadata.
+12. src/lib/uploads.ts, browseFilters.ts, dates.ts, workflowHelpers.ts
+    (metadata serialize/parse, catalogs, currencies).
+13. Vitest suites for 9–12. These are the specification's executable half.
+
+Phase 3 — Data & transactions
+14. src/lib/payments.ts — lockPaymentItem, lockProjectItems, appendLedger,
+    inFinancialTransaction, reconcileItem, LedgerReplayError.
+15. src/services/aiRecommendation.ts with the exact formula from 21.10.
+
+Phase 4 — Actions
+16. projectActions, applicationActions, roleActions.
+17. paymentStageActions, hourlyLogActions, stipendPaymentActions.
+18. collaborationActions, meetingActions, certificateActions, reviewActions.
+19. inviteActions, notificationActions, companyActions, profileActions,
+    savedFreelancerActions, workflowActions.
+
+Phase 5 — REST routes
+20. /api/auth/[...nextauth], /api/upload, /api/notifications, /api/profile,
+    /api/workspaces, /api/workspace/[projectId], /api/cron/cleanup-messages,
+    /workspace/downloads/[fileName].
+
+Phase 6 — UI
+21. Shell: Navbar, Sidebar (exact nav arrays from 4.2), DashboardLayout,
+    NotificationCenter.
+22. Marketing pages.
+23. Company surfaces: wizard, projects, applicants, freelancer search,
+    certificate designer.
+24. Freelancer surfaces: browse, apply wizard, applications, profile,
+    certificates.
+25. WorkspaceView with the seven tabs in the exact order of 10.3.
+26. Admin surfaces.
+
+Phase 7 — Data and verification
+27. prisma/seed.ts: one admin, several companies, many freelancers with varied
+    skills/ratings, projects across all five compensation types, applications in
+    every status, a completed project with certificates and reviews.
+28. Verify every rule in section 27 against the running app.
+
+## 28.2 Non-negotiables
+These are the decisions the current implementation exists to enforce. Rebuilding
+without them reproduces known defects:
+- One guard layer. Never write an ad-hoc ownership check in an action.
+- One capacity function shared by apply and hire.
+- One hire path, one completion writer, one compensation resolver.
+- Money in Decimal, in an append-only ledger, behind row locks and idempotency
+  keys. Never JSON in a text column with read-modify-write.
+- Financial records keyed to applicationId, non-nullable.
+- One channel-visibility predicate used by every read path.
+- Transition tables for every status enum; anything unlisted is rejected.
+- Upload allowlist matching on MIME AND extension, storing allowlist values.
+- Downloads resolved as records, never as paths.
+- Identical error text for missing and forbidden.
+- Design tokens in one file; no hardcoded colours or sizes in components.
+
+## 28.3 Environment
+DATABASE_URL           PostgreSQL (Neon) connection string
+AUTH_SECRET            Auth.js signing secret
+AUTH_GOOGLE_ID         Google OAuth client id
+AUTH_GOOGLE_SECRET     Google OAuth client secret
+NEXTAUTH_URL / AUTH_URL  deployment origin
+VERCEL / NODE_ENV      switch the upload path between data: URLs and disk
+
+## 28.4 Acceptance checklist
+[ ] A freelancer cannot read another freelancer's DM, work logs, or payments.
+[ ] A company cannot read the freelancers-only channel.
+[ ] Two concurrent hires into the last slot: exactly one succeeds.
+[ ] Two concurrent releases of the same stage: exactly one ledger row.
+[ ] reconcileItem reports consistent for every item after a full workflow.
+[ ] A REVIEW task appears in its own column.
+[ ] An SVG upload is rejected; a png-as-text/html upload is rejected.
+[ ] ../ in a download filename returns 404, not a server file.
+[ ] Completion is refused while any payment obligation is open, per type.
+[ ] A certificate issued before a profile rename still shows the old name.
+[ ] Changing the hourly rate does not reprice approved work logs.
+[ ] A rejected applicant cannot be moved straight to HIRED.
+[ ] A closed project cannot be reopened or edited.
+[ ] Publishing an incomplete draft names the missing fields.
+[ ] Every page renders correctly at 375px, 768px, and 1280px.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

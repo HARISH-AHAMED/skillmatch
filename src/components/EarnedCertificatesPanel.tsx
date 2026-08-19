@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { formatTimestamp } from "@/lib/dates";
 import { Award, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { setCertificateVisibility } from "@/actions/certificateActions";
 
@@ -62,7 +63,7 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
                   <h4 className="text-xs font-bold text-[#1A1D29] truncate">{cert.projectTitle}</h4>
                   <p className="text-[11px] text-[#5B6272] font-semibold truncate">
                     {cert.roleTitle} • {cert.issuerName} •{" "}
-                    {new Date(cert.issuedAt).toLocaleDateString()}
+                    {formatTimestamp(cert.issuedAt)}
                   </p>
                 </div>
               </div>
@@ -78,22 +79,38 @@ export function EarnedCertificatesPanel({ certificates }: { certificates: Earned
                   type="button"
                   onClick={() => toggle(cert)}
                   disabled={pending === cert.id}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-full border inline-flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 ${
-                    cert.hidden
-                      ? "text-[#5B6272] border-[#E3E5EA] hover:bg-[#F8F9FB]"
-                      : "text-[#147A44] border-[#BFE9D2] bg-[#E4F7EC] hover:bg-[#E4F7EC]"
-                  }`}
+                  role="switch"
+                  aria-checked={!cert.hidden}
+                  aria-label={`Show "${cert.projectTitle}" certificate on public profile`}
                   title={cert.hidden ? "Show on public profile" : "Hide from public profile"}
+                  className="group inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E3E5EA] bg-white px-2.5 py-1.5 transition-colors hover:bg-[#F8F9FB] disabled:opacity-50"
                 >
-                  {cert.hidden ? (
-                    <>
-                      <EyeOff className="h-3 w-3" /> Hidden
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-3 w-3" /> Visible
-                    </>
-                  )}
+                  {/*
+                    #8 — a real switch rather than a button whose label was the
+                    only state cue. aria-checked mirrors the stored value, the
+                    track is 44px wide for touch, and the visible label stays so
+                    state does not rely on colour alone.
+                  */}
+                  <span
+                    aria-hidden="true"
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                      cert.hidden ? "bg-[#C7CBD6]" : "bg-[#147A44]"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        cert.hidden ? "translate-x-0.5" : "translate-x-[18px]"
+                      }`}
+                    />
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+                      cert.hidden ? "text-[#5B6272]" : "text-[#0F5A31]"
+                    }`}
+                  >
+                    {cert.hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {pending === cert.id ? "Saving..." : cert.hidden ? "Hidden" : "Visible"}
+                  </span>
                 </button>
               </div>
             </div>

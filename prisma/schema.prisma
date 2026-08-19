@@ -20,10 +20,16 @@ enum ProjectPriority {
 }
 
 enum ProjectStatus {
+  /// Unpublished work-in-progress; owner-only, never publicly browseable.
+  DRAFT
   OPEN
   IN_PROGRESS
   COMPLETED
   CLOSED
+  /// Company intentionally dropped the project. History stays readable.
+  CANCELLED
+  /// Removed from the active list. History stays intact.
+  ARCHIVED
 }
 
 enum ApplicationStatus {
@@ -64,6 +70,8 @@ model User {
   projectUpdates    ProjectUpdate[]
   assignedTasks     Task[]          @relation("AssignedTasks")
   createdTasks      Task[]          @relation("CreatedTasks")
+  meetingsOrganized Meeting[]
+  meetingAttendance MeetingAttendee[]
 }
 
 model Account {
@@ -111,6 +119,8 @@ model Freelancer {
   skills            String[] // Array of lowercase skills for indexing
   experienceYears   Int      @default(0)
   portfolioUrl      String?
+  /// Profile banner image. Null on every profile created before this existed.
+  bannerUrl         String?
   resumeUrl         String?
   rating            Float    @default(0.0)
   completedProjects Int      @default(0)
@@ -225,6 +235,7 @@ model Project {
   tasks              Task[]
   certificates       Certificate[]
 
+  meetings            Meeting[]
   compensation        ProjectCompensation?
   paymentItems        PaymentItem[]
   workLogs            WorkLog[]
@@ -433,6 +444,14 @@ model Certificate {
   recipientName String
   projectTitle  String
   issuedAt      DateTime  @default(now())
+  /// Optional co-signers. Null on certificates issued before two-signer support,
+  /// which continue to render from issuerName alone.
+  signer1Name         String?
+  signer1Title        String?
+  signer1SignatureUrl String?
+  signer2Name         String?
+  signer2Title        String?
+  signer2SignatureUrl String?
   /// Revocation keeps the record for auditability rather than deleting it.
   revokedAt     DateTime?
   revokeReason  String?
@@ -679,4 +698,56 @@ model PaymentTransaction {
   @@index([projectId])
   @@index([applicationId])
   @@index([paymentItemId])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum MeetingAttendeeStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+}
+
+/// Workspace meetings. Scoped to a project so membership — and therefore
+/// visibility — is derived from the same project-party rules everything else
+/// in the workspace uses.
+model Meeting {
+  id              String        @id @default(cuid())
+  projectId       String
+  /// The user who scheduled it; always a member of the owning company.
+  organizerUserId String
+  title           String
+  description     String?       @db.Text
+  startsAt        DateTime
+  durationMinutes Int           @default(30)
+  /// Either a joining link or a physical location; both optional.
+  meetingUrl      String?
+  location        String?
+  status          MeetingStatus @default(SCHEDULED)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organizer User              @relation(fields: [organizerUserId], references: [id], onDelete: Cascade)
+  attendees MeetingAttendee[]
+
+  @@index([projectId])
+  @@index([projectId, startsAt])
+}
+
+model MeetingAttendee {
+  id        String                @id @default(cuid())
+  meetingId String
+  userId    String
+  status    MeetingAttendeeStatus @default(INVITED)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([userId])
 }

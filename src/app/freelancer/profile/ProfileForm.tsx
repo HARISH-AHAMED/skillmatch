@@ -41,6 +41,7 @@ interface ProfileFormProps {
     skills: string[];
     experienceYears: number;
     portfolioUrl: string | null;
+    bannerUrl?: string | null;
     resumeUrl?: string | null;
     professionalHeadline?: string | null;
     experience?: any; // JSON
@@ -95,6 +96,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
   // Basic Profile Info state
   const [name, setName] = useState(initialData?.user?.name || "");
   const [image, setImage] = useState(initialData?.user?.image || "");
+  const [bannerUrl, setBannerUrl] = useState(initialData?.bannerUrl || "");
   const [professionalHeadline, setProfessionalHeadline] = useState(initialData?.professionalHeadline || "");
   const [bio, setBio] = useState(initialBioText);
   const [responseTime, setResponseTime] = useState(initialData?.responseTime || "Within 24 hours");
@@ -196,6 +198,25 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  /** Requirement #4 — same conversion path and limits as the avatar above. */
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+      alert("Please upload a PNG, JPG, WebP or GIF image.");
+      return;
+    }
+    setUploadProgress("Converting banner...");
+    try {
+      const url = await fileToBase64(file, 1.5);
+      setBannerUrl(url);
+      setUploadProgress("Banner updated (Click Save Settings below to apply)!");
+    } catch (err: any) {
+      alert(err.message || "Failed to read banner");
+      setUploadProgress(null);
+    }
+  };
 
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -318,6 +339,7 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
       await updateFreelancerProfile({
         name,
         image,
+        bannerUrl: bannerUrl || null,
         bio,
         skills,
         experienceYears: Number(experienceYears),
@@ -449,8 +471,60 @@ export function ProfileForm({ initialData, earnedCertificates = [] }: ProfileFor
               <div className="flex-1 space-y-1 text-center sm:text-left">
                 <h4 className="text-xs font-bold text-[#5B6272]">Profile Photo</h4>
                 <p className="text-[11px] text-[#5B6272] leading-relaxed max-w-sm">
-                  Upload a clear image file (PNG, JPG, WebP, SVG). Size limit: 5MB.
+                  Upload a clear image file (PNG, JPG, WebP). Size limit: 5MB.
                 </p>
+              </div>
+            </div>
+
+            {/*
+              Requirement #4 — profile banner. Uses the same upload route and the
+              same validation as every other image in the app; no new storage
+              path. The avatar above is untouched, and a profile with no banner
+              simply shows the placeholder.
+            */}
+            <div className="space-y-2 rounded-lg border border-[#E3E5EA]/40 bg-[#F8F9FB] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold text-[#5B6272]">Profile Banner</h4>
+                  <p className="text-[11px] leading-relaxed text-[#5B6272]">
+                    Wide image shown across the top of your public profile. PNG, JPG,
+                    WebP or GIF, up to 5MB.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer rounded-lg border border-[#E3E5EA] bg-white px-3 py-1.5 text-[11px] font-bold text-[#1A1D29] transition-colors hover:bg-[#E8F1FE]">
+                    {bannerUrl ? "Replace" : "Upload"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={handleBannerUpload}
+                      disabled={loading}
+                      className="hidden"
+                    />
+                  </label>
+                  {bannerUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setBannerUrl("")}
+                      disabled={loading}
+                      className="cursor-pointer rounded-lg border border-[#BC2A2A]/30 bg-white px-3 py-1.5 text-[11px] font-bold text-[#BC2A2A]"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-lg border border-[#E3E5EA] bg-white">
+                {bannerUrl ? (
+                  <img src={bannerUrl} alt="Profile banner" className="aspect-[4/1] w-full object-cover" />
+                ) : (
+                  <div className="flex aspect-[4/1] w-full items-center justify-center bg-[#F0F3F9]">
+                    <span className="text-[11px] font-semibold text-[#5B6272]">
+                      No banner yet
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

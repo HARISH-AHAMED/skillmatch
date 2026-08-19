@@ -1,8 +1,10 @@
 "use client";
 
 import { WorkspaceFunding } from "@/components/WorkspaceFunding";
+import { WorkspaceMeetings } from "@/components/WorkspaceMeetings";
+import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { getProjectMetadataDirect as getProjMetaForFunding, formatCompensation, getCurrencySymbol } from "@/lib/workflowHelpers";
-import { groupByDateKey, sortDateKeysDesc, filterDateKeys, formatDateKey, toDateKey } from "@/lib/dates";
+import { groupByDateKey, sortDateKeysDesc, filterDateKeys, formatDateKey, toDateKey, formatTimestamp } from "@/lib/dates";
 import { TASK_COLUMNS, adjacentTaskStatus } from "@/lib/lifecycle";
 import React, { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
@@ -47,8 +49,7 @@ import {
   LayoutGrid,
   Star,
   Award,
-  User,
-} from "lucide-react";
+  User, CalendarClock } from "lucide-react";
 import {
   sendMessage,
   shareFile,
@@ -289,7 +290,7 @@ export function WorkspaceView({
   const router = useRouter();
 
   // Navigation Menu: "overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones"
-  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones">("overview");
+  const [activeView, setActiveView] = useState<"overview" | "messages" | "deliverables" | "tasks" | "team" | "milestones" | "meetings">("overview");
 
   // Mobile menu drawer toggle state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1369,6 +1370,7 @@ export function WorkspaceView({
           { id: "tasks", label: "Tasks", icon: CheckSquare },
           { id: "deliverables", label: "Deliverables", icon: Archive },
           { id: "messages", label: "Chat", icon: MessageSquare },
+          { id: "meetings", label: "Meetings", icon: CalendarClock },
           { id: "team", label: "Team", icon: Users },
         ].map((item) => {
           const Icon = item.icon;
@@ -1443,30 +1445,38 @@ export function WorkspaceView({
           >
               {/* overview TAB */}
               {/* Project-level completion: one action, gated by server readiness. */}
-      {role === "COMPANY" && (
-        <div className="mx-6 mt-3 flex flex-wrap items-center justify-between gap-3 border border-[#E3E5EA] bg-white px-4 py-2.5">
-          <div className="text-xs font-semibold text-[#1A1D29]">
-            Project Status:{" "}
-            {projectStatus === "COMPLETED"
-              ? "Completed"
+      {/*
+        #1/#2 — one status component for both the pending/ready states and the
+        completed state, so they share a treatment instead of two flat bars with
+        different colours. The freelancer sees the completed state too, but never
+        the action: completion stays company-only, exactly as before.
+      */}
+      <div className="mx-4 mt-3 sm:mx-6">
+        <StatusIndicator
+          tone={
+            projectStatus === "COMPLETED" ? "success" : completionBlockedReason ? "pending" : "info"
+          }
+          label={
+            projectStatus === "COMPLETED"
+              ? "Project completed"
               : completionBlockedReason
-              ? "Completion Pending"
-              : "Ready for Completion"}
-            {projectStatus !== "COMPLETED" && completionBlockedReason && (
-              <span className="ml-2 font-normal text-[#5B6272]">{completionBlockedReason}</span>
-            )}
-          </div>
-          {projectStatus !== "COMPLETED" && !completionBlockedReason && (
-            <button
-              type="button"
-              onClick={() => setShowCompleteConfirm(true)}
-              className="bg-[#EAF1FE] px-4 py-1.5 text-xs font-bold text-[#1A1D29] hover:bg-[#F0F3F9] cursor-pointer"
-            >
-              Mark Project Complete →
-            </button>
-          )}
-        </div>
-      )}
+              ? "Completion pending"
+              : "Ready for completion"
+          }
+          detail={projectStatus !== "COMPLETED" ? completionBlockedReason : null}
+          action={
+            role === "COMPANY" && projectStatus !== "COMPLETED" && !completionBlockedReason ? (
+              <button
+                type="button"
+                onClick={() => setShowCompleteConfirm(true)}
+                className="w-full cursor-pointer rounded-md bg-[#152C55] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#1E3D71] sm:w-auto"
+              >
+                Mark Project Complete
+              </button>
+            ) : null
+          }
+        />
+      </div>
 
       <Modal
         open={showCompleteConfirm}
@@ -2369,7 +2379,7 @@ export function WorkspaceView({
                                 {file.fileName}
                               </h4>
                               <p className="text-[11px] text-[#5B6272] mt-1">
-                                Size: {meta.size} • Shared: {new Date(file.uploadedAt).toLocaleDateString()}
+                                Size: {meta.size} • Shared: {formatTimestamp(file.uploadedAt)}
                               </p>
                               {meta.feedback && (
                                 <div className="mt-3 p-2.5 rounded-lg bg-[#F8F9FB] border border-[#E3E5EA] text-[11px] leading-relaxed text-[#5B6272] max-h-[80px] overflow-y-auto">
@@ -2996,6 +3006,17 @@ export function WorkspaceView({
               )}
 
               {/* team TAB */}
+              {/* Requirement #5 — meetings for this workspace. Access is enforced
+                  server-side by getProjectMeetings; this only renders. */}
+              {activeView === "meetings" && (
+                <WorkspaceMeetings
+                  projectId={projectId}
+                  isCompany={role === "COMPANY"}
+                  currentUserId={currentUserId}
+                  invitees={hiredFreelancers.map((f: any) => ({ id: f.userId ?? f.id, name: f.name }))}
+                />
+              )}
+
               {activeView === "team" && teamRoster?.usesRoles && (
                 <div className="mb-6">
                   <TeamRosterPanel

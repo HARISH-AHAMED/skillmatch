@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { getProjectDescriptionText, getProjectMetadataDirect, formatProjectBudget } from "@/lib/workflowHelpers";
 import { CompanyDiscussionBoard } from "@/components/CompanyDiscussionBoard";
 import { IssueCertificateModal } from "@/components/IssueCertificateModal";
-import { toggleProjectVisibility, closeProject } from "@/actions/projectActions";
+import { toggleProjectVisibility, closeProject, deleteProject, setProjectLifecycle } from "@/actions/projectActions";
 
 interface ProjectsListProps {
   initialProjects: any[];
@@ -50,17 +50,93 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
 
   const getStatusBadge = (status: ProjectStatus) => {
     switch (status) {
+      case ProjectStatus.DRAFT:
+        return <Badge variant="warning">Draft</Badge>;
       case ProjectStatus.OPEN:
         return <Badge variant="success">Open / Active</Badge>;
       case ProjectStatus.IN_PROGRESS:
         return <Badge variant="primary">In Progress</Badge>;
       case ProjectStatus.COMPLETED:
         return <Badge variant="secondary">Completed</Badge>;
+      case ProjectStatus.CANCELLED:
+        return <Badge variant="danger">Cancelled / Dropped</Badge>;
+      case ProjectStatus.ARCHIVED:
+        return <Badge variant="neutral">Archived</Badge>;
       case ProjectStatus.CLOSED:
       default:
         return <Badge variant="neutral">Closed</Badge>;
     }
   };
+
+  /** Only these are "active"; everything else is history. */
+  const isActiveStatus = (status: ProjectStatus) =>
+    status === ProjectStatus.DRAFT ||
+    status === ProjectStatus.OPEN ||
+    status === ProjectStatus.IN_PROGRESS;
+
+  const isInactiveStatus = (status: ProjectStatus) =>
+    status === ProjectStatus.CANCELLED || status === ProjectStatus.ARCHIVED;
+
+  /**
+   * Requirement #1/#10 — one lifecycle path. Nothing is hard-deleted: a
+   * published project is cancelled, a draft is archived, and every
+   * application, workspace, review, certificate and payment record survives.
+   */
+  const handleDeleteProject = async (projectId: string, status: ProjectStatus) => {
+    const isDraft = status === ProjectStatus.DRAFT;
+    const message = isDraft
+      ? "Archive this draft? You will not be able to edit it afterwards."
+      : "Cancel this project? It will stop accepting applications and be removed from public browse. Applications, workspace history and payment records are kept.";
+    if (!confirm(message)) return;
+
+    setLoadingId(`${projectId}-delete`);
+    try {
+      const res = await deleteProject(projectId);
+      if (res.success && "status" in res && res.status) {
+        const nextStatus = res.status as ProjectStatus;
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId ? { ...p, status: nextStatus, isVisible: false } : p
+          )
+        );
+      } else {
+        alert(res.error || "Could not update this project.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Could not update this project.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleArchiveProject = async (projectId: string) => {
+    if (!confirm("Archive this project? It will move out of your active list. History is kept.")) return;
+    setLoadingId(`${projectId}-archive`);
+    try {
+      const res = await setProjectLifecycle(projectId, "ARCHIVED");
+      if (res.success) {
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId ? { ...p, status: ProjectStatus.ARCHIVED, isVisible: false } : p
+          )
+        );
+      } else {
+        alert(res.error || "Could not archive this project.");
+      }
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  /**
+   * Requirement #10 — cancelled and archived projects are history, so they sort
+   * below the active list rather than sitting among live work. They stay
+   * visible and clearly badged: the records are intact, not hidden.
+   */
+  const orderedProjects = [...projects].sort((a, b) => {
+    const rank = (st: ProjectStatus) => (isInactiveStatus(st) ? 1 : 0);
+    return rank(a.status) - rank(b.status);
+  });
 
   const handleToggleVisibility = async (projectId: string) => {
     setLoadingId(`${projectId}-visibility`);
@@ -166,7 +242,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                 </TR>
               </THead>
               <TBody>
-                {projects.map((project) => {
+                {orderedProjects.map((project) => {
                   const isVisLoading = loadingId === `${project.id}-visibility`;
                   return (
                     <TR key={project.id}>
@@ -241,6 +317,18 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                             </Button>
                           </Link>
 
+                          {!isInactiveStatus(project.status) && (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              disabled={loadingId !== null}
+                              onClick={() => handleDeleteProject(project.id, project.status)}
+                              className="cursor-pointer text-[11px] font-bold h-7 py-1 px-2.5 border-[#BC2A2A]/30 text-[#BC2A2A]"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+
                         </div>
                       </TD>
                     </TR>
@@ -251,7 +339,7 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
         ) : (
           /* Card View mode — banner grid, two per row; the whole card opens the project */
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {projects.map((project) => (
+            {orderedProjects.map((project) => (
               <Link key={project.id} href={`/company/projects/${project.id}`} className="group block">
                 <Card className="flex h-full flex-col overflow-hidden border border-[#E3E5EA] bg-white p-0 shadow-none transition-colors duration-[180ms] hover:border-[#C7CBD6] hover:bg-[#F0F3F9] rounded-xl">
                   {/* Banner */}
@@ -322,6 +410,83 @@ export function ProjectsList({ initialProjects, companyName = "Your Company" }: 
                         <Badge variant="neutral" className="text-[11px]">
                           +{project.requiredSkills.length - 4}
                         </Badge>
+                      )}
+                    </div>
+
+                    {/*
+                      Requirement #12 — card actions. The card itself is a link,
+                      so each control stops the navigation before acting. The
+                      visibility button calls the same server action and the same
+                      Project.isVisible field the table view uses (#11): one
+                      field, one action, no second source of truth.
+                    */}
+                    <div
+                      className="flex flex-wrap items-center gap-1.5 border-t border-[#E3E5EA] pt-3"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Link href={`/company/projects/edit/${project.id}`} className="shrink-0">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="h-7 cursor-pointer px-2.5 py-1 text-[11px] font-bold"
+                        >
+                          <Edit2 className="mr-1 h-3 w-3" />
+                          {project.status === ProjectStatus.DRAFT ? "Continue editing" : "Edit"}
+                        </Button>
+                      </Link>
+
+                      {!isInactiveStatus(project.status) && project.status !== ProjectStatus.COMPLETED && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          disabled={loadingId !== null}
+                          onClick={() => handleToggleVisibility(project.id)}
+                          className="h-7 cursor-pointer px-2.5 py-1 text-[11px] font-bold"
+                        >
+                          {project.isVisible ? (
+                            <><EyeOff className="mr-1 h-3 w-3" /> Hide</>
+                          ) : (
+                            <><Eye className="mr-1 h-3 w-3" /> Show</>
+                          )}
+                        </Button>
+                      )}
+
+                      {!isInactiveStatus(project.status) && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          disabled={loadingId !== null}
+                          onClick={() => handleDeleteProject(project.id, project.status)}
+                          className="h-7 cursor-pointer border-[#BC2A2A]/30 px-2.5 py-1 text-[11px] font-bold text-[#BC2A2A]"
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          {project.status === ProjectStatus.DRAFT ? "Discard" : "Delete"}
+                        </Button>
+                      )}
+
+                      {(project.status === ProjectStatus.CANCELLED ||
+                        project.status === ProjectStatus.COMPLETED ||
+                        project.status === ProjectStatus.CLOSED) && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          disabled={loadingId !== null}
+                          onClick={() => handleArchiveProject(project.id)}
+                          className="h-7 cursor-pointer px-2.5 py-1 text-[11px] font-bold"
+                        >
+                          Archive
+                        </Button>
+                      )}
+
+                      {isInactiveStatus(project.status) && (
+                        <span className="text-[11px] font-semibold text-[#5B6272]">
+                          {project.status === ProjectStatus.CANCELLED
+                            ? "Cancelled — history kept, no new applications"
+                            : "Archived — history kept"}
+                        </span>
                       )}
                     </div>
                   </div>
