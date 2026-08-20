@@ -1,7 +1,7 @@
 "use client";
 
 import { Building2, CheckCircle2, MapPin, Receipt, Users } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
@@ -9,6 +9,7 @@ import { Stepper } from "@/components/ui/Stepper";
 import { useToast } from "@/components/ui/Toast";
 import { COMPANY_SIZES } from "@/lib/constants";
 import { useSession } from "@/lib/session";
+import { submitCompanyOnboarding } from "@/actions/workflowActions";
 
 const STEPS = [
   { id: "legal", label: "Legal entity", description: "Who you are on paper" },
@@ -34,6 +35,7 @@ export function CompanyOnboardingWizard({
   const toast = useToast();
   const { completeOnboarding } = useSession();
   const [step, setStep] = useState(0);
+  const [saving, startSaving] = useTransition();
 
   const [form, setForm] = useState({
     legalName: companyName,
@@ -52,13 +54,48 @@ export function CompanyOnboardingWizard({
   ]);
 
   const finish = () => {
-    completeOnboarding();
-    onClose();
-    setStep(0);
-    toast.success(
-      "Company profile set up",
-      "You can post your first project now — the wizard autosaves as a draft.",
-    );
+    startSaving(async () => {
+      try {
+        await submitCompanyOnboarding({
+          legalBusinessName: form.legalName,
+          registrationNumber: form.registrationNumber,
+          gstNumber: form.taxId || undefined,
+          headquarters: form.headquarters,
+          companyEmail: form.companyEmail,
+          businessPhone: form.phone,
+          companyName: form.legalName,
+          industry: "Other",
+          website: form.website,
+          location: form.headquarters,
+          companySize: form.size,
+          aboutText: form.description,
+          teamMembers: recruiters
+            .filter((r) => r.name.trim() && r.email.trim())
+            .map((r) => ({
+              name: r.name,
+              email: r.email,
+              role: r.role,
+              designation: r.role,
+            })),
+          step: STEPS.length,
+          completeOnboarding: true,
+        });
+      } catch (error) {
+        toast.toast({
+          title: error instanceof Error ? error.message : "Could not save your company details",
+          tone: "error",
+        });
+        return;
+      }
+
+      completeOnboarding();
+      onClose();
+      setStep(0);
+      toast.success(
+        "Company profile set up",
+        "You can post your first project now — the wizard autosaves as a draft.",
+      );
+    });
   };
 
   return (
@@ -81,7 +118,7 @@ export function CompanyOnboardingWizard({
           {step < STEPS.length - 1 ? (
             <Button onClick={() => setStep((s) => s + 1)}>Continue</Button>
           ) : (
-            <Button onClick={finish} leftIcon={<CheckCircle2 className="h-4 w-4" />}>
+            <Button onClick={finish} loading={saving} leftIcon={<CheckCircle2 className="h-4 w-4" />}>
               Complete setup
             </Button>
           )}
