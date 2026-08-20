@@ -140,6 +140,8 @@ export interface Freelancer {
   totalEarnings: number;
   gender: "ANY" | "MALE" | "FEMALE";
   apprenticeScore?: { rating: number; reviews: number };
+  /** Set when the list was scored against a project, as on Project. */
+  matchScore?: number;
 }
 
 /* --------------------------------------------------------------- company --- */
