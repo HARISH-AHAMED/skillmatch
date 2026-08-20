@@ -8,15 +8,18 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Feedback";
 import { useSession } from "@/lib/session";
 import type { Application, Message, Project, Role } from "@/lib/types";
-import { MESSAGES, dmChannel, hiredApplications, visibleChannelsFor } from "@/data/queries";
+import { dmChannel, visibleChannelsFor } from "@/lib/domain";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { MESSAGE_TTL_DAYS } from "@/lib/constants";
 import { cn, formatTime } from "@/lib/utils";
 
 export function WorkspaceChat({
+  data,
   project,
   application,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
@@ -26,13 +29,13 @@ export function WorkspaceChat({
   const userId = session?.userId ?? "";
 
   const [messages, setMessages] = useState<Message[]>(() =>
-    MESSAGES.filter((m) => m.projectId === project.id),
+    data.messages,
   );
   const [channel, setChannel] = useState("group");
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const team = hiredApplications(project.id);
+  const team = data.team;
   const canSee = visibleChannelsFor(viewerRole, userId);
 
   /* Channel list — the company can neither see nor write the freelancers channel. */

@@ -21,7 +21,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { DELIVERABLE_REVISION_CAP, MAX_SIZES } from "@/lib/constants";
 import type { Project, Role, SharedFile } from "@/lib/types";
-import { SHARED_FILES } from "@/data/queries";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { relativeTime } from "@/lib/utils";
 
 const STATUS_META = {
@@ -31,9 +31,11 @@ const STATUS_META = {
 };
 
 export function WorkspaceDeliverables({
+  data,
   project,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   viewerRole: Role;
 }) {
@@ -41,7 +43,7 @@ export function WorkspaceDeliverables({
   const isCompany = viewerRole === "COMPANY";
 
   const [files, setFiles] = useState<SharedFile[]>(() =>
-    SHARED_FILES.filter((f) => f.projectId === project.id).sort((a, b) =>
+    data.files.slice().sort((a, b) =>
       b.uploadedAt.localeCompare(a.uploadedAt),
     ),
   );

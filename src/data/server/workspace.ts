@@ -46,6 +46,7 @@ import {
   toWorkLog,
 } from "@/adapters/workspace";
 import { getApplication as getApplicationById, getProject, hiredApplications } from "./entities";
+import { getProjectCompletionReadiness } from "@/actions/reviewActions";
 
 /* ============================================================================
    WORKSPACE READS
@@ -259,6 +260,8 @@ export interface WorkspaceData {
   updates: ProjectUpdate[];
   tasks: Task[];
   meetings: Meeting[];
+  /** Completion readiness, from the backend's own guarded action. */
+  readiness: { ready: boolean; reason?: string; completed?: boolean };
   viewerRole: "COMPANY" | "FREELANCER";
   viewerUserId: string;
 }
@@ -277,8 +280,19 @@ export async function getWorkspaceData(
   const project = await getProject(projectId);
   if (!project) return null;
 
-  const [team, paymentItems, workLogs, stipendPeriods, ledger, messages, files, updates, tasks, meetings] =
-    await Promise.all([
+  const [
+    team,
+    paymentItems,
+    workLogs,
+    stipendPeriods,
+    ledger,
+    messages,
+    files,
+    updates,
+    tasks,
+    meetings,
+    readiness,
+  ] = await Promise.all([
       hiredApplications(projectId),
       getPaymentItems(projectId),
       getWorkLogs(projectId),
@@ -289,6 +303,7 @@ export async function getWorkspaceData(
       getProjectUpdates(projectId),
       getTasks(projectId),
       getMeetings(projectId),
+      getProjectCompletionReadiness(projectId),
     ]);
 
   return {
@@ -304,6 +319,7 @@ export async function getWorkspaceData(
     updates,
     tasks,
     meetings,
+    readiness,
     viewerRole,
     viewerUserId,
   };

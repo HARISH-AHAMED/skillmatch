@@ -26,22 +26,17 @@ import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
 import { REVISION_CAP, MAX_DAILY_HOURS } from "@/lib/constants";
 import type { Application, LedgerEntry, PaymentItem, Project, Role, WorkLog } from "@/lib/types";
-import {
-  LEDGER,
-  PAYMENT_ITEMS,
-  STIPEND_PERIODS,
-  WORK_LOGS,
-  getApplicationFinancials,
-  getProjectFinancialSummary,
-  hiredApplications,
-} from "@/data/queries";
+import { getApplicationFinancials, getProjectFinancialSummary } from "@/lib/domain";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { formatDate, formatMoney, relativeTime } from "@/lib/utils";
 
 export function WorkspaceFunding({
+  data,
   project,
   application,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
@@ -104,13 +99,13 @@ export function WorkspaceFunding({
       />
 
       {view === "ledger" ? (
-        <LedgerPanel project={project} application={application} viewerRole={viewerRole} />
+        <LedgerPanel data={data} project={project} application={application} viewerRole={viewerRole} />
       ) : type === "HOURLY" ? (
-        <HourlyPanel project={project} application={application} isCompany={isCompany} />
+        <HourlyPanel data={data} project={project} application={application} isCompany={isCompany} />
       ) : type === "STIPEND" ? (
-        <StipendPanel project={project} application={application} isCompany={isCompany} />
+        <StipendPanel data={data} project={project} application={application} isCompany={isCompany} />
       ) : (
-        <StagesPanel project={project} application={application} isCompany={isCompany} />
+        <StagesPanel data={data} project={project} application={application} isCompany={isCompany} />
       )}
     </div>
   );
@@ -121,10 +116,12 @@ export function WorkspaceFunding({
    ========================================================================= */
 
 function StagesPanel({
+  data,
   project,
   application,
   isCompany,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
@@ -134,9 +131,9 @@ function StagesPanel({
   const budget = project.compensation.totalBudget;
 
   const [items, setItems] = useState<PaymentItem[]>(() =>
-    PAYMENT_ITEMS.filter(
-      (i) => i.projectId === project.id && (isCompany || i.applicationId === application.id),
-    ).sort((a, b) => a.sortOrder - b.sortOrder),
+    data.paymentItems
+      .filter((i) => isCompany || i.applicationId === application.id)
+      .sort((a, b) => a.sortOrder - b.sortOrder),
   );
 
   const [fundTarget, setFundTarget] = useState<PaymentItem | null>(null);
@@ -300,9 +297,7 @@ function StagesPanel({
       );
       return;
     }
-    const assignee =
-      hiredApplications(project.id).find((a) => a.id === newStage.assignee) ??
-      hiredApplications(project.id)[0];
+    const assignee = data.team.find((a) => a.id === newStage.assignee) ?? data.team[0];
     setItems((prev) => [
       ...prev,
       {
@@ -822,7 +817,7 @@ function StagesPanel({
                 onChange={(e) => setNewStage((s) => ({ ...s, assignee: e.target.value }))}
               >
                 <option value="">Select a freelancer…</option>
-                {hiredApplications(project.id).map((a) => (
+                {data.team.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.freelancer.name}
                     {a.roleName ? ` — ${a.roleName}` : ""}
@@ -852,10 +847,12 @@ function StagesPanel({
    ========================================================================= */
 
 function HourlyPanel({
+  data,
   project,
   application,
   isCompany,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
@@ -866,9 +863,9 @@ function HourlyPanel({
   const maxHours = project.compensation.maxHours;
 
   const [logs, setLogs] = useState<WorkLog[]>(() =>
-    WORK_LOGS.filter(
-      (l) => l.projectId === project.id && (isCompany || l.applicationId === application.id),
-    ).sort((a, b) => b.workDate.localeCompare(a.workDate)),
+    data.workLogs
+      .filter((l) => isCompany || l.applicationId === application.id)
+      .sort((a, b) => b.workDate.localeCompare(a.workDate)),
   );
   const [adding, setAdding] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<WorkLog | null>(null);
@@ -878,7 +875,12 @@ function HourlyPanel({
   const [releaseAmount, setReleaseAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fin = getApplicationFinancials(application.id);
+  const fin = getApplicationFinancials(application.id, {
+    items: data.paymentItems,
+    logs: data.workLogs,
+    periods: data.stipendPeriods,
+    ledger: data.ledger,
+  });
   const loggedHours = logs.reduce((s, l) => s + (l.status !== "REJECTED" ? l.hours : 0), 0);
   const approvedValue = logs
     .filter((l) => l.status === "APPROVED")
@@ -1279,10 +1281,12 @@ function HourlyPanel({
    ========================================================================= */
 
 function StipendPanel({
+  data,
   project,
   application,
   isCompany,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
@@ -1294,9 +1298,9 @@ function StipendPanel({
   const maxPeriods = frequency === "ONE_TIME" ? 1 : (project.compensation.stipendPeriods ?? 1);
 
   const [periods, setPeriods] = useState(() =>
-    STIPEND_PERIODS.filter(
-      (p) => p.projectId === project.id && (isCompany || p.applicationId === application.id),
-    ).sort((a, b) => a.periodIndex - b.periodIndex),
+    data.stipendPeriods
+      .filter((p) => isCompany || p.applicationId === application.id)
+      .sort((a, b) => a.periodIndex - b.periodIndex),
   );
 
   const grouped = useMemo(() => {
@@ -1410,19 +1414,21 @@ function StipendPanel({
    ========================================================================= */
 
 function LedgerPanel({
+  data,
   project,
   application,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
 }) {
   const isCompany = viewerRole === "COMPANY";
-  const rows: LedgerEntry[] = LEDGER.filter(
-    (l) => l.projectId === project.id && (isCompany || l.applicationId === application.id),
+  const rows: LedgerEntry[] = data.ledger.filter(
+    (l) => isCompany || l.applicationId === application.id,
   );
-  const summary = getProjectFinancialSummary(project.id);
+  const summary = getProjectFinancialSummary(project.compensation, data.paymentItems, data.ledger);
 
   return (
     <Card padding="md">

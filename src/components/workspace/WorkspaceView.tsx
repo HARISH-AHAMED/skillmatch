@@ -18,19 +18,9 @@ import { Avatar, AvatarStack } from "@/components/ui/Avatar";
 import { StatusIndicator } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
-import { EmptyState } from "@/components/ui/Feedback";
 import { WORKSPACE_TABS, type WorkspaceTabId } from "@/lib/constants";
-import { useSession } from "@/lib/session";
-import {
-  getApplication,
-  getProject,
-  getProjectFinancialSummary,
-  hiredApplications,
-  MESSAGES,
-  TASKS,
-  SHARED_FILES,
-  MEETINGS,
-} from "@/data/queries";
+import { getProjectFinancialSummary } from "@/lib/domain";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { formatDueDate, formatMoney } from "@/lib/utils";
 import { useNow } from "@/hooks/useNow";
 import { WorkspaceOverview } from "./tabs/Overview";
@@ -51,53 +41,36 @@ const ICONS = {
   Users,
 };
 
-export function WorkspaceView({ applicationId }: { applicationId: string }) {
+export function WorkspaceView({ data }: { data: WorkspaceData }) {
   const router = useRouter();
   const params = useSearchParams();
-  const { session } = useSession();
 
-  const application = getApplication(applicationId);
-  const project = application ? getProject(application.projectId) : undefined;
+  const { application, project, team, messages, tasks, files, meetings } = data;
 
   const initialTab = (params.get("tab") as WorkspaceTabId) ?? "overview";
   const [tab, setTab] = useState<WorkspaceTabId>(
     WORKSPACE_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
   );
 
-  const viewerRole = session?.role === "COMPANY" ? "COMPANY" : "FREELANCER";
+  const viewerRole = data.viewerRole;
   const now = useNow();
 
-  const counts = useMemo(() => {
-    if (!project) return { tasks: 0, deliverables: 0, messages: 0, meetings: 0, team: 0 };
-    return {
-      tasks: TASKS.filter((t) => t.projectId === project.id && t.status !== "DONE").length,
-      deliverables: SHARED_FILES.filter(
-        (f) => f.projectId === project.id && f.meta.isDeliverable && f.meta.status === "PENDING",
+  const counts = useMemo(
+    () => ({
+      tasks: tasks.filter((t) => t.status !== "DONE").length,
+      deliverables: files.filter((f) => f.meta.isDeliverable && f.meta.status === "PENDING")
+        .length,
+      // A message the viewer sent themselves is not unread for them.
+      messages: messages.filter((m) => !m.seen && m.senderId !== data.viewerUserId).length,
+      meetings: meetings.filter(
+        (m) => m.status === "SCHEDULED" && new Date(m.startsAt).getTime() > now,
       ).length,
-      messages: MESSAGES.filter((m) => m.projectId === project.id && !m.seen).length,
-      meetings: MEETINGS.filter(
-        (m) =>
-          m.projectId === project.id &&
-          m.status === "SCHEDULED" &&
-          new Date(m.startsAt).getTime() > now,
-      ).length,
-      team: hiredApplications(project.id).length,
-    };
-  }, [project, now]);
+      team: team.length,
+    }),
+    [tasks, files, messages, meetings, team, data.viewerUserId, now],
+  );
 
-  if (!application || !project) {
-    return (
-      <EmptyState
-        icon={<Archive />}
-        title="Not found, or you do not have access to it."
-        description="Workspaces are only visible to the owning company and the freelancers hired on the project."
-        action={{ label: "Back to dashboard", href: "/" }}
-      />
-    );
-  }
-
-  const summary = getProjectFinancialSummary(project.id);
-  const team = hiredApplications(project.id);
+  const summary = getProjectFinancialSummary(project.compensation, data.paymentItems, data.ledger);
 
   const setTabAndUrl = (next: string) => {
     setTab(next as WorkspaceTabId);
@@ -220,6 +193,7 @@ export function WorkspaceView({ applicationId }: { applicationId: string }) {
       {/* ---- Panels ---- */}
       {tab === "overview" && (
         <WorkspaceOverview
+          data={data}
           project={project}
           application={application}
           viewerRole={viewerRole}
@@ -227,22 +201,22 @@ export function WorkspaceView({ applicationId }: { applicationId: string }) {
         />
       )}
       {tab === "milestones" && (
-        <WorkspaceFunding project={project} application={application} viewerRole={viewerRole} />
+        <WorkspaceFunding data={data} project={project} application={application} viewerRole={viewerRole} />
       )}
       {tab === "tasks" && (
-        <WorkspaceTasks project={project} viewerRole={viewerRole} />
+        <WorkspaceTasks data={data} project={project} viewerRole={viewerRole} />
       )}
       {tab === "deliverables" && (
-        <WorkspaceDeliverables project={project} viewerRole={viewerRole} />
+        <WorkspaceDeliverables data={data} project={project} viewerRole={viewerRole} />
       )}
       {tab === "messages" && (
-        <WorkspaceChat project={project} application={application} viewerRole={viewerRole} />
+        <WorkspaceChat data={data} project={project} application={application} viewerRole={viewerRole} />
       )}
       {tab === "meetings" && (
-        <WorkspaceMeetings project={project} viewerRole={viewerRole} />
+        <WorkspaceMeetings data={data} project={project} viewerRole={viewerRole} />
       )}
       {tab === "team" && (
-        <WorkspaceTeam project={project} application={application} viewerRole={viewerRole} />
+        <WorkspaceTeam data={data} project={project} application={application} viewerRole={viewerRole} />
       )}
     </div>
   );

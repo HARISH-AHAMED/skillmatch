@@ -12,7 +12,7 @@ import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { TASK_COLUMNS, TASK_STATUSES } from "@/lib/constants";
 import type { Project, Role, Task, TaskStatus } from "@/lib/types";
-import { TASKS, hiredApplications } from "@/data/queries";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { cn, daysUntil, formatDate } from "@/lib/utils";
 
 /** Movement is button-driven and clamped at both ends (§15.3). */
@@ -29,9 +29,11 @@ const PRIORITY_TONE = {
 } as const;
 
 export function WorkspaceTasks({
+  data,
   project,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   viewerRole: Role;
 }) {
@@ -39,7 +41,7 @@ export function WorkspaceTasks({
   const isCompany = viewerRole === "COMPANY";
 
   const [tasks, setTasks] = useState<Task[]>(() =>
-    TASKS.filter((t) => t.projectId === project.id),
+    data.tasks,
   );
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
@@ -52,7 +54,7 @@ export function WorkspaceTasks({
     dueDate: "",
   });
 
-  const team = hiredApplications(project.id);
+  const team = data.team;
 
   const visible = useMemo(
     () =>

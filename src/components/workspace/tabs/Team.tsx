@@ -21,14 +21,17 @@ import { Alert, EmptyState, Progress, Rating } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import type { Application, Project, Role } from "@/lib/types";
-import { getApplicationFinancials, getProjectTeam } from "@/data/queries";
+import { getApplicationFinancials, getProjectTeam } from "@/lib/domain";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { formatMoney, relativeTime } from "@/lib/utils";
 
 export function WorkspaceTeam({
+  data,
   project,
   application,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
@@ -36,14 +39,23 @@ export function WorkspaceTeam({
   const toast = useToast();
   const isCompany = viewerRole === "COMPANY";
 
-  const team = useMemo(() => getProjectTeam(project.id), [project.id]);
+  const team = useMemo(() => getProjectTeam(project, data.team), [project, data.team]);
+
+  /** Money is already loaded for the whole project; slice it per engagement. */
+  const financialsFor = (applicationId: string) =>
+    getApplicationFinancials(applicationId, {
+      items: data.paymentItems,
+      logs: data.workLogs,
+      periods: data.stipendPeriods,
+      ledger: data.ledger,
+    });
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<Application | null>(null);
   const [handover, setHandover] = useState({ roleId: "", from: "", to: "" });
 
   /* A hire with committed funds or unpaid approved hours cannot be removed (§8.6). */
   const removalBlock = (app: Application) => {
-    const fin = getApplicationFinancials(app.id);
+    const fin = financialsFor(app.id);
     const committed = fin.items.reduce(
       (s, i) => s + Math.max(0, i.fundedAmount - i.releasedAmount),
       0,
@@ -155,7 +167,7 @@ export function WorkspaceTeam({
                 {members.length > 0 && (
                   <ul className="mt-3.5 flex flex-col gap-2.5">
                     {[...primaries, ...apprentices].map((member) => {
-                      const fin = getApplicationFinancials(member.id);
+                      const fin = financialsFor(member.id);
                       const blocked = removalBlock(member);
                       return (
                         <li

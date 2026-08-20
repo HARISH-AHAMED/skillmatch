@@ -11,24 +11,19 @@ import { Alert, EmptyState, Progress } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import type { Application, Project, ProjectUpdate, Role } from "@/lib/types";
-import {
-  MEETINGS,
-  PROJECT_UPDATES,
-  TASKS,
-  getApplicationFinancials,
-  getProjectCompletionReadiness,
-  getProjectFinancialSummary,
-  hiredApplications,
-} from "@/data/queries";
+import { getApplicationFinancials, getProjectFinancialSummary } from "@/lib/domain";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { formatDateTime, formatMoney, relativeTime } from "@/lib/utils";
 import { useNow } from "@/hooks/useNow";
 
 export function WorkspaceOverview({
+  data,
   project,
   application,
   viewerRole,
   onNavigate,
 }: {
+  data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
@@ -36,32 +31,30 @@ export function WorkspaceOverview({
 }) {
   const toast = useToast();
   const now = useNow();
-  const [updates, setUpdates] = useState<ProjectUpdate[]>(() =>
-    PROJECT_UPDATES.filter((u) => u.projectId === project.id).sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt),
-    ),
-  );
+  const [updates, setUpdates] = useState<ProjectUpdate[]>(() => data.updates);
   const [composing, setComposing] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<ProjectUpdate["status"]>("IN_PROGRESS");
 
-  const summary = getProjectFinancialSummary(project.id);
-  const mine = getApplicationFinancials(application.id);
-  const team = hiredApplications(project.id);
-  const tasks = TASKS.filter((t) => t.projectId === project.id);
+  const summary = getProjectFinancialSummary(project.compensation, data.paymentItems, data.ledger);
+  const mine = getApplicationFinancials(application.id, {
+    items: data.paymentItems,
+    logs: data.workLogs,
+    periods: data.stipendPeriods,
+    ledger: data.ledger,
+  });
+  const team = data.team;
+  const tasks = data.tasks;
   const doneTasks = tasks.filter((t) => t.status === "DONE").length;
-  const readiness = getProjectCompletionReadiness(project.id);
+  const readiness = data.readiness;
 
   const upcoming = useMemo(
     () =>
-      MEETINGS.filter(
-        (m) =>
-          m.projectId === project.id &&
-          m.status === "SCHEDULED" &&
-          new Date(m.startsAt).getTime() > now,
-      ).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
-    [project.id, now],
+      data.meetings
+        .filter((m) => m.status === "SCHEDULED" && new Date(m.startsAt).getTime() > now)
+        .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    [data.meetings, now],
   );
 
   const isCompany = viewerRole === "COMPANY";

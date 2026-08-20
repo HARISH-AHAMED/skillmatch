@@ -21,7 +21,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/session";
 import type { Meeting, Project, Role } from "@/lib/types";
-import { MEETINGS, hiredApplications } from "@/data/queries";
+import type { WorkspaceData } from "@/data/server/workspace";
 import { cn, formatTime } from "@/lib/utils";
 import { useNow } from "@/hooks/useNow";
 
@@ -32,9 +32,11 @@ const RSVP_META = {
 };
 
 export function WorkspaceMeetings({
+  data,
   project,
   viewerRole,
 }: {
+  data: WorkspaceData;
   project: Project;
   viewerRole: Role;
 }) {
@@ -45,7 +47,7 @@ export function WorkspaceMeetings({
   const now = useNow();
 
   const [meetings, setMeetings] = useState<Meeting[]>(() =>
-    MEETINGS.filter((m) => m.projectId === project.id),
+    data.meetings,
   );
   const [view, setView] = useState<"upcoming" | "past">("upcoming");
   const [scheduling, setScheduling] = useState(false);
@@ -61,7 +63,7 @@ export function WorkspaceMeetings({
     attendees: [] as string[],
   });
 
-  const team = hiredApplications(project.id);
+  const team = data.team;
 
   /* Past = cancelled/completed, or the end time has already passed (§16.4). */
   const { upcoming, past } = useMemo(() => {
