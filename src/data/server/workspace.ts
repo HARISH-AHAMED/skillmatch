@@ -16,7 +16,14 @@ import type {
   WorkLog,
   WorkspaceSummary,
 } from "@/lib/types";
-import { PUBLICLY_BROWSEABLE, getProjectFinancialSummary, taskProgress } from "@/lib/domain";
+import {
+  PUBLICLY_BROWSEABLE,
+  getApplicationFinancials,
+  getProjectFinancialSummary,
+  taskProgress,
+  type ApplicationFinancials,
+  type FinancialSummary,
+} from "@/lib/domain";
 import {
   meetingInclude,
   messageInclude,
@@ -38,7 +45,7 @@ import {
   toTask,
   toWorkLog,
 } from "@/adapters/workspace";
-import { getProject, hiredApplications } from "./entities";
+import { getApplication as getApplicationById, getProject, hiredApplications } from "./entities";
 
 /* ============================================================================
    WORKSPACE READS
@@ -142,6 +149,44 @@ export async function getMeetings(projectId: string): Promise<Meeting[]> {
     orderBy: { startsAt: "asc" },
   });
   return rows.map(toMeeting);
+}
+
+/**
+ * Money per engagement, keyed by application id. Used by the screens that list
+ * several engagements at once — completed projects, dashboards — so each row
+ * shows what was actually released without a query per row.
+ */
+export async function financialsByApplication(
+  applicationIds: string[],
+): Promise<Map<string, ApplicationFinancials>> {
+  const out = new Map<string, ApplicationFinancials>();
+  if (applicationIds.length === 0) return out;
+
+  const [items, logs, periods, ledger] = await Promise.all([
+    db.paymentItem.findMany({
+      where: { applicationId: { in: applicationIds } },
+      include: paymentItemInclude,
+    }),
+    db.workLog.findMany({
+      where: { applicationId: { in: applicationIds } },
+      include: workLogInclude,
+    }),
+    db.stipendPeriod.findMany({
+      where: { applicationId: { in: applicationIds } },
+      include: stipendPeriodInclude,
+    }),
+    db.paymentTransaction.findMany({ where: { applicationId: { in: applicationIds } } }),
+  ]);
+
+  const all = {
+    items: items.map(toPaymentItem),
+    logs: logs.map(toWorkLog),
+    periods: periods.map(toStipendPeriod),
+    ledger: ledger.map((row) => toLedgerEntry(row, "Member")),
+  };
+
+  for (const id of applicationIds) out.set(id, getApplicationFinancials(id, all));
+  return out;
 }
 
 /* --------------------------------------------------------------- bundle --- */
@@ -311,6 +356,47 @@ export async function workspacesForUser(userId: string, role: Role): Promise<Wor
           : Math.round(summary.progress),
     };
   });
+}
+
+/** A workspace summary plus everything its index card renders. */
+export interface WorkspaceCard extends WorkspaceSummary {
+  project: Project;
+  application: Application;
+  summary: FinancialSummary;
+  team: Application[];
+  totalTasks: number;
+  openTasks: number;
+}
+
+export async function workspaceCards(userId: string, role: Role): Promise<WorkspaceCard[]> {
+  const summaries = await workspacesForUser(userId, role);
+  if (summaries.length === 0) return [];
+
+  const cards = await Promise.all(
+    summaries.map(async (summary) => {
+      const [project, application, team, items, ledger, tasks] = await Promise.all([
+        getProject(summary.projectId),
+        getApplicationById(summary.applicationId),
+        hiredApplications(summary.projectId),
+        getPaymentItems(summary.projectId),
+        getLedger(summary.projectId),
+        getTasks(summary.projectId),
+      ]);
+      if (!project || !application) return null;
+
+      return {
+        ...summary,
+        project,
+        application,
+        summary: getProjectFinancialSummary(project.compensation, items, ledger),
+        team,
+        totalTasks: tasks.length,
+        openTasks: tasks.filter((t) => t.status !== "DONE").length,
+      } satisfies WorkspaceCard;
+    }),
+  );
+
+  return cards.filter((card): card is WorkspaceCard => card !== null);
 }
 
 function dedupeByProject<T extends { projectId: string }>(rows: T[]): T[] {

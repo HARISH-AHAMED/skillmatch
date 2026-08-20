@@ -8,24 +8,16 @@ import { Button } from "@/components/ui/Button";
 import { Card, PageHeader } from "@/components/ui/Card";
 import { EmptyState, Progress } from "@/components/ui/Feedback";
 import { Stagger, StaggerItem } from "@/components/motion/Motion";
-import { useSession } from "@/lib/session";
-import {
-  MESSAGES,
-  TASKS,
-  getApplication,
-  getProject,
-  getProjectFinancialSummary,
-  hiredApplications,
-  workspacesForUser,
-} from "@/data/queries";
+import type { WorkspaceCard } from "@/data/server/workspace";
 import { formatMoney } from "@/lib/utils";
 
-export function WorkspaceIndex() {
-  const { session } = useSession();
-  if (!session) return null;
-
-  const workspaces = workspacesForUser(session.userId, session.role);
-  const isCompany = session.role === "COMPANY";
+export function WorkspaceIndex({
+  workspaces,
+  isCompany,
+}: {
+  workspaces: WorkspaceCard[];
+  isCompany: boolean;
+}) {
 
   return (
     <div>
@@ -65,17 +57,8 @@ export function WorkspaceIndex() {
       ) : (
         <Stagger className="grid gap-4 lg:grid-cols-2">
           {workspaces.map((w) => {
-            const project = getProject(w.projectId);
-            const application = getApplication(w.applicationId);
-            const summary = getProjectFinancialSummary(w.projectId);
-            const team = hiredApplications(w.projectId);
-            const tasks = TASKS.filter((t) => t.projectId === w.projectId);
-            const openTasks = tasks.filter((t) => t.status !== "DONE").length;
-            const unread = MESSAGES.filter(
-              (m) => m.projectId === w.projectId && !m.seen,
-            ).length;
-
-            if (!project || !application) return null;
+            const { project, application, summary, team, totalTasks, openTasks } = w;
+            const unread = w.unread;
 
             return (
               <StaggerItem key={w.applicationId}>
@@ -122,7 +105,7 @@ export function WorkspaceIndex() {
                         </dt>
                         <dd className="mt-0.5 text-[14px] font-semibold tabular-nums text-[var(--color-text-primary)]">
                           {project.compensation.type === "UNPAID"
-                            ? `${tasks.length - openTasks}/${tasks.length}`
+                            ? `${totalTasks - openTasks}/${totalTasks}`
                             : formatMoney(summary.released, summary.currency, true)}
                         </dd>
                       </div>
