@@ -11,6 +11,7 @@ import { LogoMark } from "@/components/brand/Logo";
 import { MobileSidebar, SidebarContent } from "./Sidebar";
 import { NotificationCenter } from "./NotificationCenter";
 import { homeForRole, useRequireRole } from "@/lib/session";
+import { ChromeProvider, EMPTY_CHROME, type DashboardChrome } from "./chrome";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +19,13 @@ const COLLAPSE_KEY = "frivvo.sidebar.collapsed";
 
 export function DashboardLayout({
   role,
+  chrome = EMPTY_CHROME,
   children,
   searchPlaceholder = "Search…",
   onSearch,
 }: {
   role: Role | Role[];
+  chrome?: DashboardChrome;
   children: React.ReactNode;
   searchPlaceholder?: string;
   onSearch?: (value: string) => void;
@@ -58,6 +61,7 @@ export function DashboardLayout({
   if (!ready || !allowed || !session) return <DashboardSkeleton />;
 
   return (
+    <ChromeProvider value={chrome}>
     <div className="flex min-h-screen bg-[var(--color-app)]">
       {/* Desktop sidebar */}
       <aside
@@ -148,6 +152,7 @@ export function DashboardLayout({
         </main>
       </div>
     </div>
+    </ChromeProvider>
   );
 }
 

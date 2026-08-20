@@ -19,7 +19,7 @@ import { Tooltip } from "@/components/ui/Feedback";
 import { NavIcon } from "./icons";
 import { isActive, navForRole, primaryActionForRole } from "@/lib/nav";
 import { useSession } from "@/lib/session";
-import { workspacesForUser, applicationsForCompany, applicationsForFreelancer, getCompanyByUserId, getFreelancerByUserId } from "@/data/queries";
+import { useChrome } from "./chrome";
 import { cn } from "@/lib/utils";
 
 export function SidebarContent({
@@ -34,32 +34,9 @@ export function SidebarContent({
   const pathname = usePathname();
   const { session, signOut } = useSession();
 
+  const { workspaces, badges } = useChrome();
+
   const groups = useMemo(() => (session ? navForRole(session.role) : []), [session]);
-  const workspaces = useMemo(
-    () => (session ? workspacesForUser(session.userId, session.role) : []),
-    [session],
-  );
-  const badges = useMemo(() => {
-    if (!session) return { applicants: 0, applications: 0 };
-    if (session.role === "COMPANY") {
-      const company = getCompanyByUserId(session.userId);
-      return {
-        applicants: company
-          ? applicationsForCompany(company.id).filter((a) => a.status === "PENDING").length
-          : 0,
-        applications: 0,
-      };
-    }
-    const freelancer = getFreelancerByUserId(session.userId);
-    return {
-      applicants: 0,
-      applications: freelancer
-        ? applicationsForFreelancer(freelancer.id).filter(
-            (a) => a.status === "PENDING" || a.status === "SHORTLISTED",
-          ).length
-        : 0,
-    };
-  }, [session]);
 
   if (!session) return null;
 

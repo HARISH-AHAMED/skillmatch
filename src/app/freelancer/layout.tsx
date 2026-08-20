@@ -1,10 +1,19 @@
-"use client";
-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { requireViewer } from "@/data/server/context";
+import { getDashboardChrome } from "@/data/server/chrome";
 
-export default function FreelancerLayout({ children }: { children: React.ReactNode }) {
+export default async function FreelancerLayout({ children }: { children: React.ReactNode }) {
+  // The role guard runs on the server; DashboardLayout keeps the client-side
+  // companion so the shell reacts if the session ends mid-visit.
+  const viewer = await requireViewer("FREELANCER", "/freelancer/dashboard");
+  const chrome = await getDashboardChrome(viewer);
+
   return (
-    <DashboardLayout role="FREELANCER" searchPlaceholder="Search projects, companies or skills…">
+    <DashboardLayout
+      role={"FREELANCER"}
+      chrome={chrome}
+      searchPlaceholder="Search projects, companies or skills…"
+    >
       {children}
     </DashboardLayout>
   );

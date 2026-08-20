@@ -13,9 +13,10 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useSession } from "@/lib/session";
-import { allNotificationsFor } from "@/data/queries";
+import { markAllAsRead, markAsRead } from "@/actions/notificationActions";
+import { useChrome } from "./chrome";
 import { cn, relativeTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
 
@@ -45,10 +46,8 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
   const [readIds, setReadIds] = useState<string[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
-  const items = useMemo(
-    () => (session ? allNotificationsFor(session.userId) : []),
-    [session],
-  );
+  const { notifications: items } = useChrome();
+  const [, startTransition] = useTransition();
 
   const unread = items.filter((n) => !n.read && !readIds.includes(n.id)).length;
 
@@ -101,7 +100,10 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
               {unread > 0 && (
                 <button
                   type="button"
-                  onClick={() => setReadIds(items.map((i) => i.id))}
+                  onClick={() => {
+                    setReadIds(items.map((i) => i.id));
+                    startTransition(() => void markAllAsRead());
+                  }}
                   className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-link)] hover:underline"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
@@ -125,6 +127,7 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
                     href={n.href ?? "#"}
                     onClick={() => {
                       setReadIds((p) => [...p, n.id]);
+                      startTransition(() => void markAsRead(n.id));
                       setOpen(false);
                     }}
                     className={cn(
