@@ -1,7 +1,12 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { rewardWhere } from "@/lib/browseFilters";
-import { computeRecommendationScore } from "@/services/aiRecommendation";
+import {
+  calculateExperienceMatch,
+  calculatePriorityMatch,
+  calculateSkillMatch,
+  computeRecommendationScore,
+} from "@/services/aiRecommendation";
 import type { Application, Company, Freelancer, Project } from "@/lib/types";
 import { PUBLICLY_BROWSEABLE } from "@/lib/domain";
 import type { BrowseFilters, TalentFilters } from "@/lib/domain";
@@ -347,8 +352,38 @@ export async function computeScore(projectId: string, freelancerId: string) {
     db.project.findUnique({ where: { id: projectId } }),
     db.freelancer.findUnique({ where: { id: freelancerId } }),
   ]);
-  if (!project || !freelancer) return { aiScore: 0 };
-  return { aiScore: computeRecommendationScore(freelancer, project) };
+
+  const empty = {
+    skillMatch: 0,
+    experienceMatch: 0,
+    ratingMatch: 0,
+    completionRateMatch: 0,
+    priorityMatch: 0,
+  };
+  if (!project || !freelancer) return { aiScore: 0, breakdown: empty };
+
+  return {
+    aiScore: computeRecommendationScore(freelancer, project),
+    // The same five components the total is weighted from, so the applicant
+    // view can explain the number instead of just showing it.
+    breakdown: {
+      skillMatch: calculateSkillMatch({
+        freelancerSkills: freelancer.skills,
+        projectSkills: project.requiredSkills,
+      }),
+      experienceMatch: calculateExperienceMatch(
+        freelancer.experienceYears,
+        project.experienceRequired,
+      ),
+      ratingMatch: (freelancer.rating / 5) * 100,
+      completionRateMatch: freelancer.completionRate,
+      priorityMatch: calculatePriorityMatch(
+        project.priority,
+        freelancer.rating,
+        freelancer.completionRate,
+      ),
+    },
+  };
 }
 
 export async function recommendedProjectsFor(freelancerId: string, limit = 6): Promise<Project[]> {
