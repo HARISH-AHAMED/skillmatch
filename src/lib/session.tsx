@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { registerUser } from "@/actions/authActions";
@@ -105,14 +105,12 @@ export function SessionProvider({
   initialSession: Session | null;
   children: React.ReactNode;
 }) {
-  const [session, setSession] = useState<Session | null>(initialSession);
   const router = useRouter();
 
-  // The server is the source of truth: a navigation that re-renders the layout
-  // with a different session replaces whatever the client was holding.
-  useEffect(() => {
-    setSession(initialSession);
-  }, [initialSession]);
+  // The server is the source of truth. There is no local copy to drift: every
+  // mutation below ends in a refresh, which re-renders the layout — and this
+  // provider — with the session Auth.js now reports.
+  const session = initialSession;
 
   const signIn = useCallback<SessionApi["signIn"]>(async (email, password) => {
     const normalised = email.trim().toLowerCase();
