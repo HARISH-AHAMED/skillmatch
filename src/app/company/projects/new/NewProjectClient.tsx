@@ -138,23 +138,6 @@ export function NewProjectClient({ company }: { company: Company }) {
   const [signatoryName, setSignatoryName] = useState("");
   const [signatoryTitle, setSignatoryTitle] = useState("");
 
-  /* ---------------------------------------------------------- autosave ---- */
-  useEffect(() => {
-    if (!title && !description) return;
-    const t = setTimeout(() => setSavedAt(new Date()), 1200);
-    return () => clearTimeout(t);
-  }, [
-    title,
-    description,
-    category,
-    budget,
-    compensationType,
-    requiredSkills,
-    roles,
-    objectives,
-    deliverables,
-  ]);
-
   const budgetValue = useMemo(() => {
     if (compensationType === "UNPAID") return 0;
     if (compensationType === "HOURLY")
@@ -257,19 +240,45 @@ export function NewProjectClient({ company }: { company: Company }) {
     signatoryTitle,
   });
 
-  const saveDraft = async () => {
+  const saveDraft = async ({ silent = false }: { silent?: boolean } = {}) => {
     const columns = toProjectColumns(formValues());
     const result = await saveProjectDraft({ draftId, ...columns });
 
     if (!result.success) {
-      toast.toast({ title: result.error ?? "Could not save the draft", tone: "error" });
+      // An autosave failure is reported quietly; the visitor did not ask for it.
+      if (!silent) {
+        toast.toast({ title: result.error ?? "Could not save the draft", tone: "error" });
+      }
       return;
     }
     // Keep the id so later saves update the same draft rather than piling up.
     if (result.draftId) setDraftId(result.draftId);
     setSavedAt(new Date());
-    toast.success("Draft saved", "Drafts are invisible to applicants until you publish.");
+    if (!silent) {
+      toast.success("Draft saved", "Drafts are invisible to applicants until you publish.");
+    }
   };
+
+  /* ---------------------------------------------------------- autosave ----
+     Writes a real draft through saveProjectDraft, debounced so a burst of
+     typing produces one write. The "Draft saved" stamp is only set once the
+     action has actually persisted. */
+  useEffect(() => {
+    if (!title && !description) return;
+    const t = setTimeout(() => void saveDraft({ silent: true }), 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    title,
+    description,
+    category,
+    budget,
+    compensationType,
+    requiredSkills,
+    roles,
+    objectives,
+    deliverables,
+  ]);
 
   const publish = () => {
     const found = [1, 2, 3, 4].flatMap((n) => validate(n));

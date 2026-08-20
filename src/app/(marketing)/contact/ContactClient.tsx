@@ -91,10 +91,27 @@ export function ContactClient() {
 
     setErrors([]);
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
-      setSent(true);
-    }, 700);
+
+    // There is no contact-message store or mail service in the platform, so the
+    // form composes a message to the address this page already publishes and
+    // hands it to the visitor's mail client. Nothing is silently dropped.
+    const body = [
+      `Topic: ${TOPICS.find((t) => t.value === topic)?.title ?? topic}`,
+      `Name: ${form.name.trim()}`,
+      `Email: ${form.email.trim()}`,
+      form.company.trim() ? `Company: ${form.company.trim()}` : null,
+      "",
+      form.message.trim(),
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n");
+
+    window.location.href = `mailto:hello@frivvo.com?subject=${encodeURIComponent(
+      `[${topic}] ${form.name.trim()}`,
+    )}&body=${encodeURIComponent(body)}`;
+
+    setSending(false);
+    setSent(true);
   };
 
   return (
