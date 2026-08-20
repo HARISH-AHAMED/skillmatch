@@ -126,6 +126,20 @@ export async function freelancerCounts(freelancerIds: string[]) {
   return counts;
 }
 
+/** Pending-applicant count per project, for the company project screens. */
+export async function pendingApplicantCounts(projectIds: string[]) {
+  const counts = new Map<string, number>();
+  if (projectIds.length === 0) return counts;
+
+  const rows = await db.application.groupBy({
+    by: ["projectId"],
+    where: { projectId: { in: projectIds }, status: "PENDING" },
+    _count: { _all: true },
+  });
+  for (const row of rows) counts.set(row.projectId, row._count._all);
+  return counts;
+}
+
 /** Company names for the marketing trust bar. */
 export async function companyNames(limit = 12) {
   const rows = await db.company.findMany({
