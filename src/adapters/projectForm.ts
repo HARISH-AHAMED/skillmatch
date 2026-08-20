@@ -5,7 +5,7 @@ import {
   type RecruitmentRound,
   type RecruitmentRoundType,
 } from "@/lib/workflowHelpers";
-import type { CompensationType, ScreeningQuestion, Visibility } from "@/lib/types";
+import type { CompensationType, Project, ScreeningQuestion, Visibility } from "@/lib/types";
 
 /* ============================================================================
    PROJECT FORM ADAPTER
@@ -187,5 +187,60 @@ export function toProjectColumns(values: ProjectFormValues) {
     preferredGender: values.preferredGender,
     domain: values.domain ?? values.category,
     bannerUrl: values.bannerUrl ?? null,
+  };
+}
+
+/**
+ * An existing listing as wizard values, so the edit screen can change the few
+ * fields it exposes without dropping the rest of the metadata block.
+ */
+export function fromProject(project: Project): ProjectFormValues {
+  const comp = project.compensation;
+
+  return {
+    title: project.title,
+    category: project.category,
+    subcategory: project.subcategory ?? "",
+    visibility: project.visibility,
+    freelancersLimit: String(project.freelancersLimit),
+    preferredGender: project.preferredGender,
+
+    description: project.description,
+    objectives: project.objectives,
+    deliverables: project.deliverables,
+    responsibilities: project.responsibilities,
+    dailyTasks: project.dailyTasks,
+    requiredSkills: project.requiredSkills,
+    preferredSkills: project.preferredSkills,
+    experienceRequired: String(project.experienceRequired),
+    faq: project.faq.map((f) => ({ question: f.question, answer: f.answer ?? "" })),
+
+    compensationType: comp.type,
+    currency: comp.currency,
+    budget: String(comp.totalBudget),
+    budgetNegotiable: comp.budgetNegotiable,
+    hourlyRate: String(comp.hourlyRate ?? ""),
+    estimatedHours: String(comp.estimatedHours ?? ""),
+    maxHours: String(comp.maxHours ?? ""),
+    stipendAmount: String(comp.stipendAmount ?? ""),
+    stipendFrequency: comp.stipendFrequency ?? "MONTHLY",
+    stipendPeriods: String(comp.stipendPeriods ?? 1),
+    benefits: comp.nonMonetaryBenefits ?? [],
+    benefitDetail: comp.nonMonetaryDetail ?? "",
+    workingDays: project.workingDays,
+    timingType: project.timingType,
+    priority: project.priority,
+    duration: project.duration,
+    applicationDeadline: project.applicationDeadline ?? "",
+    projectStart: project.projectStart ?? "",
+    expectedCompletion: project.expectedCompletion ?? "",
+
+    rounds: project.rounds.map((r) => r.type),
+    questions: project.rounds.flatMap((r) => r.questions),
+    certificateEnabled: project.certificate.enabled,
+    signatoryName: project.certificate.signatoryName,
+    signatoryTitle: project.certificate.signatoryDesignation,
+    domain: project.domain,
+    bannerUrl: project.bannerUrl || null,
   };
 }
