@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { TalentBrowser } from "@/components/shared/TalentBrowser";
 import { PageHeader } from "@/components/ui/Card";
 import { Breadcrumb } from "@/components/ui/Feedback";
-import { FREELANCERS } from "@/data/queries";
+import { searchFreelancers } from "@/data/server/entities";
 
 export const metadata: Metadata = {
   title: "Hire talent",
@@ -11,13 +11,15 @@ export const metadata: Metadata = {
   alternates: { canonical: "/discover/talent" },
 };
 
-export default function DiscoverTalentPage() {
+export default async function DiscoverTalentPage() {
+  const freelancers = await searchFreelancers();
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Verified specialists on FRIVVO",
-    numberOfItems: FREELANCERS.length,
-    itemListElement: FREELANCERS.slice(0, 10).map((f, i) => ({
+    numberOfItems: freelancers.length,
+    itemListElement: freelancers.slice(0, 10).map((f, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: f.name,
@@ -44,7 +46,7 @@ export default function DiscoverTalentPage() {
         </div>
       </div>
       <div className="container-wide py-8">
-        <TalentBrowser />
+        <TalentBrowser freelancers={freelancers} />
       </div>
     </>
   );

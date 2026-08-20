@@ -519,6 +519,24 @@ export async function applicationsForFreelancer(freelancerId: string): Promise<A
   return mapApplications(rows);
 }
 
+/** Project ids a freelancer has saved, for the browse screen's save toggle. */
+export async function savedProjectIds(freelancerId: string): Promise<string[]> {
+  const rows = await db.savedProject.findMany({
+    where: { freelancerId },
+    select: { projectId: true },
+  });
+  return rows.map((r) => r.projectId);
+}
+
+/** Freelancer ids a company has saved, for the talent directory. */
+export async function savedFreelancerIds(companyId: string): Promise<string[]> {
+  const rows = await db.savedFreelancer.findMany({
+    where: { companyId },
+    select: { freelancerId: true },
+  });
+  return rows.map((r) => r.freelancerId);
+}
+
 export async function hiredApplications(projectId: string): Promise<Application[]> {
   const rows = await db.application.findMany({
     where: { projectId, status: "HIRED" },

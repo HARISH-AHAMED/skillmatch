@@ -3,7 +3,8 @@ import { CompanyCard } from "@/components/shared/Cards";
 import { PageHeader, SectionHeading } from "@/components/ui/Card";
 import { Breadcrumb } from "@/components/ui/Feedback";
 import { Reveal } from "@/components/motion/Motion";
-import { COMPANIES, projectsForCompany } from "@/data/queries";
+import { featuredCompanies } from "@/data/server/entities";
+import { openProjectCounts } from "@/data/server/stats";
 
 export const metadata: Metadata = {
   title: "Companies hiring",
@@ -12,8 +13,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/discover/companies" },
 };
 
-export default function DiscoverCompaniesPage() {
-  const companies = [...COMPANIES].sort((a, b) => b.trustScore - a.trustScore);
+export default async function DiscoverCompaniesPage() {
+  // featuredCompanies already orders by trust score; no limit here, the
+  // directory lists every company.
+  const companies = await featuredCompanies(Number.MAX_SAFE_INTEGER);
+  const openRoles = await openProjectCounts(companies.map((c) => c.id));
 
   return (
     <>
@@ -36,7 +40,7 @@ export default function DiscoverCompaniesPage() {
             <Reveal key={c.id} delay={i * 0.05}>
               <CompanyCard
                 company={c}
-                openRoles={projectsForCompany(c.id).filter((p) => p.status === "OPEN").length}
+                openRoles={openRoles.get(c.id) ?? 0}
               />
             </Reveal>
           ))}

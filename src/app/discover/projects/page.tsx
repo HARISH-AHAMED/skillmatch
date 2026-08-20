@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ProjectBrowser } from "@/components/shared/ProjectBrowser";
 import { PageHeader } from "@/components/ui/Card";
 import { Breadcrumb } from "@/components/ui/Feedback";
-import { browseProjects } from "@/data/queries";
+import { browseProjects } from "@/data/server/entities";
 
 export const metadata: Metadata = {
   title: "Browse projects",
@@ -17,21 +17,20 @@ export default async function DiscoverProjectsPage({
   searchParams: Promise<{ q?: string; domain?: string; skill?: string }>;
 }) {
   const params = await searchParams;
-  const total = browseProjects().length;
+  const projects = await browseProjects();
+  const total = projects.length;
 
   const itemListSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Open engagements on FRIVVO",
     numberOfItems: total,
-    itemListElement: browseProjects()
-      .slice(0, 10)
-      .map((p, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        name: p.title,
-        url: `https://frivvo.com/discover/projects/${p.id}`,
-      })),
+    itemListElement: projects.slice(0, 10).map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: p.title,
+      url: `https://frivvo.com/discover/projects/${p.id}`,
+    })),
   };
 
   return (
@@ -55,7 +54,12 @@ export default async function DiscoverProjectsPage({
       </div>
 
       <div className="container-wide py-8">
-        <ProjectBrowser initialQuery={params.q ?? ""} initialDomain={params.domain} initialSkill={params.skill} />
+        <ProjectBrowser
+          projects={projects}
+          initialQuery={params.q ?? ""}
+          initialDomain={params.domain}
+          initialSkill={params.skill}
+        />
       </div>
     </>
   );

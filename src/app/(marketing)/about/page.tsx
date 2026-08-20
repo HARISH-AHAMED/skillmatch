@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { SectionHeading } from "@/components/ui/Card";
 import { CountUp, Reveal } from "@/components/motion/Motion";
 import { EDITORIAL, GALLERY } from "@/lib/media";
-import { platformStats } from "@/data/queries";
+import { platformStats } from "@/data/server/stats";
 
 export const metadata: Metadata = {
   title: "About",
@@ -62,8 +62,8 @@ const TIMELINE = [
   },
 ];
 
-export default function AboutPage() {
-  const stats = platformStats();
+export default async function AboutPage() {
+  const stats = await platformStats();
 
   return (
     <>
@@ -96,10 +96,10 @@ export default function AboutPage() {
         <div className="container-wide">
           <dl className="grid grid-cols-2 divide-x divide-[var(--color-border)] md:grid-cols-4">
             {[
-              { label: "Specialists", value: stats.freelancers * 84, suffix: "+" },
-              { label: "Companies hiring", value: stats.companies * 46, suffix: "" },
-              { label: "Engagements run", value: stats.projects * 72, suffix: "" },
-              { label: "Certificates issued", value: stats.certificates * 1067, suffix: "" },
+              { label: "Specialists", value: stats.freelancers, suffix: "+" },
+              { label: "Companies hiring", value: stats.companies, suffix: "" },
+              { label: "Engagements run", value: stats.projects, suffix: "" },
+              { label: "Certificates issued", value: stats.certificates, suffix: "" },
             ].map((s, i) => (
               <div
                 key={s.label}

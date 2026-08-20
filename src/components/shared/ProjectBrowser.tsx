@@ -11,8 +11,8 @@ import { Drawer } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { ProjectCard } from "./Cards";
 import { COMPENSATION_META, DOMAINS, SKILL_LIBRARY } from "@/lib/constants";
-import { browseProjects, type BrowseFilters } from "@/data/queries";
-import type { CompensationType } from "@/lib/types";
+import { filterProjects, type BrowseFilters } from "@/lib/domain";
+import type { CompensationType, Project } from "@/lib/types";
 import { cn, pluralize } from "@/lib/utils";
 
 const REWARD_TABS = [
@@ -36,6 +36,7 @@ const EXPERIENCE = [
 ];
 
 export function ProjectBrowser({
+  projects,
   viewerId,
   hrefBase = "/discover/projects",
   initialQuery = "",
@@ -45,6 +46,7 @@ export function ProjectBrowser({
   onToggleSave,
   showSaveToggle = false,
 }: {
+  projects: Project[];
   viewerId?: string;
   hrefBase?: string;
   initialQuery?: string;
@@ -79,7 +81,7 @@ export function ProjectBrowser({
     [query, domains, skills, compensation, reward, experience, onlyUrgent, sort],
   );
 
-  const results = useMemo(() => browseProjects(filters, viewerId), [filters, viewerId]);
+  const results = useMemo(() => filterProjects(projects, filters), [projects, filters]);
 
   const activeCount =
     domains.length +

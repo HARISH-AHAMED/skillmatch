@@ -19,14 +19,8 @@ import { SectionHeading } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { CompanyCard, FreelancerCard } from "@/components/shared/Cards";
 import { Reveal } from "@/components/motion/Motion";
-import {
-  COMPANIES,
-  featuredCompanies,
-  featuredProjects,
-  platformStats,
-  projectsForCompany,
-  topFreelancers,
-} from "@/data/queries";
+import { featuredCompanies, featuredProjects, topFreelancers } from "@/data/server/entities";
+import { companyNames, openProjectCounts, platformStats } from "@/data/server/stats";
 
 export const metadata: Metadata = {
   title: "FRIVVO — Hire, deliver and get paid in one workspace",
@@ -62,11 +56,15 @@ const HOME_FAQ = [
   },
 ];
 
-export default function HomePage() {
-  const stats = platformStats();
-  const projects = featuredProjects(9);
-  const talent = topFreelancers(4);
-  const companies = featuredCompanies(3);
+export default async function HomePage() {
+  const [stats, projects, talent, companies, trustNames] = await Promise.all([
+    platformStats(),
+    featuredProjects(9),
+    topFreelancers(4),
+    featuredCompanies(3),
+    companyNames(),
+  ]);
+  const openRoles = await openProjectCounts(companies.map((c) => c.id));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -74,15 +72,15 @@ export default function HomePage() {
       <main className="flex-1">
         <Hero
           stats={{
-            freelancers: stats.freelancers * 84,
-            companies: stats.companies * 46,
-            projects: stats.projects * 72,
+            freelancers: stats.freelancers,
+            companies: stats.companies,
+            projects: stats.projects,
             released: stats.totalReleased,
           }}
           people={talent.map((f) => ({ id: f.id, name: f.name, avatarUrl: f.avatarUrl }))}
         />
 
-        <TrustBar names={COMPANIES.map((c) => c.companyName)} />
+        <TrustBar names={trustNames} />
 
         <DomainCardRow />
 
@@ -144,7 +142,7 @@ export default function HomePage() {
                   <CompanyCard
                     company={c}
                     openRoles={
-                      projectsForCompany(c.id).filter((p) => p.status === "OPEN").length
+                      openRoles.get(c.id) ?? 0
                     }
                   />
                 </Reveal>

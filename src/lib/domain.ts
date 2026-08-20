@@ -1,5 +1,6 @@
 import type {
   Application,
+  Freelancer,
   LedgerEntry,
   Message,
   PaymentItem,
@@ -56,6 +57,108 @@ export interface TalentFilters {
   badges?: string[];
   againstProjectId?: string;
   sort?: "MATCH" | "RATING" | "EXPERIENCE" | "PROJECTS";
+}
+
+/**
+ * Applies the browse filters to a set of listings the server already fetched
+ * and scored. The directory keeps its instant client-side filtering, and the
+ * predicates are the same ones `browseProjects` runs in SQL — kept here so the
+ * two cannot drift.
+ */
+export function filterProjects(projects: Project[], filters: BrowseFilters): Project[] {
+  let list = projects;
+
+  if (filters.query) {
+    const q = filters.query.toLowerCase();
+    list = list.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.company.companyName.toLowerCase().includes(q) ||
+        p.requiredSkills.some((s) => s.toLowerCase().includes(q)),
+    );
+  }
+  if (filters.domains?.length) list = list.filter((p) => filters.domains!.includes(p.domain));
+  if (filters.skills?.length) {
+    list = list.filter((p) =>
+      filters.skills!.some((s) => p.requiredSkills.includes(s) || p.preferredSkills.includes(s)),
+    );
+  }
+  if (filters.priority?.length) list = list.filter((p) => filters.priority!.includes(p.priority));
+  if (filters.compensation?.length) {
+    list = list.filter((p) => filters.compensation!.includes(p.compensation.type));
+  }
+
+  if (filters.reward === "NON_MONETARY") {
+    list = list.filter((p) => p.compensation.type === "UNPAID");
+  } else if (filters.reward === "PAID") {
+    list = list.filter((p) => p.compensation.type !== "UNPAID");
+  }
+
+  if (filters.experience && filters.experience !== "ALL") {
+    const bands = { ENTRY: [0, 2], MID: [3, 5], SENIOR: [6, 99] } as const;
+    const [lo, hi] = bands[filters.experience];
+    list = list.filter((p) => p.experienceRequired >= lo && p.experienceRequired <= hi);
+  }
+
+  const sorted = [...list];
+  switch (filters.sort) {
+    case "MATCH":
+      return sorted.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+    case "BUDGET_HIGH":
+      return sorted.sort((a, b) => b.compensation.totalBudget - a.compensation.totalBudget);
+    case "DEADLINE":
+      return sorted.sort((a, b) => (a.dueDate ?? "z").localeCompare(b.dueDate ?? "z"));
+    default:
+      return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+}
+
+/** The talent-directory counterpart of `filterProjects`. */
+export function filterFreelancers(
+  freelancers: Freelancer[],
+  filters: TalentFilters,
+): Freelancer[] {
+  let list = freelancers;
+
+  if (filters.query) {
+    const q = filters.query.toLowerCase();
+    list = list.filter(
+      (f) =>
+        f.name.toLowerCase().includes(q) ||
+        f.professionalHeadline.toLowerCase().includes(q) ||
+        f.skills.some((s) => s.toLowerCase().includes(q)) ||
+        f.location.toLowerCase().includes(q),
+    );
+  }
+  if (filters.skills?.length) {
+    list = list.filter((f) => filters.skills!.some((s) => f.skills.includes(s)));
+  }
+  if (filters.domains?.length) list = list.filter((f) => filters.domains!.includes(f.domain));
+  if (filters.minRating) list = list.filter((f) => f.rating >= filters.minRating!);
+  if (filters.minExperience) {
+    list = list.filter((f) => f.experienceYears >= filters.minExperience!);
+  }
+  if (filters.availability?.length) {
+    list = list.filter((f) => filters.availability!.includes(f.availabilityStatus));
+  }
+  if (filters.badges?.length) {
+    list = list.filter((f) => filters.badges!.some((b) => f.verificationBadges.includes(b)));
+  }
+
+  const sorted = [...list];
+  switch (filters.sort) {
+    case "RATING":
+      return sorted.sort((a, b) => b.rating - a.rating);
+    case "EXPERIENCE":
+      return sorted.sort((a, b) => b.experienceYears - a.experienceYears);
+    case "PROJECTS":
+      return sorted.sort((a, b) => b.completedProjects - a.completedProjects);
+    default:
+      return filters.againstProjectId
+        ? sorted.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
+        : sorted.sort((a, b) => b.rating - a.rating);
+  }
 }
 
 /* --------------------------------------------------------------- capacity --- */

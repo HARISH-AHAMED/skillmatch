@@ -10,7 +10,8 @@ import { EmptyState } from "@/components/ui/Feedback";
 import { Drawer } from "@/components/ui/Modal";
 import { FreelancerCard } from "./Cards";
 import { DOMAINS, SKILL_LIBRARY } from "@/lib/constants";
-import { searchFreelancers, type TalentFilters } from "@/data/queries";
+import { filterFreelancers, type TalentFilters } from "@/lib/domain";
+import type { Freelancer } from "@/lib/types";
 import { cn, pluralize } from "@/lib/utils";
 
 const AVAILABILITY = [
@@ -29,12 +30,14 @@ const SORTS = [
 ];
 
 export function TalentBrowser({
+  freelancers,
   againstProjectId,
   projectOptions,
   onProjectChange,
   cardAction,
   hrefBase = "/freelancers",
 }: {
+  freelancers: Freelancer[];
   againstProjectId?: string;
   projectOptions?: { id: string; title: string }[];
   onProjectChange?: (id: string) => void;
@@ -68,9 +71,9 @@ export function TalentBrowser({
   );
 
   const results = useMemo(() => {
-    const list = searchFreelancers(filters);
+    const list = filterFreelancers(freelancers, filters);
     return openToApprentice ? list.filter((f) => f.experienceYears <= 2) : list;
-  }, [filters, openToApprentice]);
+  }, [freelancers, filters, openToApprentice]);
 
   const activeCount =
     skills.length +

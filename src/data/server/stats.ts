@@ -46,6 +46,30 @@ export async function platformStats() {
   };
 }
 
+/** Open-listing count per company, for the directory and home-page cards. */
+export async function openProjectCounts(companyIds: string[]) {
+  const counts = new Map<string, number>();
+  if (companyIds.length === 0) return counts;
+
+  const rows = await db.project.groupBy({
+    by: ["companyId"],
+    where: { companyId: { in: companyIds }, status: "OPEN", isVisible: true },
+    _count: { _all: true },
+  });
+  for (const row of rows) counts.set(row.companyId, row._count._all);
+  return counts;
+}
+
+/** Company names for the marketing trust bar. */
+export async function companyNames(limit = 12) {
+  const rows = await db.company.findMany({
+    orderBy: { trustScore: "desc" },
+    take: limit,
+    select: { companyName: true },
+  });
+  return rows.map((r) => r.companyName);
+}
+
 export async function companyDashboardStats(companyId: string) {
   const [
     totalProjects,
