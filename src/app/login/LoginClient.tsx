@@ -39,12 +39,12 @@ export function LoginClient() {
     router.push(next && next.startsWith("/") ? next : homeForRole(role));
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const result = signIn(email, password);
+    const result = await signIn(email, password);
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
@@ -55,12 +55,18 @@ export function LoginClient() {
     go(matched?.role ?? side);
   };
 
-  const signInAsDemo = (demoEmail: string, role: Role) => {
+  const signInAsDemo = async (demoEmail: string, password: string, role: Role) => {
     setEmail(demoEmail);
-    setPassword("frivvo");
+    setPassword(password);
     setError(null);
-    const result = signIn(demoEmail, "frivvo");
-    if (result.ok) go(role);
+    setLoading(true);
+    const result = await signIn(demoEmail, password);
+    if (result.ok) {
+      go(role);
+      return;
+    }
+    setError(result.error);
+    setLoading(false);
   };
 
   return (
@@ -104,7 +110,7 @@ export function LoginClient() {
 
       <AuthDivider label="or sign in with email" />
 
-      <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4" noValidate>
         {error && (
           <Alert tone="error" title="Could not sign you in">
             {error}
@@ -187,7 +193,7 @@ export function LoginClient() {
             <button
               key={a.email}
               type="button"
-              onClick={() => signInAsDemo(a.email, a.role)}
+              onClick={() => void signInAsDemo(a.email, a.password, a.role)}
               className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[var(--color-brand)] hover:bg-[var(--color-brand-softer)]"
             >
               <span className="min-w-0 flex-1">

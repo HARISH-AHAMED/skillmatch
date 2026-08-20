@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { SessionProvider } from "@/lib/session";
+import { SessionProvider, type Session } from "@/lib/session";
+import { getViewer } from "@/data/server/context";
 import { ToastProvider } from "@/components/ui/Toast";
 
 const inter = Inter({
@@ -62,7 +63,23 @@ const ORGANISATION_SCHEMA = {
   sameAs: [],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Resolved once per request from Auth.js, so every client consumer of
+  // useSession() renders against the real session on the first pass.
+  const viewer = await getViewer();
+  const session: Session | null = viewer
+    ? {
+        userId: viewer.userId,
+        name: viewer.name,
+        email: viewer.email,
+        role: viewer.role,
+        image: viewer.image,
+        profileId: viewer.profileId,
+        profileHref: viewer.profileHref,
+        onboardingComplete: viewer.onboardingComplete,
+      }
+    : null;
+
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
@@ -70,7 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANISATION_SCHEMA) }}
         />
-        <SessionProvider>
+        <SessionProvider initialSession={session}>
           <ToastProvider>{children}</ToastProvider>
         </SessionProvider>
       </body>

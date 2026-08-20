@@ -60,7 +60,7 @@ export function RegisterClient() {
 
   const score = useMemo(() => passwordScore(password), [password]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -70,7 +70,7 @@ export function RegisterClient() {
     }
 
     setLoading(true);
-    const result = register({ name, email, password, role, companyName });
+    const result = await register({ name, email, password, role, companyName });
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
@@ -205,7 +205,7 @@ export function RegisterClient() {
 
       <AuthDivider label="or use your email" />
 
-      <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4" noValidate>
         {error && (
           <Alert tone="error" title="Check the form">
             {error}
