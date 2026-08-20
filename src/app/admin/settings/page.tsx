@@ -18,7 +18,6 @@ import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { Field, Input, Toggle } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Feedback";
 import { Tabs } from "@/components/ui/Tabs";
-import { useToast } from "@/components/ui/Toast";
 import {
   DELIVERABLE_REVISION_CAP,
   MAX_DAILY_HOURS,
@@ -36,7 +35,6 @@ const TABS = [
 ];
 
 export default function AdminSettingsPage() {
-  const toast = useToast();
   const [tab, setTab] = useState("limits");
   const [dirty, setDirty] = useState(false);
 
@@ -68,18 +66,19 @@ export default function AdminSettingsPage() {
 
   const weightTotal = Object.values(weights).reduce((s, v) => s + Number(v || 0), 0);
 
-  const save = () => {
-    setDirty(false);
-    toast.success("Settings saved", "Changes take effect on the next request.");
-  };
+
 
   return (
     <div>
       <PageHeader
         title="System settings"
-        description="Platform-wide limits and switches. Every change is recorded in the admin log."
+        description="The platform-wide limits and weights currently in force. These are constants in the deployed build, shown here for reference."
         action={
-          <Button onClick={save} disabled={!dirty} leftIcon={<Save className="h-4 w-4" />}>
+          <Button
+            disabled
+            title="These values are platform constants; there is no settings store to write them to."
+            leftIcon={<Save className="h-4 w-4" />}
+          >
             Save settings
           </Button>
         }

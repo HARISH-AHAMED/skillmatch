@@ -46,6 +46,31 @@ export async function platformStats() {
   };
 }
 
+/** The admin overview: distributions and the most recent activity. */
+export async function adminOverview() {
+  const [byStatusRows, byDomainRows, totalProjects] = await Promise.all([
+    db.project.groupBy({ by: ["status"], _count: { _all: true } }),
+    db.project.groupBy({ by: ["domain"], _count: { _all: true } }),
+    db.project.count(),
+  ]);
+
+  const statusCount = new Map(byStatusRows.map((r) => [r.status as string, r._count._all]));
+
+  return {
+    totalProjects,
+    // The design lists these five in this order, whether or not any project
+    // currently has that status.
+    byStatus: ["OPEN", "IN_PROGRESS", "COMPLETED", "DRAFT", "CLOSED"].map((status) => ({
+      status,
+      count: statusCount.get(status) ?? 0,
+    })),
+    byDomain: byDomainRows
+      .map((r) => ({ domain: r.domain ?? "Other", count: r._count._all }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6),
+  };
+}
+
 /** Open-listing count per company, for the directory and home-page cards. */
 export async function openProjectCounts(companyIds: string[]) {
   const counts = new Map<string, number>();
@@ -57,6 +82,47 @@ export async function openProjectCounts(companyIds: string[]) {
     _count: { _all: true },
   });
   for (const row of rows) counts.set(row.companyId, row._count._all);
+  return counts;
+}
+
+/** Total listing count per company, for the admin directory. */
+export async function projectCounts(companyIds: string[]) {
+  const counts = new Map<string, number>();
+  if (companyIds.length === 0) return counts;
+
+  const rows = await db.project.groupBy({
+    by: ["companyId"],
+    where: { companyId: { in: companyIds } },
+    _count: { _all: true },
+  });
+  for (const row of rows) counts.set(row.companyId, row._count._all);
+  return counts;
+}
+
+/** Application and certificate counts per freelancer, for the admin directory. */
+export async function freelancerCounts(freelancerIds: string[]) {
+  const counts = new Map<string, { applications: number; certificates: number }>();
+  if (freelancerIds.length === 0) return counts;
+
+  const [applications, certificates] = await Promise.all([
+    db.application.groupBy({
+      by: ["freelancerId"],
+      where: { freelancerId: { in: freelancerIds } },
+      _count: { _all: true },
+    }),
+    db.certificate.groupBy({
+      by: ["freelancerId"],
+      where: { freelancerId: { in: freelancerIds }, revokedAt: null },
+      _count: { _all: true },
+    }),
+  ]);
+
+  for (const id of freelancerIds) {
+    counts.set(id, {
+      applications: applications.find((a) => a.freelancerId === id)?._count._all ?? 0,
+      certificates: certificates.find((c) => c.freelancerId === id)?._count._all ?? 0,
+    });
+  }
   return counts;
 }
 

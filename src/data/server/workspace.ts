@@ -189,6 +189,60 @@ export async function financialsByApplication(
   return out;
 }
 
+/**
+ * Project money summaries keyed by project id, for the screens that list many
+ * projects at once.
+ */
+export async function financialSummaries(
+  projectIds: string[],
+): Promise<Map<string, FinancialSummary>> {
+  const out = new Map<string, FinancialSummary>();
+  if (projectIds.length === 0) return out;
+
+  const [projects, items, ledger] = await Promise.all([
+    db.project.findMany({
+      where: { id: { in: projectIds } },
+      select: { id: true, compensation: { select: { currency: true, totalBudget: true } } },
+    }),
+    db.paymentItem.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { projectId: true, fundedAmount: true, releasedAmount: true },
+    }),
+    db.paymentTransaction.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { projectId: true, type: true, amount: true, paymentItemId: true },
+    }),
+  ]);
+
+  for (const project of projects) {
+    out.set(
+      project.id,
+      getProjectFinancialSummary(
+        project.compensation
+          ? {
+              currency: project.compensation.currency,
+              totalBudget: Number(project.compensation.totalBudget),
+            }
+          : undefined,
+        items
+          .filter((i) => i.projectId === project.id)
+          .map((i) => ({
+            fundedAmount: Number(i.fundedAmount),
+            releasedAmount: Number(i.releasedAmount),
+          })),
+        ledger
+          .filter((l) => l.projectId === project.id)
+          .map((l) => ({
+            type: l.type as LedgerEntry["type"],
+            amount: Number(l.amount),
+            paymentItemId: l.paymentItemId ?? undefined,
+          })),
+      ),
+    );
+  }
+  return out;
+}
+
 /* --------------------------------------------------------------- bundle --- */
 
 /** Everything one workspace screen renders, in one round of reads. */

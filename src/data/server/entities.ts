@@ -554,6 +554,52 @@ export async function applicationsForFreelancer(freelancerId: string): Promise<A
   return mapApplications(rows);
 }
 
+/** The newest applications across the platform, for the admin overview. */
+export async function recentApplications(limit = 6): Promise<Application[]> {
+  const rows = await db.application.findMany({
+    include: applicationInclude,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+  return mapApplications(rows);
+}
+
+/** Every application on the platform, for the admin moderation tables. */
+export async function allApplications(): Promise<Application[]> {
+  const rows = await db.application.findMany({
+    include: applicationInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return mapApplications(rows);
+}
+
+/** Every project on the platform, for the admin moderation tables. */
+export async function allProjects(): Promise<Project[]> {
+  const rows = await db.project.findMany({
+    include: projectInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return mapProjects(rows);
+}
+
+/** Every company on the platform, for the admin directory. */
+export async function allCompanies(): Promise<Company[]> {
+  const rows = await db.company.findMany({
+    include: companyInclude,
+    orderBy: { trustScore: "desc" },
+  });
+  return mapCompanies(rows);
+}
+
+/** Every freelancer on the platform, for the admin directory. */
+export async function allFreelancers(): Promise<Freelancer[]> {
+  const rows = await db.freelancer.findMany({
+    include: freelancerInclude,
+    orderBy: { rating: "desc" },
+  });
+  return mapFreelancers(rows);
+}
+
 /** Project ids a freelancer has saved, for the browse screen's save toggle. */
 export async function savedProjectIds(freelancerId: string): Promise<string[]> {
   const rows = await db.savedProject.findMany({

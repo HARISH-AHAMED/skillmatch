@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   Activity,
@@ -21,41 +19,26 @@ import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { KpiTile } from "@/components/ui/Table";
 import { Progress, Rating } from "@/components/ui/Feedback";
 import { Stagger, StaggerItem } from "@/components/motion/Motion";
-import {
-  APPLICATIONS,
-  CERTIFICATES,
-  COMPANIES,
-  FREELANCERS,
-  PROJECTS,
-  REVIEWS,
-  platformStats,
-} from "@/data/queries";
+import { recentApplications } from "@/data/server/entities";
+import { allReviews } from "@/data/server/records";
+import { adminOverview, platformStats } from "@/data/server/stats";
 import { formatMoney, relativeTime } from "@/lib/utils";
 
-export default function AdminDashboardPage() {
-  const stats = platformStats();
+export default async function AdminDashboardPage() {
+  const [stats, overview, applications, reviews] = await Promise.all([
+    platformStats(),
+    adminOverview(),
+    recentApplications(6),
+    allReviews(),
+  ]);
 
-  const data = (() => {
-    const byStatus = ["OPEN", "IN_PROGRESS", "COMPLETED", "DRAFT", "CLOSED"].map((s) => ({
-      status: s,
-      count: PROJECTS.filter((p) => p.status === s).length,
-    }));
-    const byDomain = [...new Set(PROJECTS.map((p) => p.domain))].map((d) => ({
-      domain: d,
-      count: PROJECTS.filter((p) => p.domain === d).length,
-    }));
-    return {
-      byStatus,
-      byDomain: [...byDomain].sort((a, b) => b.count - a.count).slice(0, 6),
-      recentApplications: [...APPLICATIONS]
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .slice(0, 6),
-      recentReviews: [...REVIEWS]
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .slice(0, 4),
-      lowRated: REVIEWS.filter((r) => r.rating <= 3),
-    };
-  })();
+  const data = {
+    byStatus: overview.byStatus,
+    byDomain: overview.byDomain,
+    recentApplications: applications,
+    recentReviews: reviews.slice(0, 4),
+    lowRated: reviews.filter((r) => r.rating <= 3),
+  };
 
   return (
     <div>
@@ -146,7 +129,7 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   <Progress
-                    value={PROJECTS.length ? (s.count / PROJECTS.length) * 100 : 0}
+                    value={overview.totalProjects ? (s.count / overview.totalProjects) * 100 : 0}
                     size="sm"
                     tone={
                       s.status === "OPEN"
@@ -206,7 +189,7 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   <Progress
-                    value={PROJECTS.length ? (d.count / PROJECTS.length) * 100 : 0}
+                    value={overview.totalProjects ? (d.count / overview.totalProjects) * 100 : 0}
                     size="sm"
                   />
                 </div>
@@ -287,11 +270,11 @@ export default function AdminDashboardPage() {
             />
             <ul className="flex flex-col gap-1.5">
               {[
-                { label: "Users management", href: "/admin/users", count: FREELANCERS.length + COMPANIES.length + 1 },
-                { label: "Freelancer profiles", href: "/admin/freelancers", count: FREELANCERS.length },
-                { label: "Companies", href: "/admin/companies", count: COMPANIES.length },
-                { label: "Projects", href: "/admin/projects", count: PROJECTS.length },
-                { label: "Certificates", href: "/admin/projects", count: CERTIFICATES.length },
+                { label: "Users management", href: "/admin/users", count: stats.freelancers + stats.companies },
+                { label: "Freelancer profiles", href: "/admin/freelancers", count: stats.freelancers },
+                { label: "Companies", href: "/admin/companies", count: stats.companies },
+                { label: "Projects", href: "/admin/projects", count: stats.projects },
+                { label: "Certificates", href: "/admin/projects", count: stats.certificates },
                 { label: "System settings", href: "/admin/settings" },
               ].map((l) => (
                 <li key={l.label}>
