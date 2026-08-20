@@ -1,45 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { ProjectDetailView } from "@/components/shared/ProjectDetailView";
-import { useSession } from "@/lib/session";
-import {
-  acceptsApplications,
-  applicationsForFreelancer,
-  computeScore,
-  getCapacity,
-  getFreelancerByUserId,
-  getProject,
-} from "@/data/queries";
+import { useToast } from "@/components/ui/Toast";
+import { submitDiscussionQuestion } from "@/actions/workflowActions";
+import type { Project } from "@/lib/types";
 
-export function PublicProjectDetail({ projectId }: { projectId: string }) {
+export function PublicProjectDetail({
+  project,
+  matchScore,
+  hasApplied,
+  canApply,
+  isOwner,
+  applyHref,
+}: {
+  project: Project;
+  matchScore?: number;
+  hasApplied: boolean;
+  canApply: boolean;
+  isOwner: boolean;
+  applyHref?: string;
+}) {
   const router = useRouter();
-  const { session } = useSession();
-  const project = getProject(projectId);
+  const toast = useToast();
+  const [, startTransition] = useTransition();
 
-  if (!project) return null;
-
-  const freelancer = session?.role === "FREELANCER" ? getFreelancerByUserId(session.userId) : undefined;
-  const isOwner =
-    session?.role === "COMPANY" && getProject(projectId)?.companyId === session.profileId;
-
-  const matchScore = freelancer ? computeScore(project.id, freelancer.id).aiScore : undefined;
-  const hasApplied = freelancer
-    ? applicationsForFreelancer(freelancer.id).some((a) => a.projectId === project.id)
-    : false;
-
-  const capacity = getCapacity(project.id);
-  const canApply =
-    acceptsApplications(project.status) &&
-    project.isVisible &&
-    project.visibility === "PUBLIC" &&
-    !capacity.projectFull;
-
-  const applyHref = session
-    ? freelancer
-      ? `/freelancer/projects/${project.id}/apply`
-      : undefined
-    : `/login?next=${encodeURIComponent(`/freelancer/projects/${project.id}/apply`)}`;
+  const onAskQuestion = (question: string) => {
+    startTransition(async () => {
+      const result = await submitDiscussionQuestion(project.id, question);
+      if (result.success) {
+        toast.toast({ title: "Question sent to the company", tone: "success" });
+        router.refresh();
+        return;
+      }
+      toast.toast({ title: result.error ?? "Could not send your question", tone: "error" });
+    });
+  };
 
   return (
     <ProjectDetailView
@@ -49,7 +46,7 @@ export function PublicProjectDetail({ projectId }: { projectId: string }) {
       hasApplied={hasApplied}
       canApply={canApply}
       isOwner={isOwner}
-      onAskQuestion={() => router.refresh()}
+      onAskQuestion={onAskQuestion}
     />
   );
 }

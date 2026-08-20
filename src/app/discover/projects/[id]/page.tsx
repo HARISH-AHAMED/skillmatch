@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicProjectDetail } from "./PublicProjectDetail";
-import { PROJECTS, getProject } from "@/data/queries";
+import { computeScore, getProject, hiredApplications } from "@/data/server/entities";
+import { getViewer } from "@/data/server/context";
+import { acceptsApplications, getCapacity } from "@/lib/domain";
+import { db } from "@/lib/db";
 import { COMPENSATION_META } from "@/lib/constants";
-
-export function generateStaticParams() {
-  return PROJECTS.filter((p) => p.status !== "DRAFT").map((p) => ({ id: p.id }));
-}
 
 export async function generateMetadata({
   params,
@@ -14,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const project = getProject(id);
+  const project = await getProject(id);
   if (!project) return { title: "Project not found" };
 
   const summary = project.description.split("\n")[0]?.slice(0, 155) ?? "";
@@ -39,8 +38,33 @@ export default async function PublicProjectPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const project = getProject(id);
+  const [project, viewer] = await Promise.all([getProject(id), getViewer()]);
   if (!project || project.status === "DRAFT" || project.visibility === "PRIVATE") notFound();
+
+  const freelancerId = viewer?.freelancer?.id;
+  const [score, hired, existing] = await Promise.all([
+    freelancerId ? computeScore(project.id, freelancerId) : Promise.resolve(null),
+    hiredApplications(project.id),
+    freelancerId
+      ? db.application.findUnique({
+          where: { projectId_freelancerId: { projectId: project.id, freelancerId } },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const capacity = getCapacity(project, hired);
+  const canApply =
+    acceptsApplications(project.status) &&
+    project.isVisible &&
+    project.visibility === "PUBLIC" &&
+    !capacity.projectFull;
+
+  const applyHref = viewer
+    ? freelancerId
+      ? `/freelancer/projects/${project.id}/apply`
+      : undefined
+    : `/login?next=${encodeURIComponent(`/freelancer/projects/${project.id}/apply`)}`;
 
   const jobSchema = {
     "@context": "https://schema.org",
@@ -99,7 +123,14 @@ export default async function PublicProjectPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
       )}
-      <PublicProjectDetail projectId={project.id} />
+      <PublicProjectDetail
+        project={project}
+        matchScore={score?.aiScore}
+        hasApplied={Boolean(existing)}
+        canApply={canApply}
+        isOwner={viewer?.company?.id === project.companyId}
+        applyHref={applyHref}
+      />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { VerifyForm } from "./VerifyForm";
 import { FaqSection } from "@/components/marketing/Sections";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Verify a certificate",
@@ -30,12 +31,20 @@ const VERIFY_FAQ = [
   },
 ];
 
-export default function VerifyIndexPage() {
+export default async function VerifyIndexPage() {
+  // A few real, unrevoked ids so the "try a sample" panel resolves.
+  const samples = await db.certificate.findMany({
+    where: { revokedAt: null },
+    orderBy: { issuedAt: "desc" },
+    take: 3,
+    select: { publicId: true },
+  });
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
-        <VerifyForm />
+        <VerifyForm samples={samples.map((c) => c.publicId)} />
         <FaqSection items={VERIFY_FAQ} eyebrow="Verification" title="How certificate verification works" />
       </main>
       <Footer />

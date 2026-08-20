@@ -6,9 +6,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Feedback";
-import { CERTIFICATES } from "@/data/queries";
 
-export function VerifyForm() {
+
+export function VerifyForm({ samples = [] }: { samples?: string[] }) {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -81,14 +81,14 @@ export function VerifyForm() {
               Try a sample
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
-              {CERTIFICATES.slice(0, 3).map((c) => (
+              {samples.map((publicId) => (
                 <button
-                  key={c.publicId}
+                  key={publicId}
                   type="button"
-                  onClick={() => router.push(`/verify/${c.publicId}`)}
+                  onClick={() => router.push(`/verify/${publicId}`)}
                   className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 font-mono text-[12px] tracking-[0.1em] text-white/80 transition-colors hover:border-[var(--color-brand-bright)] hover:text-white"
                 >
-                  {c.publicId}
+                  {publicId}
                 </button>
               ))}
             </div>

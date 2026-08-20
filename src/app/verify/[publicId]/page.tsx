@@ -9,12 +9,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CERTIFICATES, getCertificate, getCompany, getFreelancer } from "@/data/queries";
+import { getCertificate } from "@/data/server/records";
+import { getCompany, getFreelancer } from "@/data/server/entities";
 import { formatDate } from "@/lib/utils";
-
-export function generateStaticParams() {
-  return CERTIFICATES.map((c) => ({ publicId: c.publicId }));
-}
 
 export async function generateMetadata({
   params,
@@ -22,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ publicId: string }>;
 }): Promise<Metadata> {
   const { publicId } = await params;
-  const cert = getCertificate(publicId.toUpperCase());
+  const cert = await getCertificate(publicId.toUpperCase());
   if (!cert) {
     return { title: `Certificate ${publicId} not found`, robots: { index: false, follow: true } };
   }
@@ -39,7 +36,7 @@ export default async function VerifyCertificatePage({
   params: Promise<{ publicId: string }>;
 }) {
   const { publicId } = await params;
-  const cert = getCertificate(publicId.toUpperCase());
+  const cert = await getCertificate(publicId.toUpperCase());
 
   /* ---- Not found state ---- */
   if (!cert) {
@@ -74,8 +71,10 @@ export default async function VerifyCertificatePage({
     );
   }
 
-  const company = getCompany(cert.companyId);
-  const freelancer = getFreelancer(cert.freelancerId);
+  const [company, freelancer] = await Promise.all([
+    getCompany(cert.companyId),
+    getFreelancer(cert.freelancerId),
+  ]);
   const revoked = Boolean(cert.revokedAt);
 
   const schema = {

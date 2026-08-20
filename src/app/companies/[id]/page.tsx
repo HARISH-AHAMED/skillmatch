@@ -3,11 +3,8 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CompanyProfileView } from "@/components/shared/CompanyProfileView";
-import { COMPANIES, getCompany, projectsForCompany, reviewsFor } from "@/data/queries";
-
-export function generateStaticParams() {
-  return COMPANIES.map((c) => ({ id: c.id }));
-}
+import { getCompany, projectsForCompany } from "@/data/server/entities";
+import { reviewsFor } from "@/data/server/records";
 
 export async function generateMetadata({
   params,
@@ -15,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const c = getCompany(id);
+  const c = await getCompany(id);
   if (!c) return { title: "Company not found" };
   return {
     title: `${c.companyName} — ${c.industry}`,
@@ -35,11 +32,15 @@ export default async function PublicCompanyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const company = getCompany(id);
+  const company = await getCompany(id);
   if (!company) notFound();
 
-  const projects = projectsForCompany(company.id).filter((p) => p.status !== "DRAFT");
-  const reviews = reviewsFor(company.id);
+  const [allProjects, reviews] = await Promise.all([
+    projectsForCompany(company.id),
+    // Reviews are keyed by the company owner's user id.
+    reviewsFor(company.userId),
+  ]);
+  const projects = allProjects.filter((p) => p.status !== "DRAFT");
 
   const schema = {
     "@context": "https://schema.org",

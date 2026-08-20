@@ -3,11 +3,8 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FreelancerProfileDetail } from "@/components/shared/FreelancerProfileDetail";
-import { FREELANCERS, certificatesFor, getFreelancer, reviewsFor } from "@/data/queries";
-
-export function generateStaticParams() {
-  return FREELANCERS.map((f) => ({ id: f.id }));
-}
+import { getFreelancer } from "@/data/server/entities";
+import { certificatesFor, reviewsFor } from "@/data/server/records";
 
 export async function generateMetadata({
   params,
@@ -15,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const f = getFreelancer(id);
+  const f = await getFreelancer(id);
   if (!f) return { title: "Profile not found" };
   return {
     title: `${f.name} — ${f.professionalHeadline.split("—")[0].trim()}`,
@@ -36,11 +33,14 @@ export default async function PublicFreelancerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const freelancer = getFreelancer(id);
+  const freelancer = await getFreelancer(id);
   if (!freelancer) notFound();
 
-  const reviews = reviewsFor(freelancer.id);
-  const certificates = certificatesFor(freelancer.id);
+  // Reviews are keyed by user id; certificates by profile id.
+  const [reviews, certificates] = await Promise.all([
+    reviewsFor(freelancer.userId),
+    certificatesFor(freelancer.id),
+  ]);
 
   const schema = {
     "@context": "https://schema.org",
