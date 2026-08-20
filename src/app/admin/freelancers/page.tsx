@@ -1,78 +1,180 @@
-import React from "react";
-import { db } from "@/lib/db";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Star, Award, TrendingUp } from "lucide-react";
+"use client";
 
-export default async function AdminFreelancersPage() {
-  const freelancers = await db.freelancer.findMany({
-    include: {
-      user: {
-        select: { name: true, email: true },
-      },
+import Link from "next/link";
+import { Search, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/Card";
+import { Input, Select } from "@/components/ui/Field";
+import { Rating } from "@/components/ui/Feedback";
+import { KpiTile, DataTable, type Column } from "@/components/ui/Table";
+import { DOMAINS } from "@/lib/constants";
+import { FREELANCERS, certificatesFor, applicationsForFreelancer } from "@/data/queries";
+import type { Freelancer } from "@/lib/types";
+import { formatMoney } from "@/lib/utils";
+
+const AVAILABILITY_TONE = {
+  AVAILABLE: "success",
+  BUSY: "warning",
+  UNAVAILABLE: "neutral",
+} as const;
+
+export default function AdminFreelancersPage() {
+  const [query, setQuery] = useState("");
+  const [domain, setDomain] = useState("ALL");
+  const [availability, setAvailability] = useState("ALL");
+
+  const filtered = useMemo(() => {
+    let list = [...FREELANCERS];
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(
+        (f) =>
+          f.name.toLowerCase().includes(q) ||
+          f.email.toLowerCase().includes(q) ||
+          f.skills.some((s) => s.includes(q)),
+      );
+    }
+    if (domain !== "ALL") list = list.filter((f) => f.domain === domain);
+    if (availability !== "ALL")
+      list = list.filter((f) => f.availabilityStatus === availability);
+    return list.sort((a, b) => b.rating - a.rating);
+  }, [query, domain, availability]);
+
+  const totals = useMemo(
+    () => ({
+      verified: FREELANCERS.filter((f) => f.verificationBadges.includes("Identity Verified")).length,
+      available: FREELANCERS.filter((f) => f.availabilityStatus === "AVAILABLE").length,
+      avgRating:
+        FREELANCERS.reduce((s, f) => s + f.rating, 0) / (FREELANCERS.length || 1),
+      earnings: FREELANCERS.reduce((s, f) => s + f.totalEarnings, 0),
+    }),
+    [],
+  );
+
+  const columns: Column<Freelancer>[] = [
+    {
+      key: "name",
+      header: "Freelancer",
+      essential: true,
+      render: (f) => (
+        <Link href={`/freelancers/${f.id}`} className="flex items-center gap-3">
+          <Avatar src={f.avatarUrl} name={f.name} size="sm" status={f.availabilityStatus} />
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate font-medium text-[var(--color-text-primary)]">
+                {f.name}
+              </span>
+              {f.verificationBadges.includes("Identity Verified") && (
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--color-brand)]" />
+              )}
+            </span>
+            <span className="block truncate text-[11.5px] text-[var(--color-text-muted)]">
+              {f.location}
+            </span>
+          </span>
+        </Link>
+      ),
     },
-    orderBy: { rating: "desc" },
-  });
+    { key: "domain", header: "Discipline", render: (f) => f.domain },
+    {
+      key: "rating",
+      header: "Rating",
+      essential: true,
+      align: "right",
+      render: (f) => <Rating value={f.rating} count={f.reviewCount} size="sm" />,
+    },
+    {
+      key: "projects",
+      header: "Completed",
+      align: "right",
+      render: (f) => f.completedProjects,
+    },
+    {
+      key: "applications",
+      header: "Applications",
+      align: "right",
+      render: (f) => applicationsForFreelancer(f.id).length,
+    },
+    {
+      key: "certificates",
+      header: "Certificates",
+      align: "right",
+      render: (f) => certificatesFor(f.id, true).length,
+    },
+    {
+      key: "earnings",
+      header: "Earned",
+      align: "right",
+      essential: true,
+      render: (f) => formatMoney(f.totalEarnings, f.currency, true),
+    },
+    {
+      key: "availability",
+      header: "Status",
+      render: (f) => (
+        <Badge tone={AVAILABILITY_TONE[f.availabilityStatus]} size="sm">
+          {f.availabilityStatus.toLowerCase()}
+        </Badge>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6 text-left">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#1A1D29]">
-          Freelancer Directory
-        </h1>
-        <p className="text-xs text-[#5B6272] font-normal mt-1">
-          Monitor freelancer bio credentials, active skills indices, and rating averages
-        </p>
+    <div>
+      <PageHeader
+        title="Freelancer profiles"
+        description="Read-only monitoring across every talent account. Ratings and completed-project counts are derived, never entered."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiTile label="Total freelancers" value={FREELANCERS.length} tone="brand" />
+        <KpiTile label="Identity verified" value={totals.verified} tone="info" />
+        <KpiTile label="Available now" value={totals.available} tone="brand" />
+        <KpiTile
+          label="Average rating"
+          value={totals.avgRating.toFixed(2)}
+          tone="warning"
+          deltaLabel={`${formatMoney(totals.earnings, "USD", true)} earned collectively`}
+        />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {freelancers.length === 0 ? (
-          <Card className="p-8 text-center text-[#5B6272] text-xs md:col-span-2 border border-[#E3E5EA] rounded-lg">
-            No freelancer profiles registered yet.
-          </Card>
-        ) : (
-          freelancers.map((f) => (
-            <Card key={f.id} className="p-6 border border-[#C7CBD6] bg-white rounded-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[#E3E5EA] pb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#1A1D29]">{f.user.name}</h3>
-                  <p className="text-[11px] font-mono text-[#5B6272]">{f.user.email}</p>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-[#8F5E08]">
-                  <Star className="h-4 w-4 fill-[#B9790A]/20" />
-                  <span className="font-bold">{f.rating}</span>
-                </div>
-              </div>
+      <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
+        <Input
+          placeholder="Search by name, email or skill"
+          leftIcon={<Search />}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search freelancers"
+        />
+        <Select value={domain} onChange={(e) => setDomain(e.target.value)} aria-label="Discipline">
+          <option value="ALL">All disciplines</option>
+          {DOMAINS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </Select>
+        <Select
+          value={availability}
+          onChange={(e) => setAvailability(e.target.value)}
+          aria-label="Availability"
+        >
+          <option value="ALL">Any availability</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="BUSY">Partly booked</option>
+          <option value="UNAVAILABLE">Not taking work</option>
+        </Select>
+      </div>
 
-              <p className="text-xs text-[#5B6272] leading-relaxed italic">
-                &quot;{f.bio || "No professional bio provided."}&quot;
-              </p>
+      <p className="mt-4 text-[13px] text-[var(--color-text-secondary)]">
+        Showing <strong className="text-[var(--color-text-primary)]">{filtered.length}</strong> of{" "}
+        {FREELANCERS.length}
+      </p>
 
-              <div className="grid grid-cols-3 gap-2.5 text-[11px] text-[#5B6272] bg-[#F8F9FB] p-3.5 border border-[#E3E5EA] rounded-lg">
-                <div>
-                  <span className="text-[#5B6272] block">Experience</span>
-                  <span className="font-semibold text-[#1A1D29]">{f.experienceYears} Years</span>
-                </div>
-                <div>
-                  <span className="text-[#5B6272] block">Completed</span>
-                  <span className="font-semibold text-[#1A1D29]">{f.completedProjects} Jobs</span>
-                </div>
-                <div>
-                  <span className="text-[#5B6272] block">Completion</span>
-                  <span className="font-semibold text-[#147A44]">{f.completionRate}%</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {f.skills.map((skill) => (
-                  <Badge key={skill} variant="neutral" className="text-[11px]">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </Card>
-          ))
-        )}
+      <div className="mt-3">
+        <DataTable columns={columns} rows={filtered} />
       </div>
     </div>
   );

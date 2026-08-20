@@ -1,24 +1,7 @@
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function CompanyWorkspacePage() {
-  const session = await auth();
-  if (!session?.user) {
-    redirect("/login");
-  }
+import { WorkspaceIndex } from "@/components/shared/WorkspaceIndex";
 
-  const latestHiredApp = await db.application.findFirst({
-    where: {
-      project: { company: { userId: session.user.id } },
-      status: "HIRED",
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  if (latestHiredApp) {
-    redirect(`/workspace/${latestHiredApp.id}`);
-  } else {
-    redirect("/company/projects");
-  }
+export default function WorkspaceIndexPage() {
+  return <WorkspaceIndex />;
 }

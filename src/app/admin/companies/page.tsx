@@ -1,76 +1,192 @@
-import React from "react";
-import { db } from "@/lib/db";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Building2, Globe, MapPin } from "lucide-react";
+"use client";
 
-export default async function AdminCompaniesPage() {
-  const companies = await db.company.findMany({
-    include: {
-      user: {
-        select: { name: true, email: true },
-      },
-      _count: {
-        select: { projects: true },
-      },
+import Link from "next/link";
+import { Search, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Avatar } from "@/components/ui/Avatar";
+import { PageHeader } from "@/components/ui/Card";
+import { Input, Select } from "@/components/ui/Field";
+import { Progress, Rating } from "@/components/ui/Feedback";
+import { DataTable, KpiTile, type Column } from "@/components/ui/Table";
+import {
+  COMPANIES,
+  applicationsForCompany,
+  getProjectFinancialSummary,
+  projectsForCompany,
+} from "@/data/queries";
+import type { Company } from "@/lib/types";
+import { formatMoney } from "@/lib/utils";
+
+export default function AdminCompaniesPage() {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("TRUST");
+
+  const filtered = useMemo(() => {
+    let list = [...COMPANIES];
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.companyName.toLowerCase().includes(q) ||
+          c.industry.toLowerCase().includes(q) ||
+          c.location.toLowerCase().includes(q),
+      );
+    }
+    if (sort === "SPEND")
+      return list.sort(
+        (a, b) =>
+          projectsForCompany(b.id).reduce(
+            (s, p) => s + getProjectFinancialSummary(p.id).released,
+            0,
+          ) -
+          projectsForCompany(a.id).reduce(
+            (s, p) => s + getProjectFinancialSummary(p.id).released,
+            0,
+          ),
+      );
+    if (sort === "PROJECTS")
+      return list.sort(
+        (a, b) => projectsForCompany(b.id).length - projectsForCompany(a.id).length,
+      );
+    return list.sort((a, b) => b.trustScore - a.trustScore);
+  }, [query, sort]);
+
+  const totals = useMemo(
+    () => ({
+      verified: COMPANIES.filter((c) => c.verificationBadges.includes("Payment Verified")).length,
+      projects: COMPANIES.reduce((s, c) => s + projectsForCompany(c.id).length, 0),
+      hires: COMPANIES.reduce(
+        (s, c) => s + applicationsForCompany(c.id).filter((a) => a.status === "HIRED").length,
+        0,
+      ),
+      released: COMPANIES.reduce(
+        (s, c) =>
+          s +
+          projectsForCompany(c.id).reduce(
+            (t, p) => t + getProjectFinancialSummary(p.id).released,
+            0,
+          ),
+        0,
+      ),
+    }),
+    [],
+  );
+
+  const columns: Column<Company>[] = [
+    {
+      key: "name",
+      header: "Company",
+      essential: true,
+      render: (c) => (
+        <Link href={`/companies/${c.id}`} className="flex items-center gap-3">
+          <Avatar src={c.logoUrl} name={c.companyName} size="sm" rounded="md" />
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate font-medium text-[var(--color-text-primary)]">
+                {c.companyName}
+              </span>
+              {c.verificationBadges.includes("Identity Verified") && (
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--color-brand)]" />
+              )}
+            </span>
+            <span className="block truncate text-[11.5px] text-[var(--color-text-muted)]">
+              {c.industry} · {c.location}
+            </span>
+          </span>
+        </Link>
+      ),
     },
-    orderBy: { companyName: "asc" },
-  });
+    {
+      key: "trust",
+      header: "Trust",
+      essential: true,
+      align: "right",
+      render: (c) => (
+        <div className="inline-flex w-20 flex-col items-end">
+          <span className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+            {c.trustScore}
+          </span>
+          <Progress value={c.trustScore} size="sm" className="mt-1 w-full" />
+        </div>
+      ),
+    },
+    {
+      key: "payment",
+      header: "Payment reliability",
+      align: "right",
+      render: (c) => `${Math.round(c.paymentReliability)}%`,
+    },
+    {
+      key: "projects",
+      header: "Projects",
+      align: "right",
+      render: (c) => projectsForCompany(c.id).length,
+    },
+    {
+      key: "hires",
+      header: "Hires",
+      align: "right",
+      render: (c) => applicationsForCompany(c.id).filter((a) => a.status === "HIRED").length,
+    },
+    {
+      key: "released",
+      header: "Released",
+      essential: true,
+      align: "right",
+      render: (c) =>
+        formatMoney(
+          projectsForCompany(c.id).reduce(
+            (s, p) => s + getProjectFinancialSummary(p.id).released,
+            0,
+          ),
+          "USD",
+          true,
+        ),
+    },
+    {
+      key: "rating",
+      header: "Rating",
+      align: "right",
+      render: (c) => <Rating value={c.rating} count={c.reviewCount} size="sm" />,
+    },
+  ];
 
   return (
-    <div className="space-y-6 text-left">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#1A1D29]">
-          Company Directory
-        </h1>
-        <p className="text-xs text-[#5B6272] font-normal mt-1">
-          Monitor company industry targets, domains, locations, and posted projects
-        </p>
+    <div>
+      <PageHeader
+        title="Companies"
+        description="Trust score, payment reliability and completion rate are recomputed from freelancer reviews on every new review."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiTile label="Total companies" value={COMPANIES.length} tone="info" />
+        <KpiTile label="Payment verified" value={totals.verified} tone="brand" />
+        <KpiTile label="Projects published" value={totals.projects} tone="neutral" />
+        <KpiTile
+          label="Released to freelancers"
+          value={formatMoney(totals.released, "USD", true)}
+          tone="brand"
+          deltaLabel={`${totals.hires} hires across the platform`}
+        />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {companies.length === 0 ? (
-          <Card className="p-8 text-center text-[#5B6272] text-xs md:col-span-2 border border-[#C7CBD6] rounded-lg">
-            No company profiles registered yet.
-          </Card>
-        ) : (
-          companies.map((c) => (
-            <Card key={c.id} className="p-6 border border-[#E3E5EA] bg-white rounded-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[#E3E5EA] pb-3">
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-[#1A1D29] flex items-center gap-1.5">
-                    <Building2 className="h-4.5 w-4.5 text-[#2159C9]" />
-                    {c.companyName}
-                  </h3>
-                  <p className="text-[11px] text-[#5B6272]">Contact: {c.user.name} ({c.user.email})</p>
-                </div>
-                <Badge variant="primary">{c.industry || "General"}</Badge>
-              </div>
+      <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+        <Input
+          placeholder="Search by name, industry or location"
+          leftIcon={<Search />}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search companies"
+        />
+        <Select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
+          <option value="TRUST">Highest trust score</option>
+          <option value="SPEND">Most released</option>
+          <option value="PROJECTS">Most projects</option>
+        </Select>
+      </div>
 
-              <p className="text-xs text-[#5B6272] leading-relaxed">
-                {c.description || "No description provided."}
-              </p>
-
-              <div className="grid grid-cols-3 gap-2.5 text-[11px] text-[#5B6272] pt-1">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-[#5B6272]" />
-                  <span>{c.location || "Remote"}</span>
-                </div>
-                <div className="flex items-center gap-1.5 col-span-2">
-                  <Globe className="h-3.5 w-3.5 text-[#5B6272]" />
-                  <a href={c.website || "#"} target="_blank" rel="noopener noreferrer" className="hover:text-[#2159C9] text-[#1A1D29] font-medium truncate">
-                    {c.website || "No website"}
-                  </a>
-                </div>
-              </div>
-
-              <div className="border-t border-[#E3E5EA] pt-3 flex justify-between items-center text-xs">
-                <span className="text-[#5B6272]">Total Posted Gigs</span>
-                <strong className="text-[#1A1D29] font-semibold">{c._count.projects} Listings</strong>
-              </div>
-            </Card>
-          ))
-        )}
+      <div className="mt-5">
+        <DataTable columns={columns} rows={filtered} />
       </div>
     </div>
   );

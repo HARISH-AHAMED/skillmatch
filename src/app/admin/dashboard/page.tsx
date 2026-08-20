@@ -1,166 +1,317 @@
-import React from "react";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { Card } from "@/components/ui/Card";
-import { AnalyticsChart } from "@/components/AnalyticsChart";
-import { DashboardNotifications } from "@/components/DashboardNotifications";
-import { Users, UserSquare2, Building2, FolderKanban, ClipboardList } from "lucide-react";
+"use client";
 
-export default async function AdminDashboardPage() {
-  const session = await auth();
-  const userId = session!.user.id;
+import Link from "next/link";
+import {
+  Activity,
+  AlertTriangle,
+  Award,
+  Briefcase,
+  Building,
+  ClipboardList,
+  ShieldCheck,
+  Star,
+  UserCircle,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge, StatusIndicator } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
+import { KpiTile } from "@/components/ui/Table";
+import { Progress, Rating } from "@/components/ui/Feedback";
+import { Stagger, StaggerItem } from "@/components/motion/Motion";
+import {
+  APPLICATIONS,
+  CERTIFICATES,
+  COMPANIES,
+  FREELANCERS,
+  PROJECTS,
+  REVIEWS,
+  platformStats,
+} from "@/data/queries";
+import { formatMoney, relativeTime } from "@/lib/utils";
 
-  // Fetch notifications
-  const notifications = await db.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
+export default function AdminDashboardPage() {
+  const stats = platformStats();
 
-  // Query overall counts
-  const totalUsers = await db.user.count();
-  const totalFreelancers = await db.freelancer.count();
-  const totalCompanies = await db.company.count();
-  const openProjects = await db.project.count({ where: { status: "OPEN" } });
-  const completedProjects = await db.project.count({ where: { status: "COMPLETED" } });
-
-  // Query latest activity logs
-  const logs = await db.adminLog.findMany({
-    include: {
-      admin: {
-        select: { name: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
-
-  const chartData = [
-    { label: "Feb", value: totalFreelancers + 2 },
-    { label: "Mar", value: totalCompanies + 1 },
-    { label: "Apr", value: openProjects + completedProjects },
-    { label: "May", value: totalUsers },
-  ];
+  const data = (() => {
+    const byStatus = ["OPEN", "IN_PROGRESS", "COMPLETED", "DRAFT", "CLOSED"].map((s) => ({
+      status: s,
+      count: PROJECTS.filter((p) => p.status === s).length,
+    }));
+    const byDomain = [...new Set(PROJECTS.map((p) => p.domain))].map((d) => ({
+      domain: d,
+      count: PROJECTS.filter((p) => p.domain === d).length,
+    }));
+    return {
+      byStatus,
+      byDomain: [...byDomain].sort((a, b) => b.count - a.count).slice(0, 6),
+      recentApplications: [...APPLICATIONS]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 6),
+      recentReviews: [...REVIEWS]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 4),
+      lowRated: REVIEWS.filter((r) => r.rating <= 3),
+    };
+  })();
 
   return (
-    <div className="space-y-8">
-      {/* Greeting Header */}
-      <div className="bg-transparent">
-        <span className="text-[11px] font-medium text-[#5B6272] tracking-wider uppercase">
-          Administration
-        </span>
-        <h1 className="text-3xl font-normal text-[#1A1D29] tracking-tight mt-0.5">
-          Admin Control Center
-        </h1>
-        <p className="text-xs text-[#5B6272] font-normal mt-1">
-          Monitor platform metrics, user onboarding, database states, and AI logs
-        </p>
+    <div>
+      <PageHeader
+        title="Platform overview"
+        description="Counts across every account, listing and engagement on FRIVVO. Every action from here re-checks admin permission server-side."
+      />
+
+      <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StaggerItem>
+          <KpiTile
+            label="Freelancers"
+            value={stats.freelancers}
+            icon={<UserCircle />}
+            tone="brand"
+            href="/admin/freelancers"
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <KpiTile
+            label="Companies"
+            value={stats.companies}
+            icon={<Building />}
+            tone="info"
+            href="/admin/companies"
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <KpiTile
+            label="Projects"
+            value={stats.projects}
+            icon={<Briefcase />}
+            tone="warning"
+            deltaLabel={`${stats.openProjects} currently open`}
+            href="/admin/projects"
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <KpiTile
+            label="Released on ledger"
+            value={formatMoney(stats.totalReleased, "USD", true)}
+            icon={<Wallet />}
+            tone="brand"
+            deltaLabel="across every engagement"
+          />
+        </StaggerItem>
+      </Stagger>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiTile label="Applications" value={stats.applications} icon={<ClipboardList />} tone="neutral" />
+        <KpiTile label="Hires" value={stats.hires} icon={<Users />} tone="brand" />
+        <KpiTile
+          label="Certificates issued"
+          value={stats.certificates}
+          icon={<Award />}
+          tone="info"
+        />
+        <KpiTile
+          label="Reviews"
+          value={stats.reviews}
+          icon={<Star />}
+          tone="warning"
+          href="/admin/reviews"
+        />
       </div>
 
-      {/* Grid summary metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
-          <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#C7CBD6] flex items-center justify-center">
-              <Users className="h-5 w-5 text-[#1A1D29]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{totalUsers}</p>
-            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Total Users</p>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
-          <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
-              <UserSquare2 className="h-5 w-5 text-[#1A1D29]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{totalFreelancers}</p>
-            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Freelancers</p>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
-          <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-[#1A1D29]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{totalCompanies}</p>
-            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Companies</p>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
-          <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#E3E5EA] flex items-center justify-center">
-              <FolderKanban className="h-5 w-5 text-[#1A1D29]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{openProjects}</p>
-            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Active Gigs</p>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-3 bg-white border border-[#E3E5EA] rounded-lg">
-          <div className="flex justify-between items-start">
-            <div className="h-10 w-10 rounded-full bg-[#F8F9FB] border border-[#C7CBD6] flex items-center justify-center">
-              <FolderKanban className="h-5 w-5 text-[#1A1D29]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-3xl font-normal text-[#1A1D29] leading-none">{completedProjects}</p>
-            <p className="text-[11px] font-medium tracking-wider text-[#5B6272] uppercase mt-2">Completed contracts</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Splitting Content */}
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Growth trends chart */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-lg font-normal text-[#1A1D29] tracking-tight">Platform Analytics</h2>
-          <AnalyticsChart title="User Growth Over Time" subtitle="Overall monthly signed users" data={chartData} type="line" />
-        </div>
-
-        {/* Recent logs activity */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-[#1A1D29]" />
-            <h2 className="text-lg font-normal text-[#1A1D29] tracking-tight">System Activity Logs</h2>
-          </div>
-
-          <div className="space-y-3">
-            {logs.length === 0 ? (
-              <Card className="p-5 text-center text-xs text-[#5B6272] bg-white border border-[#E3E5EA] rounded-lg">
-                No system activity logs recorded yet.
-              </Card>
-            ) : (
-              logs.map((log) => (
-                <Card key={log.id} className="p-4 border-[#E3E5EA] bg-white text-xs space-y-2 rounded-lg">
-                  <div className="flex justify-between items-center text-[11px] text-[#5B6272] font-medium uppercase">
-                    <span>{log.admin.name}</span>
-                    <span>
-                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* ---- Projects by status ---- */}
+          <Card padding="md">
+            <CardHeader
+              title="Projects by status"
+              description="Only OPEN and IN_PROGRESS are publicly browseable. Terminal statuses are read-only."
+              icon={<Activity />}
+              action={
+                <Button href="/admin/projects" variant="link" size="sm">
+                  Monitor projects
+                </Button>
+              }
+            />
+            <div className="flex flex-col gap-3">
+              {data.byStatus.map((s) => (
+                <div key={s.status}>
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <StatusIndicator status={s.status} kind="project" size="sm" />
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+                      {s.count}
                     </span>
                   </div>
-                  <p className="text-[#5B6272] font-normal leading-relaxed">
-                    {log.action}
-                  </p>
-                </Card>
-              ))
-            )}
-          </div>
+                  <Progress
+                    value={PROJECTS.length ? (s.count / PROJECTS.length) * 100 : 0}
+                    size="sm"
+                    tone={
+                      s.status === "OPEN"
+                        ? "brand"
+                        : s.status === "IN_PROGRESS"
+                          ? "info"
+                          : "neutral"
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
 
-          <DashboardNotifications initialNotifications={notifications} />
+          {/* ---- Recent applications ---- */}
+          <Card padding="md">
+            <CardHeader
+              title="Recent applications"
+              description="Platform-wide activity, newest first."
+              icon={<ClipboardList />}
+            />
+            <ul className="flex flex-col gap-2.5">
+              {data.recentApplications.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"
+                >
+                  <Avatar src={a.freelancer.avatarUrl} name={a.freelancer.name} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-[var(--color-text-primary)]">
+                      {a.freelancer.name}
+                      <span className="font-normal text-[var(--color-text-muted)]"> applied to </span>
+                      {a.project.title}
+                    </p>
+                    <p className="text-[11.5px] text-[var(--color-text-muted)]">
+                      {a.project.company.companyName} · {relativeTime(a.createdAt)}
+                    </p>
+                  </div>
+                  <StatusIndicator status={a.status} kind="application" size="sm" />
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          {/* ---- Domains ---- */}
+          <Card padding="md">
+            <CardHeader title="Listings by discipline" icon={<Briefcase />} />
+            <div className="flex flex-col gap-3">
+              {data.byDomain.map((d) => (
+                <div key={d.domain}>
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-[12.5px] text-[var(--color-text-secondary)]">
+                      {d.domain}
+                    </span>
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+                      {d.count}
+                    </span>
+                  </div>
+                  <Progress
+                    value={PROJECTS.length ? (d.count / PROJECTS.length) * 100 : 0}
+                    size="sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
+
+        {/* ---- Sidebar ---- */}
+        <aside className="flex min-w-0 flex-col gap-4">
+          <Card padding="md">
+            <CardHeader
+              title="Moderation queue"
+              icon={<AlertTriangle />}
+              divided={false}
+              className="mb-3"
+            />
+            {data.lowRated.length === 0 ? (
+              <p className="text-[12.5px] leading-[1.5] text-[var(--color-text-muted)]">
+                No reviews are currently flagged for moderation.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2.5">
+                {data.lowRated.map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[12.5px] font-medium text-[var(--color-warning-fg)]">
+                        {r.reviewerName} → {r.revieweeName}
+                      </p>
+                      <Rating value={r.rating} size="sm" showValue={false} />
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[12px] leading-[1.5] text-[var(--color-warning-fg)] opacity-90">
+                      {r.comment}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button href="/admin/reviews" variant="secondary" block size="sm" className="mt-3">
+              Moderate reviews
+            </Button>
+          </Card>
+
+          <Card padding="md">
+            <CardHeader
+              title="Recent reviews"
+              icon={<Star />}
+              divided={false}
+              className="mb-3"
+            />
+            <ul className="flex flex-col gap-3">
+              {data.recentReviews.map((r) => (
+                <li key={r.id} className="flex gap-2.5">
+                  <Avatar src={r.reviewerAvatar} name={r.reviewerName} size="xs" />
+                  <div className="min-w-0">
+                    <p className="truncate text-[12.5px] font-medium text-[var(--color-text-primary)]">
+                      {r.reviewerName} → {r.revieweeName}
+                    </p>
+                    <Rating value={r.rating} size="sm" showValue={false} className="mt-0.5" />
+                    <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+                      {relativeTime(r.createdAt)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card padding="md">
+            <CardHeader
+              title="Directory"
+              icon={<ShieldCheck />}
+              divided={false}
+              className="mb-3"
+            />
+            <ul className="flex flex-col gap-1.5">
+              {[
+                { label: "Users management", href: "/admin/users", count: FREELANCERS.length + COMPANIES.length + 1 },
+                { label: "Freelancer profiles", href: "/admin/freelancers", count: FREELANCERS.length },
+                { label: "Companies", href: "/admin/companies", count: COMPANIES.length },
+                { label: "Projects", href: "/admin/projects", count: PROJECTS.length },
+                { label: "Certificates", href: "/admin/projects", count: CERTIFICATES.length },
+                { label: "System settings", href: "/admin/settings" },
+              ].map((l) => (
+                <li key={l.label}>
+                  <Link
+                    href={l.href}
+                    className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] px-2.5 py-2 text-[13px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)]"
+                  >
+                    {l.label}
+                    {l.count !== undefined && (
+                      <Badge tone="neutral" size="sm">
+                        {l.count}
+                      </Badge>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </aside>
       </div>
     </div>
   );
 }
-

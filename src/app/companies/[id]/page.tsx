@@ -1,135 +1,77 @@
-import React from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { Navbar } from "@/components/Navbar";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { CompanyProfileView } from "./CompanyProfileView";
-import { Role } from "@prisma/client";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { CompanyProfileView } from "@/components/shared/CompanyProfileView";
+import { COMPANIES, getCompany, projectsForCompany, reviewsFor } from "@/data/queries";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+export function generateStaticParams() {
+  return COMPANIES.map((c) => ({ id: c.id }));
 }
 
-export default async function PublicCompanyProfilePage({ params }: PageProps) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
+  const c = getCompany(id);
+  if (!c) return { title: "Company not found" };
+  return {
+    title: `${c.companyName} — ${c.industry}`,
+    description: c.description.slice(0, 155),
+    alternates: { canonical: `/companies/${c.id}` },
+    openGraph: {
+      title: `${c.companyName} · FRIVVO`,
+      description: c.missionVision,
+      images: [{ url: c.bannerUrl }],
+    },
+  };
+}
 
-  const session = await auth();
-  const currentUserId = session?.user?.id || null;
-  const isFreelancer = session?.user?.role === Role.FREELANCER;
+export default async function PublicCompanyPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const company = getCompany(id);
+  if (!company) notFound();
 
-  // Run database queries in parallel
-  const [company, projects, reviews, freelancer, apps, saved] = await Promise.all([
-    db.company.findUnique({
-      where: { id },
+  const projects = projectsForCompany(company.id).filter((p) => p.status !== "DRAFT");
+  const reviews = reviewsFor(company.id);
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: company.companyName,
+    description: company.description,
+    url: company.website,
+    logo: company.logoUrl || undefined,
+    image: company.bannerUrl,
+    foundingDate: String(company.foundedYear),
+    address: { "@type": "PostalAddress", addressLocality: company.location },
+    ...(reviews.length > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: company.rating,
+        reviewCount: company.reviewCount,
+        bestRating: 5,
+      },
     }),
-    db.project.findMany({
-      where: {
-        companyId: id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-    db.review.findMany({
-      where: {
-        reviewee: { companyProfile: { id } },
-      },
-      include: {
-        reviewer: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
-        project: {
-          select: {
-            title: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-    isFreelancer && currentUserId
-      ? db.freelancer.findUnique({
-          where: { userId: currentUserId },
-        })
-      : Promise.resolve(null),
-    isFreelancer && currentUserId
-      ? db.application.findMany({
-          where: { freelancer: { userId: currentUserId } },
-          select: { projectId: true },
-        })
-      : Promise.resolve([]),
-    isFreelancer && currentUserId
-      ? db.savedProject.findMany({
-          where: { freelancer: { userId: currentUserId } },
-          select: { projectId: true },
-        })
-      : Promise.resolve([]),
-  ]);
-
-  if (!company) {
-    notFound();
-  }
-
-  const isCompanyOwner = currentUserId === company.userId;
-  const initialAppliedProjectIds = apps ? apps.map((a) => a.projectId) : [];
-  const initialSavedProjectIds = saved ? saved.map((s) => s.projectId) : [];
-
-  // Follow/alerts/watchlist initial states
-  const initialFollowState = currentUserId ? company.followers.includes(currentUserId) : false;
-  const initialAlertState = currentUserId ? company.jobAlertsUsers.includes(currentUserId) : false;
-  const initialWatchlistState = currentUserId ? company.watchlistUsers.includes(currentUserId) : false;
-  const initialCommunityState = currentUserId ? company.talentCommunity.includes(currentUserId) : false;
-
-  if (session?.user) {
-    return (
-      <DashboardLayout role={session.user.role} userName={session.user.name}>
-        <CompanyProfileView
-          company={company as any}
-          projects={projects}
-          reviews={reviews}
-          currentUserId={currentUserId}
-          isCompanyOwner={isCompanyOwner}
-          isFreelancer={isFreelancer}
-          initialAppliedProjectIds={initialAppliedProjectIds}
-          initialSavedProjectIds={initialSavedProjectIds}
-          initialFollowState={initialFollowState}
-          initialAlertState={initialAlertState}
-          initialWatchlistState={initialWatchlistState}
-          initialCommunityState={initialCommunityState}
-        />
-      </DashboardLayout>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
-      {/* Navbar header */}
+    <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <Navbar />
-
-      {/* Main Container */}
-      <main className="flex-grow max-w-7xl w-full mx-auto px-6 py-10">
-        <CompanyProfileView
-          company={company as any}
-          projects={projects}
-          reviews={reviews}
-          currentUserId={currentUserId}
-          isCompanyOwner={isCompanyOwner}
-          isFreelancer={isFreelancer}
-          initialAppliedProjectIds={initialAppliedProjectIds}
-          initialSavedProjectIds={initialSavedProjectIds}
-          initialFollowState={initialFollowState}
-          initialAlertState={initialAlertState}
-          initialWatchlistState={initialWatchlistState}
-          initialCommunityState={initialCommunityState}
-        />
+      <main className="flex-1">
+        <CompanyProfileView company={company} projects={projects} reviews={reviews} />
       </main>
+      <Footer />
     </div>
   );
 }

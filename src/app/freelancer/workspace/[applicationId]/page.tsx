@@ -1,12 +1,15 @@
-import { redirect } from "next/navigation";
+"use client";
 
-interface PageProps {
-  params: Promise<{
-    applicationId: string;
-  }>;
-}
+import { useParams } from "next/navigation";
+import { Suspense } from "react";
+import { WorkspaceView } from "@/components/workspace/WorkspaceView";
+import { Skeleton } from "@/components/ui/Feedback";
 
-export default async function FreelancerWorkspaceRedirectPage({ params }: PageProps) {
-  const { applicationId } = await params;
-  redirect(`/workspace/${applicationId}`);
+export default function WorkspacePage() {
+  const { applicationId } = useParams<{ applicationId: string }>();
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-[var(--radius-lg)]" />}>
+      <WorkspaceView applicationId={applicationId} />
+    </Suspense>
+  );
 }

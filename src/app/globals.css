@@ -1,324 +1,389 @@
 @import "tailwindcss";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS — single source of visual truth.
-   Restrained, neutral, productivity-first SaaS system:
-   white/near-white surfaces, colour reserved for action + status,
-   pill controls vs. 8–12px containers, border-based elevation.
-   Do not hardcode hex/px values in components — extend this file instead.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ============================================================================
+   FRIVVO — DESIGN TOKENS (single source of truth)
+   Derived from the FRIVVO logo: near-black ink + signal green.
+   Components must never hardcode hex or px values. Extend this file instead.
+   ========================================================================= */
 
 @theme {
-  /* ── Canonical palette ─────────────────────────────────────────────────── */
-  --color-bg-app:#F5F6F8;
-  --color-bg-surface:#FFFFFF;
-  --color-bg-surface-alt:#F8F9FB;
-  --color-bg-input-disabled:#F1F2F4;
-  --color-bg-hover:#F0F3F9;
-  --color-bg-selected:#EAF1FE;
+  /* ---- Surfaces ------------------------------------------------------- */
+  --color-app: #f7f9f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f4f7f5;
+  --color-surface-sunken: #eef2f0;
+  --color-input-disabled: #f1f3f2;
+  --color-hover: #eff4f1;
+  --color-selected: #e6f8ee;
+  --color-ink-surface: #0d100f;
+  --color-ink-surface-alt: #151a18;
 
-  --color-text-primary:#1A1D29;
-  --color-text-secondary:#5B6272;
-  --color-text-muted:#8A90A0;
-  --color-text-disabled:#B7BBC6;
-  --color-text-inverse:#FFFFFF;
+  /* ---- Text ----------------------------------------------------------- */
+  --color-text-primary: #0f1613;
+  --color-text-secondary: #59635e;
+  --color-text-muted: #868f8a;
+  --color-text-disabled: #b4bbb7;
+  --color-text-inverse: #ffffff;
 
-  --color-border-default:#E3E5EA;
-  --color-border-subtle:#EDEEF2;
-  --color-border-emphasis:#C7CBD6;
+  /* ---- Borders -------------------------------------------------------- */
+  --color-border-subtle: #edf0ee;
+  --color-border: #e2e6e4;
+  --color-border-emphasis: #c6ccc9;
+  --color-border-strong: #59635e;
 
-  --color-brand-navy:#152C55;
-  --color-brand-navy-hover:#1E3D71;
-  --color-brand-blue:#2E6BEA;
-  --color-brand-blue-hover:#245BC9;
-  --color-brand-blue-active:#1B49A8;
-  --color-brand-gold:#F5B942;
+  /* ---- Brand (from logo) ---------------------------------------------- */
+  --color-brand-ink: #101413;
+  --color-brand-ink-hover: #1d2422;
+  --color-brand-ink-soft: #2b3330;
+  --color-brand: #06c755;
+  --color-brand-hover: #05b04b;
+  --color-brand-active: #049740;
+  --color-brand-bright: #12e46a;
+  --color-brand-soft: #e6f8ee;
+  --color-brand-softer: #f2fbf6;
+  --color-brand-border: #b6e8cd;
+  --color-gold: #f5b942;
 
-  --color-success-bg:#E4F7EC;
-  --color-success-text:#147A44;
-  --color-warning-bg:#FFF3DC;
-  --color-warning-text:#8F5E08;
-  --color-error-bg:#FDEAEA;
-  --color-error-text:#BC2A2A;
-  --color-info-bg:#E8F1FE;
-  --color-info-text:#2159C9;
-  --color-neutral-bg:#F1F2F4;
-  --color-neutral-text:#5B6272;
+  /* ---- Status (pastel bg + saturated text, never a solid fill) --------- */
+  --color-success-bg: #e4f7ec;
+  --color-success-fg: #10703d;
+  --color-success-border: #bfe9d2;
+  --color-warning-bg: #fff3dc;
+  --color-warning-fg: #8f5e08;
+  --color-warning-border: #f5deb0;
+  --color-error-bg: #fdeaea;
+  --color-error-fg: #bc2a2a;
+  --color-error-border: #f5c2c2;
+  --color-info-bg: #e8f1fe;
+  --color-info-fg: #2159c9;
+  --color-info-border: #c6dcfb;
+  --color-neutral-bg: #f1f3f2;
+  --color-neutral-fg: #59635e;
+  --color-neutral-border: #e2e6e4;
 
-  /* ── Legacy semantic aliases (kept so existing components restyle in place,
-        remapped onto the palette above — one system, not two) ───────────── */
-  --color-primary:#2E6BEA;
-  --color-primary-active:#245BC9;
-  --color-primary-pressed-dark:#1B49A8;
-  --color-primary-tint:#E8F1FE;
-  --color-primary-tint-strong:#EAF1FE;
-  --color-ink:#1A1D29;
-  --color-body:#1A1D29;
-  --color-muted:#5B6272;
-  --color-placeholder:#8A90A0;
-  --color-hairline:#E3E5EA;
-  /* `border-strong` is used as a *text* colour ~167× — keep it AA-legible. */
-  --color-border-strong:#5B6272;
-  --color-grid-line:#EDEEF2;
-  --color-grid-line-strong:#E3E5EA;
-  --color-canvas:#FFFFFF;
-  --color-surface-page:#F5F6F8;
-  --color-surface-soft:#F8F9FB;
-  --color-surface-strong:#F0F3F9;
+  /* ---- Data-viz / marketing accents (soft, low saturation) ------------- */
+  --color-accent-mint: #e4f7ec;
+  --color-accent-sky: #e8f1fe;
+  --color-accent-lavender: #eae7fb;
+  --color-accent-blush: #fbe9ef;
+  --color-accent-marigold: #fff3dc;
+  --color-accent-pink-fg: #c2557a;
+  --color-accent-violet-fg: #5b4bcf;
 
-  /* Organizer console rail — light variant (white rail, blue selected fill) */
-  --color-rail-bg-light:#FFFFFF;
-  --color-rail-elevated-light:#E3E5EA;
-  --color-rail-hover-light:#F0F3F9;
-  --color-rail-accent-royal:#2E6BEA;
-  --color-rail-accent-royal-active:#245BC9;
-  --color-on-rail-ink:#1A1D29;
-  --color-on-rail-muted:#5B6272;
+  /* ---- Links / focus / star ------------------------------------------- */
+  --color-link: #049740;
+  --color-link-active: #05b04b;
+  --color-focus: #06c755;
+  --color-star: #f5b942;
 
-  /* Premium / locked */
-  --color-signature-yellow:#FFF3DC;
-  --color-signature-yellow-deep:#F5B942;
-  --color-signature-yellow-tint:#FFF9EC;
-  --color-gold-lock:#8F5E08;
+  /* ---- Radius --------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+  --radius-2xl: 18px;
+  --radius-3xl: 18px;
+  --radius-full: 9999px;
 
-  /* Persona accents */
-  --color-persona-talent:#2E6BEA;
-  --color-persona-mentor:#152C55;
-  --color-persona-recruiter:#5B6272;
+  /* ---- Elevation (border-based; shadows only for true overlays) -------- */
+  --shadow-sm: 0 1px 2px rgba(12, 24, 18, 0.05);
+  --shadow-md: 0 4px 12px rgba(12, 24, 18, 0.08);
+  --shadow-lg: 0 12px 32px rgba(12, 24, 18, 0.14);
+  --shadow-xl: 0 12px 32px rgba(12, 24, 18, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(6, 199, 85, 0.16);
 
-  /* Status (pastel bg + saturated text — never solid fill) */
-  --color-success:#147A44;
-  --color-success-surface:#E4F7EC;
-  --color-success-border:#BFE9D2;
-  --color-warning:#8F5E08;
-  --color-warning-surface:#FFF3DC;
-  --color-warning-border:#F5DEB0;
-  --color-danger:#BC2A2A;
-  --color-danger-surface:#FDEAEA;
-  --color-danger-border:#F5C2C2;
-  --color-info-surface:#E8F1FE;
-  --color-tag-orange-bg:#FFF3DC;
-  --color-tag-orange-ink:#8F5E08;
-  --color-tag-blue-bg:#E8F1FE;
-  --color-tag-blue-ink:#2159C9;
-
-  /* Data-viz accents — soft, low-saturation only */
-  --color-kpi-lavender:#EAE7FB;
-  --color-kpi-sky:#E8F1FE;
-  --color-kpi-blush:#FBE9EF;
-
-  /* Marketing surfaces (brighter pastels allowed here only) */
-  --color-page-wash:#F5F6F8;
-  --color-footer-wash:#F8F9FB;
-  --color-footer-ink:#1A1D29;
-  --color-accent-pink:#FBE9EF;
-  --color-accent-pink-tint:#FDF4F7;
-  --color-accent-pink-deep:#C2557A;
-  --color-accent-violet:#EAE7FB;
-  --color-accent-violet-tint:#F4F2FD;
-  --color-accent-mint:#E4F7EC;
-  --color-accent-mint-tint:#F1FBF6;
-  --color-accent-marigold-deep:#F5B942;
-  --color-logo-mono:#152C55;
-
-  /* Misc */
-  --color-on-primary:#FFFFFF;
-  --color-link:#2159C9;
-  --color-link-active:#245BC9;
-  --color-disabled-bg:#F1F2F4;
-  --color-disabled-ink:#B7BBC6;
-  --color-focus:#2E6BEA;
-  --color-star:#F5B942;
-  --color-card-bg:#FFFFFF;
-  --color-card-border:#E3E5EA;
-
-  /* ── Radius: pill for controls, 8–12px for containers. Nothing else. ───── */
-  --radius-none:0px;
-  --radius-xs:4px;
-  --radius-sm:6px;
-  --radius-md:8px;
-  --radius-lg:12px;
-  --radius-xl:18px;
-  --radius-2xl:18px;
-  --radius-3xl:18px;
-  --radius-full:9999px;
-  --radius-circle:50%;
-
-  /* ── Shadow: border-based elevation; shadows only for true overlays ────── */
-  --shadow-none:none;
-  --shadow-sm:0 1px 2px rgba(16,24,40,0.05);
-  --shadow-md:0 4px 12px rgba(16,24,40,0.08);
-  --shadow-lg:0 12px 32px rgba(16,24,40,0.14);
-  --shadow-xl:0 12px 32px rgba(16,24,40,0.14);
-  --shadow-2xl:0 12px 32px rgba(16,24,40,0.14);
-  --shadow-focus-ring:0 0 0 3px rgba(46,107,234,0.15);
-
-  /* ── Typography ────────────────────────────────────────────────────────── */
-  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-
-  --text-display:36px;
-  --text-h1:26px;
-  --text-h2:20px;
-  --text-h3:17px;
-  --text-h4:14px;
-  --text-body-lg:15px;
-  --text-body:14px;
-  --text-body-sm:13px;
-  --text-caption:12px;
-  --text-label:13px;
-  --text-button:14px;
-
-  /* ── Component sizing ──────────────────────────────────────────────────── */
-  --spacing-input-sm:36px;
-  --spacing-input-md:40px;
-  --spacing-input-lg:44px;
-  --spacing-header:60px;
-  --spacing-table-row:56px;
-  --spacing-sidebar-collapsed:68px;
-  --spacing-sidebar-expanded:260px;
-  --spacing-drawer:400px;
-
-  /* ── Motion ────────────────────────────────────────────────────────────── */
-  --transition-fast:120ms ease;
-  --transition-base:180ms ease;
-  --transition-slow:260ms ease;
-}
-
-:root {
-  --background:#F5F6F8;
-  --foreground:#1A1D29;
-
-  /* Legacy palette handles — remapped onto the new system. */
-  --sea:#2E6BEA;
-  --mid:#E3E5EA;
-  --sky:#F0F3F9;
-  --sun:#F5B942;
-
-  --z-dropdown:100;
-  --z-sticky-header:200;
-  --z-drawer:300;
-  --z-modal-overlay:400;
-  --z-modal:410;
-  --z-toast:500;
-}
-
-/* ═══ Global base styles ═══════════════════════════════════════════════════ */
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  /* ---- Typography ----------------------------------------------------- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  --text-display: 36px;
+  --text-display--line-height: 1.12;
+  --text-display--letter-spacing: -0.022em;
+  --text-h1: 26px;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.018em;
+  --text-h2: 20px;
+  --text-h2--line-height: 1.3;
+  --text-h2--letter-spacing: -0.012em;
+  --text-h3: 17px;
+  --text-h3--line-height: 1.4;
+  --text-h3--letter-spacing: -0.008em;
+  --text-h4: 14px;
+  --text-h4--line-height: 1.45;
+  --text-body-lg: 15px;
+  --text-body-lg--line-height: 1.6;
+  --text-body: 14px;
+  --text-body--line-height: 1.5;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 1.5;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.45;
+  --text-label: 13px;
+  --text-label--line-height: 1.4;
+
+  /* ---- Component sizing ----------------------------------------------- */
+  --spacing-input-sm: 36px;
+  --spacing-input-md: 40px;
+  --spacing-input-lg: 44px;
+  --spacing-header: 60px;
+  --spacing-table-row: 56px;
+  --spacing-sidebar-collapsed: 68px;
+  --spacing-sidebar-expanded: 260px;
+  --spacing-drawer: 400px;
+  --spacing-content-max: 1200px;
+  --spacing-marketing-max: 1240px;
+
+  /* ---- Motion --------------------------------------------------------- */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+
+  /* ---- Z-index -------------------------------------------------------- */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-drawer: 300;
+  --z-overlay: 400;
+  --z-modal: 410;
+  --z-toast: 500;
 }
 
-/* Focus is never removed — only restyled to the system's blue border + glow. */
-:focus-visible {
-  outline: 2px solid var(--color-brand-blue);
-  outline-offset: 2px;
-  border-radius: 2px;
+/* ============================================================================
+   BASE
+   ========================================================================= */
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--color-brand-soft);
+    color: var(--color-brand-active);
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-text-muted);
+  }
 }
 
-/* Custom scrollbar — neutral, unobtrusive. */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #F0F3F9; }
-::-webkit-scrollbar-thumb { background: #C7CBD6; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #8A90A0; }
+/* ============================================================================
+   UTILITY SURFACES
+   ========================================================================= */
 
-.no-scrollbar::-webkit-scrollbar,
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.no-scrollbar,
-.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+@layer components {
+  .glass-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
 
-/* ═══ Surface utilities ════════════════════════════════════════════════════ */
+  .glass-panel-hover {
+    transition: background-color var(--motion-base) ease,
+      border-color var(--motion-base) ease;
+  }
+  .glass-panel-hover:hover {
+    background: var(--color-hover);
+    border-color: var(--color-border-emphasis);
+  }
 
-.glass-panel {
-  background: #FFFFFF;
-  border: 1px solid #E3E5EA;
-  border-radius: 12px;
-  box-shadow: none;
+  .glass-navbar {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .glass-input {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  /* Page container — one shared horizontal rhythm across the whole app */
+  .container-app {
+    width: 100%;
+    max-width: var(--spacing-content-max);
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  .container-wide {
+    width: 100%;
+    max-width: var(--spacing-marketing-max);
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 768px) {
+    .container-app,
+    .container-wide {
+      padding-inline: 24px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .container-app,
+    .container-wide {
+      padding-inline: 32px;
+    }
+  }
+
+  /* Vertical rhythm for marketing sections */
+  .section-y {
+    padding-block: 56px;
+  }
+  @media (min-width: 768px) {
+    .section-y {
+      padding-block: 80px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .section-y {
+      padding-block: 96px;
+    }
+  }
+
+  .no-scrollbar,
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
 }
 
-.glass-panel-hover { transition: background-color 180ms ease, border-color 180ms ease; }
-.glass-panel-hover:hover {
-  background: #F0F3F9;
-  border-color: #C7CBD6;
-  box-shadow: none;
+/* ---- Custom scrollbar ---------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-emphasis) var(--color-hover);
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--color-hover);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-emphasis);
+  border-radius: var(--radius-full);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }
 
-.glass-navbar {
-  background: #FFFFFF;
-  border-bottom: 1px solid #E3E5EA;
+/* ============================================================================
+   KEYFRAMES
+   ========================================================================= */
+
+@keyframes frivvo-shimmer {
+  0% {
+    background-position: -480px 0;
+  }
+  100% {
+    background-position: 480px 0;
+  }
 }
 
-.glass-input {
-  background: #FFFFFF;
-  border: 1px solid #E3E5EA;
-  border-radius: 8px;
-  color: #1A1D29;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
-}
-.glass-input::placeholder { color: #8A90A0; }
-.glass-input:focus {
-  border-color: #2E6BEA;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(46, 107, 234, 0.15);
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-sunken) 0%,
+    var(--color-hover) 40%,
+    var(--color-surface-sunken) 80%
+  );
+  background-size: 480px 100%;
+  animation: frivvo-shimmer 1.4s linear infinite;
+  border-radius: var(--radius-sm);
 }
 
-/* Marketing bands — restrained pastels, dark text throughout. */
-.band-sea { background: #EAF1FE; }
-.band-mid { background: #F5F6F8; }
-.band-sky { background: #E8F1FE; }
-.band-sun { background: #FFF3DC; }
-.band-sea, .band-mid, .band-sky, .band-sun { color: #1A1D29; }
-
-.section-rule { border-bottom: 2px solid #2E6BEA; }
-
-/* ═══ Tables ═══════════════════════════════════════════════════════════════
-   Light header variant, horizontal dividers only, hover row tint.
-   No vertical column borders, no zebra striping.
-   ════════════════════════════════════════════════════════════════════════ */
-
-table thead tr { background: #F8F9FB; }
-table thead th {
-  color: #5B6272;
-  font-weight: 600;
-  border-color: #E3E5EA;
+@keyframes frivvo-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
-table tbody tr { border-color: #EDEEF2; }
-table tbody tr:hover { background: #F0F3F9; }
-table td, table th { border-color: #EDEEF2; }
+.marquee-track {
+  animation: frivvo-marquee 38s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
 
-/* ═══ Motion preferences ═══════════════════════════════════════════════════ */
+@keyframes frivvo-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(6, 199, 85, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(6, 199, 85, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(6, 199, 85, 0);
+  }
+}
+.pulse-ring {
+  animation: frivvo-pulse-ring 2.2s ease-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* ═══ Print: isolate the certificate sheet on a landscape page ═════════════ */
-
-@media print {
-  @page { size: A4 landscape; margin: 0; }
-  body * { visibility: hidden; }
-  .certificate-sheet,
-  .certificate-sheet * { visibility: visible; }
-  .certificate-sheet {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    margin: 0;
-    box-shadow: none;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
   }
 }

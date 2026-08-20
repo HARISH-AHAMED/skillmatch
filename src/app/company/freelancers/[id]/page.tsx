@@ -1,85 +1,67 @@
-import React from "react";
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { FreelancerProfileDetail } from "./FreelancerProfileDetail";
+"use client";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+import { notFound, useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Send, UserPlus } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import { FreelancerProfileDetail } from "@/components/shared/FreelancerProfileDetail";
+import { certificatesFor, getFreelancer, reviewsFor } from "@/data/queries";
 
-export default async function FreelancerProfilePage({ params }: PageProps) {
-  const session = await auth();
-  if (!session?.user) {
-    redirect("/login");
-  }
+export default function CompanyFreelancerDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const toast = useToast();
+  const [saved, setSaved] = useState(false);
 
-  const currentUserId = session.user.id;
-
-  const { id } = await params;
-
-  // Fetch freelancer detailed data
-  const freelancer = await db.freelancer.findUnique({
-    where: { id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          reviewsReceived: {
-            select: {
-              id: true,
-              rating: true,
-              comment: true,
-              createdAt: true,
-              reviewer: { select: { name: true } },
-              project: { select: { title: true, budget: true } },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 10,
-          },
-        },
-      },
-      applications: {
-        where: { status: "HIRED" },
-        select: {
-          id: true,
-          project: {
-            select: {
-              id: true,
-              title: true,
-              budget: true,
-              company: { select: { companyName: true } },
-            },
-          },
-        },
-        take: 10,
-      },
-    },
-  });
-
-  if (!freelancer) {
-    notFound();
-  }
-
-  // Check if saved by currently logged-in company user
-  const savedRecord = await db.savedFreelancer.findFirst({
-    where: {
-      freelancerId: id,
-      company: { userId: session.user.id },
-    },
-  });
-  const isSaved = !!savedRecord;
+  const freelancer = getFreelancer(id);
+  if (!freelancer) notFound();
 
   return (
-    <FreelancerProfileDetail
-      freelancer={freelancer as any}
-      initialSaved={isSaved}
-      currentUserId={currentUserId}
-    />
+    <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 xl:-mx-8">
+      <div className="container-wide pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<ArrowLeft className="h-4 w-4" />}
+          onClick={() => router.push("/company/freelancers")}
+        >
+          Back to search
+        </Button>
+      </div>
+
+      <FreelancerProfileDetail
+        freelancer={freelancer}
+        reviews={reviewsFor(freelancer.id)}
+        certificates={certificatesFor(freelancer.id)}
+        actions={
+          <>
+            <Button
+              block
+              leftIcon={<Send className="h-4 w-4" />}
+              onClick={() =>
+                toast.success("Invitation sent", `${freelancer.name} has been notified.`)
+              }
+            >
+              Invite to a project
+            </Button>
+            <Button
+              block
+              variant={saved ? "soft" : "secondary"}
+              leftIcon={<UserPlus className="h-4 w-4" />}
+              onClick={() => {
+                setSaved((v) => !v);
+                toast.toast({
+                  title: saved ? "Removed from shortlist" : "Saved to shortlist",
+                  tone: "success",
+                });
+              }}
+            >
+              {saved ? "On your shortlist" : "Save to shortlist"}
+            </Button>
+          </>
+        }
+      />
+    </div>
   );
 }

@@ -1,32 +1,50 @@
 "use client";
 
-import React from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 export interface TabItem {
-  /** Stable key returned by `onChange`. */
   id: string;
-  label: React.ReactNode;
-  /** Optional trailing count chip, e.g. an applicant total. */
-  count?: number;
+  label: string;
   icon?: React.ReactNode;
-  disabled?: boolean;
-}
-
-export interface TabsProps {
-  items: TabItem[];
-  value: string;
-  onChange: (id: string) => void;
-  /** `underline` for page sections, `pill` for filter/category switches. */
-  variant?: "underline" | "pill";
-  className?: string;
-  /** Accessible name for the tablist. */
-  label?: string;
+  count?: number;
+  href?: string;
 }
 
 /**
- * Two documented treatments only: flat underline tabs for page sections,
- * filled pill tabs for filter switches. Arrow-key navigable.
+ * One clickable tab. Rendered as a Link when `href` is present and a button
+ * otherwise — kept as an explicit branch so both stay fully typed.
+ */
+function TabTrigger({
+  item,
+  className,
+  onSelect,
+  children,
+}: {
+  item: TabItem;
+  className: string;
+  onSelect?: () => void;
+  children: React.ReactNode;
+}) {
+  if (item.href) {
+    return (
+      <Link href={item.href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onSelect} className={className}>
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Horizontal tab bar. Scrolls without a visible scrollbar below the desktop
+ * breakpoint (§19.18 / §19.19) so no page ever scrolls horizontally.
  */
 export function Tabs({
   items,
@@ -34,85 +52,141 @@ export function Tabs({
   onChange,
   variant = "underline",
   className,
-  label,
-}: TabsProps) {
-  const refs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  size = "md",
+}: {
+  items: TabItem[];
+  value: string;
+  onChange?: (id: string) => void;
+  variant?: "underline" | "pill" | "segmented";
+  className?: string;
+  size?: "sm" | "md";
+}) {
+  const layoutId = useId();
 
-  const onKeyDown = (e: React.KeyboardEvent, idx: number) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    e.preventDefault();
-    const dir = e.key === "ArrowRight" ? 1 : -1;
-    for (let i = 1; i <= items.length; i++) {
-      const next = (idx + dir * i + items.length * i) % items.length;
-      if (!items[next].disabled) {
-        onChange(items[next].id);
-        refs.current[next]?.focus();
-        return;
-      }
-    }
-  };
+  if (variant === "segmented") {
+    return (
+      <div
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1",
+          className,
+        )}
+      >
+        {items.map((t) => {
+          const active = t.id === value;
+          return (
+            <TabTrigger
+              key={t.id}
+              item={t}
+              onSelect={() => onChange?.(t.id)}
+              className={cn(
+                "relative inline-flex items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors",
+                size === "sm" ? "h-7" : "h-8",
+                active
+                  ? "text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId={`${layoutId}-seg`}
+                  className="absolute inset-0 rounded-full bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-1.5">
+                {t.icon}
+                {t.label}
+                {typeof t.count === "number" && (
+                  <span className="text-[11px] text-[var(--color-text-muted)]">{t.count}</span>
+                )}
+              </span>
+            </TabTrigger>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (variant === "pill") {
+    return (
+      <div className={cn("no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1", className)}>
+        {items.map((t) => {
+          const active = t.id === value;
+          return (
+            <TabTrigger
+              key={t.id}
+              item={t}
+              onSelect={() => onChange?.(t.id)}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-medium transition-colors",
+                size === "sm" ? "h-9" : "h-10",
+                active
+                  ? "border-[var(--color-brand-ink)] bg-[var(--color-brand-ink)] text-white"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-hover)]",
+              )}
+            >
+              {t.icon}
+              {t.label}
+              {typeof t.count === "number" && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[11px] tabular-nums",
+                    active ? "bg-white/20" : "bg-[var(--color-surface-sunken)]",
+                  )}
+                >
+                  {t.count}
+                </span>
+              )}
+            </TabTrigger>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
-    <div
-      role="tablist"
-      aria-label={label}
-      className={cn(
-        "flex items-center overflow-x-auto scrollbar-none",
-        variant === "underline"
-          ? "gap-7 border-b border-[#E3E5EA]"
-          : "gap-2",
-        className
-      )}
-    >
-      {items.map((t, i) => {
-        const active = t.id === value;
-        return (
-          <button
-            key={t.id}
-            ref={(el) => {
-              refs.current[i] = el;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            disabled={t.disabled}
-            tabIndex={active ? 0 : -1}
-            onClick={() => onChange(t.id)}
-            onKeyDown={(e) => onKeyDown(e, i)}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-[13px] font-medium",
-              "transition-colors duration-[180ms] cursor-pointer",
-              "disabled:cursor-not-allowed disabled:text-[#5B6272]",
-              variant === "underline"
-                ? cn(
-                    "-mb-px border-b-2 px-0.5 pb-2.5 pt-1",
+    <div className={cn("border-b border-[var(--color-border)]", className)}>
+      <div className="no-scrollbar flex gap-1 overflow-x-auto">
+        {items.map((t) => {
+          const active = t.id === value;
+          return (
+            <TabTrigger
+              key={t.id}
+              item={t}
+              onSelect={() => onChange?.(t.id)}
+              className={cn(
+                "relative inline-flex shrink-0 items-center gap-2 px-3.5 text-[13.5px] font-medium transition-colors",
+                size === "sm" ? "h-9" : "h-11",
+                active
+                  ? "text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+              )}
+            >
+              {t.icon}
+              {t.label}
+              {typeof t.count === "number" && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px text-[11px] tabular-nums",
                     active
-                      ? "border-[#2E6BEA] text-[#2159C9] font-semibold"
-                      : "border-transparent text-[#5B6272] hover:text-[#1A1D29]"
-                  )
-                : cn(
-                    "h-9 rounded-full border px-4",
-                    active
-                      ? "border-transparent bg-[#EAF1FE] text-[#2159C9] font-semibold"
-                      : "border-[#E3E5EA] bg-white text-[#5B6272] hover:bg-[#F0F3F9] hover:text-[#1A1D29]"
-                  )
-            )}
-          >
-            {t.icon}
-            {t.label}
-            {typeof t.count === "number" && (
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-4",
-                  active ? "bg-[#E8F1FE] text-[#2159C9]" : "bg-[#F1F2F4] text-[#5B6272]"
-                )}
-              >
-                {t.count}
-              </span>
-            )}
-          </button>
-        );
-      })}
+                      ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-active)]"
+                      : "bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]",
+                  )}
+                >
+                  {t.count}
+                </span>
+              )}
+              {active && (
+                <motion.span
+                  layoutId={`${layoutId}-underline`}
+                  className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-[var(--color-brand)]"
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                />
+              )}
+            </TabTrigger>
+          );
+        })}
+      </div>
     </div>
   );
 }

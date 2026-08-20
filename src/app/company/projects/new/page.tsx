@@ -1,1673 +1,1474 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createProject, saveProjectDraft, getMyProjectDrafts, getProjectDraft } from "@/actions/projectActions";
-import { ProjectBannerUpload } from "@/components/ProjectBannerUpload";
-import { saveProjectRoles, type RoleInput } from "@/actions/roleActions";
-import { RoleSlotsEditor } from "@/components/RoleSlotsEditor";
-import { ProjectPriority } from "@prisma/client";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { ArrowLeft, ArrowRight, Award, Camera, CheckCircle2, Clock, Eye, GraduationCap, ListChecks, Plus, Save, Send, Sparkles, Target, Trash2, Users, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Badge, Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { serializeProjectMetadata, getProjectMetadataDirect, getProjectDescriptionText, ProjectWizardData, RecruitmentRound, PAYMENT_CATEGORIES, PaymentCategory, CURRENCIES, DEFAULT_CURRENCY, getCurrencySymbol, NON_MONETARY_BENEFITS, NonMonetaryBenefit, isNonMonetary, supportsBenefits, COMPENSATION_TYPES, CompensationType, STIPEND_FREQUENCIES, StipendFrequency, estimatedHourlyTotal } from "@/lib/workflowHelpers";
-import { ROUND_TYPE_CATALOG, isRoundTypeSupported, roundTypeLabel } from "@/lib/workflowHelpers";
-import { RoundConfigPanel } from "@/components/RoundConfigPanel";
-import { FileText, DollarSign, Calendar, HelpCircle, Eye, ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Move } from "lucide-react";
+import { Card, PageHeader } from "@/components/ui/Card";
+import {
+  Checkbox,
+  Field,
+  Input,
+  RadioCard,
+  Select,
+  Textarea,
+  Toggle,
+} from "@/components/ui/Field";
+import { Alert, EmptyState, Progress } from "@/components/ui/Feedback";
+import { Stepper } from "@/components/ui/Stepper";
+import { useToast } from "@/components/ui/Toast";
+import {
+  COMPENSATION_META,
+  CURRENCIES,
+  MAX_ROLE_SLOTS,
+  NON_MONETARY_BENEFITS,
+  PROJECT_CATEGORIES,
+  QUESTION_TYPES,
+  ROUND_TYPE_CATALOG,
+  SKILL_LIBRARY,
+  SUBCATEGORIES,
+  TIMING_TYPE_OPTIONS,
+  WORKING_DAYS_OPTIONS,
+} from "@/lib/constants";
+import type { CompensationType, ScreeningQuestion, Visibility } from "@/lib/types";
+import { useSession } from "@/lib/session";
+import { getCompanyByUserId } from "@/data/queries";
+import { formatMoney } from "@/lib/utils";
+
+const STEPS = [
+  { id: "basics", label: "Basic details", description: "Title, category, visibility" },
+  { id: "description", label: "Job description", description: "Scope and skills" },
+  { id: "budget", label: "Budget & timeline", description: "How it pays, and when" },
+  { id: "screening", label: "Screening & roles", description: "Rounds, slots, certificate" },
+  { id: "preview", label: "Preview & publish", description: "Exactly as applicants see it" },
+];
+
+const VISIBILITY_OPTIONS: { value: Visibility; title: string; description: string }[] = [
+  {
+    value: "PUBLIC",
+    title: "Listed in directory",
+    description: "Anyone can find it and apply. The default, and the fastest way to fill a role.",
+  },
+  {
+    value: "INVITE_ONLY",
+    title: "Searchable, apply blocked",
+    description: "People can see the listing exists but only invited candidates can apply.",
+  },
+  {
+    value: "PRIVATE",
+    title: "Hidden, invited only",
+    description: "Not listed anywhere. Only people you invite ever see it.",
+  },
+];
+
+interface RoleDraft {
+  id: string;
+  name: string;
+  description: string;
+  slots: number;
+  allowApprentice: boolean;
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
+  const { session } = useSession();
+  const company = session ? getCompanyByUserId(session.userId) : undefined;
 
-  // Step 1: Basic Details
+  const [step, setStep] = useState(0);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  /* ---- Step 1 ---- */
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Software Development");
-  const [subcategory, setSubcategory] = useState("Full Stack Development");
-  const [domain, setDomain] = useState("Software Engineering");
-  const [experienceRequired, setExperienceRequired] = useState(2);
-  const [duration, setDuration] = useState("3 Months");
-  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE" | "INVITE_ONLY">("PUBLIC");
+  const [category, setCategory] = useState<string>(PROJECT_CATEGORIES[0]);
+  const [subcategory, setSubcategory] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("PUBLIC");
+  const [freelancersLimit, setFreelancersLimit] = useState("1");
   const [preferredGender, setPreferredGender] = useState("ANY");
-  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
-  /**
-   * Requirement #3 — draft autosave. Debounced, never per keystroke, and it
-   * reuses one draft row for the whole session so navigating back and forth
-   * cannot mint duplicates. A draft is written with DRAFT status and
-   * isVisible:false server-side, so it can never reach public browse, and
-   * publishing still runs the full validation in publishProjectDraft.
-   */
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [draftState, setDraftState] = useState<"idle" | "unsaved" | "saving" | "saved">("idle");
-  const [resumableDraft, setResumableDraft] = useState<{ id: string; title: string } | null>(null);
 
-  // Optional team roles. Empty means a classic single-hire listing.
-  const [roles, setRoles] = useState<RoleInput[]>([]);
-
-  // Step 2: Description & Responsibilities
+  /* ---- Step 2 ---- */
   const [description, setDescription] = useState("");
-  const [objectives, setObjectives] = useState<string[]>(["Build a scalable web app"]);
-  const [deliverables, setDeliverables] = useState<string[]>(["React frontend codebase", "API backend codebase"]);
-  const [responsibilities, setResponsibilities] = useState<string[]>(["Write clean code", "Coordinate with team"]);
-  const [dailyTasks, setDailyTasks] = useState<string[]>(["Morning standup", "Code review"]);
-  // Required and preferred skills lists
+  const [objectives, setObjectives] = useState<string[]>([""]);
+  const [deliverables, setDeliverables] = useState<string[]>([""]);
+  const [responsibilities, setResponsibilities] = useState<string[]>([""]);
+  const [dailyTasks, setDailyTasks] = useState<string[]>([""]);
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
-  const [newReqSkill, setNewReqSkill] = useState("");
   const [preferredSkills, setPreferredSkills] = useState<string[]>([]);
-  const [newPrefSkill, setNewPrefSkill] = useState("");
+  const [skillQuery, setSkillQuery] = useState("");
+  const [experienceRequired, setExperienceRequired] = useState("0");
+  const [faq, setFaq] = useState<{ question: string; answer: string }[]>([]);
 
-  // Input states for dynamically adding to arrays
-  const [newObjective, setNewObjective] = useState("");
-  const [newDeliverable, setNewDeliverable] = useState("");
-  const [newResponsibility, setNewResponsibility] = useState("");
-  const [newDailyTask, setNewDailyTask] = useState("");
-
-  // Step 3: Budget & Timeline
-  const [stipendType, setStipendType] = useState<"Unpaid" | "Paid" | "Stipend">("Paid");
-  const [budget, setBudget] = useState(1000);
-  const [stipendDetails, setStipendDetails] = useState("1000 - 1500 Total");
-  const [paymentCategory, setPaymentCategory] = useState<PaymentCategory>("FIXED");
-  const [paymentRate, setPaymentRate] = useState(1000);
-  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  /* ---- Step 3 ---- */
   const [compensationType, setCompensationType] = useState<CompensationType>("FIXED");
-  const [estimatedHours, setEstimatedHours] = useState<number>(0);
-  const [stipendFrequency, setStipendFrequency] = useState<StipendFrequency>("MONTHLY");
-  const [budgetNegotiable, setBudgetNegotiable] = useState<boolean>(false);
-  const [certificateIncluded, setCertificateIncluded] = useState<boolean>(false);
-  const [nonMonetaryBenefits, setNonMonetaryBenefits] = useState<NonMonetaryBenefit[]>([]);
-  const [nonMonetaryDetails, setNonMonetaryDetails] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [budget, setBudget] = useState("");
+  const [budgetNegotiable, setBudgetNegotiable] = useState(false);
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [maxHours, setMaxHours] = useState("");
+  const [stipendAmount, setStipendAmount] = useState("");
+  const [stipendFrequency, setStipendFrequency] = useState("MONTHLY");
+  const [stipendPeriods, setStipendPeriods] = useState("3");
+  const [benefits, setBenefits] = useState<string[]>([]);
+  const [benefitDetail, setBenefitDetail] = useState("");
+  const [workingDays, setWorkingDays] = useState(WORKING_DAYS_OPTIONS[0]);
+  const [timingType, setTimingType] = useState(TIMING_TYPE_OPTIONS[0]);
+  const [priority, setPriority] = useState("MEDIUM");
+  const [duration, setDuration] = useState("");
+  const [applicationDeadline, setApplicationDeadline] = useState("");
+  const [projectStart, setProjectStart] = useState("");
+  const [expectedCompletion, setExpectedCompletion] = useState("");
 
-  const toggleBenefit = (b: NonMonetaryBenefit) =>
-    setNonMonetaryBenefits((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
-  const [workingDays, setWorkingDays] = useState("5 Days/Week");
-  const [timingType, setTimingType] = useState("Full Time");
-  const [priority, setPriority] = useState<ProjectPriority>(ProjectPriority.MEDIUM);
-  const [appDeadline, setAppDeadline] = useState("2026-07-15");
-  const [projectStart, setProjectStart] = useState("2026-07-20");
-  const [expectedCompletion, setExpectedCompletion] = useState("2026-10-20");
+  /* ---- Step 4 ---- */
+  const [rounds, setRounds] = useState<string[]>(["SCREENING_QUESTIONS"]);
+  const [questions, setQuestions] = useState<ScreeningQuestion[]>([
+    {
+      id: "q1",
+      question: "Walk us through the closest work you have done to this. What was the hardest decision?",
+      type: "PARAGRAPH",
+      required: true,
+    },
+  ]);
+  const [roles, setRoles] = useState<RoleDraft[]>([]);
+  const [certificateEnabled, setCertificateEnabled] = useState(true);
+  const [signatoryName, setSignatoryName] = useState("");
+  const [signatoryTitle, setSignatoryTitle] = useState("");
 
-  // Step 4: Recruitment Rounds Builder
-  const [rounds, setRounds] = useState<RecruitmentRound[]>([
-    {
-      id: "r-cv",
-      name: "CV Pitch & Profile Review",
-      type: "CV_PITCH",
-      description: "Initial application screening round where candidates submit cover letters, profiles, and resumes."
-    },
-    {
-      id: "r-questions",
-      name: "Screening Questionnaire",
-      type: "SCREENING_QUESTIONS",
-      description: "Required pre-screening questions round to evaluate basic domain knowledge.",
-      questions: [
-        { id: "q1", type: "YES_NO", question: "Do you have experience with Next.js?", required: true },
-        { id: "q2", type: "PARAGRAPH", question: "Describe your experience with Postgres and Prisma.", required: true }
-      ]
-    },
-    {
-      id: "r-interview",
-      name: "Recruiter Interview Round",
-      type: "INTERVIEW",
-      description: "1-on-1 online face-to-face evaluation round with recruiter panel."
-    }
+  /* ---------------------------------------------------------- autosave ---- */
+  useEffect(() => {
+    if (!title && !description) return;
+    const t = setTimeout(() => setSavedAt(new Date()), 1200);
+    return () => clearTimeout(t);
+  }, [
+    title,
+    description,
+    category,
+    budget,
+    compensationType,
+    requiredSkills,
+    roles,
+    objectives,
+    deliverables,
   ]);
 
-  // Round Builder Form States
-  const [newRoundName, setNewRoundName] = useState("");
-  const [newRoundType, setNewRoundType] = useState<RecruitmentRound["type"]>("SCREENING_QUESTIONS");
-  const [newRoundDescription, setNewRoundDescription] = useState("");
-  const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
+  const budgetValue = useMemo(() => {
+    if (compensationType === "UNPAID") return 0;
+    if (compensationType === "HOURLY")
+      return (Number(hourlyRate) || 0) * (Number(estimatedHours) || 0);
+    if (compensationType === "STIPEND")
+      return (Number(stipendAmount) || 0) * (Number(stipendPeriods) || 1);
+    return Number(budget) || 0;
+  }, [compensationType, hourlyRate, estimatedHours, stipendAmount, stipendPeriods, budget]);
 
-  // Active round selection to add/edit questions
-  const [selectedRoundId, setSelectedRoundId] = useState<string>("r-questions");
+  /* -------------------------------------------------------- validation ---- */
 
-  // Questions builder inside the selected screening round
-  const [newQuestionText, setNewQuestionText] = useState("");
-  const [newQuestionType, setNewQuestionType] = useState<any>("YES_NO");
-  const [mcOption1, setMcOption1] = useState("");
-  const [mcOption2, setMcOption2] = useState("");
-  const [mcOption3, setMcOption3] = useState("");
-  const [mcOption4, setMcOption4] = useState("");
-
-  /**
-   * Requirement #3 — debounced autosave.
-   *
-   * The timer restarts on each change and only fires after two idle seconds,
-   * so typing a title is one save, not one per character. A ref holds the
-   * in-flight draft id so two saves racing at startup cannot each create a
-   * row. Nothing here weakens publish validation: the draft is written with
-   * whatever exists so far, and the real checks run on submit.
-   */
-  const draftIdRef = useRef<string | null>(null);
-  const savingRef = useRef(false);
-  const firstRenderRef = useRef(true);
-  /**
-   * Bumped on every change. A save stamps the seq it wrote; if newer state
-   * arrived while the request was in flight, the run re-fires instead of
-   * dropping it, so a slow save can neither lose a change nor land on top of
-   * a newer one.
-   */
-  const seqRef = useRef(0);
-  const savedSeqRef = useRef(0);
-
-  useEffect(() => {
-    if (firstRenderRef.current) { firstRenderRef.current = false; return; }
-    seqRef.current += 1;
-    setDraftState("unsaved");
-
-    const timer = setTimeout(async function run() {
-      if (savingRef.current) return;
-      const writing = seqRef.current;
-      if (writing === savedSeqRef.current) return;
-      savingRef.current = true;
-      setDraftState("saving");
-      try {
-        const res = await saveProjectDraft({
-          draftId: draftIdRef.current,
-          title,
-          // The complete wizard payload, through the same metadata block the
-          // saved project uses, so a resumed draft restores every field.
-          description: serializeProjectMetadata(description, buildWizardMeta()),
-          budget: Number(budget) || 0,
-          priority,
-          requiredSkills,
-          experienceRequired: Number(experienceRequired) || 0,
-          freelancersLimit: roles.length > 0 ? roles.reduce((n, r) => n + (Number(r.slots) || 0), 0) : 1,
-          domain,
-          bannerUrl,
-          preferredGender,
-        });
-        if (res.success && res.draftId) {
-          draftIdRef.current = res.draftId;
-          setDraftId(res.draftId);
-          savedSeqRef.current = writing;
-          savingRef.current = false;
-          // A change landed mid-flight: save again rather than lose it.
-          if (seqRef.current !== writing) { run(); return; }
-          setDraftState("saved");
-        } else {
-          savingRef.current = false;
-          setDraftState("unsaved");
-        }
-      } catch {
-        savingRef.current = false;
-        setDraftState("unsaved");
+  function validate(target: number): string[] {
+    const found: string[] = [];
+    if (target >= 1) {
+      if (!title.trim() || title.trim() === "Untitled draft")
+        found.push("Give the project a real title before continuing.");
+      if (Number(freelancersLimit) < 1) found.push("You must be hiring at least one person.");
+    }
+    if (target >= 2) {
+      if (!description.trim()) found.push("Write a project description.");
+      if (requiredSkills.length === 0) found.push("Add at least one required skill.");
+    }
+    if (target >= 3) {
+      if (compensationType !== "UNPAID" && budgetValue <= 0)
+        found.push("Enter a budget greater than zero.");
+      if (compensationType === "HOURLY" && !hourlyRate)
+        found.push("Enter an hourly rate.");
+      if (compensationType === "STIPEND" && !stipendAmount)
+        found.push("Enter a stipend amount.");
+      if (compensationType === "UNPAID" && benefits.length === 0)
+        found.push("Non-monetary projects must list at least one benefit applicants receive.");
+    }
+    if (target >= 4) {
+      const hiredMin = roles.reduce((s, r) => s + r.slots, 0);
+      if (roles.length > 0 && hiredMin > Number(freelancersLimit))
+        found.push(
+          `Role slots total ${hiredMin}, which is more than the ${freelancersLimit} people you said you are hiring.`,
+        );
+      for (const r of roles) {
+        if (!r.name.trim()) found.push("Every role needs a name.");
+        if (r.slots < 1 || r.slots > MAX_ROLE_SLOTS)
+          found.push(`Role slots must be between 1 and ${MAX_ROLE_SLOTS}.`);
       }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, budget, priority, requiredSkills, experienceRequired, domain, bannerUrl, preferredGender, objectives, deliverables, responsibilities, dailyTasks, preferredSkills, category, subcategory, duration, currency, compensationType, paymentCategory, paymentRate, estimatedHours, stipendFrequency, stipendDetails, budgetNegotiable, certificateIncluded, nonMonetaryBenefits, nonMonetaryDetails, workingDays, timingType, appDeadline, projectStart, expectedCompletion, rounds, roles, visibility]);
-
-  /** Offers the most recent draft on arrival. Server-scoped to this company. */
-  useEffect(() => {
-    let cancelled = false;
-    getMyProjectDrafts().then((drafts) => {
-      if (cancelled || drafts.length === 0) return;
-      setResumableDraft({ id: drafts[0].id, title: drafts[0].title });
-    });
-    return () => { cancelled = true; };
-  }, []);
-
-  /** Loads a saved draft back into the form. */
-  /**
-   * Restores a saved draft into every wizard field. The metadata block written
-   * by autosave is parsed back with the same helper the saved project uses, so
-   * what comes out is what went in. Each value falls back to current state when
-   * a legacy draft predates that field.
-   */
-  const resumeDraft = async (id: string) => {
-    const d = await getProjectDraft(id);
-    if (!d) return;
-    const meta = getProjectMetadataDirect(d.description);
-
-    draftIdRef.current = id;
-    setDraftId(id);
-
-    // Project columns
-    setTitle(d.title === "Untitled draft" ? "" : d.title);
-    setDescription(getProjectDescriptionText(d.description));
-    setBudget(d.budget ?? 0);
-    setPriority(d.priority);
-    setRequiredSkills(d.requiredSkills ?? []);
-    setExperienceRequired(d.experienceRequired ?? 0);
-    setDomain(d.domain ?? "Other");
-    setBannerUrl(d.bannerUrl ?? null);
-    setPreferredGender(d.preferredGender ?? "ANY");
-
-    // Wizard metadata
-    if (meta.objectives) setObjectives(meta.objectives);
-    if (meta.deliverables) setDeliverables(meta.deliverables);
-    if (meta.responsibilities) setResponsibilities(meta.responsibilities);
-    if (meta.dailyTasks) setDailyTasks(meta.dailyTasks);
-    if (meta.preferredSkills) setPreferredSkills(meta.preferredSkills);
-    if (meta.category) setCategory(meta.category);
-    if (meta.subcategory) setSubcategory(meta.subcategory);
-    if (meta.duration) setDuration(meta.duration);
-    if (meta.visibility) setVisibility(meta.visibility);
-    if (meta.currency) setCurrency(meta.currency);
-    if (meta.compensationType) setCompensationType(meta.compensationType);
-    if (meta.paymentCategory) setPaymentCategory(meta.paymentCategory);
-    if (meta.paymentRate !== undefined) setPaymentRate(meta.paymentRate);
-    if (meta.estimatedHours !== undefined) setEstimatedHours(meta.estimatedHours);
-    if (meta.stipendFrequency) setStipendFrequency(meta.stipendFrequency);
-    if (meta.stipendType) setStipendType(meta.stipendType);
-    if (meta.stipendDetails) setStipendDetails(meta.stipendDetails);
-    if (meta.budgetNegotiable !== undefined) setBudgetNegotiable(meta.budgetNegotiable);
-    if (meta.certificateIncluded !== undefined) setCertificateIncluded(meta.certificateIncluded);
-    if (meta.nonMonetaryBenefits) setNonMonetaryBenefits(meta.nonMonetaryBenefits);
-    if (meta.nonMonetaryDetails) setNonMonetaryDetails(meta.nonMonetaryDetails);
-    if (meta.workingDays) setWorkingDays(meta.workingDays);
-    if (meta.timingType) setTimingType(meta.timingType);
-
-    // Rounds carry their own configuration and their questions, in order.
-    if (meta.rounds && meta.rounds.length > 0) {
-      setRounds(meta.rounds);
-      const firstScreening = meta.rounds.find((r) => r.type === "SCREENING_QUESTIONS");
-      if (firstScreening) setSelectedRoundId(firstScreening.id);
     }
-    if (meta.timeline) {
-      if (meta.timeline.applicationDeadline) setAppDeadline(meta.timeline.applicationDeadline);
-      if (meta.timeline.projectStart) setProjectStart(meta.timeline.projectStart);
-      if (meta.timeline.expectedCompletion) setExpectedCompletion(meta.timeline.expectedCompletion);
-    }
+    return found;
+  }
 
-    setResumableDraft(null);
-    setDraftState("saved");
-  };
-
-  const handleAddRound = () => {
-    if (!newRoundName.trim()) return;
-    const round: RecruitmentRound = {
-      id: `r-${Date.now()}`,
-      name: newRoundName.trim(),
-      type: newRoundType,
-      description: newRoundDescription.trim(),
-      ...(newRoundType === "SCREENING_QUESTIONS" && { questions: [] })
-    };
-    setRounds([...rounds, round]);
-    setNewRoundName("");
-    setNewRoundDescription("");
-    setSelectedRoundId(round.id);
-  };
-
-  const handleRemoveRound = (id: string) => {
-    setRounds(rounds.filter(r => r.id !== id));
-    if (selectedRoundId === id) {
-      const remaining = rounds.filter(r => r.id !== id);
-      const firstQuestRound = remaining.find(r => r.type === "SCREENING_QUESTIONS");
-      setSelectedRoundId(firstQuestRound ? firstQuestRound.id : "");
-    }
-  };
-
-  const handleAddQuestionToRound = () => {
-    if (!newQuestionText.trim() || !selectedRoundId) return;
-    const opts = [mcOption1, mcOption2, mcOption3, mcOption4].map(o => o.trim()).filter(Boolean);
-    if (newQuestionType === "MULTIPLE_CHOICE" && opts.length < 2) {
-      alert("Please provide at least 2 options for Multiple Choice questions.");
+  const goNext = () => {
+    const found = validate(step + 1);
+    if (found.length) {
+      setErrors(found);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
-    const questionItem = {
-      id: `q-${Date.now()}`,
-      type: newQuestionType,
-      question: newQuestionText.trim(),
-      required: true,
-      ...(newQuestionType === "MULTIPLE_CHOICE" && { options: opts })
-    };
-
-    setRounds(rounds.map(r => {
-      if (r.id === selectedRoundId) {
-        return {
-          ...r,
-          questions: [...(r.questions || []), questionItem]
-        };
-      }
-      return r;
-    }));
-
-    setNewQuestionText("");
-    setMcOption1("");
-    setMcOption2("");
-    setMcOption3("");
-    setMcOption4("");
+    setErrors([]);
+    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  /**
-   * Requirement #8 — reorder by stable id. The array order is what gets
-   * persisted, but identity never comes from the index, so a submitted answer
-   * keyed on the question id stays correctly attributed after a move.
-   */
-  const handleMoveQuestion = (roundId: string, qId: string, direction: "up" | "down") => {
-    setRounds(rounds.map((r) => {
-      if (r.id !== roundId) return r;
-      const qs = [...(r.questions || [])];
-      const i = qs.findIndex((q) => q.id === qId);
-      const j = direction === "up" ? i - 1 : i + 1;
-      if (i < 0 || j < 0 || j >= qs.length) return r;
-      [qs[i], qs[j]] = [qs[j], qs[i]];
-      return { ...r, questions: qs };
-    }));
+  const saveDraft = () => {
+    setSavedAt(new Date());
+    toast.success("Draft saved", "Drafts are invisible to applicants until you publish.");
   };
 
-  /** Edits the text in place; the id, type and options are preserved. */
-  const handleEditQuestion = (roundId: string, qId: string, current: string) => {
-    const next = prompt("Edit question", current);
-    if (next === null) return;
-    const trimmed = next.trim();
-    if (!trimmed) return;
-    setRounds(rounds.map((r) => (
-      r.id !== roundId
-        ? r
-        : { ...r, questions: (r.questions || []).map((q) => (q.id === qId ? { ...q, question: trimmed } : q)) }
-    )));
-  };
-
-  const handleRemoveQuestionFromRound = (roundId: string, qId: string) => {
-    setRounds(rounds.map(r => {
-      if (r.id === roundId) {
-        return {
-          ...r,
-          questions: (r.questions || []).filter(q => q.id !== qId)
-        };
-      }
-      return r;
-    }));
-  };
-
-  // Drag & Drop
-  const [draggedRoundIndex, setDraggedRoundIndex] = useState<number | null>(null);
-
-  const handleDragStart = (index: number) => {
-    setDraggedRoundIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, index: number) => {
-    if (draggedRoundIndex === null || draggedRoundIndex === index) return;
-    const newRounds = [...rounds];
-    const [draggedItem] = newRounds.splice(draggedRoundIndex, 1);
-    newRounds.splice(index, 0, draggedItem);
-    setRounds(newRounds);
-    setDraggedRoundIndex(null);
-  };
-
-  /**
-   * Requirement #3/#14 — ONE authoritative wizard payload.
-   *
-   * Autosave, the final preview and submit all call this, so the preview shows
-   * exactly the object that will be serialised and saved, and a resumed draft
-   * restores exactly what was entered. Previously the payload was built inline
-   * in the submit handler only, which is why the draft could not round-trip it.
-   */
-  const buildWizardMeta = (): ProjectWizardData => {
-    const allQuestions = rounds
-      .filter((r) => r.type === "SCREENING_QUESTIONS")
-      .flatMap((r) => r.questions || []);
-  
-    // Build serialized metadata structure
-    const wizardMeta: ProjectWizardData = {
-      objectives,
-      deliverables,
-      responsibilities,
-      dailyTasks,
-      preferredSkills,
-      faq: [
-        { question: "What is the work setup?", answer: `${timingType} (${workingDays}) remote engagement.` }
-      ],
-      timeline: {
-        applicationDeadline: appDeadline,
-        projectStart: projectStart,
-        expectedCompletion: expectedCompletion,
-      },
-      stipendType: (compensationType === "UNPAID"
-        ? "Unpaid"
-        : compensationType === "STIPEND"
-        ? "Stipend"
-        : "Paid") as "Unpaid" | "Paid" | "Stipend",
-      stipendDetails,
-      paymentCategory: (compensationType === "HOURLY"
-        ? "HOURLY"
-        : compensationType === "MILESTONE"
-        ? "MILESTONE"
-        : compensationType === "STIPEND"
-        ? "MONTHLY"
-        : compensationType === "UNPAID"
-        ? "NON_MONETARY"
-        : "FIXED") as PaymentCategory,
-      paymentRate,
-      compensationType,
-      estimatedHours,
-      stipendFrequency,
-      budgetNegotiable,
-      certificateIncluded,
-      currency,
-      nonMonetaryBenefits,
-      nonMonetaryDetails,
-      workingDays,
-      timingType,
-      screeningQuestions: allQuestions,
-      visibility,
-      category,
-      subcategory,
-      duration,
-      rounds,
-    };
-    return wizardMeta;
-  };
-
-  const handlePublish = async () => {
-    if (!title || !description) {
-      setError("Please complete title and description.");
+  const publish = () => {
+    const found = [1, 2, 3, 4].flatMap((n) => validate(n));
+    const unique = [...new Set(found)];
+    if (unique.length) {
+      setErrors([
+        `Add a ${unique.length === 1 ? "missing field" : "few missing fields"} before publishing.`,
+        ...unique,
+      ]);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
-    setLoading(true);
-    setError("");
-
-    const wizardMeta = buildWizardMeta();
-
-    // Serialize metadata directly inside project description field
-    const fullSerializedDescription = serializeProjectMetadata(description, wizardMeta);
-
-    try {
-      const res = await createProject({
-        title,
-        description: fullSerializedDescription,
-        budget: Number(budget),
-        priority,
-        requiredSkills,
-        experienceRequired: Number(experienceRequired),
-        // With roles, capacity is the sum of their slots; without, the original single hire.
-        freelancersLimit:
-          roles.length > 0 ? roles.reduce((n, r) => n + (Number(r.slots) || 0), 0) : 1,
-        isVisible: visibility !== "PRIVATE",
-        preferredGender: preferredGender,
-        domain: domain,
-        bannerUrl,
-      });
-
-      if (res.success) {
-        // Roles are saved after creation because they need the new project id.
-        if (roles.length > 0 && res.project?.id) {
-          const roleRes = await saveProjectRoles(res.project.id, roles);
-          if (!roleRes.success) {
-            setError(roleRes.error || "Project created, but roles could not be saved.");
-            setLoading(false);
-            return;
-          }
-        }
-        router.push("/company/projects");
-        router.refresh();
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to publish project.");
-      setLoading(false);
-    }
+    setPublishing(true);
+    setTimeout(() => {
+      setPublishing(false);
+      toast.success(
+        "Project published",
+        "Freelancers with matching skills have been notified and recommendations recalculated.",
+      );
+      router.push("/company/projects");
+    }, 800);
   };
+
+  const filteredSkills = SKILL_LIBRARY.filter(
+    (s) =>
+      s.includes(skillQuery.toLowerCase()) &&
+      !requiredSkills.includes(s) &&
+      !preferredSkills.includes(s),
+  ).slice(0, 8);
+
+  if (!company) return null;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-2">
-      {/* Wizard Header Status bar */}
-      <div className="bg-white border border-[#C7CBD6] p-6 rounded-lg space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1A1D29]">Opportunity Creation Wizard</h1>
-            <p className="text-xs text-[#5B6272] mt-0.5">Define your project requirements, screening stages, and milestones</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Requirement #3 — quiet autosave state; never blocks the form. */}
-            {draftState !== "idle" && (
-              <span className="text-[11px] font-semibold text-[#5B6272]">
-                {draftState === "saving"
-                  ? "Saving draft..."
-                  : draftState === "saved"
-                  ? "Draft saved"
-                  : "Unsaved changes"}
+    <div>
+      <PageHeader
+        title="Post a new project"
+        description="Five steps. Everything autosaves as a draft, so you can leave and come back."
+        action={
+          <>
+            {savedAt && (
+              <span className="hidden items-center gap-1.5 text-[12.5px] text-[var(--color-text-muted)] sm:inline-flex">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--color-brand)]" />
+                Draft saved {savedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </span>
             )}
-            <Badge variant="primary" className="px-3.5 py-1.5 rounded-full bg-[#E8F1FE] text-[#1A1D29] border border-[#C7CBD6]">
-              Step {step} of 5
-            </Badge>
-          </div>
-        </div>
+            <Button variant="secondary" onClick={saveDraft} leftIcon={<Save className="h-4 w-4" />}>
+              Save draft
+            </Button>
+          </>
+        }
+      />
 
-        {/* A draft from a previous visit — this company's own, resolved server-side. */}
-        {resumableDraft && !draftId && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2">
-            <p className="text-xs text-[#1A1D29]">
-              You have an unfinished draft: <strong>{resumableDraft.title}</strong>
-            </p>
-            <div className="flex gap-1.5">
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => resumeDraft(resumableDraft.id)}
-                className="h-7 cursor-pointer px-2.5 text-[11px] font-bold"
-              >
-                Resume draft
-              </Button>
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => setResumableDraft(null)}
-                className="h-7 cursor-pointer px-2.5 text-[11px] font-bold"
-              >
-                Start fresh
-              </Button>
-            </div>
-          </div>
+      <Card padding="lg">
+        <Stepper steps={STEPS} current={step} onStepClick={(i) => i < step && setStep(i)} className="mb-7" />
+
+        {errors.length > 0 && (
+          <Alert tone="error" title="Fix these before continuing" className="mb-6">
+            <ul className="mt-1 flex list-disc flex-col gap-1 pl-4">
+              {errors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
-        {/* Wizard indicator progress */}
-        <div className="grid grid-cols-5 gap-2 pt-2">
-          {[
-            { id: 1, label: "Basic Details", icon: FileText },
-            { id: 2, label: "Job Description", icon: FileText },
-            { id: 3, label: "Budget & Timeline", icon: DollarSign },
-            { id: 4, label: "Screening Rounds", icon: HelpCircle },
-            { id: 5, label: "Preview & Publish", icon: Eye },
-          ].map((s) => {
-            const isCurrent = step === s.id;
-            const isPassed = step > s.id;
-            return (
-              <div key={s.id} className="space-y-1">
-                <div className={`h-1.5 rounded-lg ${
-                  isPassed ? "bg-[#EAF1FE]" : isCurrent ? "bg-[#152C55]" : "bg-[#F0F3F9]"
-                }`} />
-                <span className="hidden md:inline-block text-[11px] font-bold text-[#5B6272] mt-1">{s.label}</span>
+        {/* ================= STEP 1: BASICS ================= */}
+        {step === 0 && (
+          <div className="flex flex-col gap-6">
+            <Field
+              label="Project title"
+              required
+              help="Be concrete. 'Observability Console — Frontend Rebuild' beats 'Frontend developer needed'."
+              hint={`${title.length}/120`}
+            >
+              <Input
+                inputSize="lg"
+                maxLength={120}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Observability Console — Frontend Rebuild"
+              />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Category" required>
+                <Select
+                  value={category}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    setSubcategory("");
+                  }}
+                >
+                  {PROJECT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Speciality">
+                <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
+                  <option value="">Select a speciality…</option>
+                  {(SUBCATEGORIES[category] ?? []).map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Project banner
+              </p>
+              <div className="flex h-36 items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-surface-alt)]">
+                <div className="text-center">
+                  <Camera className="mx-auto h-6 w-6 text-[var(--color-text-muted)]" />
+                  <p className="mt-2 text-[13px] font-medium text-[var(--color-text-primary)]">
+                    Upload a banner
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">
+                    16:7 works best · PNG, JPEG or WebP up to 5 MB
+                  </p>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
 
-      {error && (
-        <Card className="p-4 bg-[#FDEAEA] border border-[#F5C2C2] text-[#BC2A2A] text-xs font-semibold rounded-lg">
-          {error}
-        </Card>
-      )}
-
-      <Card className="p-8 bg-white border border-[#E3E5EA]/80 rounded-lg">
-        {/* Step 1: Basic Details */}
-        {step === 1 && (
-          <div className="space-y-5">
-            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA]/60 pb-2">
-              Step 1: Core Opportunity Details
-            </h2>
-
-            <ProjectBannerUpload value={bannerUrl} onChange={setBannerUrl} />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="col-span-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="How many people are you hiring?"
+                required
+                help="Hiring is capped at this number across every role."
+              >
                 <Input
-                  label="Project Title *"
-                  placeholder="e.g. Generative AI Internship / UI Design Specialist"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={freelancersLimit}
+                  onChange={(e) => setFreelancersLimit(e.target.value)}
                 />
-              </div>
-              <Select
-                label="Opportunity Domain"
-                options={[
-                  { value: "Software Engineering", label: "Software Engineering" },
-                  { value: "Data & AI", label: "Data & AI" },
-                  { value: "Design & UX", label: "Design & UX" },
-                  { value: "Marketing & Sales", label: "Marketing & Sales" },
-                  { value: "Product & Project Management", label: "Product & Project Management" },
-                  { value: "Writing & Translation", label: "Writing & Translation" },
-                  { value: "Admin & Support", label: "Admin & Support" },
-                  { value: "Finance & Accounting", label: "Finance & Accounting" },
-                  { value: "Legal", label: "Legal" },
-                  { value: "Other", label: "Other" },
-                ]}
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-              />
-              <Input
-                label="Opportunity Category"
-                placeholder="Software Development, Marketing, etc."
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
-              <Input
-                label="Opportunity Subcategory"
-                placeholder="e.g. Next.js Developer / Full Stack"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-              />
-              <Input
-                label="Required Minimum Experience (Years) *"
-                type="number"
-                value={experienceRequired}
-                onChange={(e) => setExperienceRequired(Number(e.target.value))}
-              />
-              <Input
-                label="Expected Project Engagement Duration"
-                placeholder="e.g. 3 Months, 6 Months"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
-              <Select
-                label="Listing Visibility"
-                options={[
-                  { value: "PUBLIC", label: "Public (Listed in Directory)" },
-                  { value: "PRIVATE", label: "Private (Hidden, Invited only)" },
-                  { value: "INVITE_ONLY", label: "Invite-Only (Searchable but apply blocked)" },
-                ]}
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as any)}
-              />
-              <Select
-                label="Preferred Candidate Gender"
-                options={[
-                  { value: "ANY", label: "Any (No preference)" },
-                  { value: "MALE", label: "Male Only" },
-                  { value: "FEMALE", label: "Female Only" },
-                ]}
-                value={preferredGender}
-                onChange={(e) => setPreferredGender(e.target.value)}
-              />
+              </Field>
+              <Field
+                label="Preferred gender"
+                help="Only set this where it is a genuine occupational requirement."
+              >
+                <Select
+                  value={preferredGender}
+                  onChange={(e) => setPreferredGender(e.target.value)}
+                >
+                  <option value="ANY">Any</option>
+                  <option value="FEMALE">Female only</option>
+                  <option value="MALE">Male only</option>
+                </Select>
+              </Field>
             </div>
 
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => {
-                if (!title) {
-                  setError("Project Title is required.");
-                  return;
-                }
-                setStep(2);
-              }} className="cursor-pointer">
-                Next: Description & Skills <ChevronRight className="h-4 w-4 ml-1.5" />
-              </Button>
+            <div>
+              <p className="mb-2.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Visibility
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {VISIBILITY_OPTIONS.map((o) => (
+                  <RadioCard
+                    key={o.value}
+                    checked={visibility === o.value}
+                    onSelect={() => setVisibility(o.value)}
+                    title={o.title}
+                    description={o.description}
+                    icon={<Eye />}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 2: Description & Skills */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
-              Step 2: Opportunity Scope & Skill Sets
-            </h2>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#5B6272] font-bold">Scope Summary / Overview *</label>
-              <textarea
-                className="w-full min-h-[120px] px-4 py-2.5 rounded-md text-sm bg-white border border-[#E3E5EA] focus:outline-none focus:ring-2 focus:ring-[#152C55]/20"
-                placeholder="Outline the overall goals, client details, and software systems..."
+        {/* ================= STEP 2: DESCRIPTION ================= */}
+        {step === 1 && (
+          <div className="flex flex-col gap-6">
+            <Field
+              label="Project description"
+              required
+              help="Say what the work actually is, including the unglamorous parts. Listings that are honest about constraints get better applicants."
+              hint={`${description.length} characters`}
+            >
+              <Textarea
+                rows={10}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                placeholder="Our observability console is the surface our customers spend the most time in and the one we have invested the least in…"
               />
-            </div>
+            </Field>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Required Skills */}
-              <div className="space-y-2.5 text-left">
-                <label className="block text-xs font-bold text-[#5B6272]">Required Primary Skills *</label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type skill and press Add (e.g. react, typescript)"
-                    value={newReqSkill}
-                    onChange={(e) => setNewReqSkill(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const val = e.currentTarget.value;
-                        const skillsToAdd = val.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !requiredSkills.includes(s));
-                        if (skillsToAdd.length > 0) setRequiredSkills([...requiredSkills, ...skillsToAdd]);
-                        setNewReqSkill("");
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const skillsToAdd = newReqSkill.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !requiredSkills.includes(s));
-                      if (skillsToAdd.length > 0) setRequiredSkills([...requiredSkills, ...skillsToAdd]);
-                      setNewReqSkill("");
-                    }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F8F9FB]"
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1.5">
-                  {requiredSkills.length === 0 ? (
-                    <span className="text-[11px] text-[#5B6272] italic">No required skills added yet.</span>
-                  ) : (
-                    requiredSkills.map((s) => (
-                      <Badge
-                        key={s}
-                        variant="primary"
-                        className="bg-[#EAF1FE]/10 text-[#1A1D29] border border-[#C7CBD6]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold"
-                      >
-                        {s}
-                        <button
-                          type="button"
-                          onClick={() => setRequiredSkills(requiredSkills.filter((x) => x !== s))}
-                          className="hover:text-[#BC2A2A] font-bold cursor-pointer border-none bg-transparent p-0"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </div>
+            <ListEditor
+              icon={<Target className="h-4 w-4" />}
+              label="Objectives"
+              help="What success looks like, measurably where possible."
+              items={objectives}
+              onChange={setObjectives}
+              placeholder="Cut p95 dashboard interaction latency below 200ms"
+            />
 
-              {/* Preferred Skills */}
-              <div className="space-y-2.5 text-left">
-                <label className="block text-xs font-bold text-[#5B6272]">Preferred Secondary Skills</label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type skill and press Add (e.g. docker, postgresql)"
-                    value={newPrefSkill}
-                    onChange={(e) => setNewPrefSkill(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const val = e.currentTarget.value;
-                        const skillsToAdd = val.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !preferredSkills.includes(s));
-                        if (skillsToAdd.length > 0) setPreferredSkills([...preferredSkills, ...skillsToAdd]);
-                        setNewPrefSkill("");
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const skillsToAdd = newPrefSkill.split(",").map(s => s.trim().toLowerCase()).filter(s => s && !preferredSkills.includes(s));
-                      if (skillsToAdd.length > 0) setPreferredSkills([...preferredSkills, ...skillsToAdd]);
-                      setNewPrefSkill("");
-                    }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0 bg-[#F8F9FB]"
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1.5">
-                  {preferredSkills.length === 0 ? (
-                    <span className="text-[11px] text-[#5B6272] italic">No preferred skills added yet.</span>
-                  ) : (
-                    preferredSkills.map((s) => (
-                      <Badge
-                        key={s}
-                        variant="neutral"
-                        className="bg-[#E8F1FE] text-[#5B6272] border border-[#E3E5EA] px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold"
-                      >
-                        {s}
-                        <button
-                          type="button"
-                          onClick={() => setPreferredSkills(preferredSkills.filter((x) => x !== s))}
-                          className="hover:text-[#BC2A2A] font-bold cursor-pointer border-none bg-transparent p-0"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            <ListEditor
+              icon={<ListChecks className="h-4 w-4" />}
+              label="Deliverables"
+              help="The concrete artefacts you expect at the end."
+              items={deliverables}
+              onChange={setDeliverables}
+              placeholder="Component library with Storybook coverage"
+            />
 
-            {/* List Builders for Objectives, Deliverables */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-[#5B6272]">Project Objectives</span>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g. Integrate Neon Cloud database"
-                    value={newObjective}
-                    onChange={(e) => setNewObjective(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (!newObjective) return;
-                      setObjectives([...objectives, newObjective]);
-                      setNewObjective("");
-                    }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0"
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="space-y-1.5">
-                  {objectives.map((o, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg">
-                      <span className="truncate">{o}</span>
-                      <button type="button" onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))} className="text-[#BC2A2A] hover:text-[#BC2A2A]">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+            <ListEditor
+              icon={<Users className="h-4 w-4" />}
+              label="Responsibilities"
+              items={responsibilities}
+              onChange={setResponsibilities}
+              placeholder="Own front-end architecture decisions and document the reasoning"
+            />
+
+            <ListEditor
+              icon={<Clock className="h-4 w-4" />}
+              label="Day to day"
+              help="What a typical working day involves."
+              items={dailyTasks}
+              onChange={setDailyTasks}
+              placeholder="Async standup in the workspace before 10:00 UTC"
+            />
+
+            {/* Skills */}
+            <div>
+              <p className="mb-1.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Required skills <span className="text-[var(--color-error-fg)]">*</span>
+              </p>
+              <p className="mb-2.5 text-[12px] text-[var(--color-text-muted)]">
+                These drive the match score — 50% of it. Use the terms freelancers actually list.
+              </p>
+              {requiredSkills.length > 0 && (
+                <div className="mb-2.5 flex flex-wrap gap-2">
+                  {requiredSkills.map((s) => (
+                    <Chip
+                      key={s}
+                      active
+                      className="capitalize"
+                      onRemove={() => setRequiredSkills((p) => p.filter((x) => x !== s))}
+                    >
+                      {s}
+                    </Chip>
                   ))}
                 </div>
-              </div>
-
-              <div className="space-y-2.5">
-                <span className="block text-xs font-bold text-[#5B6272]">Key Deliverables</span>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g. Deployed vercel testing environment"
-                    value={newDeliverable}
-                    onChange={(e) => setNewDeliverable(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (!newDeliverable) return;
-                      setDeliverables([...deliverables, newDeliverable]);
-                      setNewDeliverable("");
-                    }}
-                    className="cursor-pointer h-[42px] mt-1 shrink-0"
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="space-y-1.5">
-                  {deliverables.map((d, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-[#F8F9FB] border border-[#E3E5EA] rounded-lg">
-                      <span className="truncate">{d}</span>
-                      <button type="button" onClick={() => setDeliverables(deliverables.filter((_, i) => i !== idx))} className="text-[#BC2A2A] hover:text-[#BC2A2A]">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+              )}
+              <Input
+                value={skillQuery}
+                onChange={(e) => setSkillQuery(e.target.value)}
+                placeholder="Type a skill and press Enter"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && skillQuery.trim()) {
+                    e.preventDefault();
+                    const v = skillQuery.trim().toLowerCase();
+                    if (!requiredSkills.includes(v)) setRequiredSkills((p) => [...p, v]);
+                    setSkillQuery("");
+                  }
+                }}
+              />
+              {skillQuery && filteredSkills.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {filteredSkills.map((s) => (
+                    <Chip
+                      key={s}
+                      size="sm"
+                      className="capitalize"
+                      onClick={() => {
+                        setRequiredSkills((p) => [...p, s]);
+                        setSkillQuery("");
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                      {s}
+                    </Chip>
                   ))}
                 </div>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-2.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Nice to have
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SKILL_LIBRARY.filter((s) => !requiredSkills.includes(s))
+                  .slice(0, 16)
+                  .map((s) => (
+                    <Chip
+                      key={s}
+                      size="sm"
+                      className="capitalize"
+                      active={preferredSkills.includes(s)}
+                      onClick={() =>
+                        setPreferredSkills((p) =>
+                          p.includes(s) ? p.filter((x) => x !== s) : [...p, s],
+                        )
+                      }
+                    >
+                      {s}
+                    </Chip>
+                  ))}
               </div>
             </div>
 
-            <RoleSlotsEditor roles={roles} onChange={setRoles} disabled={loading} />
+            <Field
+              label="Minimum years of experience"
+              help="0 means open to all levels. This is 20% of the match score."
+            >
+              <Select
+                value={experienceRequired}
+                onChange={(e) => setExperienceRequired(e.target.value)}
+                className="sm:w-64"
+              >
+                {[0, 1, 2, 3, 4, 5, 6, 8, 10].map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y === 0 ? "Open to all levels" : `${y}+ years`}
+                  </option>
+                ))}
+              </Select>
+            </Field>
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
-              <Button variant="outline" onClick={() => setStep(1)} className="cursor-pointer">
-                <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
-              </Button>
-              <Button onClick={() => {
-                if (!description || requiredSkills.length === 0) {
-                  setError("Please fill in description and add at least one required primary skill.");
-                  return;
-                }
-                if (roles.length > 0 && roles.some((r) => !r.name.trim())) {
-                  setError("Every team role needs a name, or remove the empty ones.");
-                  return;
-                }
-                setStep(3);
-              }} className="cursor-pointer">
-                Next: Budget & Timelines <ChevronRight className="h-4 w-4 ml-1.5" />
-              </Button>
+            {/* FAQ */}
+            <div>
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                    Frequently asked questions
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">
+                    Pre-empt the questions you always get. Applicants can add their own later.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  onClick={() => setFaq((p) => [...p, { question: "", answer: "" }])}
+                >
+                  Add
+                </Button>
+              </div>
+              {faq.length === 0 ? (
+                <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-emphasis)] p-4 text-center text-[12.5px] text-[var(--color-text-muted)]">
+                  No FAQ entries yet.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {faq.map((f, i) => (
+                    <li
+                      key={i}
+                      className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3.5"
+                    >
+                      <Input
+                        value={f.question}
+                        onChange={(e) =>
+                          setFaq((p) =>
+                            p.map((x, idx) => (idx === i ? { ...x, question: e.target.value } : x)),
+                          )
+                        }
+                        placeholder="Question"
+                      />
+                      <Textarea
+                        className="mt-2"
+                        rows={2}
+                        value={f.answer}
+                        onChange={(e) =>
+                          setFaq((p) =>
+                            p.map((x, idx) => (idx === i ? { ...x, answer: e.target.value } : x)),
+                          )
+                        }
+                        placeholder="Answer"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFaq((p) => p.filter((_, idx) => idx !== i))}
+                        className="mt-2 text-[12.5px] font-medium text-[var(--color-error-fg)] hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Budget & Timelines */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
-              Step 3: Compensation, Working Days & Timelines
-            </h2>
+        {/* ================= STEP 3: BUDGET ================= */}
+        {step === 2 && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="mb-1.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                How does this project pay? <span className="text-[var(--color-error-fg)]">*</span>
+              </p>
+              <p className="mb-3 text-[12px] text-[var(--color-text-muted)]">
+                This is the single source of truth for money on the project and cannot be changed
+                loosely later.
+              </p>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {(Object.keys(COMPENSATION_META) as CompensationType[]).map((t) => (
+                  <RadioCard
+                    key={t}
+                    checked={compensationType === t}
+                    onSelect={() => setCompensationType(t)}
+                    title={COMPENSATION_META[t].label}
+                    description={COMPENSATION_META[t].description}
+                    icon={<Wallet />}
+                  />
+                ))}
+              </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {compensationType !== "UNPAID" && (
+            {compensationType !== "UNPAID" && (
+              <Field label="Currency" required help="Every amount on this project is denominated in it.">
                 <Select
-                  label="Currency"
-                  options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} (${c.symbol})` }))}
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                />
-              )}
-              <Select
-                label="Compensation Type"
-                options={COMPENSATION_TYPES.map((c) => ({ value: c.value, label: c.label }))}
-                value={compensationType}
-                onChange={(e) => setCompensationType(e.target.value as CompensationType)}
-              />
-              {compensationType === "HOURLY" && (
-                <>
+                  className="sm:w-80"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.name} ({c.symbol})
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+
+            {(compensationType === "FIXED" || compensationType === "MILESTONE") && (
+              <>
+                <Field
+                  label={compensationType === "MILESTONE" ? "Total across all milestones" : "Total budget"}
+                  required
+                >
                   <Input
-                    label={`Hourly Rate (${getCurrencySymbol(currency)} per hour)`}
                     type="number"
                     min={0}
-                    value={paymentRate}
-                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    placeholder="48000"
+                    className="sm:w-64"
                   />
+                </Field>
+                {compensationType === "FIXED" && (
+                  <Toggle
+                    checked={budgetNegotiable}
+                    onChange={setBudgetNegotiable}
+                    label="Budget is negotiable"
+                    description="Applicants can counter-offer with a different amount and a reason."
+                  />
+                )}
+              </>
+            )}
+
+            {compensationType === "HOURLY" && (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Hourly rate" required>
                   <Input
-                    label="Estimated Hours"
+                    type="number"
+                    min={0}
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    placeholder="90"
+                  />
+                </Field>
+                <Field label="Estimated hours">
+                  <Input
                     type="number"
                     min={0}
                     value={estimatedHours}
-                    onChange={(e) => setEstimatedHours(Number(e.target.value))}
+                    onChange={(e) => setEstimatedHours(e.target.value)}
+                    placeholder="320"
                   />
-                  <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2 text-xs text-[#5B6272]">
-                    Estimated Total:{" "}
-                    <strong className="text-[#1A1D29]">
-                      {getCurrencySymbol(currency)}
-                      {estimatedHourlyTotal(paymentRate, estimatedHours).toLocaleString()}
-                    </strong>
-                  </div>
-                </>
-              )}
-              {compensationType === "STIPEND" && (
-                <>
+                </Field>
+                <Field label="Maximum hours" help="Hard cap on cumulative logged hours.">
                   <Input
-                    label={`Stipend Amount (${getCurrencySymbol(currency)})`}
                     type="number"
                     min={0}
-                    value={paymentRate}
-                    onChange={(e) => setPaymentRate(Number(e.target.value))}
+                    value={maxHours}
+                    onChange={(e) => setMaxHours(e.target.value)}
+                    placeholder="400"
                   />
-                  <Select
-                    label="Stipend Frequency"
-                    options={STIPEND_FREQUENCIES.map((f) => ({ value: f.value, label: f.label }))}
-                    value={stipendFrequency}
-                    onChange={(e) => setStipendFrequency(e.target.value as StipendFrequency)}
-                  />
-                </>
-              )}
-              {compensationType === "FIXED" && (
-                <label className="flex items-center gap-2 text-xs font-medium text-[#5B6272]">
-                  <input
-                    type="checkbox"
-                    checked={budgetNegotiable}
-                    onChange={(e) => setBudgetNegotiable(e.target.checked)}
-                    className="h-4 w-4 cursor-pointer rounded-md border-[#C7CBD6]"
-                  />
-                  Budget is negotiable
-                </label>
-              )}
-              {compensationType === "MILESTONE" && (
-                <div className="rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-3 py-2 text-xs text-[#5B6272]">
-                  Total is derived from the milestone values defined for this project.
-                </div>
-              )}
-              <label className="flex items-center gap-2 text-xs font-medium text-[#5B6272]">
-                <input
-                  type="checkbox"
-                  checked={certificateIncluded}
-                  onChange={(e) => setCertificateIncluded(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded-md border-[#C7CBD6]"
-                />
-                Certificate Included
-              </label>
-              {certificateIncluded && (
-                <div className="sm:col-span-2 rounded-lg border border-[#E3E5EA] bg-[#F8F9FB] px-4 py-3 text-[11px] text-[#5B6272]">
-                  Your certificate can be customized after creating the project.
-                </div>
-              )}
-              {compensationType !== "UNPAID" && (
-                <>
+                </Field>
+              </div>
+            )}
+
+            {compensationType === "STIPEND" && (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Stipend amount" required>
                   <Input
-                    label={`Estimated Opportunity Budget (${getCurrencySymbol(currency)})`}
                     type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(Number(e.target.value))}
+                    min={0}
+                    value={stipendAmount}
+                    onChange={(e) => setStipendAmount(e.target.value)}
+                    placeholder="1200"
                   />
+                </Field>
+                <Field label="Frequency">
+                  <Select
+                    value={stipendFrequency}
+                    onChange={(e) => setStipendFrequency(e.target.value)}
+                  >
+                    <option value="ONE_TIME">One time</option>
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                  </Select>
+                </Field>
+                <Field
+                  label="Number of periods"
+                  help="A one-time stipend always has exactly one period."
+                >
                   <Input
-                    label="Stipend / Payment Details Description"
-                    placeholder={`e.g. ${getCurrencySymbol(currency)}1000 - ${getCurrencySymbol(currency)}1500 per month`}
-                    value={stipendDetails}
-                    onChange={(e) => setStipendDetails(e.target.value)}
+                    type="number"
+                    min={1}
+                    disabled={stipendFrequency === "ONE_TIME"}
+                    value={stipendFrequency === "ONE_TIME" ? "1" : stipendPeriods}
+                    onChange={(e) => setStipendPeriods(e.target.value)}
                   />
-                </>
+                </Field>
+              </div>
+            )}
+
+            {/* Non-monetary benefits */}
+            <div>
+              <p className="mb-1.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Non-monetary benefits
+                {compensationType === "UNPAID" && (
+                  <span className="ml-1 text-[var(--color-error-fg)]">*</span>
+                )}
+              </p>
+              <p className="mb-2.5 text-[12px] text-[var(--color-text-muted)]">
+                {compensationType === "UNPAID"
+                  ? "This project pays nothing, so be specific and generous about what it does provide."
+                  : "Optional extras on top of the money."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {NON_MONETARY_BENEFITS.map((b) => (
+                  <Chip
+                    key={b}
+                    active={benefits.includes(b)}
+                    onClick={() =>
+                      setBenefits((p) => (p.includes(b) ? p.filter((x) => x !== b) : [...p, b]))
+                    }
+                  >
+                    {b}
+                  </Chip>
+                ))}
+              </div>
+              {benefits.length > 0 && (
+                <Textarea
+                  className="mt-3"
+                  rows={3}
+                  value={benefitDetail}
+                  onChange={(e) => setBenefitDetail(e.target.value)}
+                  placeholder="Named credit in the published work, a verifiable certificate, and fortnightly mentorship sessions…"
+                />
               )}
-              {supportsBenefits(paymentCategory) && (
-                <div className="sm:col-span-2 space-y-3 p-4 rounded-lg border border-hairline bg-surface-soft">
-                  <div>
-                    <span className="text-xs font-semibold text-ink block">
-                      Non-Monetary Compensation
-                    </span>
-                    <span className="text-[11px] text-muted">
-                      Select everything this opportunity actually provides. Freelancers filter on these,
-                      so only tick what you will genuinely deliver.
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                    {NON_MONETARY_BENEFITS.map((b) => (
-                      <label
-                        key={b.value}
-                        className="flex items-start gap-2 text-xs text-body cursor-pointer"
-                        title={b.hint}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={nonMonetaryBenefits.includes(b.value)}
-                          onChange={() => toggleBenefit(b.value)}
-                          className="mt-0.5 accent-ink cursor-pointer"
-                        />
-                        <span>
-                          {b.label}
-                          <span className="block text-[11px] text-border-strong">{b.hint}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  <Input
-                    label="Additional details (equity %, prize pool, certificate issuer, etc.)"
-                    placeholder="e.g. 0.5% equity vesting over 2 years; certificate issued by Quantum Labs AI"
-                    value={nonMonetaryDetails}
-                    onChange={(e) => setNonMonetaryDetails(e.target.value)}
-                  />
-                  {nonMonetaryBenefits.length === 0 && (
-                    <p className="text-[11px] text-warning">
-                      Select at least one benefit — otherwise this opportunity offers no compensation at all.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <Select
-                label="Required Working Structure"
-                options={[
-                  { value: "5 Days/Week", label: "5 Working Days/Week" },
-                  { value: "6 Days/Week", label: "6 Working Days/Week" },
-                  { value: "Flexible days", label: "Flexible engagement" },
-                ]}
-                value={workingDays}
-                onChange={(e) => setWorkingDays(e.target.value)}
-              />
-              <Select
-                label="Engagement Timing"
-                options={[
-                  { value: "Full Time", label: "Full Time (8 hours/day)" },
-                  { value: "Part Time", label: "Part Time (4 hours/day)" },
-                  { value: "Hourly contract", label: "Hourly tasks basis" },
-                ]}
-                value={timingType}
-                onChange={(e) => setTimingType(e.target.value)}
-              />
-              <Select
-                label="Opportunity Priority"
-                options={[
-                  { value: "LOW", label: "Low Urgency" },
-                  { value: "MEDIUM", label: "Medium Urgency" },
-                  { value: "HIGH", label: "High Urgency" },
-                ]}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
-              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#E3E5EA] pt-4">
-              <Input
-                label="Application Deadline Date *"
-                type="date"
-                value={appDeadline}
-                onChange={(e) => setAppDeadline(e.target.value)}
-              />
-              <Input
-                label="Expected Project Kickoff *"
-                type="date"
-                value={projectStart}
-                onChange={(e) => setProjectStart(e.target.value)}
-              />
-              <Input
-                label="Expected Final Completion *"
-                type="date"
-                value={expectedCompletion}
-                onChange={(e) => setExpectedCompletion(e.target.value)}
-              />
+            {/* Working pattern */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Working days">
+                <Select value={workingDays} onChange={(e) => setWorkingDays(e.target.value)}>
+                  {WORKING_DAYS_OPTIONS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Commitment">
+                <Select value={timingType} onChange={(e) => setTimingType(e.target.value)}>
+                  {TIMING_TYPE_OPTIONS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Urgency">
+                <Select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High — flagged as urgent</option>
+                </Select>
+              </Field>
             </div>
 
-            <div className="flex gap-4 justify-between pt-4">
-              <Button variant="outline" onClick={() => setStep(2)} className="cursor-pointer">
-                <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
-              </Button>
-              <Button onClick={() => setStep(4)} className="cursor-pointer">
-                Next: Screening Questions <ChevronRight className="h-4 w-4 ml-1.5" />
-              </Button>
+            {/* Timeline */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Expected duration">
+                <Input
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="4 months"
+                />
+              </Field>
+              <Field label="Application deadline">
+                <Input
+                  type="date"
+                  value={applicationDeadline}
+                  onChange={(e) => setApplicationDeadline(e.target.value)}
+                />
+              </Field>
+              <Field label="Project start">
+                <Input
+                  type="date"
+                  value={projectStart}
+                  onChange={(e) => setProjectStart(e.target.value)}
+                />
+              </Field>
+              <Field label="Target completion">
+                <Input
+                  type="date"
+                  value={expectedCompletion}
+                  onChange={(e) => setExpectedCompletion(e.target.value)}
+                />
+              </Field>
             </div>
+
+            {budgetValue > 0 && (
+              <div className="rounded-[var(--radius-md)] bg-[var(--color-brand-softer)] p-4">
+                <p className="text-[12.5px] text-[var(--color-brand-active)]">
+                  Total project value
+                </p>
+                <p className="mt-1 text-[24px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--color-text-primary)]">
+                  {formatMoney(budgetValue, currency)}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--color-text-secondary)]">
+                  {compensationType === "HOURLY"
+                    ? `${hourlyRate || 0}/hr × ${estimatedHours || 0} estimated hours`
+                    : compensationType === "STIPEND"
+                      ? `${stipendAmount || 0} × ${stipendFrequency === "ONE_TIME" ? 1 : stipendPeriods} periods`
+                      : "Payment stages will be funded against this total."}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Step 4: Recruitment Rounds Builder */}
-        {step === 4 && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2 text-left">
-              Step 4: Recruitment Rounds & Screening Assessments
-            </h2>
-
-            <p className="text-xs text-[#5B6272] font-semibold leading-relaxed text-left">
-              Organize the hiring process for this project. Define evaluation steps such as CV screening, questionnaire tests, and coding challenges. Drag rounds to reorder them.
-            </p>
-
-            {/* Rounds List (HTML5 drag-and-drop) */}
-            <div className="space-y-3.5 text-left">
-              <h3 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Recruitment Pipeline Timeline</h3>
-              <div className="space-y-2">
-                {rounds.map((round, index) => {
-                  const isScreening = round.type === "SCREENING_QUESTIONS";
-                  const questionCount = round.questions?.length || 0;
-                  const isSelected = selectedRoundId === round.id;
-
+        {/* ================= STEP 4: SCREENING & ROLES ================= */}
+        {step === 3 && (
+          <div className="flex flex-col gap-7">
+            {/* Rounds */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
+                Selection rounds
+              </h3>
+              <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--color-text-secondary)]">
+                Only screening questions run inside FRIVVO today. The other round types are shown so
+                you can plan your process, but they cannot be selected yet.
+              </p>
+              <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+                {ROUND_TYPE_CATALOG.map((r) => {
+                  const selected = rounds.includes(r.type);
                   return (
-                    <div
-                      key={round.id}
-                      draggable
-                      onDragStart={() => handleDragStart(index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDrop={(e) => handleDrop(e, index)}
-                      className={`p-4 bg-white border rounded-lg flex items-center justify-between gap-4 transition-all duration-200 ${
-                        isSelected
-                          ? "border-[#E3E5EA] shadow-md ring-1 ring-[#2E6BEA]/20 bg-[#F8F9FB]/10"
-                          : "border-[#E3E5EA] hover:border-[#C7CBD6]"
-                      } cursor-grab active:cursor-grabbing`}
+                    <button
+                      key={r.type}
+                      type="button"
+                      disabled={!r.runnable}
+                      onClick={() =>
+                        setRounds((p) =>
+                          p.includes(r.type) ? p.filter((x) => x !== r.type) : [...p, r.type],
+                        )
+                      }
+                      className={`flex items-start gap-3 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors ${
+                        !r.runnable
+                          ? "cursor-not-allowed border-[var(--color-border-subtle)] bg-[var(--color-surface-alt)] opacity-60"
+                          : selected
+                            ? "border-[var(--color-brand)] bg-[var(--color-brand-softer)]"
+                            : "border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-hover)]"
+                      }`}
                     >
-                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <div className="text-[#5B6272] shrink-0">
-                          <GripVertical className="h-5 w-5" />
-                        </div>
-                        <div className="h-8 w-8 rounded-full bg-[#152C55]/5 text-[#1A1D29] flex items-center justify-center font-bold text-xs shrink-0">
-                          {index + 1}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-xs text-[#1A1D29] truncate">{round.name}</span>
-                            {/* EVAL-001..006 — an already-configured round of an
-                                unsupported type is kept, not deleted, but labelled. */}
-                            {!isRoundTypeSupported(round.type) && (
-                              <span className="shrink-0 rounded-full border border-[#F5DEB0] bg-[#FFF3DC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8F5E08]">
-                                Coming soon
-                              </span>
-                            )}
-                            <Badge variant={isScreening ? "primary" : "neutral"} className="text-[11px] font-bold py-0.5">
-                              {round.type.replace("_", " ")}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="text-[13.5px] font-medium text-[var(--color-text-primary)]">
+                            {r.name}
+                          </span>
+                          {!r.runnable && (
+                            <Badge tone="neutral" size="sm">
+                              Coming soon
                             </Badge>
-                            {isScreening && (
-                              <span className="text-[11px] text-[#5B6272] font-semibold">({questionCount} Questions)</span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-[#5B6272] truncate mt-0.5">{round.description}</p>
-                        </div>
-                      </div>
-
-                      {/* Controls */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {isScreening && (
-                          <Button
-                            type="button"
-                            size="xs"
-                            variant={isSelected ? "primary" : "outline"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedRoundId(round.id);
-                            }}
-                            className="cursor-pointer text-[11px] py-1 px-2.5 font-bold"
-                          >
-                            Configure Questions
-                          </Button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveRound(round.id);
-                          }}
-                          className="p-1.5 text-[#BC2A2A] hover:bg-[#FDEAEA] rounded-full cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+                          )}
+                        </span>
+                        <span className="mt-0.5 block text-[12px] leading-[1.5] text-[var(--color-text-secondary)]">
+                          {r.description}
+                        </span>
+                      </span>
+                      {selected && r.runnable && (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-brand)]" />
+                      )}
+                    </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Form to add a new round */}
-            <div className="space-y-4 p-4.5 bg-[#F8F9FB] border border-[#C7CBD6]/60 rounded-lg text-left">
-              <h4 className="text-xs font-bold text-[#1A1D29] flex items-center gap-1.5 font-bold">
-                <Plus className="h-4 w-4 text-[#2159C9]" /> Add Custom Recruitment Round Step
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Round Name *"
-                  placeholder="e.g. Technical Interview Round"
-                  value={newRoundName}
-                  onChange={(e) => setNewRoundName(e.target.value)}
-                />
-                <Select
-                  label="Round Evaluation Type"
-                  /* EVAL-001..006 — only types the platform can actually run are selectable;
-                     the rest stay visible but disabled and marked "Coming soon", so the
-                     capability gap is stated rather than discovered after launch. */
-                  options={ROUND_TYPE_CATALOG.map((t) => ({
-                    value: t.value,
-                    label: isRoundTypeSupported(t.value)
-                      ? t.label + " — " + t.description
-                      : t.label + " (Coming soon) — not yet run by the platform",
-                    disabled: !isRoundTypeSupported(t.value),
-                  }))}
-                  value={newRoundType}
-                  onChange={(e) => setNewRoundType(e.target.value as any)}
-                />
-              </div>
-              <Input
-                label="Step Description"
-                placeholder="Describe what candidates must do in this step of the hiring pipeline..."
-                value={newRoundDescription}
-                onChange={(e) => setNewRoundDescription(e.target.value)}
-              />
-              <div className="flex justify-end pt-1">
-                <Button
-                  type="button"
-                  onClick={handleAddRound}
-                  disabled={!newRoundName.trim()}
-                  className="cursor-pointer text-xs font-bold bg-[#152C55] hover:bg-[#E8F1FE] text-white"
-                >
-                  Create Round Step
-                </Button>
-              </div>
-            </div>
+            {/* Questions */}
+            {rounds.includes("SCREENING_QUESTIONS") && (
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
+                      Screening questions
+                    </h3>
+                    <p className="mt-0.5 text-[12.5px] text-[var(--color-text-secondary)]">
+                      Required answers are enforced when an application is submitted.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
+                    onClick={() =>
+                      setQuestions((p) => [
+                        ...p,
+                        {
+                          id: `q${p.length + 1}-${Date.now()}`,
+                          question: "",
+                          type: "PARAGRAPH",
+                          required: false,
+                        },
+                      ])
+                    }
+                  >
+                    Add question
+                  </Button>
+                </div>
 
-            {selectedRoundId && (() => {
-              const r = rounds.find((x) => x.id === selectedRoundId);
-              if (!r) return null;
-              return (
-                <RoundConfigPanel
-                  round={r}
-                  onChange={(config) =>
-                    setRounds(rounds.map((x) => (x.id === r.id ? { ...x, config } : x)))
-                  }
-                />
-              );
-            })()}
-
-            {/* Screening questionnaire builder (Active ONLY for selected SCREENING_QUESTIONS round) */}
-            {selectedRoundId && (
-              (() => {
-                const activeRound = rounds.find(r => r.id === selectedRoundId);
-                if (!activeRound || activeRound.type !== "SCREENING_QUESTIONS") return null;
-
-                return (
-                  <div className="space-y-5 border-t border-[#E3E5EA] pt-5 text-left">
-                    <div className="space-y-1">
-                      <h3 className="text-xs font-bold text-[#1A1D29] uppercase tracking-wider">
-                        Configure Questions for round: &quot;{activeRound.name}&quot;
-                      </h3>
-                      <p className="text-[11px] text-[#5B6272] font-semibold leading-relaxed">
-                        Add evaluation questions specifically for this round. Candidates must answer these during application.
-                      </p>
-                    </div>
-
-                    {/* Questions inside active round */}
-                    <div className="divide-y divide-[#E3E5EA] border border-[#E3E5EA] rounded-lg overflow-hidden bg-[#F8F9FB]/50">
-                      {(!activeRound.questions || activeRound.questions.length === 0) ? (
-                        <p className="text-xs text-[#5B6272] italic p-4 text-center">No questions added yet. Add screening questions below.</p>
-                      ) : (
-                        activeRound.questions.map((q, idx) => (
-                          <div key={q.id} className="flex justify-between items-center p-3.5 text-xs bg-white">
-                            <div>
-                              <p className="font-bold text-[#1A1D29]">Q{idx + 1}: {q.question}</p>
-                              <p className="text-[11px] text-[#5B6272] mt-0.5 font-medium">Type: {q.type.replace("_", " ")}</p>
-                              {q.options && q.options.length > 0 && (
-                                <p className="text-[11px] text-[#2159C9] mt-0.5 font-bold">Options: {q.options.join(" | ")}</p>
-                              )}
-                            </div>
-                            {/*
-                              Requirement #8 — edit and reorder act on the
-                              question's stable id, never its array position, so
-                              an answer already submitted against `q.id` stays
-                              attached to this question after either operation.
-                            */}
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                title="Move up"
-                                disabled={idx === 0}
-                                onClick={() => handleMoveQuestion(activeRound.id, q.id, "up")}
-                                className="cursor-pointer text-[#5B6272] disabled:opacity-30"
-                              >
-                                <ArrowUp className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Move down"
-                                disabled={idx === (activeRound.questions?.length ?? 0) - 1}
-                                onClick={() => handleMoveQuestion(activeRound.id, q.id, "down")}
-                                className="cursor-pointer text-[#5B6272] disabled:opacity-30"
-                              >
-                                <ArrowDown className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Edit question"
-                                onClick={() => handleEditQuestion(activeRound.id, q.id, q.question)}
-                                className="cursor-pointer text-[#2159C9]"
-                              >
-                                <Move className="h-4 w-4 rotate-90" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Delete question"
-                                onClick={() => handleRemoveQuestionFromRound(activeRound.id, q.id)}
-                                className="text-[#BC2A2A] hover:text-[#BC2A2A] cursor-pointer"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Question Builder */}
-                    <div className="space-y-4 p-4.5 bg-[#F8F9FB] border border-[#E3E5EA]/60 rounded-lg">
-                      <h4 className="text-xs font-bold text-[#1A1D29]">Add Question to &quot;{activeRound.name}&quot;</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          label="Question Prompt text *"
-                          placeholder="e.g. Do you have experience building Next.js apps?"
-                          value={newQuestionText}
-                          onChange={(e) => setNewQuestionText(e.target.value)}
-                        />
-                        <Select
-                          label="Response Input Type"
-                          options={[
-                            { value: "YES_NO", label: "Yes / No Select" },
-                            { value: "PARAGRAPH", label: "Paragraph Response text" },
-                            { value: "MULTIPLE_CHOICE", label: "Multiple Choice Questions" },
-                            { value: "PORTFOLIO", label: "Portfolio URL verification" },
-                            { value: "VIDEO_INTRO", label: "Video Introduction file" },
-                            { value: "CODING_ASSESSMENT", label: "Coding Assessment / Exercise" },
-                            { value: "ASSIGNMENT", label: "Custom Assignment Upload Round" },
-                          ]}
-                          value={newQuestionType}
-                          onChange={(e) => setNewQuestionType(e.target.value as any)}
-                        />
-                      </div>
-
-                      {newQuestionType === "MULTIPLE_CHOICE" && (
-                        <div className="space-y-3">
-                          <span className="block text-xs font-bold text-[#5B6272] uppercase tracking-wider font-bold">MCQ Options (Provide at least 2)</span>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                              label="Option 1 *"
-                              placeholder="e.g. Yes"
-                              value={mcOption1}
-                              onChange={(e) => setMcOption1(e.target.value)}
+                <ul className="flex flex-col gap-3">
+                  {questions.map((q, i) => (
+                    <li
+                      key={q.id}
+                      className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-sunken)] text-[11px] font-semibold text-[var(--color-text-secondary)]">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <Textarea
+                            rows={2}
+                            value={q.question}
+                            onChange={(e) =>
+                              setQuestions((p) =>
+                                p.map((x) =>
+                                  x.id === q.id ? { ...x, question: e.target.value } : x,
+                                ),
+                              )
+                            }
+                            placeholder="What do you want to know before shortlisting?"
+                          />
+                          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                            <Select
+                              inputSize="sm"
+                              value={q.type}
+                              onChange={(e) =>
+                                setQuestions((p) =>
+                                  p.map((x) =>
+                                    x.id === q.id
+                                      ? { ...x, type: e.target.value as ScreeningQuestion["type"] }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              className="w-48"
+                            >
+                              {QUESTION_TYPES.map((t) => (
+                                <option key={t.value} value={t.value}>
+                                  {t.label}
+                                </option>
+                              ))}
+                            </Select>
+                            <Checkbox
+                              checked={q.required}
+                              onChange={(e) =>
+                                setQuestions((p) =>
+                                  p.map((x) =>
+                                    x.id === q.id ? { ...x, required: e.target.checked } : x,
+                                  ),
+                                )
+                              }
+                              label="Required"
                             />
-                            <Input
-                              label="Option 2 *"
-                              placeholder="e.g. No"
-                              value={mcOption2}
-                              onChange={(e) => setMcOption2(e.target.value)}
-                            />
-                            <Input
-                              label="Option 3 (Optional)"
-                              placeholder="e.g. Other"
-                              value={mcOption3}
-                              onChange={(e) => setMcOption3(e.target.value)}
-                            />
-                            <Input
-                              label="Option 4 (Optional)"
-                              placeholder="e.g. N/A"
-                              value={mcOption4}
-                              onChange={(e) => setMcOption4(e.target.value)}
-                            />
+                            <button
+                              type="button"
+                              onClick={() => setQuestions((p) => p.filter((x) => x.id !== q.id))}
+                              className="ml-auto text-[var(--color-text-muted)] hover:text-[var(--color-error-fg)]"
+                              aria-label="Remove question"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
-                      )}
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          onClick={handleAddQuestionToRound}
-                          disabled={!newQuestionText.trim()}
-                          className="cursor-pointer text-xs font-bold bg-white text-[#1A1D29] border border-[#1A1D29]/25 hover:bg-[#F8F9FB]"
-                        >
-                          Add Question
-                        </Button>
                       </div>
-                    </div>
-                  </div>
-                );
-              })()
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
-              <Button variant="outline" onClick={() => setStep(3)} className="cursor-pointer">
-                <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
-              </Button>
-              <Button onClick={() => setStep(5)} className="cursor-pointer">
-                Next: Preview Opportunity <ChevronRight className="h-4 w-4 ml-1.5" />
-              </Button>
+            {/* Roles */}
+            <div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
+                    Roles & slots
+                  </h3>
+                  <p className="mt-0.5 text-[12.5px] leading-[1.55] text-[var(--color-text-secondary)]">
+                    Optional. With no roles this behaves as a single listing capped at{" "}
+                    {freelancersLimit}. With roles, hiring is checked against both the role slots
+                    and the project limit.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  onClick={() =>
+                    setRoles((p) => [
+                      ...p,
+                      {
+                        id: `role-${Date.now()}`,
+                        name: "",
+                        description: "",
+                        slots: 1,
+                        allowApprentice: false,
+                      },
+                    ])
+                  }
+                >
+                  Add role
+                </Button>
+              </div>
+
+              {roles.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={<Users />}
+                  title="No named roles"
+                  description={`Hiring is capped at ${freelancersLimit} ${Number(freelancersLimit) === 1 ? "person" : "people"} with no role structure.`}
+                />
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {roles.map((role) => (
+                    <li
+                      key={role.id}
+                      className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-4"
+                    >
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]">
+                        <Field label="Role name" required>
+                          <Input
+                            value={role.name}
+                            onChange={(e) =>
+                              setRoles((p) =>
+                                p.map((r) => (r.id === role.id ? { ...r, name: e.target.value } : r)),
+                              )
+                            }
+                            placeholder="Lead Frontend Engineer"
+                          />
+                        </Field>
+                        <Field label="Slots" required>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={MAX_ROLE_SLOTS}
+                            value={role.slots}
+                            onChange={(e) =>
+                              setRoles((p) =>
+                                p.map((r) =>
+                                  r.id === role.id ? { ...r, slots: Number(e.target.value) } : r,
+                                ),
+                              )
+                            }
+                          />
+                        </Field>
+                      </div>
+                      <Field label="What this role owns" className="mt-3">
+                        <Textarea
+                          rows={2}
+                          value={role.description}
+                          onChange={(e) =>
+                            setRoles((p) =>
+                              p.map((r) =>
+                                r.id === role.id ? { ...r, description: e.target.value } : r,
+                              ),
+                            )
+                          }
+                          placeholder="Owns architecture, the component library and the migration sequence."
+                        />
+                      </Field>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border-subtle)] pt-3">
+                        <Checkbox
+                          checked={role.allowApprentice}
+                          onChange={(e) =>
+                            setRoles((p) =>
+                              p.map((r) =>
+                                r.id === role.id
+                                  ? { ...r, allowApprentice: e.target.checked }
+                                  : r,
+                              ),
+                            )
+                          }
+                          label={
+                            <span className="inline-flex items-center gap-1.5">
+                              <GraduationCap className="h-3.5 w-3.5 text-[var(--color-info-fg)]" />
+                              Allow an apprentice on this role
+                            </span>
+                          }
+                          description="Apprentices are mentored by the primary and occupy no slot, so they can join even when the role is full."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setRoles((p) => p.filter((r) => r.id !== role.id))}
+                          className="text-[12.5px] font-medium text-[var(--color-error-fg)] hover:underline"
+                        >
+                          Remove role
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {roles.length > 0 && (
+                <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--color-surface-alt)] p-3.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[12.5px] text-[var(--color-text-secondary)]">
+                      Total slots across roles
+                    </span>
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+                      {roles.reduce((s, r) => s + r.slots, 0)} / {freelancersLimit}
+                    </span>
+                  </div>
+                  <Progress
+                    className="mt-2"
+                    value={roles.reduce((s, r) => s + r.slots, 0)}
+                    max={Number(freelancersLimit) || 1}
+                    size="sm"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Certificate */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
+                Completion certificate
+              </h3>
+              <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-4">
+                <Toggle
+                  checked={certificateEnabled}
+                  onChange={setCertificateEnabled}
+                  label="Issue a verifiable certificate at completion"
+                  description="Issued automatically to every hired freelancer, including apprentices. You can design the template after publishing."
+                />
+                {certificateEnabled && (
+                  <div className="mt-4 grid gap-4 border-t border-[var(--color-border-subtle)] pt-4 sm:grid-cols-2">
+                    <Field label="Signatory name">
+                      <Input
+                        value={signatoryName}
+                        onChange={(e) => setSignatoryName(e.target.value)}
+                        placeholder="Marta Kovač"
+                      />
+                    </Field>
+                    <Field label="Signatory title">
+                      <Input
+                        value={signatoryTitle}
+                        onChange={(e) => setSignatoryTitle(e.target.value)}
+                        placeholder="VP Engineering"
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 5: Review & Preview */}
-        {step === 5 && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-[#1A1D29] border-b border-[#E3E5EA] pb-2">
-              Step 5: Live Freelancer Page Preview
-            </h2>
+        {/* ================= STEP 5: PREVIEW ================= */}
+        {step === 4 && (
+          <div className="flex flex-col gap-5">
+            <Alert tone="info" title="This is exactly what applicants will see">
+              Read it once as if you were applying. If anything is ambiguous here, it will produce
+              ambiguous applications.
+            </Alert>
 
-            <p className="text-xs text-[#5B6272] font-semibold leading-relaxed">
-              Verify the layout before publishing the opportunity to the gig marketplace directories.
-            </p>
+            <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={compensationType === "UNPAID" ? "warning" : "brand"}>
+                  {COMPENSATION_META[compensationType].label}
+                </Badge>
+                {priority === "HIGH" && <Badge tone="error">Urgent</Badge>}
+                {visibility !== "PUBLIC" && (
+                  <Badge tone="neutral">
+                    {visibility === "INVITE_ONLY" ? "Invite only" : "Private"}
+                  </Badge>
+                )}
+              </div>
 
-            {/* MOCK PREVIEW CARD */}
-            <div className="border border-[#E3E5EA] rounded-lg p-6 bg-[#F8F9FB]/30 space-y-6 text-left shadow-inner">
-              <div className="space-y-2 border-b border-[#E3E5EA] pb-4">
-                <div className="flex justify-between items-start flex-wrap gap-2">
-                  <div className="space-y-1">
-                    <Badge variant="accent">AI Match Ready</Badge>
-                    <h3 className="text-xl font-bold text-[#1A1D29] leading-tight">{title || "Opportunity Title"}</h3>
-                    <p className="text-xs text-[#5B6272] font-medium">Category: {category} • {subcategory}</p>
+              <h2 className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.018em] text-[var(--color-text-primary)]">
+                {title || "Untitled draft"}
+              </h2>
+              <p className="mt-1.5 text-[13px] text-[var(--color-text-secondary)]">
+                {company.companyName} · {category}
+                {subcategory ? ` · ${subcategory}` : ""}
+              </p>
+
+              <dl className="mt-4 grid gap-3 border-y border-[var(--color-border-subtle)] py-4 sm:grid-cols-4">
+                {[
+                  [
+                    "Compensation",
+                    compensationType === "UNPAID"
+                      ? "Non-monetary"
+                      : formatMoney(budgetValue, currency),
+                  ],
+                  ["Hiring", `${freelancersLimit} ${Number(freelancersLimit) === 1 ? "person" : "people"}`],
+                  ["Duration", duration || "—"],
+                  ["Commitment", timingType],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-[11px] text-[var(--color-text-muted)]">{label}</dt>
+                    <dd className="mt-0.5 text-[13.5px] font-semibold text-[var(--color-text-primary)]">
+                      {value}
+                    </dd>
                   </div>
-                  {/*
-                    Requirement #6 — this read `${budget} Total` with a literal
-                    dollar sign, so a project priced in any other currency
-                    previewed as USD and then saved as something else. Symbol,
-                    amount and compensation type all come from the live form
-                    state that is about to be serialised.
-                  */}
-                  <div className="text-right">
-                    <span className="text-[11px] text-[#5B6272] font-bold uppercase block">
-                      {COMPENSATION_TYPES.find((c) => c.value === compensationType)?.label ?? "Compensation"}
-                    </span>
-                    <span className="text-base font-bold text-[#1A1D29]">
-                      {getCurrencySymbol(currency)}
-                      {Number(budget || 0).toLocaleString()} {currency}
-                    </span>
+                ))}
+              </dl>
+
+              <div className="mt-4">
+                <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                  About this engagement
+                </h3>
+                <p className="mt-2 whitespace-pre-line text-[13.5px] leading-[1.7] text-[var(--color-text-secondary)]">
+                  {description || "No description written yet."}
+                </p>
+              </div>
+
+              {[
+                ["Objectives", objectives],
+                ["Deliverables", deliverables],
+                ["Responsibilities", responsibilities],
+                ["Day to day", dailyTasks],
+              ].map(([label, items]) => {
+                const list = (items as string[]).filter((x) => x.trim());
+                if (!list.length) return null;
+                return (
+                  <div key={label as string} className="mt-4">
+                    <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                      {label as string}
+                    </h3>
+                    <ul className="mt-2 flex flex-col gap-1.5">
+                      {list.map((item) => (
+                        <li key={item} className="flex items-start gap-2.5">
+                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-brand)]" />
+                          <span className="text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                            {item}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-              </div>
+                );
+              })}
 
-              {/* Quick Specs */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white border border-[#E3E5EA]/50 rounded-lg text-xs">
-                <div>
-                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Duration</span>
-                  <span className="font-bold text-[#1A1D29]">{duration}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Working Structure</span>
-                  <span className="font-bold text-[#1A1D29]">{workingDays}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Timing type</span>
-                  <span className="font-bold text-[#1A1D29]">{timingType}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-[#5B6272] font-bold uppercase block">Deadline</span>
-                  <span className="font-bold text-[#BC2A2A]">{appDeadline}</span>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Opportunity Overview</h4>
-                <p className="text-xs text-[#5B6272] leading-relaxed whitespace-pre-wrap">{description}</p>
-              </div>
-
-              {/* Recruitment rounds list */}
-              {rounds.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-[#5B6272] uppercase tracking-wider">Recruitment Process / Assessment Rounds</h4>
-                  <div className="space-y-2">
-                    {rounds.map((r, idx) => (
-                      <div key={r.id} className="p-3 bg-white border border-[#E3E5EA]/60 rounded-lg text-xs">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0">
-                            <span className="font-bold text-[#1A1D29]">Round {idx + 1}: {r.name}</span>
-                            <p className="text-[11px] text-[#5B6272] mt-0.5">{r.description}</p>
-                          </div>
-                          <div className="flex shrink-0 flex-col items-end gap-1">
-                            <Badge variant="neutral" className="text-[11px] capitalize py-0.5">{roundTypeLabel(r.type)}</Badge>
-                            {!isRoundTypeSupported(r.type) && (
-                              <Badge variant="warning" className="text-[11px] py-0.5">Coming soon</Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Requirement #14 — the configuration actually stored on this round. */}
-                        {r.config && Object.keys(r.config).length > 0 && (
-                          <p className="mt-1.5 text-[11px] text-[#5B6272]">
-                            {Object.entries(r.config)
-                              .filter(([, v]) => v !== undefined && v !== null && v !== "")
-                              .map(([k, v]) => `${k}: ${String(v)}`)
-                              .join(" • ")}
-                          </p>
-                        )}
-
-                        {/* Screening questions, in the persisted order, by id. */}
-                        {r.questions && r.questions.length > 0 && (
-                          <ol className="mt-2 space-y-1 border-t border-[#E3E5EA]/60 pt-2">
-                            {r.questions.map((q, qi) => (
-                              <li key={q.id} className="text-[11px] text-[#5B6272]">
-                                <span className="font-semibold text-[#1A1D29]">Q{qi + 1}.</span> {q.question}
-                                <span className="ml-1 text-[#8A90A0]">
-                                  ({q.type.replace(/_/g, " ").toLowerCase()}{q.required ? ", required" : ""})
-                                </span>
-                                {q.options && q.options.length > 0 && (
-                                  <span className="ml-1 text-[#2159C9]">— {q.options.join(" | ")}</span>
-                                )}
-                              </li>
-                            ))}
-                          </ol>
-                        )}
-                      </div>
+              {requiredSkills.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                    Required skills
+                  </h3>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {requiredSkills.map((s) => (
+                      <Chip key={s} active size="sm" className="capitalize">
+                        {s}
+                      </Chip>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/*
-                Requirement #14 — the remaining configured values, read from the
-                same live state that buildWizardMeta() serialises on submit, so
-                what is previewed is what is saved.
-              */}
-              <div className="grid grid-cols-1 gap-4 border-t border-[#E3E5EA] pt-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Objectives</h4>
-                  {objectives.length === 0 ? (
-                    <p className="text-[11px] text-[#5B6272]">None added</p>
-                  ) : (
-                    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-[#5B6272]">
-                      {objectives.map((o, i) => (
-                        <li key={`${o}-${i}`}>{o}</li>
-                      ))}
-                    </ul>
-                  )}
+              {roles.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                    Open roles
+                  </h3>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {roles.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-[var(--color-surface-alt)] p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                            {r.name || "Untitled role"}
+                          </p>
+                          {r.description && (
+                            <p className="mt-0.5 text-[12px] text-[var(--color-text-secondary)]">
+                              {r.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1.5">
+                          {r.allowApprentice && (
+                            <Badge tone="info" size="sm">
+                              Apprentice slot
+                            </Badge>
+                          )}
+                          <Badge tone="success" size="sm">
+                            {r.slots} {r.slots === 1 ? "slot" : "slots"}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Required skills</h4>
-                  {requiredSkills.length === 0 ? (
-                    <p className="text-[11px] text-[#5B6272]">None added</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {requiredSkills.map((s) => (
-                        <Badge key={s} variant="neutral" className="text-[11px]">{s}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Compensation</h4>
-                  <p className="text-[11px] text-[#5B6272]">
-                    {COMPENSATION_TYPES.find((c) => c.value === compensationType)?.label ?? compensationType}
-                    {" · "}
-                    {getCurrencySymbol(currency)}
-                    {Number(budget || 0).toLocaleString()} {currency}
-                    {compensationType === "HOURLY" && paymentRate
-                      ? ` · ${getCurrencySymbol(currency)}${paymentRate}/hr`
-                      : ""}
-                    {compensationType === "STIPEND" ? ` · ${stipendFrequency}` : ""}
-                    {budgetNegotiable ? " · Negotiable" : ""}
+              {certificateEnabled && (
+                <div className="mt-4 flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand-softer)] p-3.5">
+                  <Award className="h-4 w-4 shrink-0 text-[var(--color-brand-active)]" />
+                  <p className="text-[12.5px] text-[var(--color-brand-active)]">
+                    A verifiable certificate is issued to every hired freelancer at completion.
                   </p>
                 </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Visibility & domain</h4>
-                  <p className="text-[11px] text-[#5B6272]">
-                    {visibility} · {domain} · Priority {priority}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Dates</h4>
-                  <p className="text-[11px] text-[#5B6272]">
-                    Applications close {appDeadline} · Starts {projectStart} · Expected {expectedCompletion}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Requirements</h4>
-                  <p className="text-[11px] text-[#5B6272]">
-                    {experienceRequired} yr experience · {timingType} · {workingDays} · {duration}
-                    {certificateIncluded ? " · Certificate included" : ""}
-                  </p>
-                </div>
-
-                {deliverables.length > 0 && (
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Deliverables</h4>
-                    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-[#5B6272]">
-                      {deliverables.map((d, i) => (
-                        <li key={`${d}-${i}`}>{d}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {bannerUrl && (
-                  <div className="space-y-1 sm:col-span-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B6272]">Banner</h4>
-                    <img src={bannerUrl} alt="Project banner" className="aspect-[16/9] w-full max-w-xs rounded-lg object-cover" />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            <div className="flex gap-4 justify-between pt-4 border-t border-[#E3E5EA]">
-              <Button variant="outline" onClick={() => setStep(4)} disabled={loading} className="cursor-pointer">
-                <ChevronLeft className="h-4 w-4 mr-1.5" /> Back
-              </Button>
-              <Button
-                onClick={handlePublish}
-                disabled={loading}
-                className="cursor-pointer bg-[#152C55] text-white hover:bg-[#EAF1FE] font-bold px-8"
-              >
-                {loading ? "Publishing Opportunity..." : "Publish Opportunity"}
-              </Button>
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
+              <h3 className="text-[13.5px] font-semibold text-[var(--color-text-primary)]">
+                What happens when you publish
+              </h3>
+              <ul className="mt-2.5 flex flex-col gap-2">
+                {[
+                  "The listing goes live and becomes visible according to the visibility you chose.",
+                  "Every freelancer with at least one matching skill is notified.",
+                  "Match scores are computed and the top ten candidates are cached as recommendations.",
+                  "A payment record is created for the project so stages can be funded straight away.",
+                ].map((s) => (
+                  <li key={s} className="flex items-start gap-2.5">
+                    <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-brand)]" />
+                    <span className="text-[12.5px] leading-[1.55] text-[var(--color-text-secondary)]">
+                      {s}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         )}
+
+        {/* ---- Sticky footer ---- */}
+        <div className="sticky bottom-0 -mx-5 mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-5 py-4 md:-mx-6 md:px-6">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setErrors([]);
+              setStep((s) => Math.max(0, s - 1));
+            }}
+            disabled={step === 0}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+          >
+            Back
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <span className="hidden text-[12.5px] text-[var(--color-text-muted)] sm:block">
+              Step {step + 1} of {STEPS.length}
+            </span>
+            <Button variant="secondary" onClick={saveDraft} leftIcon={<Save className="h-4 w-4" />}>
+              Save draft
+            </Button>
+            {step < STEPS.length - 1 ? (
+              <Button onClick={goNext} rightIcon={<ArrowRight className="h-4 w-4" />}>
+                Continue
+              </Button>
+            ) : (
+              <Button onClick={publish} loading={publishing} leftIcon={<Send className="h-4 w-4" />}>
+                Publish project
+              </Button>
+            )}
+          </div>
+        </div>
       </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ list editor -- */
+
+function ListEditor({
+  icon,
+  label,
+  help,
+  items,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  help?: string;
+  items: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-[13px] font-medium text-[var(--color-text-secondary)]">
+            <span className="text-[var(--color-text-muted)]">{icon}</span>
+            {label}
+          </p>
+          {help && <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">{help}</p>}
+        </div>
+        <Button
+          size="xs"
+          variant="secondary"
+          leftIcon={<Plus className="h-3 w-3" />}
+          onClick={() => onChange([...items, ""])}
+        >
+          Add
+        </Button>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-sunken)] text-[11px] font-semibold text-[var(--color-text-secondary)]">
+              {i + 1}
+            </span>
+            <Input
+              value={item}
+              onChange={(e) => onChange(items.map((x, idx) => (idx === i ? e.target.value : x)))}
+              placeholder={placeholder}
+            />
+            {items.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+                aria-label="Remove"
+                className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-error-fg)]"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

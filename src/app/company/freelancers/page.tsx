@@ -1,264 +1,179 @@
-import React from "react";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { FreelancerSearch } from "./FreelancerSearch";
-import { TopFreelancers, type TopFreelancerItem } from "@/components/TopFreelancers";
-import { LeaderboardSidebar } from "@/components/LeaderboardSidebar";
+"use client";
 
-interface SearchParams {
-  skills?: string;
-  minExperience?: string;
-  maxExperience?: string;
-  location?: string;
-  minRating?: string;
-  minCompleted?: string;
-  availability?: string;
-  domain?: string;
-  sortBy?: string;
-  q?: string;
-}
+import { useMemo, useState } from "react";
+import { Send, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/Card";
+import { Checkbox, Field, Select, Textarea } from "@/components/ui/Field";
+import { Modal } from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+import { TalentBrowser } from "@/components/shared/TalentBrowser";
+import { useSession } from "@/lib/session";
+import { getCompanyByUserId, getFreelancer, getProject, projectsForCompany } from "@/data/queries";
 
-export default async function CompanyFreelancersPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const session = await auth(); // Ensure authenticated (layout handles redirect)
-  if (!session?.user) {
-    return null;
-  }
+export default function CompanyFreelancersPage() {
+  const { session } = useSession();
+  const toast = useToast();
+  const company = session ? getCompanyByUserId(session.userId) : undefined;
 
-  const userId = session.user.id;
-  const params = await searchParams;
+  const [againstProjectId, setAgainstProjectId] = useState("");
+  const [inviteTarget, setInviteTarget] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string[]>([]);
+  const [invite, setInvite] = useState({
+    projectId: "",
+    roleId: "",
+    apprentice: false,
+    message: "",
+  });
 
-  // Build dynamic Prisma where clause from URL search params
-  const skillFilter = params.skills
-    ? params.skills
-        .toLowerCase()
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
+  const projects = useMemo(
+    () =>
+      company
+        ? projectsForCompany(company.id).filter(
+            (p) => p.status === "OPEN" || p.status === "IN_PROGRESS",
+          )
+        : [],
+    [company],
+  );
 
-  const minExp = params.minExperience ? parseInt(params.minExperience) : undefined;
-  const maxExp = params.maxExperience ? parseInt(params.maxExperience) : undefined;
-  const minRating = params.minRating ? parseFloat(params.minRating) : undefined;
-  const minCompleted = params.minCompleted ? parseInt(params.minCompleted) : undefined;
-  const availability = params.availability || "";
-  const domain = params.domain || "ALL";
+  const inviteProject = invite.projectId ? getProject(invite.projectId) : undefined;
+  const target = inviteTarget ? getFreelancer(inviteTarget) : undefined;
+  const selectedRole = inviteProject?.roles.find((r) => r.id === invite.roleId);
 
-  const sortBy = params.sortBy || "rating";
-
-  const orderByMap: Record<string, object> = {
-    rating: { rating: "desc" },
-    experience: { experienceYears: "desc" },
-    completed: { completedProjects: "desc" },
-    newest: { user: { createdAt: "desc" } },
-  };
-
-  // Run independent database queries in parallel
-  const [company, freelancers, savedRecords, allFreelancers] = await Promise.all([
-    db.company.findUnique({ where: { userId } }),
-    db.freelancer.findMany({
-      where: {
-        // Skill filter: ALL specified skills must be in the array
-        ...(skillFilter.length > 0 && {
-          skills: { hasEvery: skillFilter },
-        }),
-        // Experience range
-        ...(minExp !== undefined && { experienceYears: { gte: minExp } }),
-        ...(maxExp !== undefined && { experienceYears: { lte: maxExp } }),
-        // Rating filter
-        ...(minRating !== undefined && { rating: { gte: minRating } }),
-        // Completed projects minimum
-        ...(minCompleted !== undefined && { completedProjects: { gte: minCompleted } }),
-        // Availability status
-        ...(availability && availability !== "ALL" && { availabilityStatus: availability }),
-        // Domain filter
-        ...(domain && domain !== "ALL" && { domain }),
-        // Name/keyword search via user name
-        ...(params.q && {
-          OR: [
-            { bio: { contains: params.q, mode: "insensitive" } },
-            { professionalHeadline: { contains: params.q, mode: "insensitive" } },
-            { user: { name: { contains: params.q, mode: "insensitive" } } },
-          ],
-        }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            reviewsReceived: {
-              select: {
-                id: true,
-                rating: true,
-                comment: true,
-                createdAt: true,
-                reviewer: { select: { name: true } },
-                project: { select: { title: true, budget: true } },
-              },
-              orderBy: { createdAt: "desc" },
-              take: 5,
-            },
-          },
-        },
-        applications: {
-          where: { status: "HIRED" },
-          select: {
-            id: true,
-            project: {
-              select: {
-                id: true,
-                title: true,
-                budget: true,
-                company: { select: { companyName: true } },
-              },
-            },
-          },
-          take: 10,
-        },
-      },
-      orderBy: orderByMap[sortBy] || { rating: "desc" },
-      take: 50,
-    }),
-    db.savedFreelancer.findMany({
-      where: { company: { userId } },
-      select: { freelancerId: true },
-    }),
-    db.freelancer.findMany({
-      include: {
-        user: { select: { id: true, name: true, image: true } },
-        applications: {
-          where: { status: "HIRED" },
-          select: { aiScore: true },
-        },
-      },
-      orderBy: { rating: "desc" },
-      take: 100,
-    }),
-  ]);
-
-  // Fetch saved freelancer details using the saved records
-  const savedFreelancerIds = savedRecords.map((r) => r.freelancerId);
-  const savedFreelancers = savedFreelancerIds.length > 0
-    ? await db.freelancer.findMany({
-        where: {
-          id: { in: savedFreelancerIds },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              reviewsReceived: {
-                select: {
-                  id: true,
-                  rating: true,
-                  comment: true,
-                  createdAt: true,
-                  reviewer: { select: { name: true } },
-                  project: { select: { title: true, budget: true } },
-                },
-                orderBy: { createdAt: "desc" },
-                take: 5,
-              },
-            },
-          },
-          applications: {
-            where: { status: "HIRED" },
-            select: {
-              id: true,
-              project: {
-                select: {
-                  id: true,
-                  title: true,
-                  budget: true,
-                  company: { select: { companyName: true } },
-                },
-              },
-            },
-            take: 10,
-          },
-        },
-      })
-    : [];
-
-  // Composite score: rating*40% + completedProjects*30% + avgAiScore*30% (all normalized to 0-100)
-  const MAX_RATING = 5;
-  const MAX_PROJECTS = 50;
-  const scored: TopFreelancerItem[] = allFreelancers
-    .map((f) => {
-      const avgAiScore =
-        f.applications.length > 0
-          ? f.applications.reduce((sum, a) => sum + a.aiScore, 0) / f.applications.length
-          : 0;
-      const ratingNorm = (f.rating / MAX_RATING) * 100;
-      const projectNorm = (Math.min(f.completedProjects, MAX_PROJECTS) / MAX_PROJECTS) * 100;
-      const compositeScore = ratingNorm * 0.4 + projectNorm * 0.3 + avgAiScore * 0.3;
-      return {
-        id: f.id,
-        rank: 0,
-        name: f.user.name || "Unknown",
-        image: f.user.image,
-        headline: f.professionalHeadline,
-        skills: f.skills.slice(0, 6),
-        rating: f.rating,
-        completedProjects: f.completedProjects,
-        avgAiScore,
-        compositeScore,
-        availabilityStatus: f.availabilityStatus,
-        domain: f.domain,
-      };
-    })
-    .sort((a, b) => b.compositeScore - a.compositeScore)
-    .slice(0, 10)
-    .map((f, idx) => ({ ...f, rank: idx + 1 }));
+  if (!company) return null;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <span className="text-[11px] font-bold text-[#5B6272] tracking-widest uppercase">
-          Company Portal
-        </span>
-        <h1 className="text-3xl font-bold text-[#1A1D29] tracking-tight mt-0.5">
-          Search Freelancers
-        </h1>
-        <p className="text-xs text-[#5B6272] font-semibold mt-1">
-          Discover and filter top freelancers by skills, experience, rating, availability and more.
-        </p>
-      </div>
-
-      <div className="min-w-0">
-      <FreelancerSearch
-        freelancers={freelancers as any}
-        savedFreelancerIds={savedFreelancerIds}
-        savedFreelancers={savedFreelancers as any}
-        companyId={company?.id}
-        initialParams={{
-          q: params.q || "",
-          skills: params.skills || "",
-          minExperience: params.minExperience || "",
-          maxExperience: params.maxExperience || "",
-          minRating: params.minRating || "",
-          minCompleted: params.minCompleted || "",
-          availability: params.availability || "ALL",
-          domain: params.domain || "ALL",
-          sortBy: params.sortBy || "rating",
-        }}
+    <div>
+      <PageHeader
+        title="Search freelancers"
+        description="Filter by skill, discipline, availability and verification. Pick a project to score every candidate against its actual requirements."
       />
 
-        {scored.length > 0 && (
-          <LeaderboardSidebar>
-            <TopFreelancers topFreelancers={scored} />
-          </LeaderboardSidebar>
+      <TalentBrowser
+        hrefBase="/company/freelancers"
+        againstProjectId={againstProjectId || undefined}
+        projectOptions={projects.map((p) => ({ id: p.id, title: p.title }))}
+        onProjectChange={setAgainstProjectId}
+        cardAction={(id) => (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              leftIcon={<Send className="h-3.5 w-3.5" />}
+              onClick={() => {
+                setInviteTarget(id);
+                setInvite({
+                  projectId: againstProjectId || projects[0]?.id || "",
+                  roleId: "",
+                  apprentice: false,
+                  message: "",
+                });
+              }}
+            >
+              Invite
+            </Button>
+            <Button
+              size="sm"
+              variant={saved.includes(id) ? "soft" : "secondary"}
+              aria-label="Save to shortlist"
+              onClick={() => {
+                setSaved((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+                toast.toast({
+                  title: saved.includes(id) ? "Removed from shortlist" : "Saved to shortlist",
+                  tone: "success",
+                });
+              }}
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         )}
-      </div>
+      />
+
+      <Modal
+        open={Boolean(inviteTarget)}
+        onClose={() => setInviteTarget(null)}
+        title={`Invite ${target?.name} to apply`}
+        description="They receive a notification and the invitation appears on their dashboard. An invitation survives whether or not they end up applying."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setInviteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                !invite.projectId ||
+                (Boolean(inviteProject?.roles.length) && !invite.roleId)
+              }
+              onClick={() => {
+                setInviteTarget(null);
+                toast.success("Invitation sent", `${target?.name} has been notified.`);
+              }}
+            >
+              Send invitation
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Field label="Project" required>
+            <Select
+              value={invite.projectId}
+              onChange={(e) =>
+                setInvite((i) => ({ ...i, projectId: e.target.value, roleId: "" }))
+              }
+            >
+              <option value="">Select a project…</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          {inviteProject && inviteProject.roles.length > 0 && (
+            <Field
+              label="Role"
+              required
+              help="This project uses roles, so an invitation must name one."
+            >
+              <Select
+                value={invite.roleId}
+                onChange={(e) => setInvite((i) => ({ ...i, roleId: e.target.value }))}
+              >
+                <option value="">Select a role…</option>
+                {inviteProject.roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({r.slots - r.hiredCount} of {r.slots} open)
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
+          {selectedRole?.allowApprentice && (
+            <Checkbox
+              checked={invite.apprentice}
+              onChange={(e) => setInvite((i) => ({ ...i, apprentice: e.target.checked }))}
+              label="Invite as an apprentice"
+              description="Apprentices occupy no slot, so they can be invited even when the role is full."
+            />
+          )}
+
+          <Field
+            label="Personal message"
+            help="Invitations that name a specific reason get far better response rates."
+          >
+            <Textarea
+              rows={4}
+              value={invite.message}
+              onChange={(e) => setInvite((i) => ({ ...i, message: e.target.value }))}
+              placeholder="We saw your design systems work and thought of you for the component library half of this engagement…"
+            />
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }

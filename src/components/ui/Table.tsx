@@ -1,152 +1,201 @@
 "use client";
 
-import React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/**
- * Data table surface: light header row, horizontal dividers only, row hover
- * tint, no vertical column borders. The wrapper owns the border and radius so
- * wide tables scroll inside their own container instead of the page.
- */
-export function Table({
-  children,
+/* ============================================================================
+   Table (§19.12) — 56px rows, hairline separators, sticky header,
+   right-aligned numerics, own horizontal scroll container.
+   On mobile the same data is rendered as stacked label/value cards (§19.19).
+   ========================================================================= */
+
+export interface Column<T> {
+  key: string;
+  header: React.ReactNode;
+  /** Column priority: "essential" columns survive the tablet reduction. */
+  essential?: boolean;
+  align?: "left" | "right" | "center";
+  width?: string;
+  render: (row: T) => React.ReactNode;
+}
+
+export function DataTable<T extends { id: string }>({
+  columns,
+  rows,
+  onRowClick,
+  empty,
   className,
-  wrapperClassName,
+  dense,
 }: {
-  children: React.ReactNode;
+  columns: Column<T>[];
+  rows: T[];
+  onRowClick?: (row: T) => void;
+  empty?: React.ReactNode;
   className?: string;
-  wrapperClassName?: string;
+  dense?: boolean;
 }) {
+  if (rows.length === 0 && empty) return <>{empty}</>;
+
   return (
-    <div
-      className={cn(
-        "w-full overflow-x-auto rounded-xl border border-[#E3E5EA] bg-white",
-        wrapperClassName
-      )}
-    >
-      <table className={cn("w-full border-collapse text-left text-[13px]", className)}>
-        {children}
-      </table>
-    </div>
-  );
-}
-
-export function THead({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <thead className={cn("bg-[#F8F9FB]", className)}>{children}</thead>;
-}
-
-export function TBody({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <tbody className={className}>{children}</tbody>;
-}
-
-export function TR({
-  children,
-  className,
-  onClick,
-  selected,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  onClick?: () => void;
-  selected?: boolean;
-}) {
-  return (
-    <tr
-      onClick={onClick}
-      data-selected={selected || undefined}
-      className={cn(
-        "border-b border-[#EDEEF2] last:border-b-0 transition-colors duration-[180ms]",
-        selected && "bg-[#EAF1FE]",
-        onClick && "cursor-pointer",
-        !selected && "hover:bg-[#F0F3F9]",
-        className
-      )}
-    >
-      {children}
-    </tr>
-  );
-}
-
-export interface THProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
-  /** Renders a sort chevron and makes the header a button. */
-  sortable?: boolean;
-  sorted?: "asc" | "desc" | false;
-  onSort?: () => void;
-  align?: "left" | "center" | "right";
-}
-
-export function TH({
-  children,
-  className,
-  sortable,
-  sorted = false,
-  onSort,
-  align = "left",
-  ...props
-}: THProps) {
-  const content = (
     <>
-      {children}
-      {sortable && (
-        <span className="ml-1 inline-flex" aria-hidden="true">
-          {sorted === "asc" ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className={cn("h-3.5 w-3.5", !sorted && "opacity-40")} />
-          )}
-        </span>
-      )}
+      {/* ---- Desktop / tablet table ---- */}
+      <div
+        className={cn(
+          "hidden overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] md:block",
+          className,
+        )}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-[var(--color-surface-alt)]">
+              <tr>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    style={{ width: c.width }}
+                    className={cn(
+                      "border-b border-[var(--color-border)] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-muted)] whitespace-nowrap",
+                      c.align === "right" && "text-right",
+                      c.align === "center" && "text-center",
+                      !c.essential && "hidden lg:table-cell",
+                    )}
+                  >
+                    {c.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.id}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn(
+                    "border-b border-[var(--color-border-subtle)] transition-colors last:border-0",
+                    onRowClick && "cursor-pointer hover:bg-[var(--color-hover)]",
+                  )}
+                  style={{ height: dense ? 48 : 56 }}
+                >
+                  {columns.map((c) => (
+                    <td
+                      key={c.key}
+                      className={cn(
+                        "px-4 text-[13.5px] text-[var(--color-text-primary)] align-middle",
+                        c.align === "right" && "text-right tabular-nums",
+                        c.align === "center" && "text-center",
+                        !c.essential && "hidden lg:table-cell",
+                      )}
+                    >
+                      {c.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ---- Mobile stacked cards ---- */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            onClick={onRowClick ? () => onRowClick(row) : undefined}
+            className={cn(
+              "glass-panel p-4",
+              onRowClick && "cursor-pointer glass-panel-hover",
+            )}
+          >
+            <dl className="flex flex-col gap-2.5">
+              {columns.map((c) => (
+                <div key={c.key} className="flex items-start justify-between gap-4">
+                  <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--color-text-muted)]">
+                    {c.header}
+                  </dt>
+                  <dd className="min-w-0 text-right text-[13.5px] text-[var(--color-text-primary)]">
+                    {c.render(row)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
     </>
   );
-
-  return (
-    <th
-      scope="col"
-      aria-sort={sorted ? (sorted === "asc" ? "ascending" : "descending") : undefined}
-      className={cn(
-        "whitespace-nowrap px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.03em] text-[#5B6272]",
-        align === "right" && "text-right",
-        align === "center" && "text-center",
-        className
-      )}
-      {...props}
-    >
-      {sortable ? (
-        <button
-          type="button"
-          onClick={onSort}
-          className={cn(
-            "inline-flex items-center uppercase tracking-[0.03em] cursor-pointer transition-colors hover:text-[#1A1D29]",
-            align === "right" && "justify-end",
-            align === "center" && "justify-center"
-          )}
-        >
-          {content}
-        </button>
-      ) : (
-        content
-      )}
-    </th>
-  );
 }
 
-export interface TDProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
-  align?: "left" | "center" | "right";
-}
+/* --------------------------------------------------------------- KPI tile -- */
 
-export function TD({ children, className, align = "left", ...props }: TDProps) {
+export function KpiTile({
+  label,
+  value,
+  delta,
+  deltaLabel,
+  icon,
+  tone = "brand",
+  href,
+}: {
+  label: string;
+  value: React.ReactNode;
+  delta?: number;
+  deltaLabel?: string;
+  icon?: React.ReactNode;
+  tone?: "brand" | "info" | "warning" | "neutral";
+  href?: string;
+}) {
+  const tones = {
+    brand: "bg-[var(--color-brand-soft)] text-[var(--color-brand-active)]",
+    info: "bg-[var(--color-info-bg)] text-[var(--color-info-fg)]",
+    warning: "bg-[var(--color-warning-bg)] text-[var(--color-warning-fg)]",
+    neutral: "bg-[var(--color-neutral-bg)] text-[var(--color-neutral-fg)]",
+  };
+  const Comp = href ? "a" : "div";
   return (
-    <td
+    <Comp
+      {...(href ? { href } : {})}
       className={cn(
-        "px-4 py-3.5 align-middle text-[13px] text-[#1A1D29]",
-        align === "right" && "text-right",
-        align === "center" && "text-center",
-        className
+        "glass-panel flex flex-col justify-between gap-3 p-4 md:p-5",
+        href && "glass-panel-hover",
       )}
-      {...props}
     >
-      {children}
-    </td>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12.5px] font-medium leading-[1.4] text-[var(--color-text-secondary)]">
+          {label}
+        </p>
+        {icon && (
+          <span
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] [&>svg]:h-4 [&>svg]:w-4",
+              tones[tone],
+            )}
+          >
+            {icon}
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--color-text-primary)]">
+          {value}
+        </p>
+        {(delta !== undefined || deltaLabel) && (
+          <p className="mt-2 flex items-center gap-1.5 text-[12px]">
+            {delta !== undefined && (
+              <span
+                className={cn(
+                  "font-medium tabular-nums",
+                  delta >= 0
+                    ? "text-[var(--color-success-fg)]"
+                    : "text-[var(--color-error-fg)]",
+                )}
+              >
+                {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}%
+              </span>
+            )}
+            {deltaLabel && <span className="text-[var(--color-text-muted)]">{deltaLabel}</span>}
+          </p>
+        )}
+      </div>
+    </Comp>
   );
 }

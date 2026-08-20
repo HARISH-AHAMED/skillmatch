@@ -1,92 +1,83 @@
-import React from "react";
+"use client";
+
+import { cva, type VariantProps } from "class-variance-authority";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /**
-   * Maps onto the six system variants:
-   * primary (blue) · accent (navy, high-emphasis) · secondary (outline) ·
-   * ghost (text) · outline (blue outline-emphasis) · danger (destructive).
-   * `pill` is the chip/multi-select control.
-   */
-  variant?: "primary" | "secondary" | "accent" | "outline" | "ghost" | "danger" | "pill";
-  size?: "xs" | "sm" | "md" | "lg";
-  /** Swaps content for a spinner without changing the button's footprint. */
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap rounded-full " +
+    "transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--motion-base)] ease-out " +
+    "disabled:pointer-events-none disabled:opacity-55 active:scale-[0.985] " +
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
+  {
+    variants: {
+      variant: {
+        primary:
+          "bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-hover)] active:bg-[var(--color-brand-active)] shadow-[0_1px_2px_rgba(12,24,18,0.08)]",
+        ink: "bg-[var(--color-brand-ink)] text-white hover:bg-[var(--color-brand-ink-hover)]",
+        secondary:
+          "bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:border-[var(--color-border-emphasis)]",
+        soft: "bg-[var(--color-brand-soft)] text-[var(--color-brand-active)] hover:bg-[var(--color-brand-border)]",
+        ghost:
+          "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)]",
+        danger:
+          "bg-[var(--color-error-fg)] text-white hover:brightness-110",
+        dangerSoft:
+          "bg-[var(--color-error-bg)] text-[var(--color-error-fg)] border border-[var(--color-error-border)] hover:brightness-[0.98]",
+        link: "bg-transparent text-[var(--color-link)] hover:underline underline-offset-4 px-0 h-auto",
+      },
+      size: {
+        xs: "h-8 px-3 text-[12px]",
+        sm: "h-9 px-3.5 text-[13px]",
+        md: "h-10 px-4 text-[14px]",
+        lg: "h-11 px-5 text-[14px]",
+        xl: "h-12 px-6 text-[15px]",
+        icon: "h-10 w-10 p-0",
+        iconSm: "h-8 w-8 p-0",
+      },
+      block: { true: "w-full", false: "" },
+    },
+    defaultVariants: { variant: "primary", size: "md", block: false },
+  },
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   loading?: boolean;
+  href?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-export function Button({
-  children,
-  className,
-  variant = "primary",
-  size = "md",
-  type = "button",
-  loading = false,
-  disabled,
-  ...props
-}: ButtonProps) {
-  // Pill radius, 600 weight, blue focus ring, background-tint hover (no transform).
-  const baseStyles = cn(
-    "relative inline-flex items-center justify-center gap-2 rounded-full font-semibold",
-    "transition-colors duration-[180ms] ease-out",
-    "focus:outline-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2E6BEA]/15 focus-visible:border-[#2E6BEA]",
-    "disabled:cursor-not-allowed disabled:bg-[#F1F2F4] disabled:text-[#5B6272] disabled:border-transparent disabled:shadow-none"
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { className, variant, size, block, loading, href, leftIcon, rightIcon, children, disabled, ...props },
+  ref,
+) {
+  const classes = cn(buttonVariants({ variant, size, block }), className);
+  const content = (
+    <>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : leftIcon}
+      {children}
+      {!loading && rightIcon}
+    </>
   );
 
-  const variants = {
-    // Primary CTA — the only solid-fill control in the system.
-    primary:
-      "bg-[#2E6BEA] text-white border border-transparent hover:bg-[#245BC9] active:bg-[#1B49A8]",
-    // Secondary / cancel — white with a neutral outline.
-    secondary:
-      "bg-white text-[#1A1D29] border border-[#E3E5EA] hover:bg-[#F0F3F9] active:bg-[#EAF1FE]",
-    // High-emphasis alternate primary (navy).
-    accent:
-      "bg-[#152C55] text-white border border-transparent hover:bg-[#1E3D71] active:bg-[#152C55]",
-    // Outline-emphasis / toggle-style.
-    outline:
-      "bg-white text-[#2159C9] border border-[#2E6BEA] hover:bg-[#EAF1FE] active:bg-[#E8F1FE]",
-    // Tertiary text action.
-    ghost:
-      "bg-transparent text-[#2159C9] border border-transparent hover:bg-[#EAF1FE] active:bg-[#E8F1FE]",
-    danger:
-      "bg-white text-[#BC2A2A] border border-[#F5C2C2] hover:bg-[#FDEAEA] active:bg-[#FDEAEA]",
-    // Chip multi-select: selection reads as border + text colour, never fill.
-    pill: cn(
-      "bg-white text-[#5B6272] border border-dashed border-[#C7CBD6] px-5",
-      "hover:border-[#2E6BEA] hover:text-[#2159C9]",
-      "data-[selected=true]:border-solid data-[selected=true]:border-[1.5px]",
-      "data-[selected=true]:border-[#2E6BEA] data-[selected=true]:text-[#2159C9]"
-    ),
-  };
-
-  // Generous horizontal padding — pills need it to read correctly.
-  const sizes = {
-    xs: "h-8 px-4 text-[13px]",
-    sm: "h-9 px-5 text-[13px]",
-    md: "h-10 px-6 text-sm",
-    lg: "h-11 px-8 py-4 text-sm",
-  };
+  if (href && !disabled && !loading) {
+    return (
+      <Link href={href} className={classes}>
+        {content}
+      </Link>
+    );
+  }
 
   return (
-    <button
-      type={type}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
-      suppressHydrationWarning={true}
-      {...props}
-    >
-      {loading && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        </span>
-      )}
-      <span className={cn("inline-flex items-center gap-2", loading && "invisible")}>
-        {children}
-      </span>
+    <button ref={ref} className={classes} disabled={disabled || loading} {...props}>
+      {content}
     </button>
   );
-}
+});
+
+export { buttonVariants };

@@ -1,59 +1,67 @@
-import React from "react";
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { Role } from "@prisma/client";
-import { computeRecommendationScore } from "@/services/aiRecommendation";
-import { ProjectDetailsView } from "./ProjectDetailsView";
+"use client";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+import { notFound, useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { ProjectDetailView } from "@/components/shared/ProjectDetailView";
+import { useSession } from "@/lib/session";
+import {
+  acceptsApplications,
+  applicationsForFreelancer,
+  computeScore,
+  getCapacity,
+  getFreelancerByUserId,
+  getProject,
+} from "@/data/queries";
 
-export default async function ProjectDetailPage({ params }: PageProps) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.FREELANCER) {
-    redirect("/login");
-  }
+export default function FreelancerProjectDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { session } = useSession();
+  const [saved, setSaved] = useState(false);
 
-  const { id: projectId } = await params;
+  const project = getProject(id);
+  if (!project) notFound();
 
-  // Retrieve current freelancer profile details
-  const freelancer = await db.freelancer.findUnique({
-    where: { userId: session.user.id },
-  });
+  const freelancer = session ? getFreelancerByUserId(session.userId) : undefined;
+  const matchScore = freelancer ? computeScore(project.id, freelancer.id).aiScore : undefined;
 
-  if (!freelancer) {
-    redirect("/freelancer/profile");
-  }
+  const existing = freelancer
+    ? applicationsForFreelancer(freelancer.id).find((a) => a.projectId === project.id)
+    : undefined;
 
-  // Fetch project opportunity details in DB
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    include: {
-      company: true,
-      applications: {
-        where: { freelancerId: freelancer.id },
-      },
-    },
-  });
+  const capacity = getCapacity(project.id);
+  const hasApprenticeRoute = project.roles.some((r) => r.allowApprentice);
 
-  if (!project) {
-    notFound();
-  }
-
-  const hasApplied = project.applications.length > 0;
-  const aiScore = computeRecommendationScore(freelancer, project);
+  const canApply =
+    acceptsApplications(project.status) &&
+    project.isVisible &&
+    project.visibility !== "PRIVATE" &&
+    (!capacity.projectFull || hasApprenticeRoute);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <ProjectDetailsView
+    <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 xl:-mx-8">
+      <div className="container-wide pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<ArrowLeft className="h-4 w-4" />}
+          onClick={() => router.push("/freelancer/projects")}
+        >
+          Back to browse
+        </Button>
+      </div>
+
+      <ProjectDetailView
         project={project}
-        hasApplied={hasApplied}
-        aiScore={aiScore}
-        freelancer={freelancer}
+        matchScore={matchScore}
+        applyHref={`/freelancer/projects/${project.id}/apply`}
+        hasApplied={Boolean(existing)}
+        canApply={canApply}
+        saved={saved}
+        onToggleSave={() => setSaved((v) => !v)}
+        onAskQuestion={() => router.refresh()}
       />
     </div>
   );

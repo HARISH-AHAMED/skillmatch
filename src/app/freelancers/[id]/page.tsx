@@ -1,111 +1,81 @@
-import React from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { Navbar } from "@/components/Navbar";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { FreelancerProfileDetail } from "./FreelancerProfileDetail";
-import { getFreelancerCertificates } from "@/actions/certificateActions";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { FreelancerProfileDetail } from "@/components/shared/FreelancerProfileDetail";
+import { FREELANCERS, certificatesFor, getFreelancer, reviewsFor } from "@/data/queries";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+export function generateStaticParams() {
+  return FREELANCERS.map((f) => ({ id: f.id }));
 }
 
-export default async function PublicFreelancerProfilePage({ params }: PageProps) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
-
-  const session = await auth();
-  const currentUserId = session?.user?.id || null;
-
-  // Fetch freelancer detailed data
-  const freelancer = await db.freelancer.findUnique({
-    where: { id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          createdAt: true,
-          reviewsReceived: {
-            select: {
-              id: true,
-              rating: true,
-              comment: true,
-              createdAt: true,
-              reviewer: { select: { name: true } },
-              project: { select: { title: true, budget: true } },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 10,
-          },
-        },
-      },
-      applications: {
-        where: { status: "HIRED" },
-        select: {
-          id: true,
-          project: {
-            select: {
-              id: true,
-              title: true,
-              budget: true,
-              company: { select: { companyName: true } },
-            },
-          },
-        },
-        take: 10,
-      },
+  const f = getFreelancer(id);
+  if (!f) return { title: "Profile not found" };
+  return {
+    title: `${f.name} — ${f.professionalHeadline.split("—")[0].trim()}`,
+    description: f.bio.slice(0, 155),
+    alternates: { canonical: `/freelancers/${f.id}` },
+    openGraph: {
+      title: `${f.name} · FRIVVO`,
+      description: f.professionalHeadline,
+      images: [{ url: f.avatarUrl }],
+      type: "profile",
     },
-  });
+  };
+}
 
-  if (!freelancer) {
-    notFound();
-  }
+export default async function PublicFreelancerPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const freelancer = getFreelancer(id);
+  if (!freelancer) notFound();
 
-  // Platform-issued, verifiable credentials (distinct from self-reported ones).
-  const earnedCertificates = await getFreelancerCertificates(freelancer.id);
+  const reviews = reviewsFor(freelancer.id);
+  const certificates = certificatesFor(freelancer.id);
 
-  // Check if saved by the currently logged-in user
-  let isSaved = false;
-  if (currentUserId) {
-    const savedRecord = await db.savedFreelancer.findFirst({
-      where: {
-        freelancerId: id,
-        company: { userId: currentUserId },
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: freelancer.name,
+    jobTitle: freelancer.professionalHeadline,
+    description: freelancer.bio,
+    image: freelancer.avatarUrl,
+    address: { "@type": "PostalAddress", addressLocality: freelancer.location },
+    knowsAbout: freelancer.skills,
+    ...(reviews.length > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: freelancer.rating,
+        reviewCount: freelancer.reviewCount,
+        bestRating: 5,
       },
-    });
-    isSaved = !!savedRecord;
-  }
+    }),
+  };
 
-  if (session?.user) {
-    return (
-      <DashboardLayout role={session.user.role} userName={session.user.name}>
-        <FreelancerProfileDetail
-          freelancer={freelancer as any}
-          earnedCertificates={earnedCertificates}
-          initialSaved={isSaved}
-          currentUserId={currentUserId}
-        />
-      </DashboardLayout>
-    );
-  }
-
-  // Unauthenticated – show with public Navbar
   return (
-    <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
+    <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <Navbar />
-      <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-10">
+      <main className="flex-1">
         <FreelancerProfileDetail
-          freelancer={freelancer as any}
-          earnedCertificates={earnedCertificates}
-          initialSaved={false}
-          currentUserId={currentUserId}
+          freelancer={freelancer}
+          reviews={reviews}
+          certificates={certificates}
         />
       </main>
+      <Footer />
     </div>
   );
 }
