@@ -65,16 +65,6 @@ export interface User {
 
 /* ------------------------------------------------------------ freelancer --- */
 
-export interface ExperienceEntry {
-  id: string;
-  title: string;
-  company: string;
-  startDate: string;
-  endDate?: string;
-  current?: boolean;
-  description?: string;
-}
-
 export interface EducationEntry {
   id: string;
   school: string;
@@ -133,7 +123,6 @@ export interface Freelancer {
   verificationBadges: string[];
   portfolioUrl?: string;
   resumeUrl?: string;
-  experience: ExperienceEntry[];
   education: EducationEntry[];
   portfolioItems: PortfolioItem[];
   invites: ProjectInvite[];

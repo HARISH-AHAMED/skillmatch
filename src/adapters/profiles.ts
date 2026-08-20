@@ -2,7 +2,6 @@ import type {
   AvailabilityStatus,
   Company,
   EducationEntry,
-  ExperienceEntry,
   Freelancer,
   PortfolioItem,
   ProjectInvite,
@@ -15,6 +14,7 @@ import {
   parseCompanyMetadata,
   parseFreelancerMetadata,
 } from "@/lib/workflowHelpers";
+import type { Prisma } from "@prisma/client";
 import type { CompanyRow, FreelancerRow } from "./include";
 import { iso, jsonArray, opt, str } from "./scalars";
 
@@ -60,16 +60,31 @@ function toLanguage(raw: string): { name: string; level: string } {
   return { name: raw.trim(), level: "Professional" };
 }
 
-function toExperience(raw: unknown, index: number): ExperienceEntry {
-  const e = (raw ?? {}) as Record<string, unknown>;
+/**
+ * Freelancer.experience holds the rate-and-preferences settings object written
+ * by `updateFreelancerCalendarAndProfile`. It is the only home the schema has
+ * for a freelancer's own rate, so the profile editor owns this column and the
+ * work-history list the design once captured is no longer stored (see
+ * migration/EXCEPTIONS.md #1).
+ *
+ * Rows written before that decision hold an array of experience entries
+ * instead; those read as no settings, and the rate falls back to the rate on
+ * the freelancer's most recent work log.
+ */
+export interface ProfileSettings {
+  hourlyRate?: number;
+  currency?: string;
+}
+
+export function readProfileSettings(value: Prisma.JsonValue | null | undefined): ProfileSettings {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const raw = value as Record<string, unknown>;
+  const rate = Number(raw.hourlyRate);
+
   return {
-    id: String(e.id ?? "exp-" + index),
-    title: String(e.title ?? ""),
-    company: String(e.company ?? ""),
-    startDate: String(e.startDate ?? ""),
-    endDate: e.endDate ? String(e.endDate) : undefined,
-    current: Boolean(e.current),
-    description: e.description ? String(e.description) : undefined,
+    hourlyRate: Number.isFinite(rate) && rate > 0 ? rate : undefined,
+    currency: typeof raw.currency === "string" && raw.currency ? raw.currency : undefined,
   };
 }
 
@@ -128,6 +143,7 @@ function extractLocation(headline: string | null | undefined): string {
 
 export function toFreelancer(row: FreelancerRow, extras: FreelancerExtras = {}): Freelancer {
   const meta = parseFreelancerMetadata(row.bio);
+  const settings = readProfileSettings(row.experience);
   const badges = [...row.verificationBadges];
 
   // The metadata verification flags are the same badges the directory filters
@@ -171,13 +187,14 @@ export function toFreelancer(row: FreelancerRow, extras: FreelancerExtras = {}):
     completionRate: row.completionRate,
     responseTime: str(row.responseTime, "Within 24 hours"),
     availabilityStatus: (row.availabilityStatus ?? "AVAILABLE") as AvailabilityStatus,
-    hourlyRate: extras.hourlyRate,
-    currency: extras.currency ?? DEFAULT_CURRENCY,
+    // The freelancer's own stated rate wins; the rate they are actually
+    // engaged at, taken from their latest work log, is the fallback.
+    hourlyRate: settings.hourlyRate ?? extras.hourlyRate,
+    currency: settings.currency ?? extras.currency ?? DEFAULT_CURRENCY,
     languages: (meta.languages ?? []).map(toLanguage),
     verificationBadges: badges,
     portfolioUrl: opt(row.portfolioUrl),
     resumeUrl: opt(row.resumeUrl),
-    experience: jsonArray<unknown>(row.experience).map(toExperience),
     education: (meta.education ?? []).map(toEducation),
     portfolioItems: jsonArray<unknown>(row.portfolioItems).map(toPortfolioItem),
     invites,

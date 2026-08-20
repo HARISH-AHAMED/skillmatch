@@ -22,7 +22,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
-import { Checkbox, Field, Input, RadioCard, Select, Textarea, Toggle } from "@/components/ui/Field";
+import { Field, Input, RadioCard, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { Alert, EmptyState, Progress } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
@@ -38,7 +38,7 @@ import { formatDate } from "@/lib/utils";
 const TABS = [
   { id: "basics", label: "Basics" },
   { id: "skills", label: "Skills & availability" },
-  { id: "experience", label: "Experience" },
+  { id: "experience", label: "Education" },
   { id: "portfolio", label: "Portfolio" },
   { id: "certificates", label: "Certificates" },
 ];
@@ -97,7 +97,6 @@ export function ProfileClient({
   const [skills, setSkills] = useState<string[]>(freelancer.skills ?? []);
   const [skillQuery, setSkillQuery] = useState("");
   const [languages, setLanguages] = useState(freelancer.languages ?? []);
-  const [experience, setExperience] = useState(freelancer.experience ?? []);
   const [education, setEducation] = useState(freelancer.education ?? []);
   const [portfolio, setPortfolio] = useState(freelancer.portfolioItems ?? []);
   const [hiddenCerts, setHiddenCerts] = useState<string[]>(() =>
@@ -113,7 +112,6 @@ export function ProfileClient({
   const avatarInput = useRef<HTMLInputElement>(null);
   const resumeInput = useRef<HTMLInputElement>(null);
 
-  const [addingExperience, setAddingExperience] = useState(false);
   const [addingEducation, setAddingEducation] = useState(false);
   const [addingPortfolio, setAddingPortfolio] = useState(false);
   const [addingLanguage, setAddingLanguage] = useState(false);
@@ -125,14 +123,13 @@ export function ProfileClient({
       form.bio.length > 120,
       Boolean(form.location),
       skills.length >= 4,
-      experience.length > 0,
       education.length > 0,
       portfolio.length >= 2,
       languages.length > 0,
       Boolean(form.hourlyRate),
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [form, skills, experience, education, portfolio, languages]);
+  }, [form, skills, education, portfolio, languages]);
 
   const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -149,10 +146,10 @@ export function ProfileClient({
   const save = async () => {
     setSaving(true);
     try {
-      // Education, languages and the availability calendar live in the profile
-      // metadata block, which only this action writes. It runs first because it
-      // also rewrites the experience column, which the profile update below
-      // then sets to the real experience entries.
+      // Education and languages live in the profile metadata block, which only
+      // this action writes. It is also the only action that stores a rate, in
+      // the `experience` column. It runs first; the profile update below then
+      // writes that same settings object back, so it cannot be clobbered.
       await updateFreelancerCalendarAndProfile({
         purpose: "To find a job",
         languages: languages.map((l) => `${l.name} (${l.level})`),
@@ -171,6 +168,7 @@ export function ProfileClient({
         resumeUrl: media.resumeUrl,
         skills,
         gender: form.gender,
+        hourlyRate: form.hourlyRate,
       });
 
       await updateFreelancerProfile({
@@ -183,7 +181,10 @@ export function ProfileClient({
         portfolioUrl: form.portfolioUrl,
         resumeUrl: media.resumeUrl,
         professionalHeadline: composedHeadline(),
-        experience,
+        // Mirrors what updateFreelancerCalendarAndProfile just wrote, so the
+        // rate survives this second write. Currency rides along: nothing in
+        // the backend reads this column, so its shape is ours to extend.
+        experience: { hourlyRate: form.hourlyRate, currency: form.currency },
         portfolioItems: portfolio,
         responseTime: form.responseTime,
         availabilityStatus: form.availability,
@@ -518,17 +519,18 @@ export function ProfileClient({
                 </div>
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label="Indicative hourly rate"
-                    help="Read-only: your rate is taken from the rate agreed on your hourly engagements, not set here."
-                  >
-                    <Input type="number" min={0} value={form.hourlyRate} disabled readOnly />
+                  <Field label="Indicative hourly rate" help="Shown as a 'from' price on your profile.">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.hourlyRate}
+                      onChange={(e) => update("hourlyRate", e.target.value)}
+                    />
                   </Field>
                   <Field label="Currency">
                     <Select
                       value={form.currency}
                       onChange={(e) => update("currency", e.target.value)}
-                      disabled
                     >
                       {["USD", "EUR", "GBP", "INR", "SGD", "AUD", "CAD"].map((c) => (
                         <option key={c} value={c}>
@@ -589,67 +591,6 @@ export function ProfileClient({
           {/* ================= EXPERIENCE ================= */}
           {tab === "experience" && (
             <div className="flex flex-col gap-5">
-              <Card padding="lg">
-                <CardHeader
-                  title="Work experience"
-                  icon={<Briefcase />}
-                  action={
-                    <Button size="sm" variant="secondary" onClick={() => setAddingExperience(true)} leftIcon={<Plus className="h-3.5 w-3.5" />}>
-                      Add
-                    </Button>
-                  }
-                />
-                {experience.length === 0 ? (
-                  <EmptyState
-                    compact
-                    icon={<Briefcase />}
-                    title="No experience added"
-                    description="Companies weigh relevant experience heavily when reviewing applications."
-                    action={{ label: "Add your first role", onClick: () => setAddingExperience(true) }}
-                  />
-                ) : (
-                  <ul className="flex flex-col gap-3">
-                    {experience.map((x, i) => (
-                      <li
-                        key={x.id}
-                        className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-4"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-soft)]">
-                          <Briefcase className="h-4 w-4 text-[var(--color-brand-active)]" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
-                            {x.title}
-                          </h4>
-                          <p className="text-[13px] text-[var(--color-text-secondary)]">
-                            {x.company}
-                          </p>
-                          <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">
-                            {x.startDate} — {x.current ? "Present" : x.endDate}
-                          </p>
-                          {x.description && (
-                            <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-                              {x.description}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          aria-label="Remove"
-                          onClick={() => {
-                            setExperience((prev) => prev.filter((_, idx) => idx !== i));
-                            setDirty(true);
-                          }}
-                          className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-error-fg)]"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-
               <Card padding="lg">
                 <CardHeader
                   title="Education"
@@ -870,7 +811,6 @@ export function ProfileClient({
                 { label: "Headline written", done: Boolean(form.headline) },
                 { label: "Bio over 120 characters", done: form.bio.length > 120 },
                 { label: "At least 4 skills", done: skills.length >= 4 },
-                { label: "Experience added", done: experience.length > 0 },
                 { label: "2+ portfolio items", done: portfolio.length >= 2 },
                 { label: "Rate set", done: Boolean(form.hourlyRate) },
               ].map((c) => (
@@ -930,14 +870,6 @@ export function ProfileClient({
       </div>
 
       {/* ================= MODALS ================= */}
-      <AddExperienceModal
-        open={addingExperience}
-        onClose={() => setAddingExperience(false)}
-        onAdd={(entry) => {
-          setExperience((prev) => [entry, ...prev]);
-          setDirty(true);
-        }}
-      />
       <AddEducationModal
         open={addingEducation}
         onClose={() => setAddingEducation(false)}
@@ -967,84 +899,6 @@ export function ProfileClient({
 }
 
 /* ---------------------------------------------------------------- modals -- */
-
-function AddExperienceModal({
-  open,
-  onClose,
-  onAdd,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (e: import("@/lib/types").ExperienceEntry) => void;
-}) {
-  const [f, setF] = useState({ title: "", company: "", start: "", end: "", current: false, description: "" });
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Add work experience"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!f.title.trim() || !f.company.trim()}
-            onClick={() => {
-              onAdd({
-                id: `x-${Date.now()}`,
-                title: f.title.trim(),
-                company: f.company.trim(),
-                startDate: f.start,
-                endDate: f.current ? undefined : f.end,
-                current: f.current,
-                description: f.description.trim(),
-              });
-              setF({ title: "", company: "", start: "", end: "", current: false, description: "" });
-              onClose();
-            }}
-          >
-            Add experience
-          </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <Field label="Job title" required>
-          <Input value={f.title} onChange={(e) => setF((s) => ({ ...s, title: e.target.value }))} />
-        </Field>
-        <Field label="Company" required>
-          <Input value={f.company} onChange={(e) => setF((s) => ({ ...s, company: e.target.value }))} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Start">
-            <Input type="month" value={f.start} onChange={(e) => setF((s) => ({ ...s, start: e.target.value }))} />
-          </Field>
-          <Field label="End">
-            <Input
-              type="month"
-              disabled={f.current}
-              value={f.end}
-              onChange={(e) => setF((s) => ({ ...s, end: e.target.value }))}
-            />
-          </Field>
-        </div>
-        <Checkbox
-          checked={f.current}
-          onChange={(e) => setF((s) => ({ ...s, current: e.target.checked }))}
-          label="I currently work here"
-        />
-        <Field label="What you did">
-          <Textarea
-            rows={4}
-            value={f.description}
-            onChange={(e) => setF((s) => ({ ...s, description: e.target.value }))}
-          />
-        </Field>
-      </div>
-    </Modal>
-  );
-}
 
 function AddEducationModal({
   open,

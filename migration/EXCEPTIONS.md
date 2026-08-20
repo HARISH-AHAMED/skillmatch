@@ -5,26 +5,63 @@ and could not be made to work by calling an existing function. Per the scope
 rule, each was handled with the smallest possible content-level change — one
 control disabled or repointed, never a page or section dropped.
 
-Seven cases. Everything else in the design is wired to real backend calls.
+Seven cases, one of which is now **resolved** by a product decision (#1).
+Everything else in the design is wired to real backend calls.
 
 ---
 
-## 1. Freelancer profile — "Indicative hourly rate" and its currency
+## 1. Freelancer profile — hourly rate vs. work history — ✅ RESOLVED
 
-**Where:** `src/app/freelancer/profile/ProfileClient.tsx` → Skills & availability tab
-**Change:** both fields render exactly as designed but are `disabled` / `readOnly`,
-with the help text changed to say where the number comes from.
+**Original conflict:** `Freelancer` has no rate column. The one action that
+persists a rate, `updateFreelancerCalendarAndProfile`, writes it into the
+`experience` JSON column as `{ hourlyRate, expectedBudget, … }` — the same column
+`updateFreelancerProfile` uses for the freelancer's *work-history entries*. The
+two actions overwrite each other, so the column can hold one or the other, never
+both. The integration initially kept work history and disabled the rate field.
 
-**Why:** `Freelancer` has no rate column. The one action that persists a rate,
-`updateFreelancerCalendarAndProfile`, writes it into the `experience` JSON column
-as `{ hourlyRate, expectedBudget, … }` — the same column `updateFreelancerProfile`
-uses for the freelancer's *experience entries*. The two actions overwrite each
-other. Keeping the rate would mean losing the work-history list the design shows
-prominently on the public profile, so the work history won.
+**Decision (taken after the integration):** flip it. The rate wins; work-history
+capture is dropped.
 
-The field is not empty: the adapter fills it from the `rateSnapshot` on the
-freelancer's most recent work log, which is the rate they are actually engaged
-at. It is real, just not editable here.
+**What changed**
+
+- `src/app/freelancer/profile/ProfileClient.tsx` — the rate and currency fields
+  are editable again. The rate is submitted through
+  `updateFreelancerCalendarAndProfile` (`hourlyRate`), which is the existing
+  rate-writing action. The subsequent `updateFreelancerProfile` call passes the
+  same settings object as its `experience` value instead of a work-history array,
+  so the second write cannot reset the column. `updateFreelancerProfile` types
+  that parameter as `any` and no backend code reads the column back, so carrying
+  `currency` alongside `hourlyRate` needed no backend change.
+- The **Work experience** card, its "Add experience" modal and the state behind
+  them are removed from the profile editor. The tab that held them keeps its
+  Education card and is relabelled "Education".
+- `src/components/shared/FreelancerProfileDetail.tsx` — the public profile's
+  Experience card is removed for the same reason; its tab is relabelled
+  "Education" and counts education entries.
+- `src/adapters/profiles.ts` — `readProfileSettings()` parses the settings object
+  out of `Freelancer.experience`. The freelancer's stated rate takes precedence;
+  the `rateSnapshot` on their latest work log remains the fallback for anyone who
+  has not saved a rate yet.
+- `src/lib/types.ts` — `Freelancer.experience` and `ExperienceEntry` are removed.
+  Nothing reads them, and leaving an always-empty field would invite someone to
+  wire it back to a column that no longer holds entries.
+
+### ⚠️ Data-overwrite caveat — expected, not a defect
+
+**The first time an existing freelancer saves their profile, any work-history
+entries already stored in their `experience` column are overwritten by the rate
+settings object, and are not recoverable from the application.**
+
+No migration or preservation was attempted; that was the explicit instruction
+accompanying the decision. The column is a single JSON value with no versioning
+and no second home, so the two shapes cannot coexist. Existing rows are not
+touched until their owner saves — the overwrite happens on first save, per user,
+not as a bulk operation. Until then, the adapter reads such a row as "no settings
+stored" and falls back to the work-log rate.
+
+If those entries matter, they must be exported from the database **before** users
+start saving profiles. That is a database operation, outside this frontend-only
+scope.
 
 ---
 

@@ -4,7 +4,6 @@ import Image from "next/image";
 import {
   Award,
   Briefcase,
-  Building2,
   Calendar,
   ExternalLink,
   FileText,
@@ -59,7 +58,7 @@ export function FreelancerProfileDetail({
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "portfolio", label: "Portfolio", count: freelancer.portfolioItems.length },
-    { id: "experience", label: "Experience", count: freelancer.experience.length },
+    { id: "experience", label: "Education", count: freelancer.education.length },
     { id: "certificates", label: "Certificates", count: certificates.length },
     { id: "reviews", label: "Reviews", count: reviews.length },
   ];
@@ -302,40 +301,6 @@ export function FreelancerProfileDetail({
             {/* ---- Experience ---- */}
             {tab === "experience" && (
               <>
-                <Card padding="lg">
-                  <CardHeader title="Experience" icon={<Briefcase />} />
-                  <ol className="flex flex-col">
-                    {freelancer.experience.map((x, i) => (
-                      <li key={x.id} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-soft)]">
-                            <Building2 className="h-4 w-4 text-[var(--color-brand-active)]" />
-                          </span>
-                          {i < freelancer.experience.length - 1 && (
-                            <span className="w-px flex-1 bg-[var(--color-border)]" />
-                          )}
-                        </div>
-                        <div className="pb-6">
-                          <h4 className="text-[14.5px] font-semibold text-[var(--color-text-primary)]">
-                            {x.title}
-                          </h4>
-                          <p className="mt-0.5 text-[13px] text-[var(--color-text-secondary)]">
-                            {x.company}
-                          </p>
-                          <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">
-                            {x.startDate} — {x.current ? "Present" : x.endDate}
-                          </p>
-                          {x.description && (
-                            <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--color-text-secondary)]">
-                              {x.description}
-                            </p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </Card>
-
                 <Card padding="lg">
                   <CardHeader title="Education" icon={<GraduationCap />} />
                   <ul className="flex flex-col gap-4">

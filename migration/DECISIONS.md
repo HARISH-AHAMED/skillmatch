@@ -135,10 +135,12 @@ timing, rounds and the certificate template all persist. The edit screen merges
 its handful of fields over `fromProject(project)`, so editing a listing never
 drops metadata the edit form does not display.
 
-**Profile save order matters.** `updateFreelancerCalendarAndProfile` (education,
-languages) runs before `updateFreelancerProfile` (experience entries), because the
-first overwrites the `experience` column with a settings object and the second
-writes the real entries over it. See EXCEPTIONS #1 for what this costs.
+**Profile save order no longer decides who wins the `experience` column.**
+`updateFreelancerCalendarAndProfile` (education, languages, rate) still runs
+first, but `updateFreelancerProfile` now passes the *same* settings object back
+as its `experience` value rather than a competing work-history array. Both writes
+agree, so the rate survives regardless of ordering. See "Resolving EXCEPTIONS #1"
+below.
 
 **FAQ replies address the entry by index.** `replyToDiscussionQuestion` takes a
 `faqIndex` into the metadata array, so the adapter mints FAQ ids as `faq-{index}`
@@ -184,3 +186,47 @@ was built against (`^13.1.0`, `^1.33.0`). `next` and `react` were left at the
 backend's versions, which the new frontend compiles and builds against cleanly.
 The seven fixture modules under `src/data/` were deleted once the last consumer
 was converted.
+
+---
+
+## Resolving EXCEPTIONS #1 — rate over work history
+
+The rate-vs-work-history conflict was decided in favour of an editable rate.
+The judgment calls made while carrying that out:
+
+**Order stopped mattering, rather than being flipped.** The obvious fix was to
+reverse the two save calls so the rate-writing action runs last. That would have
+worked for the rate but broken availability: the calendar action forces
+`availabilityStatus = "AVAILABLE"` whenever it receives an `availabilityCalendar`
+(and `[]` is truthy), so running it last would silently override a freelancer who
+had chosen "Partly booked" or "Not taking work". Instead both writes now agree on
+the column's contents, and the profile action keeps running last so the fields
+only it can write — name, avatar, banner, availability, domain, response time —
+still win.
+
+**Currency rides in the same object.** `updateFreelancerProfile` types its
+`experience` parameter as `any` and writes it verbatim, and nothing in the backend
+reads that column back — the only two references to it are the two writers. So the
+settings object carries `currency` next to `hourlyRate`. A rate without its
+currency would have been ambiguous, and the alternative was leaving the currency
+select disabled while the rate beside it was editable.
+
+**Orphaned UI was deleted, not hidden.** The Work experience card, its
+`AddExperienceModal` component and the `experience` / `addingExperience` state
+came out of the profile editor entirely, along with the profile-completeness check
+and checklist row that counted work history. The public profile's Experience card
+went too — with the column now holding settings, it would have rendered a heading
+above an empty list on every profile.
+
+**The tabs that held it were relabelled, not removed.** Both the editor and the
+public profile grouped Experience and Education under one "Experience" tab. The
+Education half is still real and still populated, so the tab survives as
+"Education" rather than the section disappearing.
+
+**`ExperienceEntry` and `Freelancer.experience` were removed from the domain
+types.** Keeping a field that is always `[]` and read by nothing would invite a
+future change to repopulate it from a column that no longer holds entries — which
+is precisely the collision this decision resolved.
+
+**No data migration was attempted**, per the instruction accompanying the
+decision. The overwrite caveat is recorded in EXCEPTIONS #1.
