@@ -63,6 +63,22 @@ If those entries matter, they must be exported from the database **before** user
 start saving profiles. That is a database operation, outside this frontend-only
 scope.
 
+### Verified against the seeded database
+
+The live verification pass confirmed this behaves exactly as written. Two seeded
+freelancers carried legacy work-history arrays.
+
+| freelancer | before | after one save | after a second save |
+|---|---|---|---|
+| `freelancer.sam@skillmatch.ai` (saved) | `ARRAY(1)` — "DevOps Architect, HashiCorp Systems" | `{"currency":"EUR","hourlyRate":"125"}` | `{"currency":"EUR","hourlyRate":"130"}` |
+| `freelancer.alice@skillmatch.ai` (not saved) | `ARRAY(1)` | untouched | untouched |
+
+The overwrite happened once, on that freelancer's own first save, and nothing
+happened before it — Alice's entry is still intact because she has not saved.
+The rate and currency round-trip back through the adapter into the form on
+reload. **Sam's work-history entry was destroyed by this test and is not
+recoverable**, which is the documented and accepted consequence.
+
 ---
 
 ## 2. Admin → Users → "Add user"

@@ -230,3 +230,65 @@ is precisely the collision this decision resolved.
 
 **No data migration was attempted**, per the instruction accompanying the
 decision. The overwrite caveat is recorded in EXCEPTIONS #1.
+
+---
+
+## Live seeded-DB verification pass
+
+Everything above was verified statically. This pass ran the app against the
+seeded Neon database (17 users — 13 freelancer, 3 company, 1 admin; 19 projects
+across all seven statuses; 29 applications across all four) and walked every
+route as guest, freelancer, company and admin. Every adapter in `src/adapters/`
+was additionally run over every row of every table: no parse failures, no NaN,
+no empty required values.
+
+Three runtime bugs surfaced that static checks structurally could not catch.
+All three were fixed frontend-only.
+
+**1. `next/image` rejected every remote host.** `next.config.ts` had no `images`
+block, so the home page, the directories and every profile card threw
+`Invalid src prop … hostname not configured`. The build never catches this
+because it never resolves an image `src`. Fixed by declaring `remotePatterns`
+for the four hosts actually in use — the design's editorial imagery
+(`i.pinimg.com`, `assets.pinterest.com`, `images.unsplash.com`) and the seeded
+avatars (`api.dicebear.com`). Uploaded media needs no entry: the upload route
+returns a local path or a `data:` URL.
+
+**2. Real rows have no artwork; the design assumed they always do.** Seven
+projects, twelve freelancer profiles and one company carry a null banner, and
+the design renders those fields straight through `next/image`, which rejects an
+empty string. Rather than guard fifteen-plus call sites, the adapters now fall
+back to `placeholderImage(id)` — a deterministic pick from the design's own
+gallery, so an entity always gets the same picture. `avatarUrl` is deliberately
+left empty-able: `Avatar` already falls back to initials, which is the designed
+behaviour.
+
+**3. The notification feed exhausted the connection pool on every page load.**
+`allNotificationsFor` resolved a destination for *every* notification through
+`getNotificationRedirectUrl`, in a `Promise.all`. That action runs `auth()` —
+itself a user lookup — plus a row lookup, so the busiest seeded user (105
+notifications) produced roughly 210 concurrent database operations on every
+authenticated page, against a pool of 13. It ran in the role layout, so it hit
+every dashboard, workspace and settings screen. Live, this produced `P2024`
+pool timeouts and 500s. Fixed by not resolving destinations for the feed at all:
+`NotificationCenter` now calls the same action on click, once, for the
+notification actually opened. The row became a `<button>` that pushes the
+resolved route instead of an `<a>` with a precomputed href.
+
+### Not bugs, recorded so they are not re-investigated
+
+- A transient `P1001 Can't reach database server` on `/company/freelancers` was
+  Neon suspending; the route returns 200 on retry.
+- The first sweep ran twenty routes in parallel and produced `P2024` timeouts of
+  its own. Re-run sequentially, every route returns 200. Dev-mode SSR against a
+  remote database takes 4–30s per route; the workspace routes are the slowest,
+  at roughly thirty parallel queries each.
+
+### Gap worth knowing about
+
+The application has no `error.tsx`, `global-error.tsx` or `not-found.tsx`
+anywhere. When a server component throws — a transient database blip is enough,
+as observed — the visitor gets Next's raw error screen with no branding and no
+recovery path. The new frontend never shipped an error state, so building one
+would be new design rather than wiring, and it was left alone. Worth adding
+before this goes in front of users.

@@ -148,3 +148,18 @@ function hash(value: string) {
   for (let i = 0; i < value.length; i++) h = (h * 31 + value.charCodeAt(i)) >>> 0;
   return h;
 }
+
+/**
+ * A deterministic stand-in for an entity that has no image of its own.
+ *
+ * The design assumes every project, company and profile carries artwork and
+ * renders those fields straight through `next/image`, which rejects an empty
+ * src. Real rows frequently have none, so the adapters resolve to one of the
+ * gallery images instead — keyed off the row id, so a given entity always gets
+ * the same picture rather than changing on every render.
+ */
+export function placeholderImage(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return GALLERY[hash % GALLERY.length];
+}

@@ -17,6 +17,7 @@ import {
 import type { Prisma } from "@prisma/client";
 import type { CompanyRow, FreelancerRow } from "./include";
 import { iso, jsonArray, opt, str } from "./scalars";
+import { placeholderImage } from "@/lib/media";
 
 /* ============================================================================
    PROFILE ADAPTERS
@@ -112,7 +113,7 @@ function toPortfolioItem(raw: unknown, index: number): PortfolioItem {
     id: String(p.id ?? "pf-" + index),
     title: String(p.title ?? "Untitled"),
     description: String(p.description ?? ""),
-    imageUrl: String(p.imageUrl ?? p.fileUrl ?? ""),
+    imageUrl: String(p.imageUrl ?? p.fileUrl ?? "") || placeholderImage(String(p.id ?? index)),
     link: p.link ? String(p.link) : p.url ? String(p.url) : undefined,
     tags: Array.isArray(p.tags) ? (p.tags as string[]) : p.type ? [String(p.type)] : [],
   };
@@ -172,7 +173,7 @@ export function toFreelancer(row: FreelancerRow, extras: FreelancerExtras = {}):
     name: str(row.user.name, "Freelancer"),
     email: str(row.user.email),
     avatarUrl: str(row.user.image),
-    bannerUrl: str(row.bannerUrl),
+    bannerUrl: row.bannerUrl || placeholderImage(row.id),
     professionalHeadline: str(row.professionalHeadline),
     bio: getFreelancerBioText(row.bio),
     // Freelancer has no location column; the profile form writes it into the
@@ -216,8 +217,8 @@ export function toCompany(row: CompanyRow, extras: CompanyExtras = {}): Company 
     userId: row.userId,
     companyName: row.companyName,
     email: str(row.email || row.user.email),
-    logoUrl: str(row.logoUrl || row.user.image),
-    bannerUrl: str(row.bannerUrl),
+    logoUrl: row.logoUrl || row.user.image || placeholderImage(row.id + ":logo"),
+    bannerUrl: row.bannerUrl || placeholderImage(row.id),
     description: getCompanyDescriptionText(row.description),
     industry: str(row.industry, "Other"),
     website: opt(row.website),
@@ -258,7 +259,7 @@ export function toCompanySummary(row: CompanyRow, extras: CompanyExtras = {}) {
   return {
     id: row.id,
     companyName: row.companyName,
-    logoUrl: str(row.logoUrl || row.user.image),
+    logoUrl: row.logoUrl || row.user.image || placeholderImage(row.id + ":logo"),
     location: str(row.location),
     industry: str(row.industry, "Other"),
     trustScore: row.trustScore,

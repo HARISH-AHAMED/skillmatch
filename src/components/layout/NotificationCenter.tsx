@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Award,
@@ -14,8 +13,9 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session";
-import { markAllAsRead, markAsRead } from "@/actions/notificationActions";
+import { getNotificationRedirectUrl, markAllAsRead, markAsRead } from "@/actions/notificationActions";
 import { useChrome } from "./chrome";
 import { cn, relativeTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
@@ -46,6 +46,7 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
   const [readIds, setReadIds] = useState<string[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
+  const router = useRouter();
   const { notifications: items } = useChrome();
   const [, startTransition] = useTransition();
 
@@ -122,16 +123,24 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
                 const Icon = KIND_ICON[n.kind];
                 const isRead = n.read || readIds.includes(n.id);
                 return (
-                  <Link
+                  <button
                     key={n.id}
-                    href={n.href ?? "#"}
+                    type="button"
                     onClick={() => {
                       setReadIds((p) => [...p, n.id]);
-                      startTransition(() => void markAsRead(n.id));
                       setOpen(false);
+                      startTransition(async () => {
+                        void markAsRead(n.id);
+                        // Resolved per click rather than for the whole feed:
+                        // the action does a session check and a lookup, and
+                        // fanning it out over every notification exhausted the
+                        // connection pool on each page load.
+                        const href = await getNotificationRedirectUrl(n.id);
+                        if (href) router.push(href);
+                      });
                     }}
                     className={cn(
-                      "flex gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3 transition-colors last:border-0 hover:bg-[var(--color-hover)]",
+                      "flex w-full gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[var(--color-hover)]",
                       !isRead && "bg-[var(--color-brand-softer)]",
                     )}
                   >
@@ -159,7 +168,7 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
                         {relativeTime(n.createdAt)}
                       </span>
                     </span>
-                  </Link>
+                  </button>
                 );
               })}
             </div>

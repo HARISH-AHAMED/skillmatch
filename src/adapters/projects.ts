@@ -23,6 +23,7 @@ import type { CompanyExtras } from "./profiles";
 import { toCompanySummary } from "./profiles";
 import type { ProjectRow } from "./include";
 import { dec, iso, isoOrUndefined, opt, str } from "./scalars";
+import { placeholderImage } from "@/lib/media";
 
 /* ============================================================================
    PROJECT ADAPTER
@@ -231,7 +232,7 @@ export function toProject(
     category: str(meta.category, "General"),
     subcategory: opt(meta.subcategory),
     domain: str(row.domain, "Other"),
-    bannerUrl: str(row.bannerUrl),
+    bannerUrl: row.bannerUrl || placeholderImage(row.id),
     status: row.status,
     priority: row.priority,
     visibility: (meta.visibility ?? "PUBLIC") as Visibility,
@@ -275,7 +276,7 @@ export function toProjectSummary(row: ProjectRow, extras: ProjectExtras = {}) {
   return {
     id: row.id,
     title: row.title,
-    bannerUrl: str(row.bannerUrl),
+    bannerUrl: row.bannerUrl || placeholderImage(row.id),
     status: row.status,
     compensation: toCompensation(row, meta),
     company: toCompanySummary(row.company, { rating: extras.companyRating }),

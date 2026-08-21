@@ -4,7 +4,6 @@ import type { AppNotification, Certificate, Review } from "@/lib/types";
 import { certificateInclude, reviewInclude } from "@/adapters/include";
 import { toCertificate, toNotification, toReview } from "@/adapters/records";
 import { getHiddenCertificateIds } from "@/actions/certificateActions";
-import { getNotificationRedirectUrl } from "@/actions/notificationActions";
 
 /* ============================================================================
    RECORD READS — reviews, certificates and notifications.
@@ -85,24 +84,13 @@ export async function getCertificate(publicId: string): Promise<Certificate | un
 
 /* --------------------------------------------------------- notifications --- */
 
-async function withHrefs(rows: Awaited<ReturnType<typeof db.notification.findMany>>) {
-  // The destination for a notification is resolved by the backend's own
-  // redirect action, so a click lands wherever the platform decides it should.
-  return Promise.all(
-    rows.map(async (row) => {
-      const href = await getNotificationRedirectUrl(row.id);
-      return toNotification(row, href ?? undefined);
-    }),
-  );
-}
-
 export async function notificationsFor(userId: string, limit = 8): Promise<AppNotification[]> {
   const rows = await db.notification.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-  return withHrefs(rows);
+  return rows.map((row) => toNotification(row));
 }
 
 export async function allNotificationsFor(userId: string): Promise<AppNotification[]> {
@@ -110,5 +98,5 @@ export async function allNotificationsFor(userId: string): Promise<AppNotificati
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
-  return withHrefs(rows);
+  return rows.map((row) => toNotification(row));
 }
