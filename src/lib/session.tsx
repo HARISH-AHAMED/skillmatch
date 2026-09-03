@@ -42,7 +42,8 @@ interface SessionApi {
     role: Role;
     companyName?: string;
   }) => Promise<Result>;
-  signOut: () => void;
+  /** Clears the session, then leaves the page so nothing stale survives. */
+  signOut: () => Promise<void>;
   completeOnboarding: () => void;
 }
 
@@ -164,9 +165,21 @@ export function SessionProvider({
     [signIn],
   );
 
-  const signOut = useCallback(() => {
-    void authSignOut({ callbackUrl: "/" });
-  }, []);
+  const signOut = useCallback(async () => {
+    /*
+     * Clear the session server-side without letting Auth.js navigate, so the
+     * client router cache can be dropped while this page is still mounted.
+     * Auth.js on its own would assign location straight away, leaving every
+     * RSC payload it had already cached for the *previous* session to be
+     * replayed on the way back in.
+     *
+     * `replace` rather than `assign` so Back cannot return to an
+     * authenticated page after signing out.
+     */
+    await authSignOut({ redirect: false });
+    router.refresh();
+    window.location.replace("/");
+  }, [router]);
 
   const completeOnboarding = useCallback(() => {
     // Onboarding state lives on the company profile the wizard just wrote, so

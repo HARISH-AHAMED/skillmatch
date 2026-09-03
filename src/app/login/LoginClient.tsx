@@ -36,7 +36,18 @@ export function LoginClient() {
   const next = params.get("next");
 
   const go = (role: Role) => {
-    router.push(next && next.startsWith("/") ? next : homeForRole(role));
+    const target = next && next.startsWith("/") ? next : homeForRole(role);
+    /*
+     * A full navigation, not router.push.
+     *
+     * Signing in changes who every cached page belongs to, and the client
+     * router cache is keyed on the route, not on the session — so a soft push
+     * could hand the incoming user a dashboard rendered for whoever was signed
+     * in before. Loading the document afresh is the one way to guarantee the
+     * new session renders the whole tree, and it costs a single page load at
+     * the one moment a user expects one.
+     */
+    window.location.assign(target);
   };
 
   const submit = async (e: React.FormEvent) => {
