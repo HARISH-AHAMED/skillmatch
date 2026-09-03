@@ -2,9 +2,21 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { Role, ProjectPriority, ProjectStatus, ApplicationStatus } from "@prisma/client";
+import { Role, ProjectPriority, ProjectStatus, ApplicationStatus, Prisma } from "@prisma/client";
 import { recalculateRecommendationsForProject } from "@/services/aiRecommendation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath as revalidateRoute } from "next/cache";
+import { CACHE_TAGS, invalidatePublic } from "@/data/server/cache";
+
+/**
+ * PERF — the public directories and marketing pages read through a tagged
+ * cache, so a mutation has to drop those entries as well as the rendered
+ * routes. Wrapping revalidatePath here keeps the two in step: every existing
+ * invalidation point in this file now does both.
+ */
+function revalidatePath(path: string) {
+  revalidateRoute(path);
+  invalidatePublic(CACHE_TAGS.projects, CACHE_TAGS.stats);
+}
 import { assertProjectTransition, assertProjectMutable } from "@/lib/lifecycle";
 import { deriveFromMetadata } from "@/lib/compensation";
 
@@ -22,9 +34,83 @@ function compensationData(description: string, budget: number) {
     budgetNegotiable: c.budgetNegotiable,
     hourlyRate: c.hourlyRate,
     estimatedHours: c.estimatedHours,
+    // maxHours and stipendPeriods were resolved but never written, so both
+    // columns stayed NULL on every project. A NULL stipendPeriods reads as a
+    // single payable period, and a NULL maxHours removes the ceiling on
+    // billable hours entirely.
+    maxHours: c.maxHours,
     stipendAmount: c.stipendAmount,
     stipendFrequency: c.stipendFrequency,
+    stipendPeriods: c.stipendPeriods,
   };
+}
+
+/**
+ * Whether a project's compensation may still be changed the way this edit
+ * proposes.
+ *
+ * A project with no financial history is fully editable, which is the common
+ * case and the behaviour companies expect while a listing is still being
+ * shaped. Once value has moved, the terms it moved under are fixed: the type
+ * and currency are frozen, and the budget cannot fall below what is already
+ * committed to freelancers.
+ */
+async function assertCompensationChangeAllowed(
+  projectId: string,
+  next: { type: string; currency: string; totalBudget: Prisma.Decimal }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const current = await db.projectCompensation.findUnique({ where: { projectId } });
+  if (!current) return { ok: true };
+
+  const [items, releases, periods] = await Promise.all([
+    db.paymentItem.findMany({
+      where: { projectId },
+      select: { fundedAmount: true, releasedAmount: true },
+    }),
+    db.paymentTransaction.findMany({ where: { projectId }, select: { amount: true } }),
+    db.stipendPeriod.count({ where: { projectId, status: "RELEASED" } }),
+  ]);
+
+  const hasHistory =
+    releases.length > 0 ||
+    periods > 0 ||
+    items.some((i) => i.fundedAmount.greaterThan(0) || i.releasedAmount.greaterThan(0));
+
+  if (!hasHistory) return { ok: true };
+
+  if (next.type !== current.type) {
+    return {
+      ok: false,
+      error: `This project already has payment records under its ${current.type.toLowerCase()} terms, so its compensation type can no longer be changed.`,
+    };
+  }
+  if (next.currency !== current.currency) {
+    return {
+      ok: false,
+      error: `This project's payments are denominated in ${current.currency} and cannot be re-denominated.`,
+    };
+  }
+
+  // Committed = the larger of funded and released on each stage, plus every
+  // non-stage payout already made.
+  const committedOnItems = items.reduce(
+    (t, i) => t.plus(Prisma.Decimal.max(i.fundedAmount, i.releasedAmount)),
+    new Prisma.Decimal(0)
+  );
+  const releasedElsewhere = releases.reduce(
+    (t, r) => (r.amount.isNegative() ? t.plus(r.amount.abs()) : t),
+    new Prisma.Decimal(0)
+  );
+  const floor = Prisma.Decimal.max(committedOnItems, releasedElsewhere);
+
+  if (next.totalBudget.lessThan(floor)) {
+    return {
+      ok: false,
+      error: `${floor.toFixed(2)} is already committed or paid on this project, so the budget cannot be lowered below that.`,
+    };
+  }
+
+  return { ok: true };
 }
 
 export async function createProject(formData: {
@@ -86,26 +172,28 @@ export async function createProject(formData: {
   // Calculate AI Recommendations for this new project
   await recalculateRecommendationsForProject(project.id);
 
-  // Send notifications to highly matched freelancers (skills match count > 0)
-  const freelancers = await db.freelancer.findMany({
-    include: {
-      user: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
+  /**
+   * PERF-001 class — this used to load every freelancer on the platform with
+   * their user relation, filter the skill overlap in JavaScript, and then issue
+   * one insert per match sequentially: an unbounded table scan plus N round
+   * trips inside the request that posts a job.
+   *
+   * The overlap is a Postgres array operation, so the database can answer it
+   * directly, and the inserts go in one statement.
+   */
+  if (skillsCleaned.length > 0) {
+    const matched = await db.freelancer.findMany({
+      where: { skills: { hasSome: skillsCleaned } },
+      select: { userId: true },
+    });
 
-  for (const f of freelancers) {
-    const matched = f.skills.some(skill => skillsCleaned.includes(skill));
-    if (matched) {
-      await db.notification.create({
-        data: {
-          userId: f.user.id,
+    if (matched.length > 0) {
+      await db.notification.createMany({
+        data: matched.map((f) => ({
+          userId: f.userId,
           title: "New Match Found",
           message: `A new project '${project.title}' matching your skills was posted by ${company.companyName}.`,
-        },
+        })),
       });
     }
   }
@@ -155,6 +243,19 @@ export async function editProject(
   const editable = assertProjectMutable(existingProject.status, "edit");
   if (!editable.ok) throw new Error(editable.error);
 
+  /**
+   * The compensation row was rewritten from the submitted description with no
+   * reconciliation against records that already exist against it. That allowed
+   * three things a live engagement cannot survive: dropping the budget below
+   * money already committed, switching the compensation type out from under
+   * existing payment records, and re-denominating a project whose stages keep
+   * their original currency (which then fails checkSaveItem's equality test and
+   * leaves the project unable to add stages at all).
+   */
+  const nextComp = compensationData(formData.description, formData.budget);
+  const guard = await assertCompensationChangeAllowed(projectId, nextComp);
+  if (!guard.ok) throw new Error(guard.error);
+
   const skillsCleaned = formData.requiredSkills.map(s => s.toLowerCase().trim()).filter(Boolean);
 
   const project = await db.project.update({
@@ -176,11 +277,10 @@ export async function editProject(
 
   // COMP-016 — an edit can change the compensation metadata, so the canonical
   // row is kept in step with the description it is derived from.
-  const comp = compensationData(formData.description, formData.budget);
   await db.projectCompensation.upsert({
     where: { projectId },
-    create: { projectId, ...comp },
-    update: comp,
+    create: { projectId, ...nextComp },
+    update: nextComp,
   });
 
   // Recalculate match recommendations

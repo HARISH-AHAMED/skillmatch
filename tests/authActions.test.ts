@@ -16,7 +16,12 @@ vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/auth", () => ({
   auth: async () => (sessionState.user ? { user: sessionState.user } : null),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  // The action files invalidate the public read cache alongside the route.
+  updateTag: vi.fn(),
+  unstable_cache: (fn: unknown) => fn,
+}));
 
 const { deleteUser, updateUserRole, registerUser } = await import("@/actions/authActions");
 

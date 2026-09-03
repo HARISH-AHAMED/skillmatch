@@ -98,7 +98,10 @@ export function toStipendPeriod(row: StipendPeriodRow): StipendPeriod {
     currency: row.currency,
     // The period table shares PaymentItemStatus, but a period is only ever
     // pending or paid — anything not released reads as pending.
-    status: row.status === "RELEASED" ? "RELEASED" : "PENDING",
+    // A period the freelancer has raised is distinct from one nobody has
+    // touched: the company needs to see which are waiting on it.
+    status:
+      row.status === "RELEASED" ? "RELEASED" : row.status === "SUBMITTED" ? "SUBMITTED" : "PENDING",
     releasedAt: isoOrUndefined(row.releasedAt),
   };
 }
@@ -221,6 +224,7 @@ export function toTask(row: TaskRow): Task {
     assignedToAvatar: row.assignedTo?.image ?? undefined,
     createdByName: str(row.createdBy.name, "Member"),
     createdAt: iso(row.createdAt),
+    completedAt: isoOrUndefined(row.completedAt),
     // The task table has no label column; the board renders an empty list
     // rather than the design's sample chips.
     labels: [],

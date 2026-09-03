@@ -1,7 +1,8 @@
 "use client";
 
 import { Calendar, ChevronLeft, ChevronRight, CheckSquare, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,8 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/Feedback";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { useSession } from "@/lib/session";
+import { createTask, deleteTask, updateTaskStatus } from "@/actions/collaborationActions";
 import { TASK_COLUMNS, TASK_STATUSES } from "@/lib/constants";
 import type { Project, Role, Task, TaskStatus } from "@/lib/types";
 import type { WorkspaceData } from "@/data/server/workspace";
@@ -28,6 +31,12 @@ const PRIORITY_TONE = {
   LOW: "neutral",
 } as const;
 
+/** A board change that has been made but not yet confirmed by the server. */
+type OptimisticChange =
+  | { kind: "create"; task: Task }
+  | { kind: "move"; id: string; status: TaskStatus }
+  | { kind: "delete"; id: string };
+
 export function WorkspaceTasks({
   data,
   project,
@@ -39,10 +48,28 @@ export function WorkspaceTasks({
 }) {
   const toast = useToast();
   const isCompany = viewerRole === "COMPANY";
+  const { session } = useSession();
 
-  const [tasks, setTasks] = useState<Task[]>(() =>
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  /*
+   * The board is the server's list with a pending change laid over it. It used
+   * to be a `useState` copy that nothing ever wrote back: creating, moving and
+   * deleting a task all edited that copy and stopped there, so every change
+   * disappeared on the next render and no one else ever saw it.
+   */
+  const [tasks, applyOptimistic] = useOptimistic<Task[], OptimisticChange>(
     data.tasks,
+    (current, change) => {
+      if (change.kind === "create") return [change.task, ...current];
+      if (change.kind === "move") {
+        return current.map((t) => (t.id === change.id ? { ...t, status: change.status } : t));
+      }
+      return current.filter((t) => t.id !== change.id);
+    },
   );
+
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [filterAssignee, setFilterAssignee] = useState("ALL");
@@ -58,42 +85,112 @@ export function WorkspaceTasks({
 
   const visible = useMemo(
     () =>
-      filterAssignee === "ALL"
-        ? tasks
-        : tasks.filter((t) => t.assignedToId === filterAssignee),
-    [tasks, filterAssignee],
+      // A freelancer sees the work assigned to them, not the whole board.
+      // Unassigned tasks stay visible so nobody's work is invisible until
+      // somebody remembers to assign it.
+      !isCompany
+        ? tasks.filter((t) => !t.assignedToId || t.assignedToId === session?.userId)
+        : filterAssignee === "ALL"
+          ? tasks
+          : tasks.filter((t) => t.assignedToId === filterAssignee),
+    [tasks, filterAssignee, isCompany, session?.userId],
   );
 
   const move = (task: Task, dir: "forward" | "back") => {
     const next = adjacentTaskStatus(task.status, dir);
     if (next === task.status) return;
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)));
+
+    startTransition(async () => {
+      applyOptimistic({ kind: "move", id: task.id, status: next });
+      const result = await updateTaskStatus(project.id, task.id, next);
+      if (!result || "error" in result) {
+        toast.error("That task could not be moved", (result && "error" in result ? result.error : undefined) ?? "Please try again.");
+        return;
+      }
+      router.refresh();
+    });
   };
 
   const create = () => {
-    if (!form.title.trim()) return;
-    const assignee = team.find((a) => a.freelancer.id === form.assignee);
-    setTasks((prev) => [
-      {
-        id: `task-local-${Date.now()}`,
-        projectId: project.id,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        status: "TODO",
-        priority: form.priority,
-        dueDate: form.dueDate || undefined,
-        assignedToId: assignee?.freelancer.id,
-        assignedToName: assignee?.freelancer.name,
-        assignedToAvatar: assignee?.freelancer.avatarUrl,
-        createdByName: project.company.companyName,
-        createdAt: new Date().toISOString(),
-        labels: [],
-      },
-      ...prev,
-    ]);
+    const title = form.title.trim();
+    if (!title) return;
+
+    // The select carries the assignee's *user* id: Task.assignedToId is a User
+    // reference, and submitting the freelancer profile id — as this used to —
+    // pointed at a row that does not exist.
+    const assignee = team.find((a) => a.freelancer.userId === form.assignee);
+    const description = form.description.trim();
+    const { priority, dueDate } = form;
+
     setForm({ title: "", description: "", priority: "MEDIUM", assignee: "", dueDate: "" });
     setCreating(false);
-    toast.success("Task created", assignee ? `${assignee.freelancer.name} has been notified.` : undefined);
+
+    startTransition(async () => {
+      applyOptimistic({
+        kind: "create",
+        task: {
+          id: `task-local-${Date.now()}`,
+          projectId: project.id,
+          title,
+          description,
+          status: "TODO",
+          priority,
+          dueDate: dueDate || undefined,
+          assignedToId: assignee?.freelancer.userId,
+          assignedToName: assignee?.freelancer.name,
+          assignedToAvatar: assignee?.freelancer.avatarUrl,
+          createdByName: session?.name ?? "You",
+          createdAt: new Date().toISOString(),
+          labels: [],
+        },
+      });
+
+      const result = await createTask(
+        project.id,
+        title,
+        description,
+        priority,
+        dueDate || undefined,
+        assignee?.freelancer.userId ?? null,
+      );
+
+      if (!result || "error" in result) {
+        toast.error(
+          "That task could not be created",
+          (result && "error" in result ? result.error : undefined) ?? "Please try again.",
+        );
+        // Hand back what they typed so it is not lost.
+        setForm({ title, description, priority, assignee: form.assignee, dueDate });
+        setCreating(true);
+        return;
+      }
+
+      toast.success(
+        "Task created",
+        assignee ? `${assignee.freelancer.name} has been notified.` : undefined,
+      );
+      router.refresh();
+    });
+  };
+
+  const confirmDelete = () => {
+    const target = deleteTarget;
+    if (!target) return;
+    setDeleteTarget(null);
+
+    startTransition(async () => {
+      applyOptimistic({ kind: "delete", id: target.id });
+      const result = await deleteTask(project.id, target.id);
+      if (!result || "error" in result) {
+        toast.error(
+          "That task could not be deleted",
+          (result && "error" in result ? result.error : undefined) ?? "Please try again.",
+        );
+        return;
+      }
+      toast.success("Task deleted");
+      router.refresh();
+    });
   };
 
   return (
@@ -107,18 +204,21 @@ export function WorkspaceTasks({
             {team.map((a) => (
               <Chip
                 key={a.id}
-                active={filterAssignee === a.freelancer.id}
-                onClick={() => setFilterAssignee(a.freelancer.id)}
+                active={filterAssignee === a.freelancer.userId}
+                onClick={() => setFilterAssignee(a.freelancer.userId)}
               >
                 {a.freelancer.name.split(" ")[0]}
               </Chip>
             ))}
           </div>
-          {isCompany && (
-            <Button size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
-              New task
-            </Button>
-          )}
+          {/*
+            Task creation was hidden behind the company role, though the server
+            action has always accepted any member of the engagement. A
+            freelancer can raise their own work here now.
+          */}
+          <Button size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
+            New task
+          </Button>
         </div>
       </Card>
 
@@ -271,12 +371,8 @@ export function WorkspaceTasks({
           className="mt-4"
           icon={<CheckSquare />}
           title="No tasks on this board"
-          description={
-            isCompany
-              ? "Break the work into tasks so both sides can see what is in flight."
-              : "The company has not added any tasks yet."
-          }
-          action={isCompany ? { label: "Create the first task", onClick: () => setCreating(true) } : undefined}
+          description="Break the work into tasks so both sides can see what is in flight. Anyone on the engagement can add one."
+          action={{ label: "Create the first task", onClick: () => setCreating(true) }}
         />
       )}
 
@@ -320,7 +416,7 @@ export function WorkspaceTasks({
               >
                 <option value="">Unassigned</option>
                 {team.map((a) => (
-                  <option key={a.id} value={a.freelancer.id}>
+                  <option key={a.id} value={a.freelancer.userId}>
                     {a.freelancer.name}
                   </option>
                 ))}
@@ -352,10 +448,7 @@ export function WorkspaceTasks({
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          setTasks((prev) => prev.filter((t) => t.id !== deleteTarget?.id));
-          toast.success("Task deleted");
-        }}
+        onConfirm={confirmDelete}
         title={`Delete "${deleteTarget?.title}"?`}
         message="This removes the task from the board for everyone on the engagement."
         confirmLabel="Delete task"

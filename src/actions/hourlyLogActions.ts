@@ -86,6 +86,11 @@ export async function addWorkLog(
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // The workspace is where these are actually read; without it the panel kept
+  // serving a cached list and a new log looked like it had not been saved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, logs: await getWorkLogs(projectId) };
 }
 
@@ -162,6 +167,11 @@ export async function reviewWorkLog(
   );
 
   revalidatePath(`/company/projects/${projectId}`);
+  // The workspace is where these are actually read; without it the panel kept
+  // serving a cached list and a new log looked like it had not been saved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, logs: await getWorkLogs(projectId) };
 }
 
@@ -181,6 +191,11 @@ export async function deleteWorkLog(projectId: string, logId: string) {
 
   await db.workLog.delete({ where: { id: logId } });
   revalidatePath(`/company/projects/${projectId}`);
+  // The workspace is where these are actually read; without it the panel kept
+  // serving a cached list and a new log looked like it had not been saved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, logs: await getWorkLogs(projectId) };
 }
 
@@ -216,17 +231,35 @@ export async function releaseHourlyPayment(
         SELECT "id" FROM "WorkLog" WHERE "applicationId" = ${applicationId} FOR UPDATE`;
 
       const logs = await tx.workLog.findMany({ where: { applicationId } });
+      /**
+       * `paymentItemId: null` alone also matches stipend releases, which carry
+       * a stipendPeriodId instead — so a project whose compensation type had
+       * been switched counted stipend payouts against the hourly balance.
+       * Hourly releases are the entries with neither relation set.
+       */
       const paid = await tx.paymentTransaction.findMany({
-        where: { applicationId, type: "RELEASE", paymentItemId: null },
+        where: { applicationId, type: "RELEASE", paymentItemId: null, stipendPeriodId: null },
+      });
+      // Every release on the project, for the budget ceiling below.
+      const projectReleases = await tx.paymentTransaction.findMany({
+        where: { projectId, type: "RELEASE" },
+        select: { amount: true },
       });
 
       const approvedValue = approvedHourlyValue(
         logs.map((l) => ({ hours: D(l.hours), rateSnapshot: D(l.rateSnapshot), status: l.status }))
       );
       const alreadyPaid = paid.reduce((t, p) => t.plus(D(p.amount).abs()), D(0));
+      const projectPaidTotal = projectReleases.reduce((t, p) => t.plus(D(p.amount).abs()), D(0));
       const value = D(amount);
 
-      const rule = checkHourlyRelease({ value, approvedValue, alreadyPaid });
+      const rule = checkHourlyRelease({
+        value,
+        approvedValue,
+        alreadyPaid,
+        projectBudget: D(comp.totalBudget),
+        projectPaidTotal,
+      });
       if (!rule.ok) return { success: false as const, error: rule.error! };
 
       const nextPaid = alreadyPaid.plus(value);
@@ -259,12 +292,19 @@ export async function releaseHourlyPayment(
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // The workspace is where these are actually read; without it the panel kept
+  // serving a cached list and a new log looked like it had not been saved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, payments: await getHourlyPayments(projectId) };
 }
 
 export async function getHourlyPayments(projectId: string) {
   const entries = await db.paymentTransaction.findMany({
-    where: { projectId, type: "RELEASE", paymentItemId: null },
+    // Neither relation set — a stipend release carries a stipendPeriodId and is
+    // not an hourly payment.
+    where: { projectId, type: "RELEASE", paymentItemId: null, stipendPeriodId: null },
     orderBy: { createdAt: "desc" },
   });
   return entries.map((e) => ({

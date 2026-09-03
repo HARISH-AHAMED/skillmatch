@@ -8,7 +8,12 @@ vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/auth", () => ({
   auth: async () => (sessionState.user ? { user: sessionState.user } : null),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  // The action files invalidate the public read cache alongside the route.
+  updateTag: vi.fn(),
+  unstable_cache: (fn: unknown) => fn,
+}));
 vi.mock("@/services/aiRecommendation", () => ({
   recalculateRecommendationsForProject: vi.fn(),
 }));
@@ -114,5 +119,64 @@ describe("COMP-016: every new project gets a ProjectCompensation row", () => {
     expect(projectData.title).toBe("Test project");
     expect(projectData.status).toBe("OPEN");
     expect(projectData.requiredSkills).toEqual(["react"]);
+  });
+});
+
+/**
+ * The wizard collects a stipend period count and an hourly hour ceiling, uses
+ * them to compute the budget, and then dropped both: neither had a field in the
+ * metadata block and neither was passed to ProjectCompensation. Both columns
+ * were NULL on every project ever created, which made every stipend engagement
+ * behave as if it had exactly one payable period and removed the ceiling on
+ * billable hours.
+ */
+describe("stipend periods and hour ceilings reach the compensation row", () => {
+  it("persists the configured number of stipend periods", async () => {
+    const data = await create(
+      {
+        compensationType: "STIPEND",
+        paymentRate: 1000,
+        stipendFrequency: "MONTHLY",
+        stipendPeriods: 6,
+        currency: "USD",
+      },
+      6000
+    );
+    expect(data.stipendPeriods).toBe(6);
+  });
+
+  it("recovers the period count for projects saved before the field existed", async () => {
+    // budget ÷ amount is the arithmetic the wizard used to build the budget.
+    const data = await create(
+      {
+        compensationType: "STIPEND",
+        paymentRate: 1000,
+        stipendFrequency: "MONTHLY",
+        currency: "USD",
+      },
+      4000
+    );
+    expect(data.stipendPeriods).toBe(4);
+  });
+
+  it("persists a configured hourly ceiling", async () => {
+    const data = await create({
+      compensationType: "HOURLY",
+      paymentRate: 50,
+      estimatedHours: 100,
+      maxHours: 150,
+      currency: "USD",
+    });
+    expect(data.maxHours).toBe(150);
+  });
+
+  it("leaves stipend fields null on a non-stipend project", async () => {
+    const data = await create({
+      compensationType: "HOURLY",
+      paymentRate: 50,
+      maxHours: 40,
+      currency: "USD",
+    });
+    expect(data.stipendPeriods).toBeNull();
   });
 });

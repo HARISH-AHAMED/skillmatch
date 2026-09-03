@@ -9,9 +9,11 @@ import type {
   PipelineEvent,
   Project,
 } from "@/lib/types";
+import { mergeRoundProgress } from "@/lib/rounds";
 import {
   DEFAULT_CURRENCY,
   getApplicationCoverLetterText,
+  getProjectMetadataDirect,
   parseApplicationMetadata,
   type ApplicationWorkflowData,
 } from "@/lib/workflowHelpers";
@@ -210,6 +212,10 @@ export function toApplication(row: ApplicationRow, extras: ApplicationExtras = {
     scoreBreakdown: scoreBreakdown(row),
     status: row.status,
     pipelineHistory: toPipeline(meta),
+    rounds: mergeRoundProgress(
+      getProjectMetadataDirect(row.project.description).rounds ?? [],
+      meta.roundProgress ?? [],
+    ),
     offer: toOffer(meta),
     contract: toContract(meta),
     interview: toInterview(meta),

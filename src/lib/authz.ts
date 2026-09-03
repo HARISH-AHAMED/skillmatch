@@ -205,6 +205,40 @@ export async function requireApplicationParty(applicationId: string): Promise<
 }
 
 /**
+ * Class A guard: caller may open the *workspace* for this application.
+ *
+ * requireApplicationParty is deliberately permissive — it admits the freelancer
+ * who submitted the application whatever its status, because offers and
+ * contract signing are things a not-yet-hired candidate legitimately does. The
+ * workspace is not: it carries the team roster, every payment record, the work
+ * log and the full transaction ledger.
+ *
+ * Gating all three workspace routes on the permissive guard meant a PENDING
+ * applicant — or a freelancer who had just been removed from the project —
+ * could open their own workspace URL and read all of it. The polling route
+ * /api/workspace/[projectId] used requireProjectParty and correctly required
+ * HIRED, so the two read paths disagreed. This is the predicate both use now.
+ */
+export async function requireWorkspaceMember(applicationId: string): Promise<
+  Guard<{
+    userId: string;
+    role: "COMPANY" | "FREELANCER";
+    application: Application & { project: Project };
+  }>
+> {
+  const party = await requireApplicationParty(applicationId);
+  if (!party.ok) return party;
+
+  // The owning company sees the workspace for any application on its project.
+  if (party.data.role === "COMPANY") return party;
+
+  // A freelancer sees it only while actually engaged on the work.
+  if (party.data.application.status !== "HIRED") return deny();
+
+  return party;
+}
+
+/**
  * The caller's IP, read from request headers server-side.
  *
  * SEC-006: this was previously a caller-supplied argument defaulting to

@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import Image from "next/image";
 import {
   CheckCircle2,
@@ -10,15 +12,17 @@ import {
   Upload,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState , useRef, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Field, Input, Textarea } from "@/components/ui/Field";
+import { Field, Textarea } from "@/components/ui/Field";
 import { Alert, EmptyState } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { shareFile, updateDeliverableStatus, uploadDeliverableVersion } from "@/actions/collaborationActions";
+import { uploadFile } from "@/lib/upload";
 import { DELIVERABLE_REVISION_CAP, MAX_SIZES } from "@/lib/constants";
 import type { Project, Role, SharedFile } from "@/lib/types";
 import type { WorkspaceData } from "@/data/server/workspace";
@@ -40,18 +44,23 @@ export function WorkspaceDeliverables({
   viewerRole: Role;
 }) {
   const toast = useToast();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [picked, setPicked] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
   const isCompany = viewerRole === "COMPANY";
 
-  const [files, setFiles] = useState<SharedFile[]>(() =>
-    data.files.slice().sort((a, b) =>
-      b.uploadedAt.localeCompare(a.uploadedAt),
-    ),
+  // Straight from the server. This was a local copy that nothing wrote back,
+  // so an upload or a review only ever existed in this tab.
+  const files = useMemo(
+    () => data.files.slice().sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt)),
+    [data.files],
   );
   const [reviewTarget, setReviewTarget] = useState<SharedFile | null>(null);
   const [versionTarget, setVersionTarget] = useState<SharedFile | null>(null);
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [fileName, setFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const deliverables = files.filter((f) => f.meta.isDeliverable);
@@ -66,52 +75,100 @@ export function WorkspaceDeliverables({
       );
       return;
     }
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === reviewTarget.id
-          ? {
-              ...f,
-              meta: {
-                ...f.meta,
-                status: approve ? "APPROVED" : "REVISION_REQUESTED",
-                feedback: feedback.trim() || f.meta.feedback,
-                revisionCount: approve ? used : used + 1,
-              },
-            }
-          : f,
-      ),
-    );
-    setReviewTarget(null);
-    setFeedback("");
-    setError(null);
-    toast.success(
-      approve ? "Deliverable approved" : "Revision requested",
-      approve ? undefined : `${used + 1} of ${DELIVERABLE_REVISION_CAP} revisions used.`,
-    );
+    // The verdict used to be applied to a local copy only: the freelancer was
+    // never told and the deliverable stayed in review for everyone else.
+    const target = reviewTarget;
+    const note = feedback.trim();
+
+    startTransition(async () => {
+      const result = await updateDeliverableStatus(
+        project.id,
+        target.id,
+        approve ? "APPROVED" : "REVISION_REQUESTED",
+        note,
+      );
+      if (!result || "error" in result) {
+        setError((result && "error" in result ? result.error : undefined) ?? "That review could not be saved.");
+        return;
+      }
+      setReviewTarget(null);
+      setFeedback("");
+      setError(null);
+      toast.success(
+        approve ? "Deliverable approved" : "Revision requested",
+        approve ? undefined : `${used + 1} of ${DELIVERABLE_REVISION_CAP} revisions used.`,
+      );
+      router.refresh();
+    });
   };
 
-  const uploadVersion = () => {
-    if (!versionTarget || !fileName.trim()) return;
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === versionTarget.id
-          ? {
-              ...f,
-              fileName: fileName.trim(),
-              uploadedAt: new Date().toISOString(),
-              meta: {
-                ...f.meta,
-                version: (f.meta.version ?? 1) + 1,
+  /**
+   * A deliverable is a real file. This dialog used to take a *typed filename*
+   * and invent the rest — a made-up /uploads/ URL, "1.2 MB", application/pdf —
+   * then keep the row in local state. Nothing was uploaded and nothing stored.
+   *
+   * The file now goes through the upload route, and the row is written by the
+   * same action the rest of the workspace uses. `fileSize` carries the JSON
+   * meta block the adapter reads, which is what marks it a deliverable.
+   */
+  const submitFile = (target: SharedFile | null) => {
+    const file = picked;
+    if (!file) {
+      setError("Choose a file to upload.");
+      return;
+    }
+
+    setBusy(true);
+    startTransition(async () => {
+      try {
+        const uploaded = await uploadFile(file);
+        if ("error" in uploaded) {
+          setError(uploaded.error);
+          return;
+        }
+
+        const size =
+          file.size > 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+        const result = target
+          ? await uploadDeliverableVersion(project.id, target.id, file.name, uploaded.url, size)
+          : await shareFile(
+              project.id,
+              file.name,
+              uploaded.url,
+              JSON.stringify({
+                size,
+                mime: file.type || "application/octet-stream",
+                isDeliverable: true,
                 status: "PENDING",
-                feedback: undefined,
-              },
-            }
-          : f,
-      ),
-    );
-    setVersionTarget(null);
-    setFileName("");
-    toast.success("New version uploaded", "The status has reset to in-review.");
+                version: 1,
+                revisionCount: 0,
+                revisionCap: DELIVERABLE_REVISION_CAP,
+              }),
+              "group",
+            );
+
+        if (!result || "error" in result) {
+          setError((result && "error" in result ? result.error : undefined) ?? "That file could not be uploaded.");
+          return;
+        }
+
+        setVersionTarget(null);
+        setUploading(false);
+        setPicked(null);
+        setError(null);
+        if (fileInput.current) fileInput.current.value = "";
+        toast.success(
+          target ? "New version uploaded" : "Deliverable uploaded",
+          target ? "The status has reset to in-review." : "Sent to the company for review.",
+        );
+        router.refresh();
+      } finally {
+        setBusy(false);
+      }
+    });
   };
 
   return (
@@ -244,7 +301,7 @@ export function WorkspaceDeliverables({
                           leftIcon={<Upload className="h-3 w-3" />}
                           onClick={() => {
                             setVersionTarget(file);
-                            setFileName(file.fileName);
+                            setPicked(null);
                           }}
                         >
                           Upload new version
@@ -367,39 +424,9 @@ export function WorkspaceDeliverables({
               Cancel
             </Button>
             <Button
-              disabled={!fileName.trim()}
-              onClick={() => {
-                if (versionTarget) {
-                  uploadVersion();
-                } else {
-                  setFiles((prev) => [
-                    {
-                      id: `file-local-${Date.now()}`,
-                      projectId: project.id,
-                      uploadedById: "local",
-                      uploadedByName: "You",
-                      uploadedByAvatar: "",
-                      fileName: fileName.trim(),
-                      fileUrl: `/uploads/${fileName.trim()}`,
-                      channel: "group",
-                      uploadedAt: new Date().toISOString(),
-                      meta: {
-                        size: "1.2 MB",
-                        mime: "application/pdf",
-                        isDeliverable: true,
-                        status: "PENDING",
-                        version: 1,
-                        revisionCount: 0,
-                        revisionCap: DELIVERABLE_REVISION_CAP,
-                      },
-                    },
-                    ...prev,
-                  ]);
-                  setUploading(false);
-                  setFileName("");
-                  toast.success("Deliverable uploaded", "Sent to the company for review.");
-                }
-              }}
+              disabled={!picked || busy}
+              loading={busy}
+              onClick={() => submitFile(versionTarget)}
             >
               Upload
             </Button>
@@ -407,18 +434,24 @@ export function WorkspaceDeliverables({
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label="File name" required>
-            <Input
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="stage-2-performance-report.pdf"
-            />
-          </Field>
+          <input
+            ref={fileInput}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              setPicked(e.target.files?.[0] ?? null);
+              setError(null);
+            }}
+          />
 
-          <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-surface-alt)] p-6 text-center">
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="w-full rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-surface-alt)] p-6 text-center transition-colors hover:border-[var(--color-brand)] hover:bg-[var(--color-hover)]"
+          >
             <Upload className="mx-auto h-6 w-6 text-[var(--color-text-muted)]" />
             <p className="mt-2.5 text-[13px] font-medium text-[var(--color-text-primary)]">
-              Drop a file here, or browse
+              {picked ? picked.name : "Choose a file"}
             </p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
               Images and PDFs up to {MAX_SIZES.image} MB · video up to {MAX_SIZES.video} MB
@@ -426,7 +459,7 @@ export function WorkspaceDeliverables({
             <p className="mt-2 text-[11.5px] text-[var(--color-text-muted)]">
               SVG is not accepted — use PNG, JPEG, WebP or GIF instead.
             </p>
-          </div>
+          </button>
         </div>
       </Modal>
     </div>

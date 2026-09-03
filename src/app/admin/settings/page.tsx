@@ -61,7 +61,6 @@ export default function AdminSettingsPage() {
     certificates: true,
     invitations: true,
     publicVerification: true,
-    paymentGateway: false,
   });
 
   const weightTotal = Object.values(weights).reduce((s, v) => s + Number(v || 0), 0);
@@ -214,17 +213,11 @@ export default function AdminSettingsPage() {
                         "Public certificate verification",
                         "Anyone can verify a certificate by ID without an account.",
                       ],
-                      [
-                        "paymentGateway",
-                        "External payment gateway",
-                        "Not yet available. Funds are an internal ledger construct only.",
-                      ],
                     ] as const
                   ).map(([key, label, description]) => (
                     <Toggle
                       key={key}
                       checked={features[key]}
-                      disabled={key === "paymentGateway"}
                       onChange={(v) => {
                         setFeatures((f) => ({ ...f, [key]: v }));
                         setDirty(true);

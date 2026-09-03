@@ -50,11 +50,22 @@ export function createDbMock() {
     message: model(),
     projectUpdate: model(),
     notification: model(),
+    mediaAsset: model(),
     adminLog: model(),
     review: model(),
     certificate: model(),
     projectCompensation: model(),
+    paymentItem: model(),
+    paymentTransaction: model(),
+    stipendPeriod: model(),
+    workLog: model(),
+    meeting: model(),
+    meetingAttendee: model(),
   };
+
+  // Row locks are issued as tagged-template raw SQL. The mock records the call
+  // so a test can assert a lock was taken before the read it protects.
+  client.$queryRaw = vi.fn(async () => []);
 
   // $transaction is used two ways here: with an array of already-invoked
   // promises, and with an interactive callback that receives a client. The

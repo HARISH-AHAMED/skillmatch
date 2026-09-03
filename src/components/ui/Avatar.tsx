@@ -19,6 +19,7 @@ export function Avatar({
   src,
   name,
   size = "md",
+  sizeClassName,
   rounded = "full",
   className,
   ring = false,
@@ -27,6 +28,12 @@ export function Avatar({
   src?: string;
   name: string;
   size?: AvatarSize;
+  /**
+   * Width/height utilities that replace `size` — the way to make an avatar
+   * responsive, since `size` resolves to one fixed pixel value. A profile
+   * header wants a smaller logo on a phone than on a desktop.
+   */
+  sizeClassName?: string;
   rounded?: "full" | "md";
   className?: string;
   ring?: boolean;
@@ -45,8 +52,10 @@ export function Avatar({
 
   return (
     <span
-      className={cn("relative inline-flex shrink-0", className)}
-      style={{ width: px, height: px }}
+      className={cn("relative inline-flex shrink-0", sizeClassName, className)}
+      // An inline width would beat the responsive classes, so it is only
+      // applied when the caller has not supplied its own sizing.
+      style={sizeClassName ? undefined : { width: px, height: px }}
     >
       {src && !failed ? (
         <Image

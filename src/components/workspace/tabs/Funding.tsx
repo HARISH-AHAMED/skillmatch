@@ -14,7 +14,18 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { addWorkLog, releaseHourlyPayment, reviewWorkLog } from "@/actions/hourlyLogActions";
+import { releaseStipendPayment, submitStipendPeriod } from "@/actions/stipendPaymentActions";
+import {
+  deletePaymentStage,
+  fundPaymentStage,
+  releasePaymentStage,
+  reviewPaymentStage,
+  savePaymentStage,
+  submitPaymentStage,
+} from "@/actions/paymentStageActions";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, StatusIndicator } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -45,6 +56,15 @@ export function WorkspaceFunding({
   const type = project.compensation.type;
 
   const [view, setView] = useState<"stages" | "ledger">("stages");
+
+  /*
+   * The company's funding view used to pool every freelancer's stages, work
+   * logs and ledger rows into one list, which made it impossible to see what
+   * one person was owed. It is now one freelancer at a time, chosen here. A
+   * freelancer has no selector: they only ever see themselves.
+   */
+  const [focus, setFocus] = useState<string>(() => data.team[0]?.id ?? application.id);
+  const people = data.team;
 
   if (type === "UNPAID") {
     return (
@@ -98,14 +118,49 @@ export function WorkspaceFunding({
         className="mb-5"
       />
 
+      {isCompany && people.length > 1 && (
+        <Tabs
+          variant="pill"
+          size="sm"
+          value={focus}
+          onChange={setFocus}
+          items={people.map((t) => ({ id: t.id, label: t.freelancer.name }))}
+          className="mb-5"
+        />
+      )}
+
       {view === "ledger" ? (
-        <LedgerPanel data={data} project={project} application={application} viewerRole={viewerRole} />
+        <LedgerPanel
+          data={data}
+          project={project}
+          application={application}
+          viewerRole={viewerRole}
+          focus={isCompany ? focus : undefined}
+        />
       ) : type === "HOURLY" ? (
-        <HourlyPanel data={data} project={project} application={application} isCompany={isCompany} />
+        <HourlyPanel
+          data={data}
+          project={project}
+          application={application}
+          isCompany={isCompany}
+          focus={isCompany ? focus : undefined}
+        />
       ) : type === "STIPEND" ? (
-        <StipendPanel data={data} project={project} application={application} isCompany={isCompany} />
+        <StipendPanel
+          data={data}
+          project={project}
+          application={application}
+          isCompany={isCompany}
+          focus={isCompany ? focus : undefined}
+        />
       ) : (
-        <StagesPanel data={data} project={project} application={application} isCompany={isCompany} />
+        <StagesPanel
+          data={data}
+          project={project}
+          application={application}
+          isCompany={isCompany}
+          focus={isCompany ? focus : undefined}
+        />
       )}
     </div>
   );
@@ -120,21 +175,38 @@ function StagesPanel({
   project,
   application,
   isCompany,
+  focus,
 }: {
   data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
+  /** Company view: the application the per-freelancer selector is showing. */
+  focus?: string;
 }) {
   const toast = useToast();
   const currency = project.compensation.currency;
   const budget = project.compensation.totalBudget;
 
-  const [items, setItems] = useState<PaymentItem[]>(() =>
-    data.paymentItems
-      .filter((i) => isCompany || i.applicationId === application.id)
-      .sort((a, b) => a.sortOrder - b.sortOrder),
+  const stageRouter = useRouter();
+  const [, runStage] = useTransition();
+
+  // Straight from the server. This was a local copy nothing wrote back.
+  /*
+   * A freelancer sees their own stages and nothing else — the list used to
+   * render every stage on the project to everybody, so one freelancer could
+   * read another's amounts and payment state. The company sees the whole
+   * project, filtered to one person by the selector above.
+   */
+  const items = useMemo(
+    () =>
+      data.paymentItems
+        .filter((i) => (isCompany ? !focus || i.applicationId === focus : i.applicationId === application.id))
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)),
+    [data.paymentItems, isCompany, application.id, focus],
   );
+;
 
   const [fundTarget, setFundTarget] = useState<PaymentItem | null>(null);
   const [reviewTarget, setReviewTarget] = useState<PaymentItem | null>(null);
@@ -156,8 +228,26 @@ function StagesPanel({
     return { funded, released, planned, committed: funded - released };
   }, [items]);
 
-  const patch = (id: string, next: Partial<PaymentItem>) =>
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...next } : i)));
+  /**
+   * Every money control goes through here: run the action, surface a refusal
+   * in the dialog's own error line, and re-read from the server on success so
+   * the figures shown are the ones that were actually written.
+   */
+  const runMutation = (
+    action: () => Promise<{ success: boolean; error?: string }>,
+    onSuccess: () => void,
+  ) => {
+    runStage(async () => {
+      const result = await action();
+      if (!result.success) {
+        setError(result.error ?? "That could not be completed. Please try again.");
+        return;
+      }
+      setError(null);
+      onSuccess();
+      stageRouter.refresh();
+    });
+  };
 
   /* ---- Rules from §11.5–11.10, with the exact error copy ---- */
 
@@ -185,16 +275,17 @@ function StagesPanel({
       );
       return;
     }
-    patch(fundTarget.id, {
-      fundedAmount: fundTarget.fundedAmount + value,
-      status: "FUNDED",
-    });
-    setFundTarget(null);
-    setAmountInput("");
-    setError(null);
-    toast.success(
-      "Stage funded",
-      `${formatMoney(value, currency)} committed. A FUND entry has been written to the ledger.`,
+    const stageId = fundTarget.id;
+    runMutation(
+      () => fundPaymentStage(project.id, stageId, value),
+      () => {
+        setFundTarget(null);
+        setAmountInput("");
+        toast.success(
+          "Stage funded",
+          `${formatMoney(value, currency)} committed. A FUND entry has been written to the ledger.`,
+        );
+      },
     );
   };
 
@@ -204,15 +295,16 @@ function StagesPanel({
       setError("Only a funded stage can be submitted for review.");
       return;
     }
-    patch(submitTarget.id, {
-      status: "SUBMITTED",
-      submissionNote: noteInput,
-      submittedAt: new Date().toISOString(),
-    });
-    setSubmitTarget(null);
-    setNoteInput("");
-    setError(null);
-    toast.success("Submitted for review", `${project.company.companyName} has been notified.`);
+    const stageId = submitTarget.id;
+    const note = noteInput;
+    runMutation(
+      () => submitPaymentStage(project.id, stageId, note || undefined),
+      () => {
+        setSubmitTarget(null);
+        setNoteInput("");
+        toast.success("Submitted for review", `${project.company.companyName} has been notified.`);
+      },
+    );
   };
 
   const doReview = (approve: boolean) => {
@@ -227,15 +319,15 @@ function StagesPanel({
       );
       return;
     }
-    patch(reviewTarget.id, {
-      status: approve ? "APPROVED" : "CHANGES_REQUESTED",
-      revisionCount: approve ? reviewTarget.revisionCount : reviewTarget.revisionCount + 1,
-      reviewNote: noteInput,
-      reviewedAt: new Date().toISOString(),
-    });
-    setReviewTarget(null);
-    setNoteInput("");
-    setError(null);
+    const stageId = reviewTarget.id;
+    const note = noteInput;
+    runMutation(
+      () => reviewPaymentStage(project.id, stageId, approve, note || undefined),
+      () => {
+        setReviewTarget(null);
+        setNoteInput("");
+      },
+    );
     toast.success(
       approve ? "Stage approved" : "Revision requested",
       approve
@@ -266,15 +358,14 @@ function StagesPanel({
       setError(`Only ${formatMoney(outstanding, currency)} remains to be released on this stage.`);
       return;
     }
-    const nextReleased = releaseTarget.releasedAmount + requested;
-    patch(releaseTarget.id, {
-      releasedAmount: nextReleased,
-      status: nextReleased >= releaseTarget.amount ? "RELEASED" : "APPROVED",
-      releasedAt: new Date().toISOString(),
-    });
-    setReleaseTarget(null);
-    setAmountInput("");
-    setError(null);
+    const stage = releaseTarget;
+    runMutation(
+      () => releasePaymentStage(project.id, stage.id, requested),
+      () => {
+        setReleaseTarget(null);
+        setAmountInput("");
+      },
+    );
     toast.success(
       "Payment released",
       `${formatMoney(requested, currency)} released to ${releaseTarget.assigneeName}.`,
@@ -298,30 +389,20 @@ function StagesPanel({
       return;
     }
     const assignee = data.team.find((a) => a.id === newStage.assignee) ?? data.team[0];
-    setItems((prev) => [
-      ...prev,
-      {
-        id: `pay-local-${Date.now()}`,
-        projectId: project.id,
-        applicationId: assignee?.id ?? application.id,
-        assigneeName: assignee?.freelancer.name ?? application.freelancer.name,
-        assigneeAvatar: assignee?.freelancer.avatarUrl ?? application.freelancer.avatarUrl,
-        title: newStage.title.trim(),
-        description: newStage.description.trim(),
-        sortOrder: prev.length,
-        amount: value,
-        currency,
-        status: "PENDING",
-        fundedAmount: 0,
-        releasedAmount: 0,
-        revisionCount: 0,
-        createdAt: new Date().toISOString(),
+    runMutation(
+      () =>
+        savePaymentStage(project.id, {
+          applicationId: assignee?.id ?? application.id,
+          title: newStage.title.trim(),
+          description: newStage.description.trim() || undefined,
+          amount: value,
+        }),
+      () => {
+        setCreating(false);
+        setNewStage({ title: "", description: "", amount: "", assignee: "" });
+        toast.success("Stage added", "It starts unfunded until you commit money to it.");
       },
-    ]);
-    setNewStage({ title: "", description: "", amount: "", assignee: "" });
-    setCreating(false);
-    setError(null);
-    toast.success("Stage created", "Fund it to commit the money before work starts.");
+    );
   };
 
   const doDelete = () => {
@@ -334,8 +415,14 @@ function StagesPanel({
       );
       return;
     }
-    setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
-    toast.success("Stage deleted");
+    const stageId = deleteTarget.id;
+    runMutation(
+      () => deletePaymentStage(project.id, stageId),
+      () => {
+        setDeleteTarget(null);
+        toast.success("Stage deleted");
+      },
+    );
   };
 
   return (
@@ -851,21 +938,35 @@ function HourlyPanel({
   project,
   application,
   isCompany,
+  focus,
 }: {
   data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
+  focus?: string;
 }) {
   const toast = useToast();
   const currency = project.compensation.currency;
   const rate = project.compensation.hourlyRate ?? 0;
   const maxHours = project.compensation.maxHours;
 
-  const [logs, setLogs] = useState<WorkLog[]>(() =>
-    data.workLogs
-      .filter((l) => isCompany || l.applicationId === application.id)
-      .sort((a, b) => b.workDate.localeCompare(a.workDate)),
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  /*
+   * Straight from the server list, scoped to this engagement. It used to be a
+   * `useState` copy that nothing wrote back — logging hours, reviewing them and
+   * releasing payment all edited that copy and never called the action, so a
+   * work log was gone on the next render and never reached the database.
+   */
+  const scopeId = isCompany ? (focus ?? application.id) : application.id;
+  const logs = useMemo(
+    () =>
+      data.workLogs
+        .filter((l) => l.applicationId === scopeId)
+        .sort((a, b) => b.workDate.localeCompare(a.workDate)),
+    [data.workLogs, scopeId],
   );
   const [adding, setAdding] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<WorkLog | null>(null);
@@ -882,10 +983,12 @@ function HourlyPanel({
     ledger: data.ledger,
   });
   const loggedHours = logs.reduce((s, l) => s + (l.status !== "REJECTED" ? l.hours : 0), 0);
-  const approvedValue = logs
-    .filter((l) => l.status === "APPROVED")
-    .reduce((s, l) => s + l.hours * l.rateSnapshot, 0);
-  const outstanding = Math.max(0, approvedValue - fin.hourlyPaid);
+  // Both come from getApplicationFinancials, so the approved total and what is
+  // still payable are computed over the same application's rows. They were
+  // being mixed with an unscoped total before, which is why a fully paid
+  // freelancer still showed an amount to release.
+  const approvedValue = fin.approvedHourlyValue;
+  const outstanding = fin.hourlyOutstanding;
 
   const addLog = () => {
     const hours = Number(form.hours);
@@ -919,27 +1022,20 @@ function HourlyPanel({
       return;
     }
 
-    setLogs((prev) => [
-      {
-        id: `wl-local-${Date.now()}`,
-        projectId: project.id,
-        applicationId: application.id,
-        freelancerName: application.freelancer.name,
-        freelancerAvatar: application.freelancer.avatarUrl,
-        workDate: form.date,
-        hours,
-        description: form.description.trim(),
-        status: "PENDING",
-        rateSnapshot: rate,
-        currency,
-        createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-    setForm({ date: "", hours: "", description: "" });
-    setAdding(false);
-    setError(null);
-    toast.success("Hours logged", "Sent to the company for approval.");
+    const entry = { date: form.date, hours, description: form.description.trim() };
+
+    startTransition(async () => {
+      const result = await addWorkLog(project.id, entry);
+      if (!result.success) {
+        setError(result.error ?? "Those hours could not be logged.");
+        return;
+      }
+      setForm({ date: "", hours: "", description: "" });
+      setAdding(false);
+      setError(null);
+      toast.success("Hours logged", "Sent to the company for approval.");
+      router.refresh();
+    });
   };
 
   const reviewLog = (approve: boolean) => {
@@ -948,22 +1044,21 @@ function HourlyPanel({
       setError("A reason is required when rejecting a work log.");
       return;
     }
-    setLogs((prev) =>
-      prev.map((l) =>
-        l.id === reviewTarget.id
-          ? {
-              ...l,
-              status: approve ? "APPROVED" : "REJECTED",
-              reviewNote: note.trim() || undefined,
-              reviewedAt: new Date().toISOString(),
-            }
-          : l,
-      ),
-    );
-    setReviewTarget(null);
-    setNote("");
-    setError(null);
-    toast.success(approve ? "Hours approved" : "Hours rejected");
+    const target = reviewTarget;
+    const reviewNote = note.trim() || undefined;
+
+    startTransition(async () => {
+      const result = await reviewWorkLog(project.id, target.id, approve, reviewNote);
+      if (!result.success) {
+        setError(result.error ?? "That review could not be saved.");
+        return;
+      }
+      setReviewTarget(null);
+      setNote("");
+      setError(null);
+      toast.success(approve ? "Hours approved" : "Hours rejected");
+      router.refresh();
+    });
   };
 
   const doRelease = () => {
@@ -982,10 +1077,18 @@ function HourlyPanel({
       );
       return;
     }
-    setReleasing(false);
-    setReleaseAmount("");
-    setError(null);
-    toast.success("Hourly payment released", `${formatMoney(value, currency)} released.`);
+    startTransition(async () => {
+      const result = await releaseHourlyPayment(project.id, application.id, value);
+      if (!result.success) {
+        setError(result.error ?? "That payment could not be released.");
+        return;
+      }
+      setReleasing(false);
+      setReleaseAmount("");
+      setError(null);
+      toast.success("Hourly payment released", `${formatMoney(value, currency)} released.`);
+      router.refresh();
+    });
   };
 
   return (
@@ -1285,42 +1388,67 @@ function StipendPanel({
   project,
   application,
   isCompany,
+  focus,
 }: {
   data: WorkspaceData;
   project: Project;
   application: Application;
   isCompany: boolean;
+  focus?: string;
 }) {
   const toast = useToast();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
   const currency = project.compensation.currency;
   const amount = project.compensation.stipendAmount ?? 0;
   const frequency = project.compensation.stipendFrequency ?? "MONTHLY";
   const maxPeriods = frequency === "ONE_TIME" ? 1 : (project.compensation.stipendPeriods ?? 1);
 
-  const [periods, setPeriods] = useState(() =>
-    data.stipendPeriods
-      .filter((p) => isCompany || p.applicationId === application.id)
-      .sort((a, b) => a.periodIndex - b.periodIndex),
+  /*
+   * The schedule is derived from the engagement's configuration, not from rows
+   * that happen to exist. Previously a period only came into being when it was
+   * paid, so a new engagement showed "no stipend periods yet" and there was
+   * nothing anybody could act on — no way to raise one, and so nothing for the
+   * company to release.
+   */
+  const people = useMemo(
+    () =>
+      (isCompany
+        ? data.team.filter((t) => !focus || t.id === focus)
+        : data.team.filter((t) => t.id === application.id)
+      ).map((t) => ({
+        applicationId: t.id,
+        name: t.freelancer.name,
+      })),
+    [data.team, isCompany, application.id, focus],
   );
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, typeof periods>();
-    for (const p of periods) {
-      const list = map.get(p.applicationId) ?? [];
-      list.push(p);
-      map.set(p.applicationId, list);
-    }
-    return [...map.entries()];
-  }, [periods]);
+  const scheduleFor = (applicationId: string) =>
+    Array.from({ length: maxPeriods }, (_, i) => {
+      const periodIndex = i + 1;
+      const row = data.stipendPeriods.find(
+        (p) => p.applicationId === applicationId && p.periodIndex === periodIndex,
+      );
+      return { periodIndex, row };
+    });
 
-  const release = (id: string) => {
-    setPeriods((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, status: "RELEASED", releasedAt: new Date().toISOString() } : p,
-      ),
-    );
-    toast.success("Stipend released", `${formatMoney(amount, currency)} paid for this period.`);
-  };
+  const run = (
+    action: () => Promise<{ success: boolean; error?: string }>,
+    message: string,
+    description?: string,
+  ) =>
+    startTransition(async () => {
+      const result = await action();
+      if (!result.success) {
+        setError(result.error ?? "That could not be completed. Please try again.");
+        return;
+      }
+      setError(null);
+      toast.success(message, description);
+      router.refresh();
+    });
 
   return (
     <div className="flex flex-col gap-5">
@@ -1331,22 +1459,29 @@ function StipendPanel({
           icon={<Wallet />}
         />
 
-        {grouped.length === 0 ? (
+        {error && (
+          <Alert tone="error" className="mb-4">
+            {error}
+          </Alert>
+        )}
+
+        {people.length === 0 ? (
           <EmptyState
             compact
             icon={<Wallet />}
-            title="No stipend periods yet"
-            description="Periods appear here once the engagement starts."
+            title="Nobody is hired yet"
+            description="The stipend schedule appears once a freelancer is hired onto the engagement."
           />
         ) : (
           <div className="flex flex-col gap-5">
-            {grouped.map(([appId, list]) => {
-              const released = list.filter((p) => p.status === "RELEASED").length;
+            {people.map((person) => {
+              const schedule = scheduleFor(person.applicationId);
+              const released = schedule.filter((p) => p.row?.status === "RELEASED").length;
               return (
-                <div key={appId}>
+                <div key={person.applicationId}>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[13.5px] font-semibold text-[var(--color-text-primary)]">
-                      {list[0]?.freelancerName}
+                      {person.name}
                     </p>
                     <Badge tone={released >= maxPeriods ? "brand" : "info"} size="sm">
                       {released} of {maxPeriods} released
@@ -1354,50 +1489,94 @@ function StipendPanel({
                   </div>
 
                   <ul className="grid gap-2.5 sm:grid-cols-2">
-                    {list.map((p) => (
-                      <li
-                        key={p.id}
-                        className={`rounded-[var(--radius-md)] border p-3.5 ${
-                          p.status === "RELEASED"
-                            ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)]"
-                            : "border-[var(--color-border)]"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                              Period {p.periodIndex}
-                            </p>
-                            {p.periodStart && (
-                              <p className="mt-0.5 text-[11.5px] text-[var(--color-text-muted)]">
-                                {formatDate(p.periodStart)} — {formatDate(p.periodEnd!)}
+                    {schedule.map(({ periodIndex, row }) => {
+                      const status = row?.status ?? "PENDING";
+                      const isReleased = status === "RELEASED";
+                      const isSubmitted = status === "SUBMITTED";
+                      const mine = person.applicationId === application.id;
+
+                      return (
+                        <li
+                          key={periodIndex}
+                          className={`rounded-[var(--radius-md)] border p-3.5 ${
+                            isReleased
+                              ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)]"
+                              : "border-[var(--color-border)]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                                Period {periodIndex}
                               </p>
+                              {row?.periodStart && (
+                                <p className="mt-0.5 text-[11.5px] text-[var(--color-text-muted)]">
+                                  {formatDate(row.periodStart)} — {formatDate(row.periodEnd!)}
+                                </p>
+                              )}
+                            </div>
+                            <p className="text-[14px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+                              {formatMoney(row?.amount ?? amount, currency)}
+                            </p>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            {isReleased ? (
+                              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-success-fg)]">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Released {row?.releasedAt ? relativeTime(row.releasedAt) : ""}
+                              </span>
+                            ) : isSubmitted ? (
+                              <span className="text-[12px] font-medium text-[var(--color-warning-fg)]">
+                                Raised — awaiting release
+                              </span>
+                            ) : (
+                              <span className="text-[12px] text-[var(--color-text-muted)]">
+                                Not yet raised
+                              </span>
+                            )}
+
+                            {/* The freelancer raises the period they have worked. */}
+                            {!isCompany && mine && !isReleased && !isSubmitted && (
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                onClick={() =>
+                                  run(
+                                    () => submitStipendPeriod(project.id, periodIndex),
+                                    "Period raised",
+                                    "The company can now release it.",
+                                  )
+                                }
+                              >
+                                Raise this period
+                              </Button>
+                            )}
+
+                            {/* The company releases it, which writes the ledger entry. */}
+                            {isCompany && !isReleased && (
+                              <Button
+                                size="xs"
+                                onClick={() =>
+                                  run(
+                                    () =>
+                                      releaseStipendPayment(
+                                        project.id,
+                                        person.applicationId,
+                                        periodIndex,
+                                      ),
+                                    "Stipend released",
+                                    `${formatMoney(amount, currency)} paid for period ${periodIndex}.`,
+                                  )
+                                }
+                              >
+                                Release
+                              </Button>
                             )}
                           </div>
-                          <p className="text-[14px] font-semibold tabular-nums text-[var(--color-text-primary)]">
-                            {formatMoney(p.amount, currency)}
-                          </p>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          {p.status === "RELEASED" ? (
-                            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-success-fg)]">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Released {p.releasedAt ? relativeTime(p.releasedAt) : ""}
-                            </span>
-                          ) : (
-                            <span className="text-[12px] text-[var(--color-text-muted)]">
-                              Not yet released
-                            </span>
-                          )}
-                          {isCompany && p.status === "PENDING" && (
-                            <Button size="xs" onClick={() => release(p.id)}>
-                              Release
-                            </Button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );
@@ -1418,15 +1597,17 @@ function LedgerPanel({
   project,
   application,
   viewerRole,
+  focus,
 }: {
   data: WorkspaceData;
   project: Project;
   application: Application;
   viewerRole: Role;
+  focus?: string;
 }) {
   const isCompany = viewerRole === "COMPANY";
-  const rows: LedgerEntry[] = data.ledger.filter(
-    (l) => isCompany || l.applicationId === application.id,
+  const rows: LedgerEntry[] = data.ledger.filter((l) =>
+    isCompany ? !focus || l.applicationId === focus : l.applicationId === application.id,
   );
   const summary = getProjectFinancialSummary(project.compensation, data.paymentItems, data.ledger);
 

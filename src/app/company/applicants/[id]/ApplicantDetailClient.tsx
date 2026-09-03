@@ -21,6 +21,7 @@ import {
   Video,
 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { RoundReviewPanel } from "@/components/shared/RoundReviewPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Chip, MatchScore, StatusIndicator } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -378,6 +379,14 @@ export function ApplicantDetailClient({
               </ul>
             </Card>
           )}
+
+          {/* ---- Selection rounds ---- */}
+          <RoundReviewPanel
+            applicationId={application.id}
+            candidateName={freelancer.name}
+            rounds={application.rounds}
+            closed={currentStatus === "REJECTED"}
+          />
 
           {/* ---- Offer ---- */}
           {application.offer && (

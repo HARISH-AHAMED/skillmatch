@@ -304,6 +304,53 @@ describe("hourly rules", () => {
   it("allows a partial payment of the outstanding balance", () => {
     expect(checkHourlyRelease({ value: D(50), approvedValue: D(150), alreadyPaid: D(0) }).ok).toBe(true);
   });
+
+  /**
+   * Hourly was the one model with no budget ceiling — stipend has COMP-014 and
+   * stages have their own. Approved hours were the only bound, and an
+   * engagement that configured no hour limit had no bound at all.
+   */
+  it("refuses a payment that would exceed the project budget", () => {
+    const res = checkHourlyRelease({
+      value: D(400),
+      approvedValue: D(1000),
+      alreadyPaid: D(0),
+      projectBudget: D(1000),
+      projectPaidTotal: D(800),
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/only 200\.00 remains/i);
+  });
+
+  it("refuses any payment once the budget is exhausted", () => {
+    const res = checkHourlyRelease({
+      value: D(10),
+      approvedValue: D(5000),
+      alreadyPaid: D(0),
+      projectBudget: D(1000),
+      projectPaidTotal: D(1000),
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/already been paid out in full/i);
+  });
+
+  it("allows a payment that fits inside the remaining budget", () => {
+    expect(
+      checkHourlyRelease({
+        value: D(200),
+        approvedValue: D(1000),
+        alreadyPaid: D(0),
+        projectBudget: D(1000),
+        projectPaidTotal: D(800),
+      }).ok
+    ).toBe(true);
+  });
+
+  it("keeps the previous behaviour when no budget is supplied", () => {
+    expect(checkHourlyRelease({ value: D(50), approvedValue: D(150), alreadyPaid: D(0) }).ok).toBe(
+      true
+    );
+  });
 });
 
 /** COMP-013 / COMP-014 — period count was unbounded and payouts uncapped. */

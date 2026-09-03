@@ -5,6 +5,12 @@ import type {
   ProjectStatus,
   TaskStatus,
 } from "./types";
+import {
+  ROUND_TYPE_CATALOG as DOMAIN_ROUND_TYPES,
+  roundRuntimeMode,
+  type RecruitmentRoundType,
+  type RoundRuntimeMode,
+} from "./workflowHelpers";
 
 /* ============================================================================
    CATALOGS (§7.1)
@@ -138,31 +144,29 @@ export const CURRENCIES: { code: string; name: string; symbol: string }[] = [
 ];
 
 /** 13 screening round types. Only SCREENING_QUESTIONS is runnable (§7.1 step 4). */
+/**
+ * The wizard's round picker. Derived from the domain catalog so the two can
+ * never drift: every type offered here is a type the runtime can execute.
+ */
 export const ROUND_TYPE_CATALOG: {
-  type: string;
+  type: RecruitmentRoundType;
   name: string;
   description: string;
-  runnable: boolean;
-}[] = [
-  {
-    type: "SCREENING_QUESTIONS",
-    name: "Screening Questions",
-    description: "Structured questions answered during the application.",
-    runnable: true,
-  },
-  { type: "RESUME_SHORTLIST", name: "Resume Shortlist", description: "Manual CV review round.", runnable: false },
-  { type: "PORTFOLIO_REVIEW", name: "Portfolio Review", description: "Reviewers score submitted work samples.", runnable: false },
-  { type: "APTITUDE_TEST", name: "Aptitude Test", description: "Timed reasoning and numeracy assessment.", runnable: false },
-  { type: "TECHNICAL_MCQ", name: "Technical MCQ", description: "Multiple-choice technical knowledge test.", runnable: false },
-  { type: "CODING_ROUND", name: "Coding Round", description: "Live or take-home programming challenge.", runnable: false },
-  { type: "TAKE_HOME_ASSIGNMENT", name: "Take-Home Assignment", description: "Scoped deliverable with a deadline.", runnable: false },
-  { type: "CASE_STUDY", name: "Case Study", description: "Business or product scenario walkthrough.", runnable: false },
-  { type: "VIDEO_INTERVIEW", name: "Video Interview", description: "Asynchronous recorded responses.", runnable: false },
-  { type: "TECHNICAL_INTERVIEW", name: "Technical Interview", description: "Live technical panel.", runnable: false },
-  { type: "CULTURE_FIT", name: "Culture Fit Interview", description: "Values and ways-of-working conversation.", runnable: false },
-  { type: "MANAGERIAL_ROUND", name: "Managerial Round", description: "Hiring manager discussion.", runnable: false },
-  { type: "FINAL_HR_ROUND", name: "Final HR Round", description: "Offer, expectations and onboarding.", runnable: false },
-];
+  mode: RoundRuntimeMode;
+}[] = DOMAIN_ROUND_TYPES.map((r) => ({
+  type: r.value,
+  name: r.label,
+  description: r.description,
+  mode: roundRuntimeMode(r.value),
+}));
+
+/** Plain-English summary of how each runtime mode reaches the candidate. */
+export const ROUND_MODE_LABEL: Record<RoundRuntimeMode, string> = {
+  APPLICATION: "Answered during application",
+  REVIEW_ONLY: "Reviewer-only, no candidate action",
+  CANDIDATE_SUBMIT: "Candidate submits a response",
+  LIVE_SESSION: "Scheduled live session",
+};
 
 export const QUESTION_TYPES = [
   { value: "PARAGRAPH", label: "Paragraph answer" },
@@ -318,6 +322,7 @@ export const WORKSPACE_TABS = [
   { id: "overview", label: "Overview", icon: "LayoutDashboard" },
   { id: "milestones", label: "Funding / Payments", icon: "Sparkles" },
   { id: "tasks", label: "Tasks", icon: "CheckSquare" },
+  { id: "worklog", label: "Work log", icon: "History" },
   { id: "deliverables", label: "Deliverables", icon: "Archive" },
   { id: "messages", label: "Chat", icon: "MessageSquare" },
   { id: "meetings", label: "Meetings", icon: "CalendarClock" },

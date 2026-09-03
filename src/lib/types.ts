@@ -1,3 +1,5 @@
+import type { ApplicationRoundProgress as WorkflowRoundProgress } from "./workflowHelpers";
+
 /* ============================================================================
    FRIVVO — DOMAIN TYPES
    Mirrors the data model in the master specification (§5). UI-only for now;
@@ -218,7 +220,10 @@ export interface ScreeningRound {
   description?: string;
   sortOrder: number;
   questions: ScreeningQuestion[];
-  comingSoon?: boolean;
+  /** Shown to the candidate when the round is opened for them. */
+  instructions?: string;
+  /** ISO date the candidate's response is due, when the round sets one. */
+  deadline?: string;
 }
 
 export interface FaqEntry {
@@ -373,6 +378,12 @@ export interface Interview {
   note?: string;
 }
 
+/**
+ * A selection round as the hiring flow sees it: the recruiter's request, the
+ * candidate's submission and the reviewer's verdict on one record.
+ */
+export type ApplicationRoundProgress = WorkflowRoundProgress;
+
 export interface Application {
   id: string;
   projectId: string;
@@ -410,6 +421,8 @@ export interface Application {
   };
   status: ApplicationStatus;
   pipelineHistory: PipelineEvent[];
+  /** Selection-round state, one entry per round configured on the project. */
+  rounds: ApplicationRoundProgress[];
   offer?: OfferLetter;
   contract?: DigitalContract;
   interview?: Interview;
@@ -470,7 +483,8 @@ export interface StipendPeriod {
   periodEnd?: string;
   amount: number;
   currency: string;
-  status: "PENDING" | "RELEASED";
+  /** SUBMITTED means the freelancer has raised the period for release. */
+  status: "PENDING" | "SUBMITTED" | "RELEASED";
   releasedAt?: string;
 }
 
@@ -552,6 +566,8 @@ export interface Task {
   assignedToAvatar?: string;
   createdByName: string;
   createdAt: string;
+  /** Set only while the task is DONE. */
+  completedAt?: string;
   labels: string[];
 }
 
@@ -620,6 +636,9 @@ export interface Review {
   communicationScore?: number;
   paymentReliabilityScore?: number;
   projectClarityScore?: number;
+  /** Set while an administrator has this review hidden from public profiles. */
+  hiddenAt?: string;
+  hiddenReason?: string;
   createdAt: string;
 }
 

@@ -1,0 +1,5 @@
+# Local env files must never ship — Auth.js reads NEXTAUTH_URL from them
+# and rewrites the request origin, which sent production redirects to localhost.
+.env
+.env.*
+!.env.example

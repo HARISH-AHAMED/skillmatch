@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Avatar, AvatarStack } from "@/components/ui/Avatar";
 import { Badge, Chip, MatchScore, StatusIndicator } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CandidateRoundsPanel } from "@/components/shared/CandidateRoundsPanel";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert, Progress } from "@/components/ui/Feedback";
@@ -492,6 +493,13 @@ export function ApplicationDetailClient({
               {application.coverLetter}
             </p>
           </Card>
+
+          {/* ================= SELECTION ROUNDS ================= */}
+          <CandidateRoundsPanel
+            applicationId={application.id}
+            rounds={application.rounds}
+            closed={application.status === "REJECTED"}
+          />
 
           {/* ================= SCREENING ANSWERS ================= */}
           {application.screeningAnswers.length > 0 && (

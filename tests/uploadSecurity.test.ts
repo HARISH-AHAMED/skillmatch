@@ -25,7 +25,7 @@ function upload(file: { name: string; type: string; size?: number; bytes?: Buffe
 
 beforeEach(() => {
   signedOut();
-  vi.stubEnv("NODE_ENV", "production"); // exercise the data: URL branch, no disk writes
+  vi.stubEnv("NODE_ENV", "production"); // exercise the media-store branch, no disk writes
 });
 
 describe("SEC-015: upload type allowlist", () => {
@@ -139,7 +139,12 @@ describe("SEC-015: upload endpoint", () => {
     const res = await upload({ name: "a.png", type: "image/png" });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.url.startsWith("data:image/png;base64,")).toBe(true);
+    // The bytes go to the media store and the caller gets a URL back, never
+    // the file itself inlined into a column.
+    expect(body.url).toMatch(/^\/api\/media\/[0-9a-f]{64}$/);
+    expect(db.mediaAsset.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ mimeType: "image/png" }) }),
+    );
   });
 
   it("stores the server-side type, not the client's, for a mislabelled-but-valid pair", async () => {
@@ -148,7 +153,12 @@ describe("SEC-015: upload endpoint", () => {
     const res = await upload({ name: "a.pdf", type: "application/pdf; charset=binary" });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.url.startsWith("data:application/pdf;base64,")).toBe(true);
+    // The canonical allowlist type is stored, not the parameterised string
+    // the client sent — the guarantee the data: URL form used to carry.
+    expect(body.url).toMatch(/^\/api\/media\/[0-9a-f]{64}$/);
+    expect(db.mediaAsset.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ mimeType: "application/pdf" }) }),
+    );
   });
 
   it("rejects an SVG upload", async () => {

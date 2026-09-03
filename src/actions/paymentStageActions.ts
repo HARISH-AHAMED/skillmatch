@@ -168,6 +168,12 @@ export async function savePaymentStage(projectId: string, input: PaymentStageInp
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 
@@ -189,6 +195,12 @@ export async function deletePaymentStage(projectId: string, stageId: string) {
 
   if (!result.success) return result;
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 
@@ -219,6 +231,24 @@ export async function fundPaymentStage(projectId: string, stageId: string, amoun
       });
       if (!rule.ok) return { success: false as const, error: rule.error! };
 
+      /**
+       * Funding was the one payment mutation that never consulted the
+       * transition table, and it wrote FUNDED unconditionally. Topping up a
+       * stage the freelancer had already submitted — or that had already been
+       * approved — silently reverted it, discarding the submission note, the
+       * review timestamp and the approval that gates release.
+       *
+       * A stage past FUNDED keeps its status: the money is added, the progress
+       * is not undone. PENDING and CHANGES_REQUESTED still move to FUNDED,
+       * which the table permits.
+       */
+      const keepsStatus = snapshot.status === "SUBMITTED" || snapshot.status === "APPROVED";
+      if (!keepsStatus) {
+        const move = assertTransition(snapshot.status, "FUNDED");
+        if (!move.ok) return { success: false as const, error: move.error! };
+      }
+      const nextStatus = keepsStatus ? snapshot.status : "FUNDED";
+
       const nextFunded = snapshot.fundedAmount.plus(value);
       // Incremental top-ups are legitimate, so the key includes the resulting
       // total rather than just the operation name.
@@ -235,7 +265,7 @@ export async function fundPaymentStage(projectId: string, stageId: string, amoun
 
       await tx.paymentItem.update({
         where: { id: item.id },
-        data: { fundedAmount: nextFunded, status: "FUNDED" },
+        data: { fundedAmount: nextFunded, status: nextStatus },
       });
       return { success: true as const, applicationId: item.applicationId, amount: value, currency: item.currency, title: item.title };
     });
@@ -254,6 +284,12 @@ export async function fundPaymentStage(projectId: string, stageId: string, amoun
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 
@@ -297,6 +333,12 @@ export async function submitPaymentStage(projectId: string, stageId: string, not
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 
@@ -347,6 +389,12 @@ export async function reviewPaymentStage(
   );
 
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 
@@ -415,6 +463,12 @@ export async function releasePaymentStage(projectId: string, stageId: string, am
   }
 
   revalidatePath(`/company/projects/${projectId}`);
+  // Funding, review and release are all driven from the workspace, which was
+  // not revalidated at all — the panel kept rendering its cached figures after
+  // the ledger had already moved.
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   return { success: true, stages: await getPaymentStages(projectId) };
 }
 

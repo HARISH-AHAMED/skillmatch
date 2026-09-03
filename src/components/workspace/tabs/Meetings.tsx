@@ -9,7 +9,8 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState , useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import { EmptyState } from "@/components/ui/Feedback";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
+import { createMeeting, respondToMeeting } from "@/actions/meetingActions";
 import { useSession } from "@/lib/session";
 import type { Meeting, Project, Role } from "@/lib/types";
 import type { WorkspaceData } from "@/data/server/workspace";
@@ -41,6 +43,8 @@ export function WorkspaceMeetings({
   viewerRole: Role;
 }) {
   const toast = useToast();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const { session } = useSession();
   const isCompany = viewerRole === "COMPANY";
   const userId = session?.userId ?? "";
@@ -80,19 +84,20 @@ export function WorkspaceMeetings({
   }, [meetings, now]);
 
   const rsvp = (meetingId: string, status: "ACCEPTED" | "DECLINED") => {
-    setMeetings((prev) =>
-      prev.map((m) =>
-        m.id === meetingId
-          ? {
-              ...m,
-              attendees: m.attendees.map((a) =>
-                a.userId === userId ? { ...a, status } : a,
-              ),
-            }
-          : m,
-      ),
-    );
-    toast.success(status === "ACCEPTED" ? "You're going" : "Declined", "The organiser has been notified.");
+    // The reply was only ever applied to a local copy, so the organiser was
+    // told nothing and the answer was gone on the next render.
+    startTransition(async () => {
+      const result = await respondToMeeting(meetingId, status);
+      if (!result.success) {
+        toast.error("That reply could not be sent", result.error ?? "Please try again.");
+        return;
+      }
+      toast.success(
+        status === "ACCEPTED" ? "You're going" : "Declined",
+        "The organiser has been notified.",
+      );
+      router.refresh();
+    });
   };
 
   const schedule = () => {
@@ -103,53 +108,28 @@ export function WorkspaceMeetings({
     const eligible = new Set(team.map((t) => t.freelancer.userId));
     const invited = form.attendees.filter((id) => eligible.has(id));
 
-    setMeetings((prev) => [
-      ...prev,
-      {
-        id: `meet-local-${Date.now()}`,
+    startTransition(async () => {
+      const result = await createMeeting({
         projectId: project.id,
-        organizerUserId: userId,
-        organizerName: project.company.companyName,
         title: form.title.trim(),
-        description: form.description.trim(),
+        description: form.description.trim() || undefined,
         startsAt,
-        durationMinutes: Number(form.duration),
+        durationMinutes: Number(form.duration) || undefined,
         meetingUrl: form.meetingUrl.trim() || undefined,
         location: form.location.trim() || undefined,
-        status: "SCHEDULED",
-        attendees: [
-          {
-            userId,
-            name: project.company.companyName,
-            avatarUrl: project.company.logoUrl,
-            role: "COMPANY",
-            status: "ACCEPTED",
-          },
-          ...invited.map((id) => {
-            const t = team.find((x) => x.freelancer.userId === id)!;
-            return {
-              userId: id,
-              name: t.freelancer.name,
-              avatarUrl: t.freelancer.avatarUrl,
-              role: "FREELANCER" as const,
-              status: "INVITED" as const,
-            };
-          }),
-        ],
-      },
-    ]);
-    setForm({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      duration: "30",
-      meetingUrl: "",
-      location: "",
-      attendees: [],
+        attendeeUserIds: invited,
+      });
+
+      if (!result.success) {
+        toast.error("That meeting could not be scheduled", result.error ?? "Please try again.");
+        return;
+      }
+
+      setScheduling(false);
+      setForm({ title: "", description: "", date: "", time: "", duration: "30", meetingUrl: "", location: "", attendees: [] });
+      toast.success("Meeting scheduled", `${invited.length} attendees have been notified.`);
+      router.refresh();
     });
-    setScheduling(false);
-    toast.success("Meeting scheduled", `${invited.length} attendees have been notified.`);
   };
 
   const list = view === "upcoming" ? upcoming : past;

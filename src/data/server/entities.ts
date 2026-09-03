@@ -1,4 +1,5 @@
 import "server-only";
+import { CACHE_TAGS, publicCache } from "./cache";
 import { db } from "@/lib/db";
 import { rewardWhere } from "@/lib/browseFilters";
 import {
@@ -272,7 +273,7 @@ export async function mapCompanies(
  * experience banding and match sorting — is applied to the returned page, as
  * the existing browse screen does.
  */
-export async function browseProjects(
+async function browseProjectsUncached(
   filters: BrowseFilters = {},
   viewerFreelancerId?: string,
 ): Promise<Project[]> {
@@ -492,12 +493,12 @@ export async function draftsForCompany(companyId: string): Promise<Project[]> {
   return mapProjects(rows);
 }
 
-export async function featuredProjects(limit = 8): Promise<Project[]> {
+async function featuredProjectsUncached(limit = 8): Promise<Project[]> {
   const projects = await browseProjects({ sort: "NEWEST" });
   return projects.slice(0, limit);
 }
 
-export async function featuredCompanies(limit = 6): Promise<Company[]> {
+async function featuredCompaniesUncached(limit = 6): Promise<Company[]> {
   const rows = await db.company.findMany({
     include: companyInclude,
     orderBy: { trustScore: "desc" },
@@ -506,7 +507,7 @@ export async function featuredCompanies(limit = 6): Promise<Company[]> {
   return mapCompanies(rows);
 }
 
-export async function leaderboard(limit = 8): Promise<Freelancer[]> {
+async function leaderboardUncached(limit = 8): Promise<Freelancer[]> {
   const rows = await db.freelancer.findMany({
     include: freelancerInclude,
     orderBy: [{ rating: "desc" }, { completedProjects: "desc" }],
@@ -515,7 +516,7 @@ export async function leaderboard(limit = 8): Promise<Freelancer[]> {
   return mapFreelancers(rows);
 }
 
-export async function topFreelancers(limit = 6): Promise<Freelancer[]> {
+async function topFreelancersUncached(limit = 6): Promise<Freelancer[]> {
   const rows = await db.freelancer.findMany({
     where: { verificationBadges: { has: "Top Rated" } },
     include: freelancerInclude,
@@ -626,3 +627,43 @@ export async function hiredApplications(projectId: string): Promise<Application[
   });
   return mapApplications(rows);
 }
+
+/* --------------------------------------------------------- public cache --- */
+
+/**
+ * The public directory read. Identical for every anonymous visitor, so it is
+ * cached under the filters it was called with.
+ *
+ * A signed-in freelancer gets match scores computed against their own profile,
+ * which is viewer-specific by definition — that path skips the cache entirely
+ * rather than risk one freelancer seeing another's scores.
+ */
+const browseProjectsPublic = publicCache(
+  (filters: BrowseFilters) => browseProjectsUncached(filters),
+  ["browseProjects"],
+  [CACHE_TAGS.projects, CACHE_TAGS.companies],
+);
+
+export async function browseProjects(
+  filters: BrowseFilters = {},
+  viewerFreelancerId?: string,
+): Promise<Project[]> {
+  if (viewerFreelancerId) return browseProjectsUncached(filters, viewerFreelancerId);
+  return browseProjectsPublic(filters);
+}
+
+export const featuredProjects = publicCache(featuredProjectsUncached, ["featuredProjects"], [
+  CACHE_TAGS.projects,
+]);
+
+export const featuredCompanies = publicCache(featuredCompaniesUncached, ["featuredCompanies"], [
+  CACHE_TAGS.companies,
+]);
+
+export const leaderboard = publicCache(leaderboardUncached, ["leaderboard"], [
+  CACHE_TAGS.freelancers,
+]);
+
+export const topFreelancers = publicCache(topFreelancersUncached, ["topFreelancers"], [
+  CACHE_TAGS.freelancers,
+]);

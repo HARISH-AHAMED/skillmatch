@@ -59,6 +59,8 @@ export function toReview(row: ReviewRow): Review {
     communicationScore: row.communicationScore ?? undefined,
     paymentReliabilityScore: row.paymentReliabilityScore ?? undefined,
     projectClarityScore: row.projectClarityScore ?? undefined,
+    hiddenAt: row.hiddenAt ? iso(row.hiddenAt) : undefined,
+    hiddenReason: row.hiddenReason ?? undefined,
     createdAt: iso(row.createdAt),
   };
 }

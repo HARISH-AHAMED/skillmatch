@@ -95,10 +95,8 @@ function toRounds(meta: ProjectWizardData): ScreeningRound[] {
       description: round.description || undefined,
       sortOrder: index,
       questions: (round.questions ?? []).map(toQuestion),
-      // Only SCREENING_QUESTIONS is wired end-to-end in the backend; the rest
-      // are configurable but not yet collectable, and the design already has a
-      // "coming soon" treatment for exactly this case.
-      comingSoon: round.type !== "SCREENING_QUESTIONS",
+      instructions: round.config?.instructions || undefined,
+      deadline: round.config?.deadline || undefined,
     }));
   }
 
@@ -179,10 +177,12 @@ function toCompensation(row: ProjectRow, meta: ProjectWizardData): ProjectCompen
     budgetNegotiable: meta.budgetNegotiable ?? false,
     hourlyRate: type === "HOURLY" ? meta.paymentRate : undefined,
     estimatedHours: meta.estimatedHours,
-    maxHours: undefined,
+    // Both are carried in the metadata block now, so the fallback branch no
+    // longer has to report "unconfigured" for a project that configured them.
+    maxHours: type === "HOURLY" ? meta.maxHours : undefined,
     stipendAmount: type === "STIPEND" ? meta.paymentRate : undefined,
     stipendFrequency: meta.stipendFrequency as StipendFrequency | undefined,
-    stipendPeriods: undefined,
+    stipendPeriods: type === "STIPEND" ? meta.stipendPeriods : undefined,
     nonMonetaryBenefits: meta.nonMonetaryBenefits,
     nonMonetaryDetail: meta.nonMonetaryDetails,
   };

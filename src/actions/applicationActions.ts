@@ -1,10 +1,23 @@
 "use server";
 
+import { seedRoundProgress } from "@/lib/rounds";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { Role, ApplicationStatus, ProjectStatus, Prisma } from "@prisma/client";
 import { computeRecommendationScore } from "@/services/aiRecommendation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath as revalidateRoute } from "next/cache";
+import { CACHE_TAGS, invalidatePublic } from "@/data/server/cache";
+
+/**
+ * PERF — the public directories and marketing pages read through a tagged
+ * cache, so a mutation has to drop those entries as well as the rendered
+ * routes. Wrapping revalidatePath here keeps the two in step: every existing
+ * invalidation point in this file now does both.
+ */
+function revalidatePath(path: string) {
+  revalidateRoute(path);
+  invalidatePublic(CACHE_TAGS.projects, CACHE_TAGS.stats);
+}
 import {
   serializeApplicationMetadata,
   ApplicationWorkflowData,
@@ -138,6 +151,9 @@ export async function applyToProject(
       }
     ],
     screeningAnswers: screeningAnswers || {},
+    // Every configured round gets an entry now, so the hiring flow has state
+    // to advance from the moment the application exists.
+    roundProgress: seedRoundProgress(projectMeta.rounds ?? []),
   };
   const serializedCoverLetter = serializeApplicationMetadata(coverLetter, meta);
 
@@ -240,6 +256,14 @@ async function ownedApplicationOrThrow(applicationId: string) {
 export async function shortlistApplicant(applicationId: string) {
   const application = await ownedApplicationOrThrow(applicationId);
 
+  /**
+   * LIFE-003 — neither this nor rejectApplicant consulted the transition table,
+   * though hireApplicant and removeFreelancer in this same file both do. That
+   * made HIRED → SHORTLISTED succeed, which the state machine forbids.
+   */
+  const move = assertApplicationTransition(application.status, ApplicationStatus.SHORTLISTED);
+  if (!move.ok) throw new Error(move.error);
+
   await db.application.update({
     where: { id: applicationId },
     data: { status: ApplicationStatus.SHORTLISTED },
@@ -262,6 +286,22 @@ export async function shortlistApplicant(applicationId: string) {
 
 export async function rejectApplicant(applicationId: string) {
   const application = await ownedApplicationOrThrow(applicationId);
+
+  /**
+   * MF-006 — rejecting a HIRED freelancer is a removal, and removal has
+   * obligations attached: committed stage funds and approved-but-unpaid work
+   * have to be settled first, and the project may need to re-open. Reaching
+   * that transition through this action skipped all of it, stranding money on
+   * an application the readiness check no longer looks at.
+   *
+   * There is one removal path now, and this is a front door onto it.
+   */
+  if (application.status === ApplicationStatus.HIRED) {
+    return removeFreelancer(applicationId);
+  }
+
+  const move = assertApplicationTransition(application.status, ApplicationStatus.REJECTED);
+  if (!move.ok) throw new Error(move.error);
 
   await db.application.update({
     where: { id: applicationId },
@@ -425,7 +465,7 @@ export async function removeFreelancer(applicationId: string) {
    * so outstanding value is now detectable — and removal is refused until it is
    * settled rather than silently stranding it.
    */
-  const [openItems, unpaidHours] = await Promise.all([
+  const [openItems, unpaidHours, raisedPeriods] = await Promise.all([
     db.paymentItem.findMany({
       where: { applicationId, status: { notIn: ["RELEASED", "CANCELLED"] } },
       select: { title: true, fundedAmount: true, releasedAmount: true, currency: true },
@@ -434,7 +474,21 @@ export async function removeFreelancer(applicationId: string) {
       where: { applicationId, status: "APPROVED" },
       select: { hours: true, rateSnapshot: true, status: true },
     }),
+    // Stages and hours were checked here; stipend periods were not, so a
+    // freelancer with periods raised and awaiting release could be removed and
+    // their claim disappear with them.
+    db.stipendPeriod.findMany({
+      where: { applicationId, status: "SUBMITTED" },
+      select: { periodIndex: true, amount: true, currency: true },
+    }),
   ]);
+
+  if (raisedPeriods.length > 0) {
+    const owed = raisedPeriods.reduce((t, p) => t.plus(p.amount), new Prisma.Decimal(0));
+    throw new Error(
+      `This freelancer has ${raisedPeriods.length} stipend period(s) raised and awaiting release, worth ${raisedPeriods[0].currency} ${owed.toFixed(2)}. Release or decline them before removing them.`
+    );
+  }
 
   const committed = openItems.filter((i) => i.fundedAmount.greaterThan(i.releasedAmount));
   if (committed.length > 0) {
@@ -449,7 +503,9 @@ export async function removeFreelancer(applicationId: string) {
 
   if (unpaidHours.length > 0) {
     const paidEntries = await db.paymentTransaction.findMany({
-      where: { applicationId, type: "RELEASE", paymentItemId: null },
+      // Hourly releases only: a stipend payout carries a stipendPeriodId and
+      // must not be credited against approved hours.
+      where: { applicationId, type: "RELEASE", paymentItemId: null, stipendPeriodId: null },
       select: { amount: true },
     });
     const approved = approvedHourlyValue(
@@ -479,16 +535,17 @@ export async function removeFreelancer(applicationId: string) {
     data: { status: ApplicationStatus.REJECTED },
   });
 
-  // 2. Count the number of currently hired freelancers for this project
-  const hiredCount = await db.application.count({
-    where: {
-      projectId,
-      status: ApplicationStatus.HIRED,
-    },
-  });
+  /**
+   * 2. MF-004 — this counted every hired application, apprentices included,
+   * while getCapacity counts primaries only. With an apprentice on board,
+   * removing the sole primary left the project IN_PROGRESS holding an unfilled
+   * slot it could no longer hire into. One capacity calculation, as everywhere
+   * else.
+   */
+  const capacityAfter = await getCapacity(db, projectId);
 
-  // 3. Re-open project to OPEN if hiring count falls below limit and status is IN_PROGRESS
-  if (hiredCount < application.project.freelancersLimit && application.project.status === ProjectStatus.IN_PROGRESS) {
+  // 3. Re-open project to OPEN if a primary slot is now free and it is running.
+  if (!capacityAfter.projectFull && application.project.status === ProjectStatus.IN_PROGRESS) {
     await db.project.update({
       where: { id: projectId },
       data: { status: ProjectStatus.OPEN },

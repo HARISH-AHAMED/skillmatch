@@ -4,7 +4,19 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import { recalculateRecommendationsForFreelancer } from "@/services/aiRecommendation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath as revalidateRoute } from "next/cache";
+import { CACHE_TAGS, invalidatePublic } from "@/data/server/cache";
+
+/**
+ * PERF — the public directories and marketing pages read through a tagged
+ * cache, so a mutation has to drop those entries as well as the rendered
+ * routes. Wrapping revalidatePath here keeps the two in step: every existing
+ * invalidation point in this file now does both.
+ */
+function revalidatePath(path: string) {
+  revalidateRoute(path);
+  invalidatePublic(CACHE_TAGS.freelancers, CACHE_TAGS.companies);
+}
 import { parseFreelancerMetadata, serializeFreelancerMetadata } from "@/lib/workflowHelpers";
 
 export async function updateFreelancerProfile(formData: {

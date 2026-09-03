@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { validateUpload, buildUploadFilename } from "@/lib/uploads";
 
 export async function POST(req: NextRequest) {
@@ -43,12 +45,32 @@ export async function POST(req: NextRequest) {
 
     // Serverless hosts (Vercel) have a read-only filesystem and no persistence
     // between invocations, so disk writes 500 and the saved URL later 404s.
-    // There, return a data URL the client can store and render directly.
+    //
+    // PERF — this used to return a `data:` URL. The caller stored the whole
+    // file in a text column, and every listing that rendered the image inlined
+    // it into the HTML once per card. The bytes now go to MediaAsset and the
+    // caller gets a URL that the browser and CDN cache forever.
     if (process.env.VERCEL || process.env.NODE_ENV === "production") {
-      // Content type is the validated one, so a mislabelled upload cannot be
-      // stored as an active type such as text/html.
-      const dataUrl = `data:${validated.contentType};base64,${buffer.toString("base64")}`;
-      return NextResponse.json({ url: dataUrl });
+      // Content-addressed: the same file uploaded twice is one row, and a URL
+      // can never come to point at different bytes.
+      const id = crypto.createHash("sha256").update(buffer).digest("hex");
+
+      await db.mediaAsset.upsert({
+        where: { id },
+        // Already stored — nothing to rewrite, the bytes are identical by
+        // construction.
+        update: {},
+        create: {
+          id,
+          // The validated allowlist entry, never the client's claim.
+          mimeType: validated.contentType,
+          byteSize: buffer.length,
+          data: buffer,
+          uploadedBy: session.user.id ?? null,
+        },
+      });
+
+      return NextResponse.json({ url: `/api/media/${id}` });
     }
 
     // Local development keeps writing to public/uploads.

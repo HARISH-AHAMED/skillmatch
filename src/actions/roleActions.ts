@@ -3,7 +3,19 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath as revalidateRoute } from "next/cache";
+import { CACHE_TAGS, invalidatePublic } from "@/data/server/cache";
+
+/**
+ * PERF — the public directories and marketing pages read through a tagged
+ * cache, so a mutation has to drop those entries as well as the rendered
+ * routes. Wrapping revalidatePath here keeps the two in step: every existing
+ * invalidation point in this file now does both.
+ */
+function revalidatePath(path: string) {
+  revalidateRoute(path);
+  invalidatePublic(CACHE_TAGS.projects);
+}
 import { parseApplicationMetadata, serializeApplicationMetadata } from "@/lib/workflowHelpers";
 
 export interface RoleInput {

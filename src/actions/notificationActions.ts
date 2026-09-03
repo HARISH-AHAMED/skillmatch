@@ -73,10 +73,25 @@ export async function getNotificationRedirectUrl(notificationId: string) {
     // Extract all quoted substrings
     const allQuotes = [...message.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
     if (allQuotes.length > 0) {
+      /**
+       * Project titles are not unique, and this matched them across the whole
+       * platform — so a company clicking a notification about "Website
+       * Redesign" could be routed at another company's project, and then at an
+       * arbitrary hired application on it. The destination re-authorizes, so
+       * the outcome was a 404 rather than a leak, but the link was wrong.
+       *
+       * Resolution is scoped to projects the reader actually belongs to.
+       * (A title is still a poor key; the durable fix is to store the target
+       * id on the notification row, which is a schema change.)
+       */
       const project = await db.project.findFirst({
         where: {
           title: { in: allQuotes },
+          ...(userRole === "COMPANY"
+            ? { company: { userId } }
+            : { applications: { some: { freelancer: { userId } } } }),
         },
+        orderBy: { updatedAt: "desc" },
       });
       if (project) {
         if (userRole === "COMPANY") {

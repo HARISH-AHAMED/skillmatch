@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { Activity, CalendarClock, CheckSquare, CircleDollarSign, FileText, Plus, Target, Users, Wallet } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState , useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +12,7 @@ import { Field, Textarea, Input, Select } from "@/components/ui/Field";
 import { Alert, EmptyState, Progress } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { createProjectUpdate } from "@/actions/collaborationActions";
 import type { Application, Project, ProjectUpdate, Role } from "@/lib/types";
 import { getApplicationFinancials, getProjectFinancialSummary } from "@/lib/domain";
 import type { WorkspaceData } from "@/data/server/workspace";
@@ -30,8 +33,12 @@ export function WorkspaceOverview({
   onNavigate: (tab: string) => void;
 }) {
   const toast = useToast();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const now = useNow();
-  const [updates, setUpdates] = useState<ProjectUpdate[]>(() => data.updates);
+  // Straight from the server: the local copy this used to hold was never
+  // written back, so a posted update only ever existed in this tab.
+  const updates = data.updates;
   const [composing, setComposing] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -394,26 +401,32 @@ export function WorkspaceOverview({
             <Button
               disabled={!title.trim() || !body.trim()}
               onClick={() => {
-                setUpdates((prev) => [
-                  {
-                    id: `upd-local-${Date.now()}`,
-                    projectId: project.id,
-                    createdById: "local",
-                    createdByName: isCompany ? project.company.companyName : application.freelancer.name,
-                    createdByAvatar: isCompany
-                      ? project.company.logoUrl
-                      : application.freelancer.avatarUrl,
-                    title: title.trim(),
-                    description: body.trim(),
+                // This used to push the update into local state and claim
+                // everyone had been notified. Nothing was written and nobody
+                // was told.
+                const nextTitle = title.trim();
+                const nextBody = body.trim();
+                startTransition(async () => {
+                  const result = await createProjectUpdate(
+                    project.id,
+                    nextTitle,
+                    nextBody,
                     status,
-                    createdAt: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
-                setTitle("");
-                setBody("");
-                setComposing(false);
-                toast.success("Update posted", "Everyone on the engagement has been notified.");
+                  );
+                  if (!result || "error" in result) {
+                    toast.error(
+                      "That update could not be posted",
+                      (result && "error" in result ? result.error : undefined) ??
+                        "Please try again.",
+                    );
+                    return;
+                  }
+                  setTitle("");
+                  setBody("");
+                  setComposing(false);
+                  toast.success("Update posted", "Everyone on the engagement has been notified.");
+                  router.refresh();
+                });
               }}
             >
               Post update

@@ -10,7 +10,51 @@ import {
   scopedSharedFile,
   scopedMessage,
   scopedProjectUpdate,
+  visibleChannelsFor,
 } from "@/lib/authz";
+
+/** Bound on a write path every workspace member can reach. */
+const MAX_MESSAGE_LENGTH = 5000;
+
+/**
+ * Statuses a project update may carry. KANBAN-003 added this guard for
+ * Task.status but left the sibling free-string columns unchecked, so an
+ * unrecognised value persisted and then rendered as "Pending" — an invisible,
+ * unfilterable record.
+ */
+const PROJECT_UPDATE_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"] as const;
+function isProjectUpdateStatus(value: string): boolean {
+  return (PROJECT_UPDATE_STATUSES as readonly string[]).includes(value);
+}
+
+/** Task priority, the other unguarded free-string column on the same board. */
+const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
+function isTaskPriority(value: string): boolean {
+  return (TASK_PRIORITIES as readonly string[]).includes(value);
+}
+
+/**
+ * Users a task may be assigned to: the owning company plus the freelancers
+ * hired on the project. createMeeting filters its attendee ids this way; the
+ * task paths wrote assignedToId straight through, so a member could attach a
+ * task — and its notification — to any user on the platform.
+ */
+async function projectMemberIds(projectId: string): Promise<Set<string>> {
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: {
+      company: { select: { userId: true } },
+      applications: {
+        where: { status: "HIRED" },
+        select: { freelancer: { select: { userId: true } } },
+      },
+    },
+  });
+  const ids = new Set<string>();
+  if (project?.company.userId) ids.add(project.company.userId);
+  for (const a of project?.applications ?? []) ids.add(a.freelancer.userId);
+  return ids;
+}
 
 // Helper to verify if the user belongs to the project workspace
 async function verifyProjectWorkspaceAccess(projectId: string, userId: string) {
@@ -68,12 +112,32 @@ export async function sendMessage(projectId: string, content: string, channel: s
     return { error: "Access denied to Freelancers-only channel" };
   }
 
-  // Security check for DMs: only the participants can access
+  /**
+   * SEC-014 class — this confirmed the *sender* sat in the channel string but
+   * never looked at the other half, so a member could address a DM to any user
+   * id on the platform and fire a notification at them. sendDMMessageAction
+   * validates both ends; this one is now held to the same rule.
+   */
   if (channel.startsWith("dm:")) {
     const parts = channel.split(":");
     if (parts.length !== 3 || !parts.includes(userId)) {
       return { error: "Access denied to private direct message channel" };
     }
+    const counterpart = parts[1] === userId ? parts[2] : parts[1];
+    const onProject = new Set<string>([
+      project.company.userId,
+      ...project.applications.map((app) => app.freelancer.userId),
+    ]);
+    if (!onProject.has(counterpart)) {
+      return { error: "Access denied to private direct message channel" };
+    }
+  }
+
+  if (!content?.trim()) {
+    return { error: "Message cannot be empty." };
+  }
+  if (content.length > MAX_MESSAGE_LENGTH) {
+    return { error: `Messages are limited to ${MAX_MESSAGE_LENGTH} characters.` };
   }
 
   try {
@@ -134,6 +198,9 @@ export async function sendMessage(projectId: string, content: string, channel: s
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
     revalidatePath("/company/dashboard");
     revalidatePath("/freelancer/dashboard");
 
@@ -209,6 +276,9 @@ export async function shareFile(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, file };
   } catch (error: any) {
@@ -235,6 +305,10 @@ export async function createProjectUpdate(
   }
 
   const { role, project } = access;
+
+  if (!isProjectUpdateStatus(status)) {
+    return { error: "Unknown update status." };
+  }
 
   try {
     const update = await db.projectUpdate.create({
@@ -274,6 +348,9 @@ export async function createProjectUpdate(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, update };
   } catch (error: any) {
@@ -304,6 +381,11 @@ export async function updateProjectUpdateStatus(
   // Same shape: project access is checked, the update id was not scoped to it.
   if (!(await scopedProjectUpdate(updateId, projectId))) {
     return { error: "Update not found" };
+  }
+
+  // KANBAN-003 class — the same allowlist the create path applies.
+  if (!isProjectUpdateStatus(status)) {
+    return { error: "Unknown update status." };
   }
 
   try {
@@ -338,6 +420,9 @@ export async function updateProjectUpdateStatus(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, update };
   } catch (error: any) {
@@ -363,6 +448,15 @@ export async function createTask(
   const access = await verifyProjectWorkspaceAccess(projectId, userId);
   if (access.error || !access.project || !access.role) {
     return { error: access.error || "Access denied" };
+  }
+
+  if (!isTaskPriority(priority)) {
+    return { error: "Unknown task priority." };
+  }
+
+  // A task may only be assigned to someone actually on the project.
+  if (assignedToId && !(await projectMemberIds(projectId)).has(assignedToId)) {
+    return { error: "That person is not a member of this project." };
   }
 
   try {
@@ -392,6 +486,9 @@ export async function createTask(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, task };
   } catch (error: any) {
@@ -428,11 +525,19 @@ export async function updateTaskStatus(projectId: string, taskId: string, status
   try {
     const task = await db.task.update({
       where: { id: taskId },
-      data: { status },
+      data: {
+        status,
+        // Stamped on the way into DONE and cleared on the way out, so the work
+        // timeline can group by the day a task was actually finished.
+        completedAt: status === "DONE" ? new Date() : null,
+      },
     });
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, task };
   } catch (error: any) {
@@ -468,6 +573,15 @@ export async function updateTaskDetails(
     return { error: "Task not found" };
   }
 
+  if (data.priority !== undefined && !isTaskPriority(data.priority)) {
+    return { error: "Unknown task priority." };
+  }
+
+  // Reassignment is bounded by project membership, like the create path.
+  if (data.assignedToId && !(await projectMemberIds(projectId)).has(data.assignedToId)) {
+    return { error: "That person is not a member of this project." };
+  }
+
   try {
     const task = await db.task.update({
       where: { id: taskId },
@@ -482,6 +596,9 @@ export async function updateTaskDetails(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, task };
   } catch (error: any) {
@@ -515,6 +632,9 @@ export async function deleteTask(projectId: string, taskId: string) {
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true };
   } catch (error: any) {
@@ -576,6 +696,9 @@ export async function deleteFile(projectId: string, fileId: string) {
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true };
   } catch (error: any) {
@@ -598,6 +721,16 @@ export async function updateDeliverableStatus(
   const access = await verifyProjectWorkspaceAccess(projectId, userId);
   if (access.error || !access.project || !access.role) {
     return { error: access.error || "Access denied" };
+  }
+
+  /**
+   * The caller's role was resolved and then never used, so any workspace
+   * member could mark a deliverable APPROVED — including the freelancer who
+   * uploaded it. Reviewing submitted work is the company's decision everywhere
+   * else in the product (reviewPaymentStage, reviewWorkLog); it is here too.
+   */
+  if (access.role !== "COMPANY") {
+    return { error: "Only the company can review a deliverable." };
   }
 
   try {
@@ -665,6 +798,9 @@ export async function updateDeliverableStatus(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, updated };
   } catch (err: any) {
@@ -695,13 +831,30 @@ export async function uploadDeliverableVersion(
     const file = await scopedSharedFile(fileId, projectId);
     if (!file) return { error: "Deliverable not found" };
 
-    let meta = { size: "Unknown size", status: "PENDING", version: 1, feedback: "" };
+    let meta: Record<string, any> = {
+      size: "Unknown size",
+      status: "PENDING",
+      version: 1,
+      feedback: "",
+      revisionCount: 0,
+      revisionCap: DELIVERABLE_REVISION_CAP,
+    };
     try {
       meta = { ...meta, ...JSON.parse(file.fileSize || "{}") };
     } catch (e) {}
 
     const newVersion = meta.version + 1;
+    /**
+     * The replacement metadata was built from scratch and dropped
+     * revisionCount and revisionCap, so the cap updateDeliverableStatus
+     * enforces was cleared by the very act that consumes a revision: upload a
+     * new version and the count returned to zero, meaning the limit could
+     * never actually bite.
+     *
+     * The consumed revisions carry forward; only the per-version fields reset.
+     */
     const newMeta = {
+      ...meta,
       size: fileSizeStr,
       status: "PENDING",
       feedback: "",
@@ -734,6 +887,9 @@ export async function uploadDeliverableVersion(
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true, updated };
   } catch (err: any) {
@@ -774,6 +930,9 @@ export async function deleteMessage(projectId: string, messageId: string) {
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true };
   } catch (error: any) {
@@ -790,6 +949,27 @@ export async function markMessagesAsRead(projectId: string, channel: string) {
 
   const userId = session.user.id;
 
+  /**
+   * The only action in this file that ran on a session alone: it took a project
+   * id and a channel and issued an updateMany, so any user could mark any
+   * conversation on the platform as read. The blast radius is one boolean, but
+   * the guard its siblings all apply costs nothing.
+   */
+  const access = await verifyProjectWorkspaceAccess(projectId, userId);
+  if (access.error || !access.project || !access.role) {
+    return { error: access.error || "Access denied" };
+  }
+
+  // A caller cannot clear a channel they are not entitled to read.
+  const readable = await db.message.findFirst({
+    where: { projectId, channel, ...visibleChannelsFor(access.role, userId) },
+    select: { id: true },
+  });
+  if (!readable) {
+    // Nothing visible in that channel: either it is empty or it is not theirs.
+    return { success: true };
+  }
+
   try {
     await db.message.updateMany({
       where: {
@@ -805,6 +985,9 @@ export async function markMessagesAsRead(projectId: string, channel: string) {
 
     revalidatePath("/company/workspace/[applicationId]", "layout");
     revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    // The shared workspace route was missing here, so the page most people
+    // actually open kept serving its cached message list.
+    revalidatePath("/workspace/[applicationId]", "layout");
 
     return { success: true };
   } catch (error: any) {

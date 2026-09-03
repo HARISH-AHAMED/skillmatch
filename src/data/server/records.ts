@@ -14,7 +14,9 @@ import { getHiddenCertificateIds } from "@/actions/certificateActions";
 /** Reviews written about a user. Reviews are keyed by user id, not profile id. */
 export async function reviewsFor(revieweeUserId: string): Promise<Review[]> {
   const rows = await db.review.findMany({
-    where: { revieweeId: revieweeUserId },
+    // A hidden review is withheld from public profiles. The row is kept, so
+    // the admin table below still shows it.
+    where: { revieweeId: revieweeUserId, hiddenAt: null },
     include: reviewInclude,
     orderBy: { createdAt: "desc" },
   });
@@ -23,7 +25,7 @@ export async function reviewsFor(revieweeUserId: string): Promise<Review[]> {
 
 export async function reviewsBy(reviewerUserId: string): Promise<Review[]> {
   const rows = await db.review.findMany({
-    where: { reviewerId: reviewerUserId },
+    where: { reviewerId: reviewerUserId, hiddenAt: null },
     include: reviewInclude,
     orderBy: { createdAt: "desc" },
   });

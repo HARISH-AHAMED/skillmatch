@@ -62,14 +62,14 @@ model User {
   freelancerProfile Freelancer?
   companyProfile    Company?
   notifications     Notification[]
-  reviewsWritten    Review[]        @relation("ReviewsWritten")
-  reviewsReceived   Review[]        @relation("ReviewsReceived")
+  reviewsWritten    Review[]          @relation("ReviewsWritten")
+  reviewsReceived   Review[]          @relation("ReviewsReceived")
   adminLogs         AdminLog[]
   messages          Message[]
   sharedFiles       SharedFile[]
   projectUpdates    ProjectUpdate[]
-  assignedTasks     Task[]          @relation("AssignedTasks")
-  createdTasks      Task[]          @relation("CreatedTasks")
+  assignedTasks     Task[]            @relation("AssignedTasks")
+  createdTasks      Task[]            @relation("CreatedTasks")
   meetingsOrganized Meeting[]
   meetingAttendance MeetingAttendee[]
 }
@@ -300,6 +300,13 @@ model Review {
   comment    String   @db.Text
   createdAt  DateTime @default(now())
 
+  /// Set when an administrator hides the review. The row is never deleted, so
+  /// the record stays auditable; hidden reviews are withheld from public
+  /// profiles and from the ratings computed over them.
+  hiddenAt     DateTime?
+  hiddenReason String?   @db.Text
+  hiddenById   String?
+
   // New sub-scores for company reviews by freelancers
   communicationScore      Int?
   paymentReliabilityScore Int?
@@ -411,6 +418,11 @@ model Task {
   dueDate      DateTime?
   assignedToId String? // User ID of the assigned user
   createdById  String
+  /// When the task was moved to DONE. `updatedAt` cannot answer this: it moves
+  /// on any edit, so a completed task retitled a week later would report the
+  /// wrong completion date on the work timeline. Cleared if the task is
+  /// reopened, so it always means "finished, and when".
+  completedAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -428,22 +440,22 @@ model Task {
 /// Freelancer.certifications JSON — this one is issued by a company, tied to a real
 /// project, and resolvable at /verify/{publicId} so a third party can confirm it.
 model Certificate {
-  id            String    @id @default(cuid())
+  id                  String    @id @default(cuid())
   /// Short, human-shareable code shown on the certificate and used in the verify URL.
-  publicId      String    @unique
-  projectId     String
-  freelancerId  String
-  companyId     String
+  publicId            String    @unique
+  projectId           String
+  freelancerId        String
+  companyId           String
   /// Snapshot of the details at issue time. Deliberately denormalised: a certificate
   /// must keep saying what it said when issued, even if the project or profile changes.
-  roleTitle     String
-  skills        String[]  @default([])
-  durationText  String?
-  summary       String?   @db.Text
-  issuerName    String
-  recipientName String
-  projectTitle  String
-  issuedAt      DateTime  @default(now())
+  roleTitle           String
+  skills              String[]  @default([])
+  durationText        String?
+  summary             String?   @db.Text
+  issuerName          String
+  recipientName       String
+  projectTitle        String
+  issuedAt            DateTime  @default(now())
   /// Optional co-signers. Null on certificates issued before two-signer support,
   /// which continue to render from issuerName alone.
   signer1Name         String?
@@ -453,8 +465,8 @@ model Certificate {
   signer2Title        String?
   signer2SignatureUrl String?
   /// Revocation keeps the record for auditability rather than deleting it.
-  revokedAt     DateTime?
-  revokeReason  String?
+  revokedAt           DateTime?
+  revokeReason        String?
 
   project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   freelancer Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
@@ -737,6 +749,10 @@ model Meeting {
 
   @@index([projectId])
   @@index([projectId, startsAt])
+  /// The only foreign key on the schema without an index behind it. Postgres
+  /// does not create one for a FK, so "meetings I organise" and the cascade
+  /// on user deletion both had to scan the table.
+  @@index([organizerUserId])
 }
 
 model MeetingAttendee {
@@ -750,4 +766,27 @@ model MeetingAttendee {
 
   @@unique([meetingId, userId])
   @@index([userId])
+}
+
+/// PERF — uploaded media used to be handed back as a `data:` URL and stored in
+/// whichever text column the caller owned. Every listing that rendered such an
+/// image then inlined the whole file into the HTML, once per card: the home
+/// page shipped 1.06 MB of base64 inside a 1.35 MB document.
+///
+/// Bytes now live here and are served from /api/media/<id>, which is immutable
+/// and cacheable forever because the id is content-addressed (sha-256 of the
+/// bytes). Identical uploads collapse onto one row.
+model MediaAsset {
+  /// sha-256 of `data`, hex encoded. Content-addressed, so the URL can be
+  /// cached immutably and re-uploading the same file is a no-op.
+  id         String   @id
+  mimeType   String
+  byteSize   Int
+  data       Bytes
+  /// Who uploaded it. Kept for attribution and cleanup, not for access control:
+  /// these are profile and listing images that already render on public pages.
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([uploadedBy])
 }

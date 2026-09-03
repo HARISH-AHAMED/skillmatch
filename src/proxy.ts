@@ -18,10 +18,23 @@ export const proxy = auth((req) => {
    */
   const isWorkspaceRoute = pathname === "/workspace" || pathname.startsWith("/workspace/");
   const isAuthRoute = pathname === "/login" || pathname.startsWith("/login/") || pathname === "/register" || pathname.startsWith("/register/");
+  const isPasswordRoute = pathname === "/account/password";
+
+  /**
+   * SEC-002 — a credential migrated out of legacy plaintext storage is secure
+   * from here on, but the password itself was once stored in the clear. The
+   * flag recording that was written and then read by nothing, so the prompt it
+   * existed for never happened. The user is held here until they choose a new
+   * one.
+   */
+  if (isLoggedIn && req.auth?.user?.passwordChangeRequired && !isPasswordRoute) {
+    return NextResponse.redirect(new URL("/account/password", nextUrl.origin));
+  }
 
   // Admin access control boundary
-  // Force logged-in admins to stay within /admin paths
-  if (isLoggedIn && userRole === "ADMIN" && !isAdminRoute) {
+  // Force logged-in admins to stay within /admin paths. Changing your own
+  // password is not an admin surface, so it is reachable from any role.
+  if (isLoggedIn && userRole === "ADMIN" && !isAdminRoute && !isPasswordRoute) {
     return NextResponse.redirect(new URL("/admin/dashboard", nextUrl.origin));
   }
 

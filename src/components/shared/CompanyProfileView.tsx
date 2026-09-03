@@ -18,7 +18,7 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState , useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +26,11 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { EmptyState, Progress, Rating } from "@/components/ui/Feedback";
 import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
+import {
+  toggleFollowCompany,
+  toggleJobAlerts,
+  toggleTalentCommunity,
+} from "@/actions/companyActions";
 import { ProjectCard } from "./Cards";
 import type { Company, Project, Review } from "@/lib/types";
 import { formatDate, relativeTime } from "@/lib/utils";
@@ -42,6 +47,32 @@ export function CompanyProfileView({
   canFollow?: boolean;
 }) {
   const toast = useToast();
+  const [, startTransition] = useTransition();
+
+  /**
+   * These three used to flip a local boolean and announce the result. The
+   * server actions have always existed; nothing called them, so a follow, an
+   * alert subscription or a community join was forgotten on reload. The
+   * optimistic flip is kept and reverted if the write is refused.
+   */
+  const persistToggle = (
+    apply: (next: boolean) => void,
+    current: boolean,
+    action: () => Promise<unknown>,
+    onDone: (next: boolean) => void,
+  ) => {
+    const next = !current;
+    apply(next);
+    startTransition(async () => {
+      try {
+        await action();
+        onDone(next);
+      } catch {
+        apply(current);
+        toast.error("That could not be saved", "Please try again.");
+      }
+    });
+  };
   const [tab, setTab] = useState("about");
   const [following, setFollowing] = useState(false);
   const [alerts, setAlerts] = useState(false);
@@ -65,15 +96,29 @@ export function CompanyProfileView({
 
   return (
     <div>
-      {/* ---- Banner ---- */}
-      <div className="relative h-40 w-full overflow-hidden bg-[var(--color-surface-sunken)] md:h-60">
-        <Image src={company.bannerUrl} alt="" fill priority sizes="100vw" className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,20,17,0.5)] to-transparent" />
-      </div>
-
       <div className="container-wide">
+        {/* ---- Banner: inside the page container, not full-bleed. Spanning the
+             viewport put it 126px outside the grid every card below lines up
+             to, so the page read as two layouts stacked. ---- */}
+        <div className="relative mt-4 h-28 w-full overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface-sunken)] sm:h-36 md:mt-6 md:h-44 lg:h-48">
+          <Image
+            src={company.bannerUrl}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,20,17,0.5)] to-transparent" />
+        </div>
+
         {/* ---- Header ---- */}
-        <div className="-mt-14 md:-mt-16">
+        {/*
+          The banner above is positioned, this card is not, so without a
+          stacking context of its own the banner painted over the top of the
+          card and swallowed the name and verification badge.
+        */}
+        <div className="relative z-10 -mt-10 sm:-mt-12 md:-mt-16">
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 md:p-6">
             <div className="flex flex-col gap-5 md:flex-row md:items-start">
               <Avatar
@@ -82,7 +127,8 @@ export function CompanyProfileView({
                 size="2xl"
                 rounded="md"
                 ring
-                className="-mt-16 md:-mt-20"
+                sizeClassName="h-[72px] w-[72px] sm:h-[88px] sm:w-[88px] md:h-[112px] md:w-[112px]"
+                className="-mt-14 sm:-mt-16 md:-mt-20"
               />
 
               <div className="min-w-0 flex-1">
@@ -140,16 +186,21 @@ export function CompanyProfileView({
                     block
                     variant={following ? "soft" : "primary"}
                     leftIcon={following ? <Check className="h-4 w-4" /> : <Heart className="h-4 w-4" />}
-                    onClick={() => {
-                      setFollowing((v) => !v);
-                      toast.toast({
-                        title: following ? "Unfollowed" : `Following ${company.companyName}`,
-                        description: following
-                          ? undefined
-                          : "New projects from this company will surface on your dashboard.",
-                        tone: "success",
-                      });
-                    }}
+                    onClick={() =>
+                      persistToggle(
+                        setFollowing,
+                        following,
+                        () => toggleFollowCompany(company.id),
+                        (next) =>
+                          toast.toast({
+                            title: next ? `Following ${company.companyName}` : "Unfollowed",
+                            description: next
+                              ? "New projects from this company will surface on your dashboard."
+                              : undefined,
+                            tone: "success",
+                          }),
+                      )
+                    }
                   >
                     {following ? "Following" : "Follow company"}
                   </Button>
@@ -157,13 +208,18 @@ export function CompanyProfileView({
                     block
                     variant="secondary"
                     leftIcon={alerts ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                    onClick={() => {
-                      setAlerts((v) => !v);
-                      toast.toast({
-                        title: alerts ? "Job alerts off" : "Job alerts on",
-                        tone: "success",
-                      });
-                    }}
+                    onClick={() =>
+                      persistToggle(
+                        setAlerts,
+                        alerts,
+                        () => toggleJobAlerts(company.id),
+                        (next) =>
+                          toast.toast({
+                            title: next ? "Job alerts on" : "Job alerts off",
+                            tone: "success",
+                          }),
+                      )
+                    }
                   >
                     {alerts ? "Alerts on" : "Get job alerts"}
                   </Button>
@@ -172,18 +228,23 @@ export function CompanyProfileView({
                     variant="ghost"
                     size="sm"
                     leftIcon={<Sparkles className="h-3.5 w-3.5" />}
-                    onClick={() => {
-                      setCommunity((v) => !v);
-                      toast.toast({
-                        title: community
-                          ? "Left the talent community"
-                          : "Joined the talent community",
-                        description: community
-                          ? undefined
-                          : "You will be considered first for invite-only listings.",
-                        tone: "success",
-                      });
-                    }}
+                    onClick={() =>
+                      persistToggle(
+                        setCommunity,
+                        community,
+                        () => toggleTalentCommunity(company.id),
+                        (next) =>
+                          toast.toast({
+                            title: next
+                              ? "Joined the talent community"
+                              : "Left the talent community",
+                            description: next
+                              ? "You will be considered first for invite-only listings."
+                              : undefined,
+                            tone: "success",
+                          }),
+                      )
+                    }
                   >
                     {community ? "In talent community" : "Join talent community"}
                   </Button>

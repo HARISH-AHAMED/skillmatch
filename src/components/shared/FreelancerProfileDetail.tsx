@@ -33,6 +33,21 @@ const AVAILABILITY_META = {
   UNAVAILABLE: { label: "Not taking work", tone: "neutral" as const },
 };
 
+/**
+ * Badges are stored as they were written by whichever flow granted them, and
+ * some arrive as raw constants — a visitor was being shown
+ * "ONBOARDING_COMPLETED". This only changes how one is printed; no badge is
+ * hidden or renamed in the data.
+ */
+function badgeLabel(badge: string): string {
+  if (!/^[A-Z0-9_]+$/.test(badge)) return badge;
+  return badge
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function FreelancerProfileDetail({
   freelancer,
   reviews,
@@ -65,22 +80,28 @@ export function FreelancerProfileDetail({
 
   return (
     <div>
-      {/* ---------------------------------------------------------- banner -- */}
-      <div className="relative h-40 w-full overflow-hidden bg-[var(--color-surface-sunken)] md:h-56">
-        <Image
-          src={freelancer.bannerUrl}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,20,17,0.45)] to-transparent" />
-      </div>
-
       <div className="container-wide">
+        {/* ---- Banner: inside the page container, not full-bleed, so it lines
+             up with every card below it. ---- */}
+        <div className="relative mt-4 h-28 w-full overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface-sunken)] sm:h-36 md:mt-6 md:h-44 lg:h-48">
+          <Image
+            src={freelancer.bannerUrl}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,20,17,0.45)] to-transparent" />
+        </div>
+
         {/* ---------------------------------------------------------- head -- */}
-        <div className="-mt-14 md:-mt-16">
+        {/*
+          The banner above is positioned, this card is not, so without a
+          stacking context of its own the banner painted over the top of the
+          card and swallowed the name and verification badge.
+        */}
+        <div className="relative z-10 -mt-10 sm:-mt-12 md:-mt-16">
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 md:p-6">
             <div className="flex flex-col gap-5 md:flex-row md:items-start">
               <Avatar
@@ -89,7 +110,8 @@ export function FreelancerProfileDetail({
                 size="2xl"
                 ring
                 status={freelancer.availabilityStatus}
-                className="-mt-16 md:-mt-20"
+                sizeClassName="h-[72px] w-[72px] sm:h-[88px] sm:w-[88px] md:h-[112px] md:w-[112px]"
+                className="-mt-14 sm:-mt-16 md:-mt-20"
               />
 
               <div className="min-w-0 flex-1">
@@ -130,7 +152,7 @@ export function FreelancerProfileDetail({
                 <div className="mt-3.5 flex flex-wrap gap-1.5">
                   {freelancer.verificationBadges.map((b) => (
                     <Badge key={b} tone="brand" size="sm" icon={<ShieldCheck />}>
-                      {b}
+                      {badgeLabel(b)}
                     </Badge>
                   ))}
                 </div>

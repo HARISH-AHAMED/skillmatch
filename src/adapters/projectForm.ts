@@ -2,6 +2,8 @@ import {
   serializeProjectMetadata,
   type CertificateConfig as BackendCertificateConfig,
   type ProjectWizardData,
+  roundScoreCategory,
+  roundTypeLabel,
   type RecruitmentRound,
   type RecruitmentRoundType,
 } from "@/lib/workflowHelpers";
@@ -57,6 +59,8 @@ export interface ProjectFormValues {
   expectedCompletion: string;
 
   rounds: string[];
+  /** Per-round instructions and deadline, keyed by round type. */
+  roundConfig: Record<string, { instructions?: string; deadline?: string }>;
   questions: ScreeningQuestion[];
   certificateEnabled: boolean;
   signatoryName: string;
@@ -97,18 +101,23 @@ function certificateConfig(values: ProjectFormValues): BackendCertificateConfig 
 }
 
 function toRounds(values: ProjectFormValues): RecruitmentRound[] {
-  return values.rounds.map((type, index) => ({
-    id: `round-${index}`,
-    name: type
-      .split("_")
-      .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
-      .join(" "),
-    type: type as RecruitmentRoundType,
-    description: "",
-    // Only the screening round collects answers today, so it is the only one
-    // that carries questions.
-    questions: type === "SCREENING_QUESTIONS" ? values.questions : undefined,
-  }));
+  return values.rounds.map((type, index) => {
+    const config = values.roundConfig[type] ?? {};
+    return {
+      id: `round-${index}`,
+      name: roundTypeLabel(type as RecruitmentRoundType),
+      type: type as RecruitmentRoundType,
+      description: "",
+      config: {
+        instructions: config.instructions?.trim() || undefined,
+        deadline: config.deadline || undefined,
+        scoreCategory: roundScoreCategory(type as RecruitmentRoundType),
+      },
+      // Screening questions are answered inside the apply wizard; every other
+      // round collects its response once the recruiter opens it.
+      questions: type === "SCREENING_QUESTIONS" ? values.questions : undefined,
+    };
+  });
 }
 
 /** The wizard's state as the metadata block the backend reads back. */
@@ -152,7 +161,16 @@ export function toWizardData(values: ProjectFormValues): ProjectWizardData {
           ? Number(values.stipendAmount) || 0
           : budgetFor(values),
     estimatedHours: Number(values.estimatedHours) || undefined,
+    maxHours: Number(values.maxHours) || undefined,
     stipendFrequency: values.stipendFrequency as ProjectWizardData["stipendFrequency"],
+    // A one-time stipend always has exactly one period, matching the wizard's
+    // own rule for the disabled input.
+    stipendPeriods:
+      values.compensationType === "STIPEND"
+        ? values.stipendFrequency === "ONE_TIME"
+          ? 1
+          : Number(values.stipendPeriods) || 1
+        : undefined,
     budgetNegotiable: values.budgetNegotiable,
     certificateIncluded: values.certificateEnabled,
     certificate: certificateConfig(values),
@@ -236,6 +254,9 @@ export function fromProject(project: Project): ProjectFormValues {
     expectedCompletion: project.expectedCompletion ?? "",
 
     rounds: project.rounds.map((r) => r.type),
+    roundConfig: Object.fromEntries(
+      project.rounds.map((r) => [r.type, { instructions: r.instructions, deadline: r.deadline }]),
+    ),
     questions: project.rounds.flatMap((r) => r.questions),
     certificateEnabled: project.certificate.enabled,
     signatoryName: project.certificate.signatoryName,

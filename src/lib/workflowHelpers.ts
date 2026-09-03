@@ -120,31 +120,65 @@ export const ROUND_TYPE_CATALOG: {
 ];
 
 /**
- * EVAL-001…006 — which round types the platform can actually run.
+ * How a round is actually executed inside the platform.
  *
- * The configurator offered 13 types with full per-type settings, but only
- * SCREENING_QUESTIONS ever reaches a candidate: it is the sole type read by the
- * apply wizard. There is no per-round submission store, no reviewer workflow
- * and no progression gating, so the other twelve collected configuration that
- * was never presented to anyone.
+ * Every round type runs — none is decorative. The mode decides which runtime a
+ * round uses, so one reviewer workflow drives all thirteen.
  *
- * Product decision (Phase 3): do not build the runtime in this pass; surface
- * honestly instead. Unsupported types are marked "Coming soon" and cannot be
- * newly selected. Rounds already configured on existing projects are NOT
- * deleted — they render read-only and labelled unsupported, so no company
- * silently loses stored configuration.
+ *  • APPLICATION      — answered inside the apply wizard; the submission
+ *                       already exists when the round opens.
+ *  • REVIEW_ONLY      — nothing is asked of the candidate; the recruiter
+ *                       reviews material already on the profile/application.
+ *  • CANDIDATE_SUBMIT — the candidate is asked for a written response and/or
+ *                       links, against instructions and an optional deadline.
+ *  • LIVE_SESSION     — scheduled with a date and joining link; the candidate
+ *                       confirms attendance, the recruiter records the outcome.
  */
-export const SUPPORTED_ROUND_TYPES: RecruitmentRoundType[] = ["SCREENING_QUESTIONS"];
+export type RoundRuntimeMode = "APPLICATION" | "REVIEW_ONLY" | "CANDIDATE_SUBMIT" | "LIVE_SESSION";
 
-export function isRoundTypeSupported(type: RecruitmentRoundType): boolean {
-  return SUPPORTED_ROUND_TYPES.includes(type);
+const ROUND_RUNTIME_MODE: Record<RecruitmentRoundType, RoundRuntimeMode> = {
+  SCREENING_QUESTIONS: "APPLICATION",
+  CV_PITCH: "REVIEW_ONLY",
+  INTERVIEW: "LIVE_SESSION",
+  COGNITIVE_TEST: "CANDIDATE_SUBMIT",
+  TECHNICAL_ASSESSMENT: "CANDIDATE_SUBMIT",
+  VIDEO_INTRODUCTION: "CANDIDATE_SUBMIT",
+  PORTFOLIO_REVIEW: "CANDIDATE_SUBMIT",
+  CUSTOM_MANUAL: "CANDIDATE_SUBMIT",
+  GROUP_TEAM_FIT: "LIVE_SESSION",
+  BEHAVIORAL_QUESTIONNAIRE: "CANDIDATE_SUBMIT",
+  DESIGN_CRITIQUE: "LIVE_SESSION",
+  BACKGROUND_VERIFICATION: "CANDIDATE_SUBMIT",
+  FINAL_OFFER_CALL: "LIVE_SESSION",
+};
+
+export function roundRuntimeMode(type: RecruitmentRoundType): RoundRuntimeMode {
+  return ROUND_RUNTIME_MODE[type] ?? "CANDIDATE_SUBMIT";
 }
 
-/** Label for a round type, suffixed when the platform cannot yet run it. */
+/** Display label for a round type. */
 export function roundTypeLabel(type: RecruitmentRoundType): string {
-  const entry = ROUND_TYPE_CATALOG.find((t) => t.value === type);
-  const base = entry?.label ?? type;
-  return isRoundTypeSupported(type) ? base : base + " (Coming soon)";
+  return ROUND_TYPE_CATALOG.find((t) => t.value === type)?.label ?? type;
+}
+
+/** What the candidate is asked for, shown above the submission form. */
+export function roundSubmissionPrompt(type: RecruitmentRoundType): string {
+  switch (type) {
+    case "VIDEO_INTRODUCTION":
+      return "Record your introduction and paste the video link below.";
+    case "PORTFOLIO_REVIEW":
+      return "Link the work samples you want reviewed and describe your role in each.";
+    case "TECHNICAL_ASSESSMENT":
+      return "Complete the task, then link your repository or deployed result.";
+    case "COGNITIVE_TEST":
+      return "Complete the assessment and record your result or reference id.";
+    case "BEHAVIORAL_QUESTIONNAIRE":
+      return "Answer in your own words — this is scored separately from technical screening.";
+    case "BACKGROUND_VERIFICATION":
+      return "Provide the requested verification items as links to the documents.";
+    default:
+      return "Send your response to the recruiter.";
+  }
 }
 
 /** Behavioural rounds score on their own track; technical scoring is untouched. */
@@ -603,8 +637,22 @@ export interface ProjectWizardData {
   }[];
   /** Estimated hours for an HOURLY engagement, used to derive a total. */
   estimatedHours?: number;
+  /**
+   * Hard ceiling on billable hours for an HOURLY engagement. Without it the
+   * cumulative-hours check falls back to `estimatedHours`, and when that is
+   * blank too there is no ceiling at all.
+   */
+  maxHours?: number;
   /** Payout cadence for a STIPEND engagement. */
   stipendFrequency?: StipendFrequency;
+  /**
+   * How many periods a STIPEND engagement pays. The wizard has always
+   * collected this — it is what the budget is derived from — but it had no home
+   * in the metadata block, so it was dropped on the way to
+   * ProjectCompensation and every stipend project behaved as if it had exactly
+   * one period.
+   */
+  stipendPeriods?: number;
   /** Actual stipend payouts. One row per released period per application. */
   stipendPayments?: {
     id: string;
@@ -651,9 +699,52 @@ export interface ApplicationPipelineEvent {
   interviewDate?: string;
 }
 
+export type RoundProgressStatus =
+  | "PENDING"
+  | "AWAITING_CANDIDATE"
+  | "SUBMITTED"
+  | "PASSED"
+  | "FAILED";
+
+export interface ApplicationRoundProgress {
+  roundId: string;
+  roundType: RecruitmentRoundType;
+  roundName: string;
+  status: RoundProgressStatus;
+  /** Set when the recruiter opens the round for this candidate. */
+  requestedAt?: string;
+  instructions?: string;
+  deadline?: string;
+  /** LIVE_SESSION rounds only. */
+  scheduledAt?: string;
+  meetingLink?: string;
+  submission?: {
+    text?: string;
+    links?: string[];
+    /** LIVE_SESSION — the candidate confirmed they will attend. */
+    attendanceConfirmed?: boolean;
+    submittedAt: string;
+  };
+  review?: {
+    outcome: "PASSED" | "FAILED";
+    /** 0–100. Behavioural rounds are tracked on their own score track. */
+    score?: number;
+    scoreCategory: "TECHNICAL" | "BEHAVIORAL" | "NONE";
+    notes?: string;
+    reviewerName: string;
+    reviewedAt: string;
+  };
+}
+
 export interface ApplicationWorkflowData {
   pipelineHistory: ApplicationPipelineEvent[];
   screeningAnswers: Record<string, string>; // questionId -> answer (or fileUrl/text)
+  /**
+   * Per-round execution state — one entry per round configured on the project.
+   * Seeded when the application is submitted, so every round has somewhere to
+   * record its request, submission and review without a schema change.
+   */
+  roundProgress?: ApplicationRoundProgress[];
   digitalContract?: {
     contractText: string;
     freelancerSigned: boolean;

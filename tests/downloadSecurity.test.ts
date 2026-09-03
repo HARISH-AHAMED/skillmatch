@@ -7,10 +7,21 @@ vi.mock("@/auth", () => ({
   auth: async () => (sessionState.user ? { user: sessionState.user } : null),
 }));
 
-const partyResult = { ok: true as boolean, error: undefined as string | undefined };
-vi.mock("@/lib/authz", () => ({
-  requireProjectParty: async () => partyResult,
-}));
+const partyResult = {
+  ok: true as boolean,
+  error: undefined as string | undefined,
+  // The route reads role and userId to build the channel predicate.
+  data: { userId: COMPANY_A!.id, role: "COMPANY" as "COMPANY" | "FREELANCER" },
+};
+// visibleChannelsFor is pure and is the thing under test here, so the real
+// implementation is kept rather than stubbed.
+vi.mock("@/lib/authz", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/authz")>();
+  return {
+    ...actual,
+    requireProjectParty: async () => partyResult,
+  };
+});
 
 const { GET } = await import("@/app/workspace/downloads/[fileName]/route");
 
@@ -23,6 +34,7 @@ beforeEach(() => {
   signedOut();
   db.sharedFile.findFirst.mockReset();
   partyResult.ok = true;
+  partyResult.data = { userId: COMPANY_A!.id, role: "COMPANY" };
 });
 
 describe("SEC-015 / SEC-008: workspace download route", () => {
@@ -75,5 +87,49 @@ describe("SEC-015 / SEC-008: workspace download route", () => {
     setSession(COMPANY_A);
     db.sharedFile.findFirst.mockResolvedValue(null);
     expect((await call("nope.png")).status).toBe(404);
+  });
+
+  /**
+   * SEC-011 / WS-002 — project membership was the whole check, so a file posted
+   * to the freelancers-only channel or into someone else's DM was downloadable
+   * by any member who knew its name.
+   */
+  it("applies the channel predicate, not just project membership", async () => {
+    setSession(COMPANY_A);
+    db.sharedFile.findFirst
+      // The file exists and belongs to a project the caller is a party to …
+      .mockResolvedValueOnce({
+        id: "f9",
+        projectId: "p1",
+        channel: "freelancers",
+        fileName: "private.png",
+        fileUrl: PNG_DATA_URL,
+      })
+      // … but it is not among the rows visible to a company caller.
+      .mockResolvedValueOnce(null);
+
+    const res = await call("private.png");
+    expect(res.status).toBe(404);
+
+    // The second lookup is the one carrying the channel restriction.
+    const where = db.sharedFile.findFirst.mock.calls[1][0].where;
+    expect(where.id).toBe("f9");
+    expect(where.OR).toBeDefined();
+  });
+
+  it("serves a group-channel file to a company caller", async () => {
+    setSession(COMPANY_A);
+    const row = {
+      id: "f10",
+      projectId: "p1",
+      channel: "group",
+      fileName: "brief.png",
+      fileUrl: PNG_DATA_URL,
+    };
+    db.sharedFile.findFirst
+      .mockResolvedValueOnce(row)
+      .mockResolvedValueOnce({ id: "f10" });
+
+    expect((await call("brief.png")).status).toBe(200);
   });
 });

@@ -71,6 +71,28 @@ export async function issueCertificate(input: {
   }
   if (!freelancer) return { success: false, error: "Freelancer not found." };
 
+  /**
+   * The rule this function documents — "the freelancer must have been hired on
+   * it" — was never actually checked. Ownership of the project was confirmed
+   * and the freelancer merely had to exist, so any freelancer id produced a
+   * publicly verifiable credential at /verify/{publicId}, for a project they
+   * had never worked and that need not even be finished.
+   *
+   * A certificate attests to a real engagement, so the engagement must exist.
+   *
+   * Deliberately *not* gated on the project being COMPLETED: this action backs
+   * the "Issue a certificate now" override, which exists precisely so a company
+   * can credit a freelancer before the automatic issuance at completion. The
+   * hire is what the credential asserts, and that is what is checked.
+   */
+  const engagement = await db.application.findFirst({
+    where: { projectId: project.id, freelancerId: freelancer.id, status: "HIRED" },
+    select: { id: true },
+  });
+  if (!engagement) {
+    return { success: false, error: "That freelancer was not hired on this project." };
+  }
+
   const existing = await db.certificate.findUnique({
     where: { projectId_freelancerId: { projectId: input.projectId, freelancerId: input.freelancerId } },
   });

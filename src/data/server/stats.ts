@@ -1,4 +1,5 @@
 import "server-only";
+import { CACHE_TAGS, publicCache } from "./cache";
 import { db } from "@/lib/db";
 import { PUBLICLY_BROWSEABLE } from "@/lib/domain";
 
@@ -10,7 +11,7 @@ import { PUBLICLY_BROWSEABLE } from "@/lib/domain";
    dashboard does not pull the whole table to show one number.
    ========================================================================= */
 
-export async function platformStats() {
+async function platformStatsUncached() {
   const [
     freelancers,
     companies,
@@ -141,7 +142,7 @@ export async function pendingApplicantCounts(projectIds: string[]) {
 }
 
 /** Company names for the marketing trust bar. */
-export async function companyNames(limit = 12) {
+async function companyNamesUncached(limit = 12) {
   const rows = await db.company.findMany({
     orderBy: { trustScore: "desc" },
     take: limit,
@@ -229,3 +230,18 @@ export async function freelancerDashboardStats(freelancerId: string) {
     certificates,
   };
 }
+
+/* --------------------------------------------------------- public cache --- */
+
+/**
+ * The marketing pages read these on every request and they are identical for
+ * every visitor, so they are cached and invalidated by the mutations that move
+ * the underlying counts rather than recomputed per view.
+ */
+export const platformStats = publicCache(platformStatsUncached, ["platformStats"], [
+  CACHE_TAGS.stats,
+]);
+
+export const companyNames = publicCache(companyNamesUncached, ["companyNames"], [
+  CACHE_TAGS.companies,
+]);

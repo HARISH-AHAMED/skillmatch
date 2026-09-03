@@ -221,8 +221,8 @@ export default function TrustPage() {
                 "The retention job only deletes data already past its own seven-day TTL, so the blast radius is nil — but it should carry a shared secret before it is exposed publicly.",
               ],
               [
-                "Twelve screening round types are configuration only",
-                "You can add them to a project to describe your process, but only screening questions actually run inside the platform. The rest are labelled coming soon and cannot be newly selected.",
+                "Round scoring is recruiter-entered, not machine-marked",
+                "All thirteen selection round types run inside the platform — the recruiter opens each one, the candidate responds, and the outcome gates progression. What the platform does not do is mark the work for you: scores are entered by the reviewer, not computed from an answer key.",
               ],
               [
                 "No formal dispute workflow",

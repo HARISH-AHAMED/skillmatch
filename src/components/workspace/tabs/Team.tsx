@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import {
   ArrowLeftRight,
@@ -11,7 +13,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState , useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +22,8 @@ import { Field, Select } from "@/components/ui/Field";
 import { Alert, EmptyState, Progress, Rating } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { handoverRole } from "@/actions/roleActions";
+import { removeFreelancer } from "@/actions/applicationActions";
 import type { Application, Project, Role } from "@/lib/types";
 import { getApplicationFinancials, getProjectTeam } from "@/lib/domain";
 import type { WorkspaceData } from "@/data/server/workspace";
@@ -37,6 +41,8 @@ export function WorkspaceTeam({
   viewerRole: Role;
 }) {
   const toast = useToast();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const isCompany = viewerRole === "COMPANY";
 
   const team = useMemo(() => getProjectTeam(project, data.team), [project, data.team]);
@@ -356,11 +362,25 @@ export function WorkspaceTeam({
             <Button
               disabled={!handover.roleId || !handover.from || !handover.to}
               onClick={() => {
-                setHandoverOpen(false);
-                toast.success(
-                  "Role handed over",
-                  "Both parties have been notified and a pipeline event was added to each application.",
-                );
+                // Claimed both parties had been notified and a pipeline event
+                // written, while doing nothing at all.
+                startTransition(async () => {
+                  const result = await handoverRole(
+                    handover.roleId,
+                    handover.from,
+                    handover.to,
+                  );
+                  if (!result.success) {
+                    toast.error("That handover could not be completed", result.error ?? "Please try again.");
+                    return;
+                  }
+                  setHandoverOpen(false);
+                  toast.success(
+                    "Role handed over",
+                    "Both parties have been notified and a pipeline event was added to each application.",
+                  );
+                  router.refresh();
+                });
               }}
             >
               Confirm handover
@@ -450,11 +470,21 @@ export function WorkspaceTeam({
               variant="danger"
               disabled={Boolean(removeTarget && removalBlock(removeTarget))}
               onClick={() => {
-                setRemoveTarget(null);
-                toast.toast({
-                  title: "Freelancer removed",
-                  description: "Their slot has been freed and they have been notified.",
-                  tone: "info",
+                const target = removeTarget;
+                if (!target) return;
+                startTransition(async () => {
+                  const result = await removeFreelancer(target.id);
+                  if (!result.success) {
+                    toast.error("That freelancer could not be removed", "Please try again.");
+                    return;
+                  }
+                  setRemoveTarget(null);
+                  toast.toast({
+                    title: "Freelancer removed",
+                    description: "Their slot has been freed and they have been notified.",
+                    tone: "info",
+                  });
+                  router.refresh();
                 });
               }}
             >

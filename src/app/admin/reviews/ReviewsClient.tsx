@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { AlertTriangle, CheckCircle2, EyeOff, Search, Star } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState , useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +14,7 @@ import { Modal } from "@/components/ui/Modal";
 import { KpiTile } from "@/components/ui/Table";
 import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
+import { hideReview, restoreReview } from "@/actions/reviewModerationActions";
 
 import type { Review } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
@@ -21,7 +24,12 @@ export function ReviewsClient({ reviews: REVIEWS }: { reviews: Review[] }) {
   const [tab, setTab] = useState("ALL");
   const [query, setQuery] = useState("");
   const [moderateTarget, setModerateTarget] = useState<Review | null>(null);
-  const [hidden, setHidden] = useState<string[]>([]);
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  // Moderation state lives on the review itself. This was a browser-only list,
+  // so hiding a review survived exactly as long as the page did.
+  const hidden = REVIEWS.filter((r) => r.hiddenAt).map((r) => r.id);
   const [reason, setReason] = useState("");
 
   const counts = useMemo(
@@ -191,10 +199,20 @@ export function ReviewsClient({ reviews: REVIEWS }: { reviews: Review[] }) {
                                 size="sm"
                                 variant="secondary"
                                 leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                                onClick={() => {
-                                  setHidden((p) => p.filter((x) => x !== r.id));
-                                  toast.success("Review restored");
-                                }}
+                                onClick={() =>
+                                  startTransition(async () => {
+                                    const result = await restoreReview(r.id);
+                                    if (!result.success) {
+                                      toast.error(
+                                        "That review could not be restored",
+                                        result.error ?? "Please try again.",
+                                      );
+                                      return;
+                                    }
+                                    toast.success("Review restored");
+                                    router.refresh();
+                                  })
+                                }
                               >
                                 Restore
                               </Button>
@@ -287,12 +305,23 @@ export function ReviewsClient({ reviews: REVIEWS }: { reviews: Review[] }) {
               variant="danger"
               disabled={!reason.trim()}
               onClick={() => {
-                if (moderateTarget) setHidden((p) => [...p, moderateTarget.id]);
-                setModerateTarget(null);
-                toast.toast({
-                  title: "Review hidden",
-                  description: "It no longer appears on public profiles or in aggregates.",
-                  tone: "info",
+                const target = moderateTarget;
+                if (!target) return;
+                const why = reason.trim();
+                startTransition(async () => {
+                  const result = await hideReview(target.id, why);
+                  if (!result.success) {
+                    toast.error("That review could not be hidden", result.error ?? "Please try again.");
+                    return;
+                  }
+                  setModerateTarget(null);
+                  setReason("");
+                  toast.toast({
+                    title: "Review hidden",
+                    description: "It no longer appears on public profiles.",
+                    tone: "info",
+                  });
+                  router.refresh();
                 });
               }}
             >

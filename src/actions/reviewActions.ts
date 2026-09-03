@@ -16,6 +16,11 @@ import { requireProjectOwner, requireProjectParty } from "@/lib/authz";
 import { assertProjectTransition } from "@/lib/lifecycle";
 import { getProjectCompensation } from "@/lib/compensation";
 import { D, approvedHourlyValue, maxStipendPeriods } from "@/lib/paymentRules";
+import {
+  recomputeFreelancerReputation,
+  recomputeCompanyReputation,
+  countCompletedProjects,
+} from "@/lib/reputation";
 
 /**
  * Whether the project's existing compensation workflow has reached a state that
@@ -67,7 +72,9 @@ export async function getProjectCompletionReadiness(projectId: string) {
     const [logs, payments] = await Promise.all([
       db.workLog.findMany({ where: { projectId }, select: { applicationId: true, hours: true, rateSnapshot: true, status: true } }),
       db.paymentTransaction.findMany({
-        where: { projectId, type: "RELEASE", paymentItemId: null },
+        // Hourly releases only — a stipend payout carries a stipendPeriodId and
+        // would otherwise be read as settling approved hours.
+        where: { projectId, type: "RELEASE", paymentItemId: null, stipendPeriodId: null },
         select: { applicationId: true, amount: true },
       }),
     ]);
@@ -169,30 +176,21 @@ export async function completeProject(projectId: string) {
   return { success: true, certificatesIssued: issued, certificateNeedsDesign: needsDesign };
 }
 
-/**
- * DATA-005 — the number of COMPLETED projects this freelancer was hired on as
- * a primary. Derived rather than accumulated, so repeated reviews cannot
- * inflate it and an unreviewed completion is not lost.
- *
- * Fix-forward only per the approved decision: historical values are not
- * recomputed, so a profile keeps its existing number until its next review
- * recalculates it.
- */
-async function countCompletedProjects(freelancerId: string): Promise<number> {
-  return db.application.count({
-    where: {
-      freelancerId,
-      status: "HIRED",
-      isApprentice: false,
-      project: { status: ProjectStatus.COMPLETED },
-    },
-  });
-}
+// DATA-005 — countCompletedProjects now lives in lib/reputation alongside the
+// rest of the derived scoring, so moderation and review submission share it.
 
 // GET REVIEW STATUS
+/**
+ * SEC-016 — this checked only that a session existed. Passed any project id it
+ * returned the hired freelancers' user ids, names and avatars, the company user
+ * id and the full review matrix — for drafts and private listings included.
+ * The same shape was fixed in getProjectCompletionReadiness above and missed
+ * here.
+ */
 export async function getProjectReviewStatus(projectId: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const party = await requireProjectParty(projectId);
+  if (!party.ok) throw new Error(party.error);
+  const session = { user: { id: party.data.userId } };
   const [project, reviews] = await Promise.all([
     db.project.findUnique({
       where: { id: projectId },
@@ -265,59 +263,14 @@ export async function submitReview(projectId: string, revieweeUserId: string, ra
   const review = await db.review.create({ data: { projectId, reviewerId: session.user.id, revieweeId: revieweeUserId, rating, comment } });
   const freelancer = await db.freelancer.findUnique({ where: { userId: revieweeUserId } });
   if (freelancer) {
-    // Apprentice work is scored separately: reviews earned while shadowing a role
-    // must not move the freelancer's primary rating. Derived from the existing
-    // Application.isApprentice flag, so no schema change and no new score store.
-    const apprenticeApps = await db.application.findMany({
-      where: { freelancerId: freelancer.id, isApprentice: true },
-      select: { projectId: true },
-    });
-    const apprenticeProjectIds = new Set(apprenticeApps.map((a) => a.projectId));
-
-    const allReviews = await db.review.findMany({ where: { revieweeId: revieweeUserId }, select: { rating: true, projectId: true } });
-    const primaryReviews = allReviews.filter((r) => !apprenticeProjectIds.has(r.projectId));
-
-    // With no apprentice history this is every review — identical to before.
-    const isApprenticeWork = apprenticeProjectIds.has(projectId);
-
-    // Persist the apprentice aggregate so other surfaces can reuse it without
-    // recomputing. Written only when apprentice work exists, so freelancers with
-    // no apprentice history keep an untouched bio and unchanged behaviour.
-    if (apprenticeProjectIds.size > 0) {
-      const apprenticeReviews = allReviews.filter((r) => apprenticeProjectIds.has(r.projectId));
-      const fmeta = parseFreelancerMetadata(freelancer.bio);
-      fmeta.apprenticeScore = {
-        rating: apprenticeReviews.length
-          ? Math.round((apprenticeReviews.reduce((s, r) => s + r.rating, 0) / apprenticeReviews.length) * 10) / 10
-          : 0,
-        reviews: apprenticeReviews.length,
-        updatedAt: new Date().toISOString(),
-      };
-      await db.freelancer.update({
-        where: { id: freelancer.id },
-        data: { bio: serializeFreelancerMetadata(getFreelancerBioText(freelancer.bio), fmeta) },
-      });
-    }
-    const updated = primaryReviews.length > 0
-      ? await db.freelancer.update({
-          where: { id: freelancer.id },
-          data: {
-            rating: Math.round((primaryReviews.reduce((s, r) => s + r.rating, 0) / primaryReviews.length) * 10) / 10,
-            /**
-             * DATA-005 — this used to increment on every review, so the counter
-             * measured reviews received rather than projects completed: a
-             * freelancer reviewed twice on one project counted twice, and one
-             * completed but never reviewed counted zero.
-             *
-             * It is now derived from the actual completed projects the
-             * freelancer was hired on (apprentice work excluded, as before),
-             * so it is correct however many reviews arrive.
-             */
-            completedProjects: await countCompletedProjects(freelancer.id),
-          },
-        })
-      : freelancer;
-    await recalculateRecommendationsForFreelancer(updated.id);
+    /**
+     * The scoring arithmetic — apprentice split, hidden-review exclusion and
+     * the derived completed-project count — lives in one place now, so
+     * submitting a review and moderating one cannot compute the rating
+     * differently.
+     */
+    await recomputeFreelancerReputation(freelancer.id);
+    await recalculateRecommendationsForFreelancer(freelancer.id);
   }
   await db.notification.create({ data: { userId: revieweeUserId, title: "New Review Received", message: `${session.user.name} reviewed your work on "${project.title}". Rating: ${rating}/5.` } });
   revalidatePath("/company/reviews"); revalidatePath("/freelancer/reviews"); revalidatePath("/freelancer/dashboard"); revalidatePath("/company/dashboard");
@@ -361,13 +314,9 @@ export async function submitCompanyReview(projectId: string, companyId: string, 
   const existing = await db.review.findFirst({ where: { projectId, reviewerId: session.user.id, revieweeId: company.userId } });
   if (existing) return { success: true, review: existing, duplicate: true };
   const review = await db.review.create({ data: { projectId, reviewerId: session.user.id, revieweeId: company.userId, rating, comment, communicationScore, paymentReliabilityScore, projectClarityScore } });
-  const companyReviews = await db.review.findMany({ where: { revieweeId: company.userId } });
-  const total = companyReviews.length;
-  const avgRating = companyReviews.reduce((s, r) => s + r.rating, 0) / total;
-  const avgComm = companyReviews.reduce((s, r) => s + (r.communicationScore ?? rating), 0) / total;
-  const avgPayment = companyReviews.reduce((s, r) => s + (r.paymentReliabilityScore ?? rating), 0) / total;
-  const avgClarity = companyReviews.reduce((s, r) => s + (r.projectClarityScore ?? rating), 0) / total;
-  await db.company.update({ where: { id: companyId }, data: { trustScore: Math.min(100, Math.round(((avgComm + avgPayment + avgClarity) / 15) * 100)), reputationScore: Math.min(100, Math.round((avgRating / 5) * 100)), paymentReliability: Math.min(100, Math.round((avgPayment / 5) * 100)) } });
+  // One implementation of the company scoring, shared with moderation, so
+  // hiding a review moves the score the same way submitting one does.
+  await recomputeCompanyReputation(companyId);
   await db.notification.create({ data: { userId: company.userId, title: "New Company Review", message: `A freelancer reviewed your company for "${project.title}". Rating: ${rating}/5.` } });
   revalidatePath("/freelancer/reviews");
   revalidatePath(`/companies/${companyId}`);

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { requireProjectOwner } from "@/lib/authz";
+import { requireHiredFreelancer, requireProjectOwner } from "@/lib/authz";
 import { D, checkStipendRelease, transitionKey } from "@/lib/paymentRules";
 import { inFinancialTransaction, appendLedger, LedgerReplayError } from "@/lib/payments";
 import { getProjectCompensation } from "@/lib/compensation";
@@ -62,19 +62,42 @@ export async function releaseStipendPayment(
       });
       if (!rule.ok) return { success: false as const, error: rule.error! };
 
+      /*
+       * A period may already exist because the freelancer raised it for
+       * approval. Releasing then updates that row rather than inserting a
+       * second one — the unique constraint is the guard against paying the
+       * same period twice, not a reason to refuse a period that was claimed
+       * first.
+       */
+      const claimed = existing.find(
+        (p) => p.applicationId === applicationId && p.periodIndex === periodIndex,
+      );
+
+      if (claimed?.status === "RELEASED") {
+        return {
+          success: false as const,
+          error: `Period ${periodIndex} has already been paid to this freelancer.`,
+        };
+      }
+
       let period;
       try {
-        period = await tx.stipendPeriod.create({
-          data: {
-            projectId,
-            applicationId,
-            periodIndex,
-            amount: D(amount),
-            currency: comp.currency,
-            status: "RELEASED",
-            releasedAt: new Date(),
-          },
-        });
+        period = claimed
+          ? await tx.stipendPeriod.update({
+              where: { id: claimed.id },
+              data: { status: "RELEASED", releasedAt: new Date(), amount: D(amount) },
+            })
+          : await tx.stipendPeriod.create({
+              data: {
+                projectId,
+                applicationId,
+                periodIndex,
+                amount: D(amount),
+                currency: comp.currency,
+                status: "RELEASED",
+                releasedAt: new Date(),
+              },
+            });
       } catch (err: any) {
         if (err?.code === "P2002") {
           return {
@@ -145,4 +168,81 @@ export async function getStipendPayments(projectId: string) {
     date: (p.releasedAt ?? p.createdAt).toISOString(),
     status: p.status,
   }));
+}
+
+/* ============================================================================
+   RAISING A PERIOD
+
+   A stipend period had no way to come into existence except by being paid:
+   the schedule showed "no periods yet" and there was nothing to approve. The
+   freelancer raises the period they have worked, which is a claim, not money —
+   no ledger entry is written until the company releases it.
+   ========================================================================= */
+
+export async function submitStipendPeriod(projectId: string, periodIndex: number) {
+  const actor = await requireHiredFreelancer(projectId);
+  if (!actor.ok) return { success: false, error: actor.error };
+
+  const comp = await getProjectCompensation(projectId);
+  if (!comp) return { success: false, error: "This project has no compensation configured." };
+  if (comp.type !== "STIPEND") {
+    return { success: false, error: "This project is not a stipend engagement." };
+  }
+
+  const configured = comp.stipendFrequency === "ONE_TIME" ? 1 : (comp.stipendPeriods ?? 1);
+  if (!Number.isInteger(periodIndex) || periodIndex < 1 || periodIndex > configured) {
+    return {
+      success: false,
+      error: `This engagement runs for ${configured} period(s), so there is no period ${periodIndex}.`,
+    };
+  }
+
+  const applicationId = actor.data.applicationId;
+
+  const existing = await db.stipendPeriod.findFirst({
+    where: { applicationId, periodIndex },
+    select: { id: true, status: true },
+  });
+
+  if (existing) {
+    if (existing.status === "RELEASED") {
+      return { success: false, error: "That period has already been paid." };
+    }
+    if (existing.status === "SUBMITTED") {
+      return { success: false, error: "That period is already awaiting the company's release." };
+    }
+    await db.stipendPeriod.update({ where: { id: existing.id }, data: { status: "SUBMITTED" } });
+  } else {
+    await db.stipendPeriod.create({
+      data: {
+        projectId,
+        applicationId,
+        periodIndex,
+        amount: comp.stipendAmount ?? D(0),
+        currency: comp.currency,
+        status: "SUBMITTED",
+      },
+    });
+  }
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { title: true, company: { select: { userId: true } } },
+  });
+  if (project) {
+    await db.notification.create({
+      data: {
+        userId: project.company.userId,
+        title: "Stipend period raised",
+        message: `A freelancer raised period ${periodIndex} on "${project.title}" for release.`,
+      },
+    });
+  }
+
+  revalidatePath(`/company/projects/${projectId}`);
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+
+  return { success: true };
 }

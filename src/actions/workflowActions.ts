@@ -35,8 +35,82 @@ import {
   assertProjectTransition,
   assertProjectMutable,
   getCapacity,
+  lockApplicationsForCapacity,
   buildContractMilestones,
 } from "@/lib/lifecycle";
+import { getProjectCompensation } from "@/lib/compensation";
+import { D, transitionKey } from "@/lib/paymentRules";
+import { inFinancialTransaction, appendLedger, LedgerReplayError } from "@/lib/payments";
+
+/* ============================================================================
+   APPLICATION METADATA — TRANSACTIONAL READ-MODIFY-WRITE
+
+   Offers, negotiations, contract signatures, interview scheduling and pipeline
+   events all live in a JSON block serialised into Application.coverLetter.
+   Every one of them used to parse that blob, mutate it in memory, and write the
+   whole column back with no transaction and no lock — the ARCH-001 pattern the
+   payment tables were migrated away from, still governing the terms both sides
+   are bound by.
+
+   Two overlapping actions silently discarded one of the writes: a company
+   revising an offer while the freelancer files a counter-offer, or two
+   signatures landing together. The window is small and the consequence is
+   invisible, which is what makes it worth closing structurally.
+
+   Every mutation now runs through here: the row is locked, the metadata is
+   re-read from the locked state rather than from a stale earlier fetch, the
+   caller's logic runs against that, and the write happens before the lock is
+   released.
+   ========================================================================= */
+
+type MetaOutcome<T> =
+  | { ok: true; payload: T; data?: Prisma.ApplicationUpdateInput }
+  | { ok: false; error: string };
+
+async function withApplicationMetadata<T>(
+  applicationId: string,
+  mutate: (
+    meta: ApplicationWorkflowData,
+    app: { id: string; status: ApplicationStatus; roleId: string | null; isApprentice: boolean }
+  ) => Promise<MetaOutcome<T>> | MetaOutcome<T>
+): Promise<{ success: true; payload: T } | { success: false; error: string }> {
+  return db.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id" FROM "Application" WHERE "id" = ${applicationId} FOR UPDATE`;
+
+      const row = await tx.application.findUnique({
+        where: { id: applicationId },
+        select: { id: true, status: true, roleId: true, isApprentice: true, coverLetter: true },
+      });
+      if (!row) return { success: false as const, error: "Application not found" };
+
+      const meta = parseApplicationMetadata(row.coverLetter);
+      const outcome = await mutate(meta, {
+        id: row.id,
+        status: row.status,
+        roleId: row.roleId,
+        isApprentice: row.isApprentice,
+      });
+      if (!outcome.ok) return { success: false as const, error: outcome.error };
+
+      const originalText = row.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
+        ? row.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
+        : row.coverLetter;
+
+      await tx.application.update({
+        where: { id: applicationId },
+        data: {
+          ...(outcome.data ?? {}),
+          coverLetter: serializeApplicationMetadata(originalText, meta),
+        },
+      });
+
+      return { success: true as const, payload: outcome.payload };
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10_000 }
+  );
+}
 
 /**
  * COMP-011 — the contract payment schedule, derived from configured data
@@ -362,9 +436,6 @@ export async function transitionApplicationStage(
     throw new Error("Application not found");
   }
 
-  // Parse existing workflow metadata
-  const meta = parseApplicationMetadata(app.coverLetter);
-
   // Build the pipeline event log
   const newEvent: ApplicationPipelineEvent = {
     stage: targetStage,
@@ -377,8 +448,6 @@ export async function transitionApplicationStage(
       meetingLink: interviewData.meetingLink,
     }),
   };
-
-  meta.pipelineHistory = [...meta.pipelineHistory, newEvent];
 
   // Map to main database ApplicationStatus enum
   let dbStatus: ApplicationStatus = app.status;
@@ -413,39 +482,40 @@ export async function transitionApplicationStage(
     };
   }
 
-  // LIFE-003 — reject an invalid transition rather than writing it blindly.
-  if (dbStatus !== app.status) {
-    const move = assertApplicationTransition(app.status, dbStatus);
-    if (!move.ok) return { success: false, error: move.error };
-  }
+  const contractIp = targetStage === "Contract Sent" ? await callerIpAddress() : null;
+  const milestones =
+    targetStage === "Contract Sent"
+      ? await contractMilestonesFor(app.id, app.projectId, app.project.budget, app.project.title)
+      : null;
 
-  if (targetStage === "Contract Sent") {
-    meta.digitalContract = {
-      contractText: `Freelancer Services Contract for Project "${app.project.title}". Work deliverables as defined in the posting wizard. Payment upon client milestone release.`,
-      freelancerSigned: false,
-      clientSigned: true,
-      clientSignedAt: new Date().toISOString(),
-      clientIp: await callerIpAddress(),
-      status: "SENT",
-      // COMP-011 — derived from configured data, never a fabricated split.
-      milestones: await contractMilestonesFor(app.id, app.projectId, app.project.budget, app.project.title),
-    };
-  }
+  // The status check runs against the row as locked, not against the copy read
+  // before the transaction opened.
+  const written = await withApplicationMetadata(applicationId, (meta, current) => {
+    if (dbStatus !== current.status) {
+      // LIFE-003 — reject an invalid transition rather than writing it blindly.
+      const move = assertApplicationTransition(current.status, dbStatus);
+      if (!move.ok) return { ok: false as const, error: move.error };
+    }
 
-  // Save updated application with serialized JSON block
-  const originalCoverLetterText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
+    meta.pipelineHistory = [...meta.pipelineHistory, newEvent];
 
-  const newCoverLetter = serializeApplicationMetadata(originalCoverLetterText, meta);
+    if (milestones) {
+      meta.digitalContract = {
+        contractText: `Freelancer Services Contract for Project "${app.project.title}". Work deliverables as defined in the posting wizard. Payment upon client milestone release.`,
+        freelancerSigned: false,
+        clientSigned: true,
+        clientSignedAt: new Date().toISOString(),
+        clientIp: contractIp ?? "unknown",
+        status: "SENT",
+        // COMP-011 — derived from configured data, never a fabricated split.
+        milestones,
+      };
+    }
 
-  await db.application.update({
-    where: { id: applicationId },
-    data: {
-      status: dbStatus,
-      coverLetter: newCoverLetter,
-    },
+    return { ok: true as const, payload: null, data: { status: dbStatus } };
   });
+
+  if (!written.success) return { success: false, error: written.error };
 
   // Create real-time notification
   let notificationTitle = `Application Stage Update: ${targetStage}`;
@@ -481,19 +551,58 @@ export async function transitionApplicationStage(
 /**
  * 4. Bulk transition applications
  */
+/**
+ * Every failure was swallowed to the console and the function returned a
+ * hardcoded success. Since transitionApplicationStage *throws* on an
+ * authorization failure, a recruiter denied on all twenty of a bulk rejection
+ * saw a success toast and an unchanged list.
+ *
+ * The per-id outcome is reported, so a partial or total failure is visible.
+ */
 export async function bulkTransitionApplicants(
   applicationIds: string[],
   targetStage: string,
   notes?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  moved: number;
+  failed: { applicationId: string; error: string }[];
+}> {
+  const failed: { applicationId: string; error: string }[] = [];
+  let moved = 0;
+
   for (const id of applicationIds) {
     try {
-      await transitionApplicationStage(id, targetStage, notes);
-    } catch (e) {
+      const result = await transitionApplicationStage(id, targetStage, notes);
+      if (result.success) moved++;
+      else failed.push({ applicationId: id, error: result.error ?? "Could not move this applicant." });
+    } catch (e: any) {
       console.error(`Failed to transition applicant ${id}:`, e);
+      failed.push({ applicationId: id, error: e?.message ?? "Could not move this applicant." });
     }
   }
-  return { success: true };
+
+  if (moved === 0 && failed.length > 0) {
+    return {
+      success: false,
+      error:
+        failed.length === 1
+          ? failed[0].error
+          : `None of the ${failed.length} applicants could be moved. ${failed[0].error}`,
+      moved,
+      failed,
+    };
+  }
+
+  return {
+    success: true,
+    ...(failed.length > 0
+      ? { error: `${moved} moved, ${failed.length} could not be: ${failed[0].error}` }
+      : {}),
+    moved,
+    failed,
+  };
 }
 
 /**
@@ -534,52 +643,73 @@ export async function signDigitalContract(
     throw new Error("Application not found");
   }
 
-  const meta = parseApplicationMetadata(app.coverLetter);
+  const defaultMilestones = await contractMilestonesFor(
+    app.id,
+    app.projectId,
+    app.project.budget,
+    app.project.title
+  );
 
-  if (!meta.digitalContract) {
-    // Generate default contract text
-    meta.digitalContract = {
-      contractText: `Freelancer Services Contract for Project "${app.project.title}". Work deliverables as defined in the posting wizard. Payment upon client milestone release.`,
-      freelancerSigned: false,
-      clientSigned: false,
-      status: "SENT",
-      // COMP-011 — see contractMilestonesFor; the same helper as the other site,
-      // so the schedule cannot drift between them.
-      milestones: await contractMilestonesFor(app.id, app.projectId, app.project.budget, app.project.title),
-    };
-  }
+  // Both signatures land in the same JSON blob, so two parties signing at once
+  // could each write over the other's. The mutation runs against the locked row.
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    if (!meta.digitalContract) {
+      // Generate default contract text
+      meta.digitalContract = {
+        contractText: `Freelancer Services Contract for Project "${app.project.title}". Work deliverables as defined in the posting wizard. Payment upon client milestone release.`,
+        freelancerSigned: false,
+        clientSigned: false,
+        status: "SENT",
+        // COMP-011 — see contractMilestonesFor; the same helper as the other site,
+        // so the schedule cannot drift between them.
+        milestones: defaultMilestones,
+      };
+    }
 
-  if (role === "FREELANCER") {
-    meta.digitalContract.freelancerSigned = true;
-    meta.digitalContract.freelancerSignedAt = new Date().toISOString();
-    meta.digitalContract.freelancerIp = ipAddress;
-  } else {
-    meta.digitalContract.clientSigned = true;
-    meta.digitalContract.clientSignedAt = new Date().toISOString();
-    meta.digitalContract.clientIp = ipAddress;
-  }
+    if (role === "FREELANCER") {
+      meta.digitalContract.freelancerSigned = true;
+      meta.digitalContract.freelancerSignedAt = new Date().toISOString();
+      meta.digitalContract.freelancerIp = ipAddress;
+    } else {
+      meta.digitalContract.clientSigned = true;
+      meta.digitalContract.clientSignedAt = new Date().toISOString();
+      meta.digitalContract.clientIp = ipAddress;
+    }
 
-  if (meta.digitalContract.freelancerSigned && meta.digitalContract.clientSigned) {
-    meta.digitalContract.status = "SIGNED";
-    meta.digitalContract.milestones = meta.digitalContract.milestones.map((m, idx) =>
-      idx === 0 ? { ...m, status: "ESCROWED" } : m
-    );
-    
-    // Automatically transition application stage to "Project Started"
-    const startEvent: ApplicationPipelineEvent = {
-      stage: "Project Started",
-      timestamp: new Date().toISOString(),
-      notes: "Digital contract fully signed by both parties. Project and workspace milestones kicked off.",
-      recruiterName: "System",
-    };
-    meta.pipelineHistory = [...meta.pipelineHistory, startEvent];
-    
-    /**
-     * MF-002 — the first freelancer to sign used to flip the whole project to
-     * IN_PROGRESS, misrepresenting the state for co-hires who had not signed.
-     * The project moves only once every hired freelancer has signed, and only
-     * from a live state (LIFE-001/LIFE-003).
-     */
+    const complete =
+      !!meta.digitalContract.freelancerSigned && !!meta.digitalContract.clientSigned;
+
+    if (complete) {
+      meta.digitalContract.status = "SIGNED";
+      meta.digitalContract.milestones = meta.digitalContract.milestones.map((m, idx) =>
+        idx === 0 ? { ...m, status: "ESCROWED" } : m
+      );
+
+      // Automatically transition application stage to "Project Started"
+      const startEvent: ApplicationPipelineEvent = {
+        stage: "Project Started",
+        timestamp: new Date().toISOString(),
+        notes: "Digital contract fully signed by both parties. Project and workspace milestones kicked off.",
+        recruiterName: "System",
+      };
+      meta.pipelineHistory = [...meta.pipelineHistory, startEvent];
+    }
+
+    return { ok: true as const, payload: complete };
+  });
+
+  if (!written.success) return { success: false, error: written.error };
+
+  /**
+   * MF-002 — the first freelancer to sign used to flip the whole project to
+   * IN_PROGRESS, misrepresenting the state for co-hires who had not signed.
+   * The project moves only once every hired freelancer has signed, and only
+   * from a live state (LIFE-001/LIFE-003).
+   *
+   * Read after the signature is committed, so this one counts as signed by
+   * being read back rather than by being special-cased.
+   */
+  if (written.payload) {
     const project = await db.project.findUnique({
       where: { id: app.projectId },
       select: { status: true },
@@ -591,7 +721,6 @@ export async function signDigitalContract(
         select: { id: true, coverLetter: true },
       });
       const allSigned = hired.every((h) => {
-        if (h.id === app.id) return true; // this one has just been signed
         const c = parseApplicationMetadata(h.coverLetter).digitalContract;
         return !!c?.freelancerSigned && !!c?.clientSigned;
       });
@@ -604,17 +733,6 @@ export async function signDigitalContract(
       }
     }
   }
-
-  const originalCoverLetterText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: {
-      coverLetter: serializeApplicationMetadata(originalCoverLetterText, meta),
-    },
-  });
 
   revalidatePath(`/workspace/${applicationId}`);
   revalidatePath("/freelancer/applications");
@@ -634,6 +752,18 @@ export async function signDigitalContract(
  * Ownership is now enforced. The project-completion side effect is addressed
  * separately under LIFE-001/MF-001, which make completeProject the sole writer
  * of ProjectStatus.COMPLETED.
+ *
+ * ARCH-001 — this was the last money path writing nowhere but prose. It marked
+ * a milestone RELEASED inside the application's JSON blob and told the
+ * freelancer their money had moved, while writing no ledger entry, checking no
+ * budget, requiring no funding and carrying no idempotency key. The escrow view
+ * and the payment tables disagreed about how much had been paid, and only one
+ * of them appeared in the ledger tab or in completion readiness.
+ *
+ * A contract milestone is now backed by a real PaymentItem: the row is created
+ * on first release if the contract was built from a fallback schedule, and the
+ * FUND and RELEASE entries are appended to the ledger in the same transaction
+ * that updates the contract. One movement of value, recorded once.
  */
 export async function releaseMilestonePayment(
   applicationId: string,
@@ -658,84 +788,214 @@ export async function releaseMilestonePayment(
     throw new Error("Application not found");
   }
 
-  const meta = parseApplicationMetadata(app.coverLetter);
-  // Bounds-check the caller-supplied index rather than trusting it to address
-  // a real element (COMP-012).
-  if (
-    !meta.digitalContract ||
-    !Number.isInteger(milestoneIndex) ||
-    milestoneIndex < 0 ||
-    milestoneIndex >= meta.digitalContract.milestones.length
-  ) {
-    throw new Error("Milestone not found");
+  const comp = await getProjectCompensation(app.projectId);
+  if (!comp) return { success: false, error: "This project has no compensation configured." };
+  if (comp.type === "UNPAID") {
+    return { success: false, error: "This is an unpaid engagement, so it has no milestone payments." };
   }
 
-  const milestone = meta.digitalContract.milestones[milestoneIndex];
-  // Idempotency: releasing the same index twice re-ran the whole side-effect
-  // chain, including a duplicate payout notification (COMP-012).
-  if (milestone.status === "RELEASED") {
-    return { success: false, error: "This milestone has already been released." };
-  }
-  milestone.status = "RELEASED";
+  let released: { title: string; budget: number } | null = null;
 
-  // Lock in next milestone as Escrowed if it exists
-  if (meta.digitalContract.milestones[milestoneIndex + 1]) {
-    meta.digitalContract.milestones[milestoneIndex + 1].status = "ESCROWED";
-  } else {
-    // All milestones released -> Mark contract completed!
-    meta.digitalContract.status = "COMPLETED";
-    
-    // Auto-transition pipeline to "Payment Released" & "Completed"
-    meta.pipelineHistory = [
-      ...meta.pipelineHistory,
-      {
-        stage: "Payment Released",
-        timestamp: new Date().toISOString(),
-        notes: `Final milestone payment of $${milestone.budget} released successfully.`,
-        recruiterName: "Finance Portal",
-      },
-      {
-        stage: "Completed",
-        timestamp: new Date().toISOString(),
-        notes: "All milestones released and deliverables accepted. Gig contract officially completed.",
-        recruiterName: "System",
+  try {
+    const outcome = await inFinancialTransaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id" FROM "Application" WHERE "id" = ${applicationId} FOR UPDATE`;
+      await tx.$queryRaw`
+        SELECT "id" FROM "PaymentItem" WHERE "projectId" = ${app.projectId} FOR UPDATE`;
+
+      const row = await tx.application.findUnique({
+        where: { id: applicationId },
+        select: { coverLetter: true },
+      });
+      if (!row) return { success: false as const, error: "Application not found" };
+
+      const meta = parseApplicationMetadata(row.coverLetter);
+      // Bounds-check the caller-supplied index rather than trusting it to
+      // address a real element (COMP-012).
+      if (
+        !meta.digitalContract ||
+        !Number.isInteger(milestoneIndex) ||
+        milestoneIndex < 0 ||
+        milestoneIndex >= meta.digitalContract.milestones.length
+      ) {
+        return { success: false as const, error: "Milestone not found" };
       }
-    ];
 
-    /**
-     * LIFE-001 / MF-001 — this used to set ProjectStatus.COMPLETED here.
-     * Milestones are per-application, so on a multi-freelancer project the
-     * first freelancer's final release completed the project for everyone,
-     * stranding co-hires' outstanding milestones and skipping certificate
-     * issuance entirely (which only runs via completeProject).
-     *
-     * completeProject is now the sole writer of COMPLETED. Releasing a payment
-     * records the release and nothing more; the company completes the project
-     * once every hired freelancer is settled.
-     */
+      const milestone = meta.digitalContract.milestones[milestoneIndex];
+      if (milestone.status === "RELEASED") {
+        return { success: false as const, error: "This milestone has already been released." };
+      }
+
+      const amount = D(milestone.budget);
+      if (!amount.isFinite() || amount.lte(0)) {
+        return { success: false as const, error: "This milestone has no payable amount." };
+      }
+
+      // Budget ceiling across every release on the project, matching the cap
+      // the stage and stipend paths enforce.
+      const projectReleases = await tx.paymentTransaction.findMany({
+        where: { projectId: app.projectId, type: "RELEASE" },
+        select: { amount: true },
+      });
+      const paidSoFar = projectReleases.reduce((t, r) => t.plus(D(r.amount).abs()), D(0));
+      if (paidSoFar.plus(amount).gt(D(comp.totalBudget))) {
+        const remaining = D(comp.totalBudget).minus(paidSoFar);
+        return {
+          success: false as const,
+          error: `Releasing this milestone would exceed the project budget. Only ${remaining.toFixed(2)} remains.`,
+        };
+      }
+
+      /**
+       * The contract schedule is derived from configured payment items where
+       * they exist, so the item at this position is the one being paid. Where
+       * the schedule came from the single full-value fallback, no row exists
+       * yet and one is created — so the payment has a home in the tables rather
+       * than only in the contract text.
+       */
+      const items = await tx.paymentItem.findMany({
+        where: { projectId: app.projectId, applicationId },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      });
+
+      let item = items[milestoneIndex];
+      if (!item) {
+        const allOnProject = await tx.paymentItem.count({ where: { projectId: app.projectId } });
+        item = await tx.paymentItem.create({
+          data: {
+            projectId: app.projectId,
+            applicationId,
+            title: milestone.title,
+            amount,
+            currency: comp.currency,
+            sortOrder: allOnProject,
+            status: "PENDING",
+          },
+        });
+      }
+
+      if (D(item.releasedAmount).gte(amount)) {
+        return { success: false as const, error: "This milestone has already been released." };
+      }
+
+      // Releasing an escrowed milestone commits and pays it in one move, which
+      // is what the contract UI has always represented. Both halves are
+      // recorded, so the ledger balances.
+      const fundShortfall = amount.minus(D(item.fundedAmount));
+      if (fundShortfall.gt(0)) {
+        await appendLedger(tx, {
+          projectId: app.projectId,
+          applicationId,
+          paymentItemId: item.id,
+          type: "FUND",
+          amount: fundShortfall,
+          currency: comp.currency,
+          actorUserId: owned.data.userId,
+          idempotencyKey: transitionKey("milestone", applicationId, "fund", milestoneIndex),
+          note: `Contract milestone ${milestoneIndex + 1}: ${milestone.title}`,
+        });
+      }
+
+      await appendLedger(tx, {
+        projectId: app.projectId,
+        applicationId,
+        paymentItemId: item.id,
+        type: "RELEASE",
+        amount,
+        currency: comp.currency,
+        actorUserId: owned.data.userId,
+        idempotencyKey: transitionKey("milestone", applicationId, "release", milestoneIndex),
+        note: `Contract milestone ${milestoneIndex + 1}: ${milestone.title}`,
+      });
+
+      await tx.paymentItem.update({
+        where: { id: item.id },
+        data: {
+          fundedAmount: D(item.fundedAmount).plus(fundShortfall.gt(0) ? fundShortfall : D(0)),
+          releasedAmount: D(item.releasedAmount).plus(amount),
+          status: "RELEASED",
+          releasedAt: new Date(),
+        },
+      });
+
+      milestone.status = "RELEASED";
+
+      // Lock in next milestone as Escrowed if it exists
+      if (meta.digitalContract.milestones[milestoneIndex + 1]) {
+        meta.digitalContract.milestones[milestoneIndex + 1].status = "ESCROWED";
+      } else {
+        // All milestones released -> Mark contract completed!
+        meta.digitalContract.status = "COMPLETED";
+
+        // Auto-transition pipeline to "Payment Released" & "Completed"
+        meta.pipelineHistory = [
+          ...meta.pipelineHistory,
+          {
+            stage: "Payment Released",
+            timestamp: new Date().toISOString(),
+            notes: `Final milestone payment of ${comp.currency} ${amount.toFixed(2)} released successfully.`,
+            recruiterName: "Finance Portal",
+          },
+          {
+            stage: "Completed",
+            timestamp: new Date().toISOString(),
+            notes: "All milestones released and deliverables accepted. Gig contract officially completed.",
+            recruiterName: "System",
+          },
+        ];
+
+        /**
+         * LIFE-001 / MF-001 — this used to set ProjectStatus.COMPLETED here.
+         * Milestones are per-application, so on a multi-freelancer project the
+         * first freelancer's final release completed the project for everyone,
+         * stranding co-hires' outstanding milestones and skipping certificate
+         * issuance entirely (which only runs via completeProject).
+         *
+         * completeProject is now the sole writer of COMPLETED.
+         */
+      }
+
+      const originalCoverLetterText = row.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
+        ? row.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
+        : row.coverLetter;
+
+      await tx.application.update({
+        where: { id: applicationId },
+        data: {
+          coverLetter: serializeApplicationMetadata(originalCoverLetterText, meta),
+        },
+      });
+
+      return {
+        success: true as const,
+        milestone: { title: milestone.title, budget: Number(amount) },
+        currency: comp.currency,
+      };
+    });
+
+    if (!outcome.success) return outcome;
+    released = outcome.milestone;
+
+    // Notify freelancer
+    await db.notification.create({
+      data: {
+        userId: app.freelancer.user.id,
+        title: "Escrow Funds Released",
+        message: `The client has released ${outcome.currency} ${released.budget.toFixed(2)} for milestone "${released.title}".`,
+      },
+    });
+  } catch (err) {
+    if (err instanceof LedgerReplayError) {
+      return { success: false, error: "This milestone has already been released." };
+    }
+    console.error("releaseMilestonePayment failed:", err);
+    return { success: false, error: "Could not release the milestone payment." };
   }
-
-  const originalCoverLetterText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: {
-      coverLetter: serializeApplicationMetadata(originalCoverLetterText, meta),
-    },
-  });
-
-  // Notify freelancer
-  await db.notification.create({
-    data: {
-      userId: app.freelancer.user.id,
-      title: "Escrow Funds Released",
-      message: `The client has released $${milestone.budget} for milestone "${milestone.title}".`,
-    },
-  });
 
   revalidatePath(`/workspace/${applicationId}`);
+  revalidatePath("/workspace/[applicationId]", "layout");
+  revalidatePath("/company/workspace/[applicationId]", "layout");
+  revalidatePath("/freelancer/workspace/[applicationId]", "layout");
   revalidatePath("/company/applicants");
 
   return { success: true };
@@ -783,40 +1043,68 @@ export async function submitDiscussionQuestion(projectId: string, question: stri
     return { success: false, error: "This project is no longer accepting questions." };
   }
 
-  const meta = getProjectMetadataDirect(project.description);
-
-  if (!meta.faq) meta.faq = [];
-
-  // Per-project and per-asker caps, standing in for a real rate limiter.
   const authorTag = `[Discussion Question by ${actor.data.name || "Freelancer"}]`;
-  const existingQuestions = meta.faq.filter((f) => f.question.startsWith("[Discussion Question by"));
-  if (existingQuestions.length >= MAX_DISCUSSION_QUESTIONS_PER_PROJECT) {
-    return { success: false, error: "This project has reached its question limit." };
-  }
-  const mine = existingQuestions.filter((f) => f.question.startsWith(authorTag));
-  if (mine.length >= MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT) {
-    return {
-      success: false,
-      error: `You can ask at most ${MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT} questions on a project.`,
-    };
-  }
 
-  // Store the pre-application discussion question as a specific FAQ layout format with empty answer
-  meta.faq.push({
-    question: `${authorTag}: ${text}`,
-    answer: "",
-  });
+  /**
+   * SEC-012 — the caps below are check-then-write against a column any
+   * applicant can append to, and the whole description is rewritten each time.
+   * Unserialised, concurrent askers both read the same count and both passed
+   * it, and a question submitted alongside a company's own edit lost one of the
+   * two writes — on the column that also carries the payment metadata.
+   */
+  const outcome = await db.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
 
-  const cleanDescriptionText = project.description.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? project.description.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : project.description;
+      const fresh = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { description: true },
+      });
+      if (!fresh) return { success: false as const, error: "Project not found" };
 
-  await db.project.update({
-    where: { id: projectId },
-    data: {
-      description: serializeProjectMetadata(cleanDescriptionText, meta),
+      const meta = getProjectMetadataDirect(fresh.description);
+      if (!meta.faq) meta.faq = [];
+
+      // Per-project and per-asker caps, standing in for a real rate limiter.
+      const existingQuestions = meta.faq.filter((f) =>
+        f.question.startsWith("[Discussion Question by")
+      );
+      if (existingQuestions.length >= MAX_DISCUSSION_QUESTIONS_PER_PROJECT) {
+        return { success: false as const, error: "This project has reached its question limit." };
+      }
+      const mine = existingQuestions.filter((f) => f.question.startsWith(authorTag));
+      if (mine.length >= MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT) {
+        return {
+          success: false as const,
+          error: `You can ask at most ${MAX_QUESTIONS_PER_FREELANCER_PER_PROJECT} questions on a project.`,
+        };
+      }
+
+      // Store the pre-application discussion question as a specific FAQ layout
+      // format with empty answer
+      meta.faq.push({
+        question: `${authorTag}: ${text}`,
+        answer: "",
+      });
+
+      const cleanDescriptionText = fresh.description.includes("\n\nMETADATA_JSON_BLOCK:")
+        ? fresh.description.split("\n\nMETADATA_JSON_BLOCK:")[0]
+        : fresh.description;
+
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          description: serializeProjectMetadata(cleanDescriptionText, meta),
+        },
+      });
+
+      return { success: true as const };
     },
-  });
+    { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10_000 }
+  );
+
+  if (!outcome.success) return outcome;
 
   revalidatePath(`/freelancer/projects`);
   return { success: true };
@@ -832,26 +1120,53 @@ export async function submitDiscussionQuestion(projectId: string, question: stri
 export async function replyToDiscussionQuestion(projectId: string, faqIndex: number, answer: string) {
   const owned = await requireProjectOwner(projectId);
   if (!owned.ok) return { success: false, error: owned.error };
-  const project = owned.data.project;
+  /**
+   * The answering path had the same unlocked read-modify-write the asking path
+   * did: the description read before the guard ran was mutated in memory and
+   * the whole column written back. A reply landing alongside a new question —
+   * or alongside any other writer of that column, which also carries the
+   * project's compensation metadata — silently discarded one of the two.
+   *
+   * The index is re-validated against the locked state too, so answering a
+   * question that was removed between read and write cannot write to a
+   * different one.
+   */
+  const outcome = await db.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
 
-  const meta = getProjectMetadataDirect(project.description);
+      const fresh = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { description: true },
+      });
+      if (!fresh) return { success: false as const, error: "Project not found" };
 
-  if (!meta.faq || !Number.isInteger(faqIndex) || faqIndex < 0 || !meta.faq[faqIndex]) {
-    return { success: false, error: "Question not found" };
-  }
+      const meta = getProjectMetadataDirect(fresh.description);
 
-  meta.faq[faqIndex].answer = answer;
+      if (!meta.faq || !Number.isInteger(faqIndex) || faqIndex < 0 || !meta.faq[faqIndex]) {
+        return { success: false as const, error: "Question not found" };
+      }
 
-  const cleanDescriptionText = project.description.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? project.description.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : project.description;
+      meta.faq[faqIndex].answer = answer;
 
-  await db.project.update({
-    where: { id: projectId },
-    data: {
-      description: serializeProjectMetadata(cleanDescriptionText, meta),
+      const cleanDescriptionText = fresh.description.includes("\n\nMETADATA_JSON_BLOCK:")
+        ? fresh.description.split("\n\nMETADATA_JSON_BLOCK:")[0]
+        : fresh.description;
+
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          description: serializeProjectMetadata(cleanDescriptionText, meta),
+        },
+      });
+
+      return { success: true as const };
     },
-  });
+    { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10_000 }
+  );
+
+  if (!outcome.success) return outcome;
 
   revalidatePath(`/freelancer/projects`);
   revalidatePath(`/company/projects`);
@@ -888,43 +1203,40 @@ export async function sendOfferLetterAction(
   if (app.project.company.userId !== session.user.id)
     return { success: false, error: "Unauthorized: not your project" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
+  // A revised offer and an incoming counter-offer touch the same blob, so the
+  // read and the write happen under one lock.
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    // Build offer letter block
+    meta.offerLetter = {
+      offerText,
+      stipendAmount,
+      milestones: milestones.map((m) => ({ ...m, status: "PENDING" as const })),
+      paymentCategory,
+      currency,
+      nonMonetaryBenefits,
+      nonMonetaryDetails,
+      status: "PENDING",
+      sentAt: new Date().toISOString(),
+      // Preserve negotiation history across re-sent offers so the audit trail survives.
+      negotiation: meta.offerLetter?.negotiation ?? [],
+    };
 
-  // Build offer letter block
-  meta.offerLetter = {
-    offerText,
-    stipendAmount,
-    milestones: milestones.map((m) => ({ ...m, status: "PENDING" as const })),
-    paymentCategory,
-    currency,
-    nonMonetaryBenefits,
-    nonMonetaryDetails,
-    status: "PENDING",
-    sentAt: new Date().toISOString(),
-    // Preserve negotiation history across re-sent offers so the audit trail survives.
-    negotiation: meta.offerLetter?.negotiation ?? [],
-  };
+    // Log pipeline event
+    meta.pipelineHistory = [
+      ...meta.pipelineHistory,
+      {
+        stage: "Offer Sent",
+        timestamp: new Date().toISOString(),
+        notes: `Offer letter sent with stipend ₹${stipendAmount}.`,
+        recruiterId: session.user.id,
+        recruiterName: session.user.name || "Recruiter",
+      },
+    ];
 
-  // Log pipeline event
-  meta.pipelineHistory = [
-    ...meta.pipelineHistory,
-    {
-      stage: "Offer Sent",
-      timestamp: new Date().toISOString(),
-      notes: `Offer letter sent with stipend ₹${stipendAmount}.`,
-      recruiterId: session.user.id,
-      recruiterName: session.user.name || "Recruiter",
-    },
-  ];
-
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
+    return { ok: true as const, payload: null };
   });
+
+  if (!written.success) return { success: false, error: written.error };
 
   // Notify freelancer
   await db.notification.create({
@@ -977,57 +1289,61 @@ export async function negotiateOfferAction(
   if (app.freelancer.user.id !== session.user.id)
     return { success: false, error: "Unauthorized: not your application" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
-  const offer = meta.offerLetter;
-  if (!offer) return { success: false, error: "No offer letter found" };
-  if (offer.status === "ACCEPTED" || offer.status === "DECLINED") {
-    return { success: false, error: "This offer has already been closed." };
-  }
+  /**
+   * The "one pending counter-offer at a time" rule is a check-then-write, so it
+   * only held while nothing else was writing. Under the lock, a second
+   * counter-offer racing the first sees the first.
+   */
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    const offer = meta.offerLetter;
+    if (!offer) return { ok: false as const, error: "No offer letter found" };
+    if (offer.status === "ACCEPTED" || offer.status === "DECLINED") {
+      return { ok: false as const, error: "This offer has already been closed." };
+    }
 
-  const history = offer.negotiation ?? [];
-  if (history.some((n) => n.status === "PENDING")) {
-    return { success: false, error: "You already have a counter-offer awaiting the company's response." };
-  }
+    const history = offer.negotiation ?? [];
+    if (history.some((n) => n.status === "PENDING")) {
+      return {
+        ok: false as const,
+        error: "You already have a counter-offer awaiting the company's response.",
+      };
+    }
 
-  const now = new Date().toISOString();
-  const currentCategory = offer.paymentCategory ?? "FIXED";
-  const currentCurrency = offer.currency ?? DEFAULT_CURRENCY;
+    const now = new Date().toISOString();
+    const currentCategory = offer.paymentCategory ?? "FIXED";
+    const currentCurrency = offer.currency ?? DEFAULT_CURRENCY;
 
-  offer.negotiation = [
-    ...history,
-    {
-      proposedAmount,
-      proposedCategory,
-      proposedCurrency,
-      message,
-      status: "PENDING",
-      requestedAt: now,
-      previousAmount: offer.stipendAmount,
-      previousCategory: currentCategory,
-      previousCurrency: currentCurrency,
-    },
-  ];
-  offer.status = "NEGOTIATING";
+    offer.negotiation = [
+      ...history,
+      {
+        proposedAmount,
+        proposedCategory,
+        proposedCurrency,
+        message,
+        status: "PENDING",
+        requestedAt: now,
+        previousAmount: offer.stipendAmount,
+        previousCategory: currentCategory,
+        previousCurrency: currentCurrency,
+      },
+    ];
+    offer.status = "NEGOTIATING";
 
-  meta.pipelineHistory = [
-    ...meta.pipelineHistory,
-    {
-      stage: "Offer Negotiation Requested",
-      timestamp: now,
-      notes: `Freelancer proposed ${proposedCategory} at ${proposedAmount} (was ${currentCategory} at ${offer.stipendAmount}).${message ? ` Note: "${message}"` : ""}`,
-      recruiterId: session.user.id,
-      recruiterName: session.user.name || "Freelancer",
-    },
-  ];
+    meta.pipelineHistory = [
+      ...meta.pipelineHistory,
+      {
+        stage: "Offer Negotiation Requested",
+        timestamp: now,
+        notes: `Freelancer proposed ${proposedCategory} at ${proposedAmount} (was ${currentCategory} at ${offer.stipendAmount}).${message ? ` Note: "${message}"` : ""}`,
+        recruiterId: session.user.id,
+        recruiterName: session.user.name || "Freelancer",
+      },
+    ];
 
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
+    return { ok: true as const, payload: null };
   });
+
+  if (!written.success) return { success: false, error: written.error };
 
   await db.notification.create({
     data: {
@@ -1071,61 +1387,61 @@ export async function respondToNegotiationAction(
   if (app.project.company.userId !== session.user.id)
     return { success: false, error: "Unauthorized: not your project" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
-  const offer = meta.offerLetter;
-  if (!offer) return { success: false, error: "No offer letter found" };
+  // Responding to a counter-offer rewrites the agreed figures, so it must not
+  // interleave with the freelancer's own writes to the same blob.
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    const offer = meta.offerLetter;
+    if (!offer) return { ok: false as const, error: "No offer letter found" };
 
-  const pending = offer.negotiation?.find((n) => n.status === "PENDING");
-  if (!pending) return { success: false, error: "No pending counter-offer to respond to." };
-
-  const now = new Date().toISOString();
-  pending.respondedAt = now;
-  pending.responseNote = responseNote;
-
-  if (decision === "ACCEPT") {
-    pending.status = "ACCEPTED";
-    offer.stipendAmount = pending.proposedAmount;
-    offer.paymentCategory = pending.proposedCategory;
-    offer.currency = pending.proposedCurrency ?? offer.currency;
-
-    // Milestone splits are derived from the old total, so they no longer add up.
-    // Rescale proportionally rather than silently leaving stale figures.
-    const oldTotal = pending.previousAmount;
-    if (oldTotal > 0 && offer.milestones?.length) {
-      offer.milestones = offer.milestones.map((m) => ({
-        ...m,
-        budget: Math.round((m.budget / oldTotal) * pending.proposedAmount),
-      }));
+    const pending = offer.negotiation?.find((n) => n.status === "PENDING");
+    if (!pending) {
+      return { ok: false as const, error: "No pending counter-offer to respond to." };
     }
-  } else {
-    pending.status = "REJECTED";
-  }
 
-  // Either way the ball returns to the freelancer for a final accept/decline.
-  offer.status = "PENDING";
+    const now = new Date().toISOString();
+    pending.respondedAt = now;
+    pending.responseNote = responseNote;
 
-  meta.pipelineHistory = [
-    ...meta.pipelineHistory,
-    {
-      stage: decision === "ACCEPT" ? "Negotiation Accepted" : "Negotiation Rejected",
-      timestamp: now,
-      notes:
-        decision === "ACCEPT"
-          ? `Company accepted revised terms: ${pending.proposedCategory} at ${pending.proposedAmount}.`
-          : `Company kept the original terms: ${pending.previousCategory} at ${pending.previousAmount}.${responseNote ? ` Note: "${responseNote}"` : ""}`,
-      recruiterId: session.user.id,
-      recruiterName: session.user.name || "Recruiter",
-    },
-  ];
+    if (decision === "ACCEPT") {
+      pending.status = "ACCEPTED";
+      offer.stipendAmount = pending.proposedAmount;
+      offer.paymentCategory = pending.proposedCategory;
+      offer.currency = pending.proposedCurrency ?? offer.currency;
 
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
+      // Milestone splits are derived from the old total, so they no longer add up.
+      // Rescale proportionally rather than silently leaving stale figures.
+      const oldTotal = pending.previousAmount;
+      if (oldTotal > 0 && offer.milestones?.length) {
+        offer.milestones = offer.milestones.map((m) => ({
+          ...m,
+          budget: Math.round((m.budget / oldTotal) * pending.proposedAmount),
+        }));
+      }
+    } else {
+      pending.status = "REJECTED";
+    }
 
-  await db.application.update({
-    where: { id: applicationId },
-    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
+    // Either way the ball returns to the freelancer for a final accept/decline.
+    offer.status = "PENDING";
+
+    meta.pipelineHistory = [
+      ...meta.pipelineHistory,
+      {
+        stage: decision === "ACCEPT" ? "Negotiation Accepted" : "Negotiation Rejected",
+        timestamp: now,
+        notes:
+          decision === "ACCEPT"
+            ? `Company accepted revised terms: ${pending.proposedCategory} at ${pending.proposedAmount}.`
+            : `Company kept the original terms: ${pending.previousCategory} at ${pending.previousAmount}.${responseNote ? ` Note: "${responseNote}"` : ""}`,
+        recruiterId: session.user.id,
+        recruiterName: session.user.name || "Recruiter",
+      },
+    ];
+
+    return { ok: true as const, payload: null };
   });
+
+  if (!written.success) return { success: false, error: written.error };
 
   await db.notification.create({
     data: {
@@ -1169,52 +1485,75 @@ export async function respondToOfferLetterAction(
   if (app.freelancer.user.id !== session.user.id)
     return { success: false, error: "Unauthorized: not your application" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
-  if (!meta.offerLetter) return { success: false, error: "No offer letter found" };
-
-  // Terms are still in flux — accepting now would bind the freelancer to figures
-  // the company has not agreed to.
-  if (meta.offerLetter.negotiation?.some((n) => n.status === "PENDING")) {
-    return {
-      success: false,
-      error: "Your counter-offer is still awaiting the company's response. Withdraw it or wait for their reply.",
-    };
-  }
-
   const now = new Date().toISOString();
-  meta.offerLetter.respondedAt = now;
+  // SEC-006 — the accepting party's real address, not a placeholder. The
+  // contract this builds used to record "client" and "server" as the two IPs
+  // and mark itself executed without either party using the signing flow.
+  const acceptIp = await callerIpAddress();
 
-  let newDbStatus = app.status;
+  /**
+   * MF-005 — the capacity check ran outside any transaction while this path
+   * writes HIRED, so two freelancers accepting into the last slot could both
+   * see room. hireApplicant locks the project's application rows for exactly
+   * this reason; accepting an offer now does the same, and the whole
+   * accept — capacity, transition, contract, status — commits as one unit.
+   */
+  const written = await withApplicationMetadata(applicationId, async (meta, current) => {
+    if (!meta.offerLetter) return { ok: false as const, error: "No offer letter found" };
 
-  if (decision === "DECLINE") {
-    meta.offerLetter.status = "DECLINED";
-    meta.offerLetter.reason = reason;
-    meta.pipelineHistory = [
-      ...meta.pipelineHistory,
-      {
-        stage: "Offer Declined",
-        timestamp: now,
-        notes: reason ? `Freelancer declined with reason: "${reason}"` : "Freelancer declined the hiring offer.",
-        recruiterId: session.user.id,
-        recruiterName: session.user.name || "Freelancer",
-      },
-    ];
-  } else {
-    /**
-     * LIFE-002 / MF-005 — accepting an offer used to set HIRED directly,
-     * bypassing role capacity and the project-wide limit entirely. Capacity is
-     * now checked here against the same authoritative calculation the hire path
-     * uses, so an offer cannot over-fill a project.
-     */
-    const capacity = await getCapacity(db, app.project.id, app.roleId);
-    if (!app.isApprentice && (capacity.roleFull || capacity.projectFull)) {
+    // Terms are still in flux — accepting now would bind the freelancer to
+    // figures the company has not agreed to.
+    if (meta.offerLetter.negotiation?.some((n) => n.status === "PENDING")) {
       return {
-        success: false,
+        ok: false as const,
+        error: "Your counter-offer is still awaiting the company's response. Withdraw it or wait for their reply.",
+      };
+    }
+
+    meta.offerLetter.respondedAt = now;
+
+    if (decision === "DECLINE") {
+      meta.offerLetter.status = "DECLINED";
+      meta.offerLetter.reason = reason;
+      meta.pipelineHistory = [
+        ...meta.pipelineHistory,
+        {
+          stage: "Offer Declined",
+          timestamp: now,
+          notes: reason ? `Freelancer declined with reason: "${reason}"` : "Freelancer declined the hiring offer.",
+          recruiterId: session.user.id,
+          recruiterName: session.user.name || "Freelancer",
+        },
+      ];
+      return { ok: true as const, payload: { hired: false } };
+    }
+
+    /**
+     * LIFE-004 — the accept branch checked capacity and the application
+     * transition but never the project's own state, so an outstanding offer on
+     * a project since closed, cancelled or completed still produced a hire.
+     */
+    const projectState = await db.project.findUnique({
+      where: { id: app.project.id },
+      select: { status: true },
+    });
+    if (!projectState) return { ok: false as const, error: "Project not found" };
+    const live = assertProjectMutable(projectState.status, "accept an offer on");
+    if (!live.ok) return { ok: false as const, error: live.error };
+
+    /**
+     * LIFE-002 / MF-005 — the same authoritative capacity calculation the hire
+     * path uses, so an offer cannot over-fill a project.
+     */
+    const capacity = await getCapacity(db, app.project.id, current.roleId);
+    if (!current.isApprentice && (capacity.roleFull || capacity.projectFull)) {
+      return {
+        ok: false as const,
         error: "This role has since been filled. Contact the company before accepting.",
       };
     }
-    const move = assertApplicationTransition(app.status, ApplicationStatus.HIRED);
-    if (!move.ok) return { success: false, error: move.error };
+    const move = assertApplicationTransition(current.status, ApplicationStatus.HIRED);
+    if (!move.ok) return { ok: false as const, error: move.error };
 
     // ACCEPT
     meta.offerLetter.status = "ACCEPTED";
@@ -1229,16 +1568,20 @@ export async function respondToOfferLetterAction(
       },
     ];
 
-    // Build digital contract from offer milestones
+    /**
+     * The contract is built from the accepted offer, and the freelancer's
+     * acceptance is their signature — recorded with their real address. The
+     * company's counter-signature is not fabricated here: the contract opens
+     * awaiting it, and signDigitalContract records it with the same rigour it
+     * applies to every other signature.
+     */
     meta.digitalContract = {
       contractText: `Freelancer Services Contract — Project: "${app.project.title}". Offer accepted on ${new Date(now).toLocaleDateString()}. Payment schedule as per agreed milestones.`,
       freelancerSigned: true,
       freelancerSignedAt: now,
-      freelancerIp: "client",
-      clientSigned: true,
-      clientSignedAt: meta.offerLetter.sentAt,
-      clientIp: "server",
-      status: "ACTIVE",
+      freelancerIp: acceptIp,
+      clientSigned: false,
+      status: "SENT",
       milestones: meta.offerLetter.milestones.map((m) => ({
         title: m.title,
         budget: m.budget,
@@ -1246,8 +1589,16 @@ export async function respondToOfferLetterAction(
       })),
     };
 
-    newDbStatus = ApplicationStatus.HIRED;
+    return {
+      ok: true as const,
+      payload: { hired: true },
+      data: { status: ApplicationStatus.HIRED },
+    };
+  });
 
+  if (!written.success) return { success: false, error: written.error };
+
+  if (written.payload.hired) {
     // Kick off project if still OPEN
     if (app.project.status === ProjectStatus.OPEN) {
       await db.project.update({
@@ -1266,17 +1617,8 @@ export async function respondToOfferLetterAction(
     });
   }
 
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: {
-      status: newDbStatus,
-      coverLetter: serializeApplicationMetadata(originalText, meta),
-    },
-  });
+  // The status and the metadata were both written inside the locked
+  // transaction above; there is no second write here to race with it.
 
   revalidatePath("/freelancer/applications");
   revalidatePath("/company/applicants");
@@ -1396,40 +1738,36 @@ export async function updateInterviewAction(
   if (app.project.company.userId !== session.user.id)
     return { success: false, error: "Unauthorized" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
   const combinedDateTime = `${newDate}T${newTime}`;
 
-  // Update the most recent interview event in history
-  const lastInterviewIdx = [...meta.pipelineHistory]
-    .map((e, i) => ({ e, i }))
-    .reverse()
-    .find(({ e }) => e.meetingLink)?.i;
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    // Update the most recent interview event in history
+    const lastInterviewIdx = [...meta.pipelineHistory]
+      .map((e, i) => ({ e, i }))
+      .reverse()
+      .find(({ e }) => e.meetingLink)?.i;
 
-  if (lastInterviewIdx !== undefined) {
-    meta.pipelineHistory[lastInterviewIdx].interviewDate = combinedDateTime;
-    meta.pipelineHistory[lastInterviewIdx].meetingLink = newMeetLink;
-    meta.pipelineHistory[lastInterviewIdx].notes = notes || `Interview rescheduled to ${newDate} at ${newTime}.`;
-  }
+    if (lastInterviewIdx !== undefined) {
+      meta.pipelineHistory[lastInterviewIdx].interviewDate = combinedDateTime;
+      meta.pipelineHistory[lastInterviewIdx].meetingLink = newMeetLink;
+      meta.pipelineHistory[lastInterviewIdx].notes = notes || `Interview rescheduled to ${newDate} at ${newTime}.`;
+    }
 
-  // Log reschedule event
-  meta.pipelineHistory.push({
-    stage: "Interview Rescheduled",
-    timestamp: new Date().toISOString(),
-    notes: notes || `Rescheduled to ${newDate} at ${newTime}. New link: ${newMeetLink}`,
-    recruiterId: session.user.id,
-    recruiterName: session.user.name || "Recruiter",
-    interviewDate: combinedDateTime,
-    meetingLink: newMeetLink,
+    // Log reschedule event
+    meta.pipelineHistory.push({
+      stage: "Interview Rescheduled",
+      timestamp: new Date().toISOString(),
+      notes: notes || `Rescheduled to ${newDate} at ${newTime}. New link: ${newMeetLink}`,
+      recruiterId: session.user.id,
+      recruiterName: session.user.name || "Recruiter",
+      interviewDate: combinedDateTime,
+      meetingLink: newMeetLink,
+    });
+
+    return { ok: true as const, payload: null };
   });
 
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
-  });
+  if (!written.success) return { success: false, error: written.error };
 
   // Notify freelancer
   await db.notification.create({
@@ -1467,36 +1805,31 @@ export async function cancelInterviewAction(
   if (app.project.company.userId !== session.user.id)
     return { success: false, error: "Unauthorized" };
 
-  const meta = parseApplicationMetadata(app.coverLetter);
+  const written = await withApplicationMetadata(applicationId, (meta) => {
+    // Clear meetingLink from the last interview event
+    const lastInterviewIdx = [...meta.pipelineHistory]
+      .map((e, i) => ({ e, i }))
+      .reverse()
+      .find(({ e }) => e.meetingLink)?.i;
 
-  // Clear meetingLink from the last interview event
-  const lastInterviewIdx = [...meta.pipelineHistory]
-    .map((e, i) => ({ e, i }))
-    .reverse()
-    .find(({ e }) => e.meetingLink)?.i;
+    if (lastInterviewIdx !== undefined) {
+      meta.pipelineHistory[lastInterviewIdx].meetingLink = undefined;
+      meta.pipelineHistory[lastInterviewIdx].interviewDate = undefined;
+    }
 
-  if (lastInterviewIdx !== undefined) {
-    meta.pipelineHistory[lastInterviewIdx].meetingLink = undefined;
-    meta.pipelineHistory[lastInterviewIdx].interviewDate = undefined;
-  }
+    // Log cancellation
+    meta.pipelineHistory.push({
+      stage: "Interview Cancelled",
+      timestamp: new Date().toISOString(),
+      notes: reason || "Interview session was cancelled by the recruiter.",
+      recruiterId: session.user.id,
+      recruiterName: session.user.name || "Recruiter",
+    });
 
-  // Log cancellation
-  meta.pipelineHistory.push({
-    stage: "Interview Cancelled",
-    timestamp: new Date().toISOString(),
-    notes: reason || "Interview session was cancelled by the recruiter.",
-    recruiterId: session.user.id,
-    recruiterName: session.user.name || "Recruiter",
+    return { ok: true as const, payload: null };
   });
 
-  const originalText = app.coverLetter.includes("\n\nMETADATA_JSON_BLOCK:")
-    ? app.coverLetter.split("\n\nMETADATA_JSON_BLOCK:")[0]
-    : app.coverLetter;
-
-  await db.application.update({
-    where: { id: applicationId },
-    data: { coverLetter: serializeApplicationMetadata(originalText, meta) },
-  });
+  if (!written.success) return { success: false, error: written.error };
 
   await db.notification.create({
     data: {

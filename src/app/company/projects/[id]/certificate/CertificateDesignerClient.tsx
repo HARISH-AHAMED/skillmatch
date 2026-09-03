@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Award, Palette, Save, Send, Type } from "lucide-react";
-import { useState, useTransition } from "react";
+import { ArrowLeft, Award, ImagePlus, Palette, Save, Send, Type } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import { Alert, EmptyState } from "@/components/ui/Feedback";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { CertificateRender } from "@/components/shared/CertificateRender";
+import { uploadFile } from "@/lib/upload";
 import { issueCertificate, saveCertificateDesign } from "@/actions/certificateActions";
 import type { Application, Project } from "@/lib/types";
 import type { CertificateConfig } from "@/lib/types";
@@ -258,6 +259,36 @@ export function CertificateDesignerClient({
           </Card>
 
           <Card padding="md">
+            <CardHeader
+              title="Artwork"
+              description="Your logo and signatures are printed on every certificate issued from this project."
+              divided={false}
+              className="mb-4"
+            />
+            <div className="flex flex-col gap-4">
+              <ImageField
+                label="Company logo"
+                hint="PNG with a transparent background reproduces best."
+                value={config.logoUrl}
+                onChange={(url) => set("logoUrl", url ?? undefined)}
+              />
+              <ImageField
+                label="First signature"
+                hint="A scan or photo of the signature, ideally on white."
+                value={config.signatureUrl}
+                onChange={(url) => set("signatureUrl", url ?? undefined)}
+              />
+              {config.signatory2Name ? (
+                <ImageField
+                  label="Second signature"
+                  value={config.signature2Url}
+                  onChange={(url) => set("signature2Url", url ?? undefined)}
+                />
+              ) : null}
+            </div>
+          </Card>
+
+          <Card padding="md">
             <CardHeader title="Signatories" divided={false} className="mb-4" />
             <div className="flex flex-col gap-3.5">
               <Field label="First signatory name">
@@ -462,6 +493,92 @@ export function CertificateDesignerClient({
           </Field>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------- image field --- */
+
+/**
+ * Uploads through the same route the rest of the app uses, so the file is
+ * validated for type and size server-side and comes back as a URL the
+ * certificate can print. The certificate design already carried `logoUrl`,
+ * `signatureUrl` and `signature2Url` and saved them faithfully — there was
+ * simply no way to set them, so every certificate printed an initial and a
+ * blank signature rule.
+ */
+function ImageField({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value?: string;
+  onChange: (url: string | null) => void;
+}) {
+  const toast = useToast();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const result = await uploadFile(file);
+      if ("error" in result) {
+        toast.error("That image could not be uploaded", result.error);
+        return;
+      }
+      onChange(result.url);
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-[13px] font-medium text-[var(--color-text-secondary)]">{label}</p>
+      {hint && <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">{hint}</p>}
+
+      <input
+        ref={input}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => pick(e.target.files?.[0])}
+      />
+
+      {value ? (
+        <div className="mt-2 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={value}
+            alt={label}
+            className="h-12 w-24 shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-surface-alt)] object-contain"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => input.current?.click()}>
+              Replace
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onChange(null)}>
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+          className="mt-2 flex h-16 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-surface-alt)] text-[13px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-brand)] hover:bg-[var(--color-hover)] disabled:cursor-wait"
+        >
+          <ImagePlus className="h-4 w-4" />
+          {busy ? "Uploading…" : "Upload an image"}
+        </button>
+      )}
     </div>
   );
 }

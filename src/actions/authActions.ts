@@ -2,8 +2,8 @@
 
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
-import { requireAdmin } from "@/lib/authz";
-import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
+import { requireAdmin, requireUser } from "@/lib/authz";
+import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 
 /**
  * SEC-010. Roles a caller may self-assign at registration. ADMIN is
@@ -80,6 +80,69 @@ export async function registerUser(formData: {
   }
 
   return { success: true };
+}
+
+/**
+ * SEC-002 (second half) — changing your own password.
+ *
+ * The migration upgraded a legacy plaintext credential to bcrypt on the owner's
+ * next login and set `passwordChangeRequired`, so they could be asked to pick a
+ * password that had never been stored in the clear. Nothing ever read that flag
+ * and no change-password flow existed, so the prompt it was written for could
+ * not happen and the migration stopped half-done.
+ *
+ * The current password is required even when the flag is set: possession of a
+ * live session is not proof of knowing the credential, and this is exactly the
+ * case where that distinction matters.
+ */
+export async function changeOwnPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const actor = await requireUser();
+  if (!actor.ok) return { error: actor.error };
+
+  if (!input.newPassword || input.newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Your new password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+  }
+  if (input.newPassword === input.currentPassword) {
+    return { error: "Choose a password different from your current one." };
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: actor.data.userId },
+    select: { id: true, passwordHash: true },
+  });
+  if (!user) return { error: "User not found." };
+  if (!user.passwordHash) {
+    return { error: "This account signs in with Google, so it has no password to change." };
+  }
+
+  const { valid } = await verifyPassword(input.currentPassword, user.passwordHash);
+  if (!valid) return { error: "That is not your current password." };
+
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash: await hashPassword(input.newPassword),
+      // The credential is now one the owner chose knowing it was never stored
+      // in the clear, so the migration prompt is satisfied.
+      passwordChangeRequired: false,
+    },
+  });
+
+  return { success: true };
+}
+
+/** Whether the signed-in user still owes us a password of their own choosing. */
+export async function passwordChangeRequired(): Promise<boolean> {
+  const actor = await requireUser();
+  if (!actor.ok) return false;
+  const user = await db.user.findUnique({
+    where: { id: actor.data.userId },
+    select: { passwordChangeRequired: true },
+  });
+  return user?.passwordChangeRequired ?? false;
 }
 
 /**

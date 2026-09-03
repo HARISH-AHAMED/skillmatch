@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  History,
   Archive,
   ArrowLeft,
   CalendarClock,
@@ -26,12 +27,14 @@ import { useNow } from "@/hooks/useNow";
 import { WorkspaceOverview } from "./tabs/Overview";
 import { WorkspaceFunding } from "./tabs/Funding";
 import { WorkspaceTasks } from "./tabs/Tasks";
+import { WorkspaceWorkLog } from "./tabs/WorkLog";
 import { WorkspaceDeliverables } from "./tabs/Deliverables";
 import { WorkspaceChat } from "./tabs/Chat";
 import { WorkspaceMeetings } from "./tabs/Meetings";
 import { WorkspaceTeam } from "./tabs/Team";
 
 const ICONS = {
+  History,
   LayoutDashboard,
   Sparkles,
   CheckSquare,
@@ -66,8 +69,10 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
         (m) => m.status === "SCHEDULED" && new Date(m.startsAt).getTime() > now,
       ).length,
       team: team.length,
+      // Logs a reviewer has not decided on yet.
+      workLogs: data.workLogs.filter((l) => l.status === "PENDING").length,
     }),
-    [tasks, files, messages, meetings, team, data.viewerUserId, now],
+    [tasks, files, messages, meetings, team, data.workLogs, data.viewerUserId, now],
   );
 
   const summary = getProjectFinancialSummary(project.compensation, data.paymentItems, data.ledger);
@@ -77,20 +82,24 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
     router.replace(`?tab=${next}`, { scroll: false });
   };
 
+  const hourly = project.compensation.type === "HOURLY";
+
   const tabItems = WORKSPACE_TABS.map((t) => {
     const Icon = ICONS[t.icon as keyof typeof ICONS];
     const count =
-      t.id === "tasks"
-        ? counts.tasks
-        : t.id === "deliverables"
-          ? counts.deliverables
-          : t.id === "messages"
-            ? counts.messages
-            : t.id === "meetings"
-              ? counts.meetings
-              : t.id === "team"
-                ? counts.team
-                : undefined;
+      t.id === "worklog"
+        ? (hourly ? counts.workLogs : undefined)
+        : t.id === "tasks"
+          ? counts.tasks
+          : t.id === "deliverables"
+            ? counts.deliverables
+            : t.id === "messages"
+              ? counts.messages
+              : t.id === "meetings"
+                ? counts.meetings
+                : t.id === "team"
+                  ? counts.team
+                  : undefined;
     return {
       id: t.id,
       label: t.label,
@@ -119,12 +128,13 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
           <div className="relative h-24 md:h-28">
             <Image src={project.bannerUrl} alt="" fill sizes="100vw" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-[rgba(12,20,17,0.82)] via-[rgba(12,20,17,0.55)] to-[rgba(12,20,17,0.25)]" />
-            <div className="absolute inset-0 flex items-center px-5">
-              <div className="flex min-w-0 items-center gap-3.5">
+            <div className="absolute inset-0 flex items-center px-4 md:px-5">
+              <div className="flex min-w-0 items-center gap-3 md:gap-3.5">
                 <Avatar
                   name={project.company.companyName}
                   src={project.company.logoUrl}
                   size="lg"
+                  sizeClassName="h-11 w-11 md:h-14 md:w-14"
                   rounded="md"
                   ring
                 />
@@ -142,8 +152,8 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <StatusIndicator status={project.status} kind="project" size="sm" />
               <span className="text-[12.5px] text-[var(--color-text-secondary)]">
                 {project.compensation.type === "UNPAID" ? (
@@ -164,7 +174,7 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
               <AvatarStack
                 people={team.map((t) => ({
                   name: t.freelancer.name,
@@ -205,6 +215,14 @@ export function WorkspaceView({ data }: { data: WorkspaceData }) {
       )}
       {tab === "tasks" && (
         <WorkspaceTasks data={data} project={project} viewerRole={viewerRole} />
+      )}
+      {tab === "worklog" && (
+        <WorkspaceWorkLog
+          data={data}
+          project={project}
+          application={application}
+          viewerRole={viewerRole}
+        />
       )}
       {tab === "deliverables" && (
         <WorkspaceDeliverables data={data} project={project} viewerRole={viewerRole} />

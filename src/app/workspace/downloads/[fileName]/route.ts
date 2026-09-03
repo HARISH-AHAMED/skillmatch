@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { db } from "@/lib/db";
-import { requireProjectParty } from "@/lib/authz";
+import { requireProjectParty, visibleChannelsFor } from "@/lib/authz";
 import { safeContentType } from "@/lib/uploads";
 
 /**
@@ -33,7 +33,7 @@ export async function GET(
   // links working without ever treating the input as a path.
   const record = await db.sharedFile.findFirst({
     where: { fileUrl: { endsWith: `/${requested}` } },
-    select: { id: true, projectId: true, fileName: true, fileUrl: true },
+    select: { id: true, projectId: true, channel: true, fileName: true, fileUrl: true },
   });
 
   if (!record) {
@@ -43,6 +43,28 @@ export async function GET(
   // Only a party to the owning project may download it.
   const access = await requireProjectParty(record.projectId);
   if (!access.ok) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  /**
+   * SEC-011 / WS-002 — membership alone was the whole check, so a file posted
+   * to the freelancers-only channel, or into a DM between two freelancers, was
+   * downloadable by anyone on the project who knew its name. The read paths for
+   * messages and for the workspace file list both apply the channel predicate;
+   * this one skipped it, which reopened the same leak through a third door.
+   *
+   * The row is re-fetched through the same predicate rather than the channel
+   * being re-interpreted here, so there is one implementation of who may see
+   * what.
+   */
+  const visible = await db.sharedFile.findFirst({
+    where: {
+      id: record.id,
+      ...visibleChannelsFor(access.data.role, access.data.userId),
+    },
+    select: { id: true },
+  });
+  if (!visible) {
     return new Response("Not found", { status: 404 });
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Award, Camera, CheckCircle2, Clock, Eye, GraduationCap, ListChecks, Plus, Save, Send, Sparkles, Target, Trash2, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Eye, GraduationCap, ListChecks, Plus, Save, Send, Sparkles, Target, Trash2, Users, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Chip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -19,13 +19,18 @@ import { Alert, EmptyState, Progress } from "@/components/ui/Feedback";
 import { Stepper } from "@/components/ui/Stepper";
 import { useToast } from "@/components/ui/Toast";
 import {
+  BannerPicker,
+  QuestionEditor,
+  RoundPicker,
+  questionsMissingOptions,
+  type RoundConfigMap,
+} from "@/components/company/ProjectEditors";
+import {
   COMPENSATION_META,
   CURRENCIES,
   MAX_ROLE_SLOTS,
   NON_MONETARY_BENEFITS,
   PROJECT_CATEGORIES,
-  QUESTION_TYPES,
-  ROUND_TYPE_CATALOG,
   SKILL_LIBRARY,
   SUBCATEGORIES,
   TIMING_TYPE_OPTIONS,
@@ -124,7 +129,9 @@ export function NewProjectClient({ company }: { company: Company }) {
   const [expectedCompletion, setExpectedCompletion] = useState("");
 
   /* ---- Step 4 ---- */
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [rounds, setRounds] = useState<string[]>(["SCREENING_QUESTIONS"]);
+  const [roundConfig, setRoundConfig] = useState<RoundConfigMap>({});
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([
     {
       id: "q1",
@@ -171,6 +178,14 @@ export function NewProjectClient({ company }: { company: Company }) {
         found.push("Non-monetary projects must list at least one benefit applicants receive.");
     }
     if (target >= 4) {
+      // An MCQ with fewer than two filled options reaches the candidate as an
+      // empty dropdown they cannot answer, so it is refused here.
+      for (const q of questionsMissingOptions(questions)) {
+        found.push(
+          `"${q.question.trim() || "Untitled question"}" is multiple choice, so it needs at least two answer options.`,
+        );
+      }
+
       const hiredMin = roles.reduce((s, r) => s + r.slots, 0);
       if (roles.length > 0 && hiredMin > Number(freelancersLimit))
         found.push(
@@ -234,6 +249,8 @@ export function NewProjectClient({ company }: { company: Company }) {
     projectStart,
     expectedCompletion,
     rounds,
+    roundConfig,
+    bannerUrl,
     questions,
     certificateEnabled,
     signatoryName,
@@ -423,22 +440,7 @@ export function NewProjectClient({ company }: { company: Company }) {
               </Field>
             </div>
 
-            <div>
-              <p className="mb-1.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
-                Project banner
-              </p>
-              <div className="flex h-36 items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-surface-alt)]">
-                <div className="text-center">
-                  <Camera className="mx-auto h-6 w-6 text-[var(--color-text-muted)]" />
-                  <p className="mt-2 text-[13px] font-medium text-[var(--color-text-primary)]">
-                    Upload a banner
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">
-                    16:7 works best · PNG, JPEG or WebP up to 5 MB
-                  </p>
-                </div>
-              </div>
-            </div>
+            <BannerPicker value={bannerUrl} onChange={setBannerUrl} />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
@@ -960,162 +962,15 @@ export function NewProjectClient({ company }: { company: Company }) {
         {/* ================= STEP 4: SCREENING & ROLES ================= */}
         {step === 3 && (
           <div className="flex flex-col gap-7">
-            {/* Rounds */}
-            <div>
-              <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
-                Selection rounds
-              </h3>
-              <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--color-text-secondary)]">
-                Only screening questions run inside FRIVVO today. The other round types are shown so
-                you can plan your process, but they cannot be selected yet.
-              </p>
-              <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
-                {ROUND_TYPE_CATALOG.map((r) => {
-                  const selected = rounds.includes(r.type);
-                  return (
-                    <button
-                      key={r.type}
-                      type="button"
-                      disabled={!r.runnable}
-                      onClick={() =>
-                        setRounds((p) =>
-                          p.includes(r.type) ? p.filter((x) => x !== r.type) : [...p, r.type],
-                        )
-                      }
-                      className={`flex items-start gap-3 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors ${
-                        !r.runnable
-                          ? "cursor-not-allowed border-[var(--color-border-subtle)] bg-[var(--color-surface-alt)] opacity-60"
-                          : selected
-                            ? "border-[var(--color-brand)] bg-[var(--color-brand-softer)]"
-                            : "border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-hover)]"
-                      }`}
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center gap-2">
-                          <span className="text-[13.5px] font-medium text-[var(--color-text-primary)]">
-                            {r.name}
-                          </span>
-                          {!r.runnable && (
-                            <Badge tone="neutral" size="sm">
-                              Coming soon
-                            </Badge>
-                          )}
-                        </span>
-                        <span className="mt-0.5 block text-[12px] leading-[1.5] text-[var(--color-text-secondary)]">
-                          {r.description}
-                        </span>
-                      </span>
-                      {selected && r.runnable && (
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-brand)]" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <RoundPicker
+              rounds={rounds}
+              onRoundsChange={setRounds}
+              config={roundConfig}
+              onConfigChange={setRoundConfig}
+            />
 
-            {/* Questions */}
             {rounds.includes("SCREENING_QUESTIONS") && (
-              <div>
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">
-                      Screening questions
-                    </h3>
-                    <p className="mt-0.5 text-[12.5px] text-[var(--color-text-secondary)]">
-                      Required answers are enforced when an application is submitted.
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    leftIcon={<Plus className="h-3.5 w-3.5" />}
-                    onClick={() =>
-                      setQuestions((p) => [
-                        ...p,
-                        {
-                          id: `q${p.length + 1}-${Date.now()}`,
-                          question: "",
-                          type: "PARAGRAPH",
-                          required: false,
-                        },
-                      ])
-                    }
-                  >
-                    Add question
-                  </Button>
-                </div>
-
-                <ul className="flex flex-col gap-3">
-                  {questions.map((q, i) => (
-                    <li
-                      key={q.id}
-                      className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-sunken)] text-[11px] font-semibold text-[var(--color-text-secondary)]">
-                          {i + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <Textarea
-                            rows={2}
-                            value={q.question}
-                            onChange={(e) =>
-                              setQuestions((p) =>
-                                p.map((x) =>
-                                  x.id === q.id ? { ...x, question: e.target.value } : x,
-                                ),
-                              )
-                            }
-                            placeholder="What do you want to know before shortlisting?"
-                          />
-                          <div className="mt-2.5 flex flex-wrap items-center gap-3">
-                            <Select
-                              inputSize="sm"
-                              value={q.type}
-                              onChange={(e) =>
-                                setQuestions((p) =>
-                                  p.map((x) =>
-                                    x.id === q.id
-                                      ? { ...x, type: e.target.value as ScreeningQuestion["type"] }
-                                      : x,
-                                  ),
-                                )
-                              }
-                              className="w-48"
-                            >
-                              {QUESTION_TYPES.map((t) => (
-                                <option key={t.value} value={t.value}>
-                                  {t.label}
-                                </option>
-                              ))}
-                            </Select>
-                            <Checkbox
-                              checked={q.required}
-                              onChange={(e) =>
-                                setQuestions((p) =>
-                                  p.map((x) =>
-                                    x.id === q.id ? { ...x, required: e.target.checked } : x,
-                                  ),
-                                )
-                              }
-                              label="Required"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setQuestions((p) => p.filter((x) => x.id !== q.id))}
-                              className="ml-auto text-[var(--color-text-muted)] hover:text-[var(--color-error-fg)]"
-                              aria-label="Remove question"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <QuestionEditor questions={questions} onChange={setQuestions} />
             )}
 
             {/* Roles */}

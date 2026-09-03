@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export interface TabItem {
@@ -20,23 +20,32 @@ export interface TabItem {
 function TabTrigger({
   item,
   className,
+  selected,
   onSelect,
   children,
 }: {
   item: TabItem;
   className: string;
+  selected: boolean;
   onSelect?: () => void;
   children: React.ReactNode;
 }) {
   if (item.href) {
     return (
-      <Link href={item.href} className={className}>
+      <Link href={item.href} className={className} data-tab-id={item.id} role="tab">
         {children}
       </Link>
     );
   }
   return (
-    <button type="button" onClick={onSelect} className={className}>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={className}
+      data-tab-id={item.id}
+      role="tab"
+      aria-selected={selected}
+    >
       {children}
     </button>
   );
@@ -62,6 +71,18 @@ export function Tabs({
   size?: "sm" | "md";
 }) {
   const layoutId = useId();
+  const scroller = useRef<HTMLDivElement>(null);
+
+  /*
+   * The bar scrolls horizontally on narrow screens, and it used to open at
+   * scroll position zero whatever was selected — land on the Chat tab on a
+   * phone and the underline sat off-screen under a tab you were not on. The
+   * active tab is brought into view instead.
+   */
+  useEffect(() => {
+    const active = scroller.current?.querySelector<HTMLElement>(`[data-tab-id="${value}"]`);
+    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [value]);
 
   if (variant === "segmented") {
     return (
@@ -77,6 +98,7 @@ export function Tabs({
             <TabTrigger
               key={t.id}
               item={t}
+              selected={active}
               onSelect={() => onChange?.(t.id)}
               className={cn(
                 "relative inline-flex items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors",
@@ -109,13 +131,14 @@ export function Tabs({
 
   if (variant === "pill") {
     return (
-      <div className={cn("no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1", className)}>
+      <div ref={scroller} className={cn("no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1", className)}>
         {items.map((t) => {
           const active = t.id === value;
           return (
             <TabTrigger
               key={t.id}
               item={t}
+              selected={active}
               onSelect={() => onChange?.(t.id)}
               className={cn(
                 "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-medium transition-colors",
@@ -146,13 +169,14 @@ export function Tabs({
 
   return (
     <div className={cn("border-b border-[var(--color-border)]", className)}>
-      <div className="no-scrollbar flex gap-1 overflow-x-auto">
+      <div ref={scroller} className="no-scrollbar flex gap-1 overflow-x-auto">
         {items.map((t) => {
           const active = t.id === value;
           return (
             <TabTrigger
               key={t.id}
               item={t}
+              selected={active}
               onSelect={() => onChange?.(t.id)}
               className={cn(
                 "relative inline-flex shrink-0 items-center gap-2 px-3.5 text-[13.5px] font-medium transition-colors",

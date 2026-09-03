@@ -273,8 +273,16 @@ export function checkHourlyRelease(params: {
   value: Dec;
   approvedValue: Dec;
   alreadyPaid: Dec;
+  /**
+   * Hourly payouts were bounded only by approved work, with no project budget
+   * ceiling of the kind stipend (COMP-014) and stages both have. Where the
+   * engagement configured no hour limit, that left the payout unbounded too.
+   */
+  projectBudget?: Dec;
+  /** Everything already released on the project, across all freelancers. */
+  projectPaidTotal?: Dec;
 }): RuleResult {
-  const { value, approvedValue, alreadyPaid } = params;
+  const { value, approvedValue, alreadyPaid, projectBudget, projectPaidTotal } = params;
   const remaining = approvedValue.minus(alreadyPaid);
   if (!value.isFinite() || value.lte(0)) {
     return fail("Enter a payment amount greater than zero.");
@@ -284,6 +292,14 @@ export function checkHourlyRelease(params: {
   }
   if (value.gt(remaining)) {
     return fail(`Only ${remaining.toFixed(2)} remains payable for this freelancer's approved work.`);
+  }
+  if (projectBudget && projectPaidTotal && projectPaidTotal.plus(value).gt(projectBudget)) {
+    const left = projectBudget.minus(projectPaidTotal);
+    return fail(
+      left.lte(0)
+        ? `The project budget of ${projectBudget.toFixed(2)} has already been paid out in full.`
+        : `Paying this would exceed the project budget. Only ${left.toFixed(2)} remains.`
+    );
   }
   return ok;
 }

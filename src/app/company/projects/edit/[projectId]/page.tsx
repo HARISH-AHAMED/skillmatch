@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireCompanyViewer } from "@/data/server/context";
 import { getProject, hiredApplications } from "@/data/server/entities";
+import { db } from "@/lib/db";
 import { EditProjectClient } from "./EditProjectClient";
 
 export default async function EditProjectPage({
@@ -16,5 +17,23 @@ export default async function EditProjectPage({
 
   const hired = await hiredApplications(project.id);
 
-  return <EditProjectClient project={project} hired={hired} />;
+  /*
+   * `project.bannerUrl` is never empty — the adapter substitutes generated
+   * artwork when a listing has none, which is right for display but wrong for
+   * an editor: it would show a placeholder as if it were an upload, and saving
+   * would write that stand-in into the column as real data. The editor gets
+   * the stored value instead.
+   */
+  const stored = await db.project.findUnique({
+    where: { id: project.id },
+    select: { bannerUrl: true },
+  });
+
+  return (
+    <EditProjectClient
+      project={project}
+      hired={hired}
+      storedBannerUrl={stored?.bannerUrl ?? null}
+    />
+  );
 }

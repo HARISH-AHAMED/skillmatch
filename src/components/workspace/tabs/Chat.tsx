@@ -1,11 +1,15 @@
 "use client";
 
 import { Hash, Lock, Paperclip, Send, Users } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Feedback";
+import { useToast } from "@/components/ui/Toast";
+import { sendMessage, shareFile } from "@/actions/collaborationActions";
+import { uploadFile } from "@/lib/upload";
 import { useSession } from "@/lib/session";
 import type { Application, Message, Project, Role } from "@/lib/types";
 import { dmChannel, visibleChannelsFor } from "@/lib/domain";
@@ -25,15 +29,27 @@ export function WorkspaceChat({
   viewerRole: Role;
 }) {
   const { session } = useSession();
+  const router = useRouter();
+  const toast = useToast();
+  const [, startTransition] = useTransition();
   const isCompany = viewerRole === "COMPANY";
   const userId = session?.userId ?? "";
 
-  const [messages, setMessages] = useState<Message[]>(() =>
+  /*
+   * The server's list is the state. A message being sent is layered on top so
+   * it appears immediately, and React drops that layer by itself once the
+   * action settles and the real row arrives — no mirrored copy to keep in step,
+   * and nothing to roll back by hand when a send is refused.
+   */
+  const [messages, addOptimistic] = useOptimistic<Message[], Message>(
     data.messages,
+    (current, pending) => [...current, pending],
   );
   const [channel, setChannel] = useState("group");
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [attaching, setAttaching] = useState(false);
 
   const team = data.team;
   const canSee = visibleChannelsFor(viewerRole, userId);
@@ -92,24 +108,96 @@ export function WorkspaceChat({
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [visible.length, channel]);
 
+  /*
+   * There is no socket on this deployment, so the other side's messages are
+   * picked up by asking the server again. Only while the tab is actually being
+   * looked at, so a backgrounded workspace costs nothing.
+   */
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const timer = setInterval(tick, 10000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [router]);
+
+  /**
+   * This used to append to local state and stop there: nothing was ever sent,
+   * so a message vanished on the next render and the other side never saw it.
+   */
   const send = () => {
-    if (!draft.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
+    const content = draft.trim();
+    if (!content) return;
+    setDraft("");
+
+    startTransition(async () => {
+      addOptimistic({
         id: `msg-local-${Date.now()}`,
         projectId: project.id,
         senderId: userId,
         senderName: session?.name ?? "You",
         senderAvatar: session?.image ?? "",
         senderRole: viewerRole,
-        content: draft.trim(),
+        content,
         channel,
         seen: true,
         createdAt: new Date().toISOString(),
-      },
-    ]);
-    setDraft("");
+      });
+
+      const result = await sendMessage(project.id, content, channel);
+
+      if (!result || "error" in result) {
+        // Give the text back rather than losing what they typed.
+        setDraft((current) => current || content);
+        toast.error(
+          "That message was not sent",
+          (result && "error" in result ? result.error : undefined) ?? "Please try again.",
+        );
+        return;
+      }
+
+      router.refresh();
+    });
+  };
+
+  /**
+   * The paperclip was decoration — a button with no handler. It now puts the
+   * file in the workspace's shared files for this channel, which is where the
+   * Files tab reads from, so an attachment is not a dead end.
+   */
+  const attach = async (file: File | undefined) => {
+    if (!file) return;
+    setAttaching(true);
+    try {
+      const uploaded = await uploadFile(file);
+      if ("error" in uploaded) {
+        toast.error("That file could not be uploaded", uploaded.error);
+        return;
+      }
+
+      const size = file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+      const shared = await shareFile(project.id, file.name, uploaded.url, size, channel);
+      if (!shared || "error" in shared) {
+        toast.error(
+          "That file could not be shared",
+          (shared && "error" in shared ? shared.error : undefined) ?? "Please try again.",
+        );
+        return;
+      }
+
+      toast.success("File shared", `${file.name} is in the workspace files.`);
+      router.refresh();
+    } finally {
+      setAttaching(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
   };
 
   const activeChannel = channels.find((c) => c.id === channel);
@@ -121,27 +209,29 @@ export function WorkspaceChat({
         <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
           Channels
         </p>
-        <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+        <ul className="no-scrollbar flex gap-1.5 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
           {channels.map((c) => (
-            <li key={c.id} className="shrink-0 lg:shrink">
+            <li key={c.id} className="shrink-0 lg:w-full lg:shrink">
               <button
                 type="button"
                 onClick={() => setChannel(c.id)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition-colors",
+                  "flex w-auto items-center gap-2 whitespace-nowrap rounded-full border border-[var(--color-border)] px-3 py-1.5 text-left transition-colors lg:w-full lg:gap-2.5 lg:rounded-[var(--radius-md)] lg:border-0 lg:px-2.5 lg:py-2",
                   channel === c.id
                     ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-active)]"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
                 )}
               >
                 <span className="shrink-0">{c.icon}</span>
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{c.label}</span>
+                <span className="min-w-0 max-w-[9rem] truncate text-[13px] font-medium lg:max-w-none lg:flex-1">
+                  {c.label}
+                </span>
               </button>
             </li>
           ))}
         </ul>
 
-        <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
+        <div className="mt-3 hidden border-t border-[var(--color-border-subtle)] pt-3 lg:block">
           <p className="px-2 text-[11.5px] leading-[1.5] text-[var(--color-text-muted)]">
             Messages are retained for {MESSAGE_TTL_DAYS} days, then removed automatically.
           </p>
@@ -149,7 +239,7 @@ export function WorkspaceChat({
       </aside>
 
       {/* ---- Thread ---- */}
-      <section className="flex h-[620px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <section className="flex h-[min(620px,65svh)] min-h-[380px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] lg:h-[620px]">
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
             {activeChannel?.icon}
@@ -263,10 +353,18 @@ export function WorkspaceChat({
             <button
               type="button"
               aria-label="Attach a file"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)]"
+              disabled={attaching}
+              onClick={() => fileInput.current?.click()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)] disabled:cursor-wait disabled:opacity-60"
             >
               <Paperclip className="h-4 w-4" />
             </button>
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              onChange={(e) => attach(e.target.files?.[0])}
+            />
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

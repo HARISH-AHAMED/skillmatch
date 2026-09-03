@@ -121,7 +121,8 @@ export async function getProjectFinancialSummary(
       select: { fundedAmount: true, releasedAmount: true },
     }),
     // Hourly and stipend payouts have no PaymentItem, so the ledger is the
-    // only place they are visible.
+    // only place they are visible. Both belong in this total — unlike the
+    // hourly-balance queries, which must exclude stipend releases.
     db.paymentTransaction.findMany({
       where: { projectId, type: "RELEASE", paymentItemId: null },
       select: { amount: true },
@@ -157,11 +158,36 @@ export function deriveFromMetadata(description: string | null, budget: number): 
     budgetNegotiable: !!meta.budgetNegotiable,
     hourlyRate: type === "HOURLY" && rate != null ? new Prisma.Decimal(rate) : null,
     estimatedHours: meta.estimatedHours ?? null,
-    maxHours: null,
+    maxHours: type === "HOURLY" ? meta.maxHours ?? null : null,
     stipendAmount:
       type === "STIPEND" ? new Prisma.Decimal(rate ?? budget ?? 0) : null,
     stipendFrequency: type === "STIPEND" ? normaliseFrequency(meta.stipendFrequency) ?? "MONTHLY" : null,
-    stipendPeriods: null,
+    stipendPeriods: type === "STIPEND" ? stipendPeriodsFrom(meta, rate, budget) : null,
     legacy: true,
   };
+}
+
+/**
+ * The number of payable stipend periods.
+ *
+ * Prefers the configured value. Projects created before `stipendPeriods`
+ * existed in the metadata block carry no such value, so the count is recovered
+ * from the arithmetic the wizard used to build the budget in the first place
+ * (`amount × periods`) rather than silently defaulting every one of them to a
+ * single period.
+ */
+function stipendPeriodsFrom(
+  meta: { stipendPeriods?: number },
+  rate: number | undefined,
+  budget: number
+): number | null {
+  const configured = meta.stipendPeriods;
+  if (configured != null && Number.isInteger(configured) && configured > 0) {
+    return configured;
+  }
+  if (rate != null && rate > 0 && budget > 0) {
+    const derived = Math.round(budget / rate);
+    if (derived >= 1) return derived;
+  }
+  return null;
 }

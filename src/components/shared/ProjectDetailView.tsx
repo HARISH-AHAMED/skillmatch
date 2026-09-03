@@ -1,5 +1,7 @@
 "use client";
 
+import { roundRuntimeMode, type RecruitmentRoundType } from "@/lib/workflowHelpers";
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -31,7 +33,8 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Alert, Progress, Rating } from "@/components/ui/Feedback";
 import { Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
-import { COMPENSATION_META } from "@/lib/constants";
+import {
+  ROUND_MODE_LABEL, COMPENSATION_META } from "@/lib/constants";
 import type { Project } from "@/lib/types";
 import { cn, daysUntil, formatDate, formatMoney, relativeTime } from "@/lib/utils";
 import { compensationLine } from "./Cards";
@@ -399,12 +402,15 @@ export function ProjectDetailView({
                           <h4 className="text-[14px] font-medium text-[var(--color-text-primary)]">
                             {round.name}
                           </h4>
-                          {round.comingSoon && (
-                            <Badge tone="neutral" size="sm">
-                              Coming soon
-                            </Badge>
-                          )}
+                          <Badge tone="neutral" size="sm">
+                            {ROUND_MODE_LABEL[roundRuntimeMode(round.type as RecruitmentRoundType)]}
+                          </Badge>
                         </div>
+                        {round.instructions && (
+                          <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--color-text-secondary)]">
+                            {round.instructions}
+                          </p>
+                        )}
                         {round.questions.length > 0 && (
                           <p className="mt-1 text-[12.5px] text-[var(--color-text-secondary)]">
                             {round.questions.length} questions ·{" "}

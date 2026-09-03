@@ -21,17 +21,29 @@ import {
 import { editProject, publishProjectDraft, updateProjectDueDate } from "@/actions/projectActions";
 import { saveProjectRoles } from "@/actions/roleActions";
 import { fromProject, toProjectColumns } from "@/adapters/projectForm";
+import {
+  BannerPicker,
+  FaqEditor,
+  QuestionEditor,
+  RoundPicker,
+  StringListEditor,
+  questionsMissingOptions,
+  type RoundConfigMap,
+} from "@/components/company/ProjectEditors";
 import { isProjectMutable } from "@/lib/domain";
-import type { Application, Project } from "@/lib/types";
+import type { Application, Project, ScreeningQuestion } from "@/lib/types";
 import type { CompensationType } from "@/lib/types";
 import { formatMoney } from "@/lib/utils";
 
 export function EditProjectClient({
   project,
   hired,
+  storedBannerUrl,
 }: {
   project: Project;
   hired: Application[];
+  /** The column value, not the adapter's display fallback. */
+  storedBannerUrl: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -59,6 +71,29 @@ export function EditProjectClient({
     dueDate: project.dueDate?.slice(0, 10) ?? "",
     isVisible: project.isVisible ?? true,
   }));
+
+  /*
+   * The scope, screening and banner fields were authored in the posting wizard
+   * and then frozen: this screen never rendered them, so a published listing
+   * could not fix a typo in an objective, add a screening question, or set a
+   * banner. They are seeded from the listing's own metadata.
+   */
+  const initial = fromProject(project);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(storedBannerUrl);
+  const [objectives, setObjectives] = useState<string[]>(initial.objectives ?? []);
+  const [deliverables, setDeliverables] = useState<string[]>(initial.deliverables ?? []);
+  const [responsibilities, setResponsibilities] = useState<string[]>(
+    initial.responsibilities ?? [],
+  );
+  const [dailyTasks, setDailyTasks] = useState<string[]>(initial.dailyTasks ?? []);
+  const [preferredSkills, setPreferredSkills] = useState<string[]>(initial.preferredSkills ?? []);
+  const [faq, setFaq] = useState(initial.faq ?? []);
+  const [rounds, setRounds] = useState<string[]>(initial.rounds ?? []);
+  const [roundConfig, setRoundConfig] = useState<RoundConfigMap>(initial.roundConfig ?? {});
+  const [questions, setQuestions] = useState<ScreeningQuestion[]>(initial.questions ?? []);
+  const [certificateEnabled, setCertificateEnabled] = useState(initial.certificateEnabled);
+  const [signatoryName, setSignatoryName] = useState(initial.signatoryName ?? "");
+  const [signatoryTitle, setSignatoryTitle] = useState(initial.signatoryTitle ?? "");
 
   const [skills, setSkills] = useState<string[]>(project.requiredSkills ?? []);
   const [skillQuery, setSkillQuery] = useState("");
@@ -108,6 +143,14 @@ export function EditProjectClient({
       found.push("a budget greater than zero");
     if (skills.length === 0) found.push("at least one required skill");
 
+    // An MCQ with fewer than two filled options reaches the candidate as an
+    // empty dropdown they cannot answer.
+    for (const q of questionsMissingOptions(questions)) {
+      found.push(
+        `two answer options on "${q.question.trim() || "Untitled question"}", which is multiple choice`,
+      );
+    }
+
     for (const r of roles) {
       const minimum = r.hiredCount;
       if (r.slots < minimum) {
@@ -141,6 +184,19 @@ export function EditProjectClient({
       timingType: form.timingType,
       priority: form.priority,
       requiredSkills: skills,
+      bannerUrl,
+      objectives,
+      deliverables,
+      responsibilities,
+      dailyTasks,
+      preferredSkills,
+      faq,
+      rounds,
+      roundConfig,
+      questions,
+      certificateEnabled,
+      signatoryName,
+      signatoryTitle,
     });
 
   /** Column edits, roles and the due date, in that order. */
@@ -614,6 +670,110 @@ export function EditProjectClient({
                 </li>
               ))}
             </ul>
+          )}
+        </Card>
+
+        {/* ---- Banner ---- */}
+        <Card padding="lg">
+          <CardHeader
+            title="Banner"
+            description="Shown across the listing, the directory and every applicant view."
+          />
+          <BannerPicker value={bannerUrl} onChange={setBannerUrl} />
+        </Card>
+
+        {/* ---- Scope ---- */}
+        <Card padding="lg">
+          <CardHeader
+            title="Scope"
+            description="What the engagement is for and what it produces. Empty lines are dropped on save."
+          />
+          <div className="flex flex-col gap-5">
+            <StringListEditor
+              label="Objectives"
+              help="What this engagement is meant to achieve."
+              items={objectives}
+              onChange={setObjectives}
+              placeholder="Cut p95 dashboard interaction latency below 200ms"
+            />
+            <StringListEditor
+              label="Deliverables"
+              help="What is handed over at the end."
+              items={deliverables}
+              onChange={setDeliverables}
+              placeholder="Component library with Storybook coverage"
+            />
+            <StringListEditor
+              label="Responsibilities"
+              items={responsibilities}
+              onChange={setResponsibilities}
+              placeholder="Own front-end architecture decisions"
+            />
+            <StringListEditor
+              label="Day to day"
+              items={dailyTasks}
+              onChange={setDailyTasks}
+              placeholder="Async standup in the workspace before 10:00 UTC"
+            />
+            <StringListEditor
+              label="Preferred skills"
+              help="Nice to have. Required skills are set above."
+              items={preferredSkills}
+              onChange={setPreferredSkills}
+              placeholder="GraphQL"
+            />
+            <FaqEditor items={faq} onChange={setFaq} />
+          </div>
+        </Card>
+
+        {/* ---- Screening ---- */}
+        <Card padding="lg">
+          <CardHeader
+            title="Screening"
+            description="Rounds already opened for a candidate keep the instructions they were sent; edits here apply to rounds not yet opened."
+          />
+          <div className="flex flex-col gap-7">
+            <RoundPicker
+              rounds={rounds}
+              onRoundsChange={setRounds}
+              config={roundConfig}
+              onConfigChange={setRoundConfig}
+            />
+            {rounds.includes("SCREENING_QUESTIONS") && (
+              <QuestionEditor questions={questions} onChange={setQuestions} />
+            )}
+          </div>
+        </Card>
+
+        {/* ---- Certificate ---- */}
+        <Card padding="lg">
+          <CardHeader
+            title="Certificate"
+            description="Issued to every freelancer who completes the engagement."
+          />
+          <Toggle
+            checked={certificateEnabled}
+            onChange={setCertificateEnabled}
+            label="Issue a certificate on completion"
+            description="Verifiable by anyone holding the certificate id."
+          />
+          {certificateEnabled && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Signatory name">
+                <Input
+                  value={signatoryName}
+                  onChange={(e) => setSignatoryName(e.target.value)}
+                  placeholder="Priya Raman"
+                />
+              </Field>
+              <Field label="Signatory title">
+                <Input
+                  value={signatoryTitle}
+                  onChange={(e) => setSignatoryTitle(e.target.value)}
+                  placeholder="VP Engineering"
+                />
+              </Field>
+            </div>
           )}
         </Card>
 
