@@ -473,7 +473,9 @@ export function defaultCertificateConfig(): CertificateConfig {
     layout: "CLASSIC",
     logoPosition: "CENTER",
     textAlign: "CENTER",
-    accentColor: "#1968E5",
+    // The brand green the certificate template is drawn in (--color-brand).
+    // A company can still choose its own accent; this is only the start point.
+    accentColor: "#06C755",
     borderStyle: "SOLID",
     certificateIdPrefix: generateCertificateIdPrefix(),
   };

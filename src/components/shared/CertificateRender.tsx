@@ -9,15 +9,18 @@ import { cn, formatDate } from "@/lib/utils";
 /* ============================================================================
    CERTIFICATE RENDER
 
-   One landscape award design: corner ribbons, the platform wordmark, the
-   award statement, the issuer's own logo and signature, and a verification
-   footer. Presentation still comes from CertificateConfig (§17.1) — accent
-   colour, copy, alignment, signatories — and every factual value comes from
-   the issued record and is never re-derived here.
+   One landscape award design, built to the approved template: layered angular
+   corners, the platform wordmark, the award statement, then a three-column
+   attestation footer — the issuer's signature, the issuer's logo, and the
+   completion date — under the Frivvo laurel and the verification line.
 
-   `layout` tunes the density rather than selecting a different design, so a
-   certificate issued under any of the three settings stays recognisable as the
-   same document.
+   Presentation comes from CertificateConfig (§17.1): accent colour, copy,
+   the uploaded logo and the uploaded signature. Every *factual* value comes
+   from the issued record and is never re-derived here, so a certificate keeps
+   saying what it said when it was issued.
+
+   Sizes are expressed in cqw against the article's own inline size, so the
+   same document reads correctly in a small preview card and at full page.
    ========================================================================= */
 
 export function CertificateRender({
@@ -32,10 +35,21 @@ export function CertificateRender({
   scale?: number;
 }) {
   const accent = config.accentColor || "#06C755";
-  const ink = "#0F1613";
+  const ink = "#0B0F0D";
+  const muted = "#5C6660";
 
-  const isMinimal = config.layout === "MINIMAL";
-  const showRibbons = config.layout !== "MINIMAL";
+  // MINIMAL drops the decorative corners; the document is otherwise identical,
+  // so a certificate stays recognisable whichever layout issued it.
+  const showCorners = config.layout !== "MINIMAL";
+
+  /*
+   * The template signs the document with the signatory's designation over the
+   * issuing company, so that is what the block prints. A design that names a
+   * signatory but gives them no designation still reads correctly: the name
+   * takes the bold line rather than being dropped.
+   */
+  const signerLead = data.signer1Title || data.signer1Name;
+  const signerSub = data.signer1Title ? data.issuerName : undefined;
 
   return (
     <div
@@ -44,165 +58,176 @@ export function CertificateRender({
     >
       <article
         id="frivvo-certificate"
-        className="relative aspect-[1.414/1] w-full overflow-hidden bg-white"
-        // Every size below is expressed in cqw so the whole certificate scales
-        // with its own width — the same document reads correctly in a small
-        // preview card and at full page size.
-        style={{ color: ink, containerType: "inline-size" }}
+        className="relative aspect-[1.414/1] w-full overflow-hidden"
+        style={{ color: ink, backgroundColor: "#F7F8F7", containerType: "inline-size" }}
       >
-        {/*
-          Corner ribbons. Drawn as one SVG per corner rather than rotated
-          boxes: a rotated square clipped by its parent fills the corner as a
-          solid blob instead of reading as diagonal bands.
-        */}
-        {showRibbons && (
-          <svg
-            aria-hidden
-            viewBox="0 0 1414 1000"
-            preserveAspectRatio="none"
-            className="pointer-events-none absolute inset-0 h-full w-full"
-          >
-            {/* Top-left */}
-            <polygon points="0,0 300,0 0,300" fill={ink} />
-            <polygon points="120,0 200,0 0,200 0,120" fill={accent} />
-            <polygon points="238,0 274,0 0,274 0,238" fill={accent} opacity="0.55" />
-
-            {/* Bottom-right. Kept smaller than the top-left so it clears the
-                date and second signature, which sit in the bottom row. */}
-            <polygon points="1414,1000 1414,822 1236,1000" fill={ink} />
-            <polygon points="1414,752 1414,802 1216,1000 1166,1000" fill={accent} />
-            <polygon points="1414,712 1414,734 1148,1000 1126,1000" fill={accent} opacity="0.55" />
-          </svg>
-        )}
-
-        {/* ---- Achievement ribbon ---- */}
-        {showRibbons && (
-          <div aria-hidden className="absolute top-0 right-[8%] w-[11%]">
-            <svg viewBox="0 0 100 150" className="w-full">
-              <polygon points="0,0 100,0 100,150 50,112 0,150" fill={ink} />
-              <circle cx="50" cy="58" r="34" fill="none" stroke={accent} strokeWidth="4" />
-              <circle cx="50" cy="58" r="27" fill={accent} opacity="0.16" />
-              <text x="50" y="70" textAnchor="middle" fontSize="34" fill={accent}>
-                ★
-              </text>
-            </svg>
-          </div>
-        )}
+        <Ornament accent={accent} ink={ink} show={showCorners} />
 
         {/* ---- Inner frame ---- */}
         {config.borderStyle !== "NONE" && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-[3.5%] rounded-[2px]"
+            className="pointer-events-none absolute inset-[2.6%] rounded-[6px]"
             style={{
-              border: config.borderStyle === "DOUBLE" ? `3px double ${accent}55` : `1px solid ${accent}40`,
+              border:
+                config.borderStyle === "DOUBLE"
+                  ? `3px double ${accent}66`
+                  : `1.5px solid ${accent}59`,
             }}
           />
         )}
 
         {/* ---- Content ---- */}
-        <div className={cn("relative flex h-full flex-col items-center justify-between text-center", isMinimal ? "px-[9%] py-[5%]" : "px-[9%] py-[4.5%]")}>
+        <div className="relative flex h-full flex-col items-center px-[9%] pt-[4.1%] pb-[2.6%] text-center">
           {/* Platform mark */}
-          <div className="flex items-center gap-[2.2%]">
-            <LogoMark size={isMinimal ? 26 : 32} />
-            <span className="text-[2.1cqw] font-extrabold tracking-[0.2em]" style={{ color: accent }}>
+          <div className="flex items-center gap-[1.5%]">
+            <LogoMark size={30} />
+            <span
+              className="text-[2.7cqw] leading-none font-extrabold tracking-[0.14em]"
+              style={{ color: accent }}
+            >
               FRIVVO
             </span>
           </div>
 
           {/* Award title */}
-          <h1 className="mt-[2.5%] text-[5.6cqw] leading-[0.95] font-extrabold tracking-[-0.02em] uppercase">
+          <h1 className="mt-[1.9%] text-[7cqw] leading-[0.92] font-extrabold tracking-[0.01em] uppercase">
             {config.title}
           </h1>
 
-          <div className="mt-[1.2%] flex w-full items-center justify-center gap-[3%]">
-            <span className="h-px w-[12%]" style={{ backgroundColor: `${accent}80` }} />
-            <p className="text-[2.05cqw] font-semibold tracking-[0.3em] uppercase" style={{ color: accent }}>
+          <div className="mt-[1%] flex w-full items-center justify-center gap-[2.4%]">
+            <span className="h-[2px] w-[13%]" style={{ backgroundColor: accent }} />
+            <p
+              className="text-[2.35cqw] leading-none font-bold tracking-[0.26em] uppercase"
+              style={{ color: accent }}
+            >
               {config.subtitle}
             </p>
-            <span className="h-px w-[12%]" style={{ backgroundColor: `${accent}80` }} />
+            <span className="h-[2px] w-[13%]" style={{ backgroundColor: accent }} />
           </div>
 
-          {/*
-            The award statement owns the centre of the page. The issuer's logo
-            used to sit in a left-hand column, which pushed the recipient's
-            name off the centre line — the one thing a certificate should be
-            symmetrical about. The logo now signs the document from the bottom
-            right instead.
-          */}
-          <div className="flex w-full flex-1 flex-col items-center justify-center">
-            <p className="text-[1.8cqw] tracking-[0.14em] text-[#59635E] uppercase">
-              {config.achievementText}
-            </p>
+          <p
+            className="mt-[1.9%] text-[1.68cqw] leading-none tracking-[0.19em] uppercase"
+            style={{ color: muted }}
+          >
+            {config.achievementText}
+          </p>
 
-            <p className="mt-[2%] text-[5.6cqw] leading-none font-extrabold tracking-[-0.015em] uppercase">
-              {data.recipientName}
-            </p>
-            <span className="mt-[1.6%] h-[2px] w-[46%]" style={{ backgroundColor: accent }} />
+          {/* Recipient */}
+          <p className="mt-[1.9%] text-[6cqw] leading-none font-extrabold tracking-[-0.005em] uppercase">
+            {data.recipientName}
+          </p>
+          <span className="mt-[1.5%] h-[2.5px] w-[48%]" style={{ backgroundColor: accent }} />
 
-            <p className="mt-[2.4%] max-w-[78%] text-[1.95cqw] leading-[1.75] text-[#59635E]">
-              for successfully completing the engagement{" "}
-              <span className="font-bold" style={{ color: accent }}>
-                “{data.projectTitle}”
-              </span>
-              <br />
-              as <span className="font-bold" style={{ color: ink }}>{data.roleTitle}</span> with{" "}
-              <span className="font-bold" style={{ color: accent }}>{data.issuerName}</span>
-              {data.durationText ? `, over ${data.durationText}.` : "."}
-            </p>
+          {/* Award statement */}
+          <p className="mt-[1.9%] text-[2cqw] leading-[1.6]" style={{ color: "#2C3531" }}>
+            for successfully completing the engagement
+          </p>
+          <p
+            className="mt-[0.5%] text-[2.4cqw] leading-[1.3] font-bold"
+            style={{ color: accent }}
+          >
+            “{data.projectTitle}”
+          </p>
+          <p className="mt-[0.7%] text-[2cqw] leading-[1.45]" style={{ color: "#2C3531" }}>
+            as <span className="font-bold" style={{ color: ink }}>{data.roleTitle}</span> with{" "}
+            <span className="font-bold" style={{ color: accent }}>{data.issuerName}</span>
+            {data.durationText ? `, over ${data.durationText}.` : "."}
+          </p>
 
-            {data.skills.length > 0 && (
-              <div className="mt-[2.4%] flex max-w-[86%] flex-nowrap items-center justify-center gap-[1.4%] overflow-hidden">
-                {data.skills.slice(0, 5).map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full px-[1.6cqw] py-[0.5cqw] text-[1.55cqw] leading-none font-semibold whitespace-nowrap capitalize"
-                    style={{ backgroundColor: `${accent}12`, color: accent, border: `1px solid ${accent}33` }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Skills */}
+          {data.skills.length > 0 && (
+            <div className="mt-[1.7%] flex max-w-[86%] flex-nowrap items-center justify-center gap-[1.2%] overflow-hidden">
+              {data.skills.slice(0, 5).map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full px-[1.8cqw] py-[0.58cqw] text-[1.58cqw] leading-none font-medium whitespace-nowrap capitalize"
+                  style={{
+                    color: accent,
+                    border: `1.5px solid ${accent}66`,
+                    backgroundColor: "#FFFFFF",
+                  }}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
 
-          {/* Signed on the left, sealed in the middle, issued on the right. */}
-          <div className="grid w-full grid-cols-3 items-end gap-[5%]">
-            <Signature
-              name={data.signer1Name}
-              title={data.signer1Title}
-              imageUrl={config.signatureUrl}
+          {/* ---- Attestation row: signature | issuer logo | date ---- */}
+          <div className="mt-auto grid w-full grid-cols-[1fr_auto_1fr] items-end gap-[3.4%] pt-[2%]">
+            <Attestation
               accent={accent}
+              muted={muted}
+              lead={signerLead}
+              sub={signerSub}
+              media={
+                config.signatureUrl ? (
+                  <Image
+                    src={config.signatureUrl}
+                    alt={`${signerLead ?? data.issuerName} signature`}
+                    fill
+                    sizes="260px"
+                    className="object-contain object-bottom"
+                    unoptimized
+                  />
+                ) : null
+              }
             />
 
-            <div className="flex flex-col items-center">
-              <Wreath accent={accent}>
-                <LogoMark size={isMinimal ? 22 : 26} />
-              </Wreath>
-              <p className="mt-[3%] font-mono text-[1.4cqw] tracking-wider text-[#868F8A]">
-                {data.publicId}
-              </p>
+            {/* The issuing company's own mark, between the two attestations. */}
+            <div className="flex h-full min-w-[20%] items-center justify-center px-[8%]">
+              <span className="relative flex h-[6cqw] w-[15cqw] items-center justify-center">
+                {config.logoUrl ? (
+                  <Image
+                    src={config.logoUrl}
+                    alt={data.issuerName}
+                    fill
+                    sizes="320px"
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-[2.1cqw] leading-tight font-bold tracking-[0.02em] uppercase">
+                    {data.issuerName}
+                  </span>
+                )}
+              </span>
             </div>
 
-            {data.signer2Name ? (
-              <Signature
-                name={data.signer2Name}
-                title={data.signer2Title}
-                imageUrl={config.signature2Url}
-                accent={accent}
-              />
-            ) : (
-              <IssuerMark
-                name={data.issuerName}
-                logoUrl={config.logoUrl}
-                issuedAt={data.issuedAt}
-                accent={accent}
-              />
-            )}
+            <Attestation
+              accent={accent}
+              muted={muted}
+              lead={formatDate(data.issuedAt)}
+              subLabel="Date of Completion"
+              align="center"
+            />
           </div>
 
-          <p className="mt-[1.5%] text-[1.35cqw] text-[#868F8A]">
-            {config.footerText} · verify at frivvo.com/verify/{data.publicId}
+          {/* ---- Platform seal ---- */}
+          <div className="mt-[1.6%] flex flex-col items-center">
+            <Laurel accent={accent}>
+              <span
+                className="text-[2.6cqw] leading-none font-extrabold tracking-[0.2em]"
+                style={{ color: accent }}
+              >
+                FRIVVO
+              </span>
+            </Laurel>
+            <p className="mt-[0.5%] text-[1.72cqw] leading-none" style={{ color: "#2C3531" }}>
+              Build. Collaborate. Grow.
+            </p>
+          </div>
+
+          {/* ---- Verification ---- */}
+          <p
+            className="mt-[1%] flex items-center justify-center gap-[0.7cqw] text-[1.32cqw] leading-none"
+            style={{ color: muted }}
+          >
+            <Globe accent={accent} />
+            <span>{config.footerText}</span>
+            <span aria-hidden>•</span>
+            <span>Verify at frivvo.com/verify/{data.publicId}</span>
           </p>
         </div>
       </article>
@@ -210,136 +235,231 @@ export function CertificateRender({
   );
 }
 
-/* ------------------------------------------------------------ signature --- */
+/* ---------------------------------------------------------- attestation --- */
 
 /**
- * A signatory block. The uploaded signature image sits on the rule; without
- * one the rule is simply blank, which is how a printed certificate would be
- * signed by hand.
+ * One footer column: the thing being attested (a signature image, or the
+ * completion date), the rule it sits on, and its label.
+ *
+ * A vertical hairline separates it from the issuer's mark, which is what makes
+ * the three blocks read as one row of attestations rather than three unrelated
+ * items.
  */
-function Signature({
-  name,
-  title,
-  imageUrl,
+function Attestation({
   accent,
+  muted,
+  lead,
+  sub,
+  subLabel,
+  media,
+  align = "center",
 }: {
-  name?: string;
-  title?: string;
-  imageUrl?: string;
   accent: string;
+  muted: string;
+  lead?: string;
+  sub?: string;
+  subLabel?: string;
+  media?: React.ReactNode;
+  align?: "center";
 }) {
-  if (!name) return <div />;
-
   return (
-    <div className="flex flex-col items-center">
-      <span className="relative block h-[4.5cqw] w-full">
-        {imageUrl && (
-          <Image src={imageUrl} alt={`${name} signature`} fill sizes="220px" className="object-contain" unoptimized />
-        )}
-      </span>
-      <span className="h-px w-full" style={{ backgroundColor: accent }} />
-      <p className="mt-[5%] text-[2cqw] font-bold">{name}</p>
-      {title && <p className="text-[1.6cqw] text-[#868F8A]">{title}</p>}
+    <div className={cn("flex flex-col", align === "center" && "items-center")}>
+      {/* The signature sits on the rule; a date column simply prints above it. */}
+      {media !== undefined ? (
+        <span className="relative block h-[4.6cqw] w-[74%]">{media}</span>
+      ) : (
+        <span className="flex h-[4.6cqw] w-[74%] items-end justify-center pb-[3%]">
+          <span className="text-[2.35cqw] leading-none font-bold">{lead}</span>
+        </span>
+      )}
+
+      <span className="h-[1.5px] w-[74%]" style={{ backgroundColor: accent }} />
+
+      {media !== undefined ? (
+        <>
+          {lead && (
+            <p className="mt-[4%] text-[1.72cqw] leading-none font-bold tracking-[0.06em] uppercase">
+              {lead}
+            </p>
+          )}
+          {sub && (
+            <p className="mt-[2.5%] text-[1.6cqw] leading-none" style={{ color: muted }}>
+              {sub}
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="mt-[4%] text-[1.72cqw] leading-none font-bold tracking-[0.06em] uppercase">
+          {subLabel}
+        </p>
+      )}
     </div>
   );
 }
 
-/* --------------------------------------------------------- issuer mark --- */
+/* --------------------------------------------------------------- globe --- */
 
-/**
- * The issuing company signs the document from the bottom right: its logo, then
- * the completion date on the same rule the signatures use, so the row reads as
- * one line of attestations rather than three unrelated blocks.
- */
-function IssuerMark({
-  name,
-  logoUrl,
-  issuedAt,
-  accent,
-}: {
-  name: string;
-  logoUrl?: string;
-  issuedAt: string;
-  accent: string;
-}) {
+function Globe({ accent }: { accent: string }) {
   return (
-    <div className="flex flex-col items-center">
-      <span className="relative flex h-[4.5cqw] w-full items-center justify-center">
-        {logoUrl ? (
-          <Image src={logoUrl} alt={name} fill sizes="220px" className="object-contain" unoptimized />
-        ) : (
-          <span className="text-[1.9cqw] font-bold tracking-[0.04em] uppercase">{name}</span>
-        )}
-      </span>
-      <span className="h-px w-full" style={{ backgroundColor: accent }} />
-      <p className="mt-[5%] text-[2cqw] font-bold">{formatDate(issuedAt)}</p>
-      <p className="text-[1.6cqw] text-[#868F8A]">Date of Completion</p>
-    </div>
+    <svg viewBox="0 0 24 24" aria-hidden className="h-[1.5cqw] w-[1.5cqw] shrink-0">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke={accent} strokeWidth="1.8" />
+      <ellipse cx="12" cy="12" rx="4.2" ry="9.5" fill="none" stroke={accent} strokeWidth="1.6" />
+      <path d="M2.5 12h19M4 7h16M4 17h16" fill="none" stroke={accent} strokeWidth="1.6" />
+    </svg>
   );
 }
 
-/* --------------------------------------------------------------- wreath --- */
+/* ------------------------------------------------------------ ornament --- */
 
 /**
- * A laurel wreath around the platform mark.
+ * The layered corners.
  *
- * Each leaf sits on a circle and is rotated to that circle's *tangent*. The
- * previous version rotated them by 90° off the tangent, which points every
- * leaf outward from the centre and reads as a starburst rather than laurel.
+ * Every band is the region between two parallel lines `x + y = a` and
+ * `x + y = b`, clipped to the corner — which is a trapezoid, and is why these
+ * are polygons rather than rotated boxes. A rotated square clipped by its
+ * parent fills the corner as a solid blob instead of reading as diagonal
+ * bands. The rounded green sweep is the one shape that needs real round caps,
+ * so it alone is a rotated rounded rect.
+ */
+function Ornament({ accent, ink, show }: { accent: string; ink: string; show: boolean }) {
+  if (!show) return null;
+
+  // Bands are described at the top-left corner and mirrored into the
+  // bottom-right by the group transform, so the two corners cannot drift.
+  const band = (a: number, b: number) => `${a},0 ${b},0 0,${b} 0,${a}`;
+
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1414 1000"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+    >
+      {/* Faint contour lines, top-right and bottom-left. */}
+      <g fill="none" stroke={accent} strokeWidth="1.6" opacity="0.16">
+        {[0, 26, 52, 78].map((d) => (
+          <path key={d} d={`M ${1150 + d} 0 C ${1210 + d} 70, ${1350 + d} 60, ${1414 + d} 165`} />
+        ))}
+        {[0, 26, 52, 78].map((d) => (
+          <path key={`b${d}`} d={`M ${-14 - d} 835 C ${50 - d} 940, ${190 - d} 930, ${250 - d} 1000`} />
+        ))}
+      </g>
+
+      {/* Dot fields, mirroring the contour corners. */}
+      <g fill={accent} opacity="0.22">
+        {Array.from({ length: 4 }).map((_, r) =>
+          Array.from({ length: 9 }).map((__, c) => (
+            <circle key={`tr${r}-${c}`} cx={1252 + c * 17} cy={86 + r * 17} r="2.4" />
+          ))
+        )}
+        {Array.from({ length: 4 }).map((_, r) =>
+          Array.from({ length: 9 }).map((__, c) => (
+            <circle key={`bl${r}-${c}`} cx={44 + c * 17} cy={862 + r * 17} r="2.4" />
+          ))
+        )}
+      </g>
+
+      {/* Top-left corner */}
+      <g>
+        <polygon points={band(0, 322)} fill={ink} />
+        {/* The hairline that splits the dark band, in the page ground. */}
+        <polygon points={band(243, 262)} fill="#F7F8F7" />
+        {/* Rounded green sweep, riding just outside the dark band. */}
+        <g transform="translate(108 250) rotate(-45)">
+          <rect x="-236" y="-27" width="472" height="54" rx="27" fill={accent} />
+        </g>
+      </g>
+
+      {/* Bottom-right corner, the same construction mirrored through the centre. */}
+      <g transform="translate(1414 1000) rotate(180)">
+        <polygon points={band(0, 300)} fill={ink} />
+        <polygon points={band(226, 244)} fill="#F7F8F7" />
+        <g transform="translate(100 232) rotate(-45)">
+          <rect x="-218" y="-26" width="436" height="52" rx="26" fill={accent} />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* --------------------------------------------------------------- laurel --- */
+
+/**
+ * The laurel flanking the platform wordmark.
  *
+ * The template sets two branches either side of the word rather than a wreath
+ * encircling it, so each branch is drawn on its own and the viewBox crops to
+ * just that side's arc — a full 100×100 circle scaled into a wide, short box
+ * collapses into a ring around the text instead.
+ *
+ * Each leaf sits on the arc and is rotated to the circle's *tangent* there.
  * For a point at angle t from the bottom, (x, y) = (cx + R·sin t, cy + R·cos t),
- * and the tangent there runs at −t degrees in screen coordinates — mirrored
- * for the left-hand branch.
+ * and the tangent runs at −t degrees in screen coordinates, mirrored for the
+ * left-hand branch.
  */
-function Wreath({ accent, children }: { accent: string; children: React.ReactNode }) {
+function LaurelBranch({ accent, side }: { accent: string; side: 1 | -1 }) {
   const centre = 50;
-  const radius = 36;
-  // Degrees from the bottom of the circle. Stopping at 118° leaves the top
-  // open, which is what makes a wreath rather than a ring.
-  const steps = [12, 33, 54, 75, 96, 117];
+  const radius = 34;
+  // The arc either side of the horizontal, which is the portion that reads as
+  // a branch curving around the word.
+  const steps = [42, 62, 82, 102, 122];
 
-  const point = (deg: number, r: number, side: 1 | -1) => {
+  const point = (deg: number, r: number) => {
     const t = (deg * Math.PI) / 180;
     return [centre + side * r * Math.sin(t), centre + r * Math.cos(t)] as const;
   };
 
-  const branch = (side: 1 | -1) => {
-    const stem = Array.from({ length: 24 }, (_, i) => {
-      const deg = 6 + (i / 23) * 116;
-      const [x, y] = point(deg, radius, side);
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    }).join(" ");
+  const stem = Array.from({ length: 20 }, (_, i) => {
+    const deg = 34 + (i / 19) * 96;
+    const [x, y] = point(deg, radius);
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
 
-    return (
-      <g key={side}>
-        <polyline points={stem} fill="none" stroke={accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-        {steps.map((deg) => {
-          // Leaves sit just outside the stem so the branch stays visible.
-          const [x, y] = point(deg, radius + 3.4, side);
-          const rotation = side === 1 ? -deg : deg;
-          return (
-            <ellipse
-              key={deg}
-              cx={x}
-              cy={y}
-              rx="6.6"
-              ry="2.7"
-              fill={accent}
-              transform={`rotate(${rotation} ${x} ${y})`}
-            />
-          );
-        })}
-      </g>
-    );
-  };
+  // Crop to this branch's own arc: x spans centre±(R·sin) over the range, so
+  // the right branch lives in x ∈ [~69, 84] and the left mirrors it.
+  const viewBox = side === 1 ? "60 8 34 84" : "6 8 34 84";
 
   return (
-    <span className="relative flex h-[13cqw] w-[13cqw] items-center justify-center">
-      <svg viewBox="0 0 100 100" aria-hidden className="absolute inset-0 h-full w-full">
-        {branch(1)}
-        {branch(-1)}
-      </svg>
-      <span className="relative">{children}</span>
+    <svg
+      viewBox={viewBox}
+      aria-hidden
+      preserveAspectRatio="xMidYMid meet"
+      className="h-full shrink-0"
+      style={{ aspectRatio: "34 / 84" }}
+    >
+      <polyline
+        points={stem}
+        fill="none"
+        stroke={accent}
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      {steps.map((deg) => {
+        const [x, y] = point(deg, radius + 3.2);
+        const rotation = side === 1 ? -deg : deg;
+        return (
+          <ellipse
+            key={deg}
+            cx={x}
+            cy={y}
+            rx="7.6"
+            ry="3.2"
+            fill={accent}
+            transform={`rotate(${rotation} ${x} ${y})`}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function Laurel({ accent, children }: { accent: string; children: React.ReactNode }) {
+  return (
+    <span className="flex h-[6.2cqw] items-center justify-center gap-[1.4cqw]">
+      <LaurelBranch accent={accent} side={-1} />
+      {children}
+      <LaurelBranch accent={accent} side={1} />
     </span>
   );
 }
