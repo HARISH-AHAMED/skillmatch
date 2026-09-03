@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { DELIVERABLE_REVISION_CAP } from "@/lib/workflowHelpers";
+import { MESSAGE_EDIT_WINDOW_MINUTES } from "@/lib/constants";
 import { isTaskStatus } from "@/lib/lifecycle";
 import {
   scopedTask,
@@ -897,6 +898,68 @@ export async function uploadDeliverableVersion(
   }
 }
 
+/**
+ * Edit one of your own messages, within the window.
+ *
+ * The window is enforced here rather than only in the UI: hiding the control
+ * after it lapses is a courtesy, not a rule, and a server action is a network
+ * endpoint. It is measured from `createdAt` so repeated edits cannot walk a
+ * message forward indefinitely.
+ */
+export async function editMessage(projectId: string, messageId: string, content: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Unauthorized" };
+  }
+
+  const userId = session.user.id;
+  const access = await verifyProjectWorkspaceAccess(projectId, userId);
+  if (access.error || !access.project || !access.role) {
+    return { error: access.error || "Access denied" };
+  }
+
+  const next = (content ?? "").trim();
+  if (!next) return { error: "A message cannot be empty. Delete it instead." };
+  if (next.length > MAX_MESSAGE_LENGTH) {
+    return { error: `Messages are limited to ${MAX_MESSAGE_LENGTH} characters.` };
+  }
+
+  try {
+    const message = await scopedMessage(messageId, projectId);
+    if (!message) return { error: "Message not found" };
+
+    if (message.senderId !== userId) {
+      return { error: "You can only edit your own messages" };
+    }
+    if (message.deletedAt) {
+      return { error: "This message was deleted." };
+    }
+
+    const ageMinutes = (Date.now() - message.createdAt.getTime()) / 60_000;
+    if (ageMinutes > MESSAGE_EDIT_WINDOW_MINUTES) {
+      return {
+        error: `Messages can only be edited for ${MESSAGE_EDIT_WINDOW_MINUTES} minutes after sending.`,
+      };
+    }
+
+    if (next === message.content) return { success: true };
+
+    const updated = await db.message.update({
+      where: { id: messageId },
+      data: { content: next, editedAt: new Date() },
+    });
+
+    revalidatePath("/company/workspace/[applicationId]", "layout");
+    revalidatePath("/freelancer/workspace/[applicationId]", "layout");
+    revalidatePath("/workspace/[applicationId]", "layout");
+
+    return { success: true, message: updated };
+  } catch (error: any) {
+    console.error("Error editing message:", error);
+    return { error: error.message || "Failed to edit message" };
+  }
+}
+
 export async function deleteMessage(projectId: string, messageId: string) {
   const session = await auth();
   if (!session?.user) {
@@ -924,8 +987,21 @@ export async function deleteMessage(projectId: string, messageId: string) {
       return { error: "You can only delete your own messages" };
     }
 
-    await db.message.delete({
+    if (message.deletedAt) {
+      // Already a tombstone; deleting twice is a no-op rather than an error.
+      return { success: true };
+    }
+
+    /**
+     * Soft delete. A hard delete removed the row, which silently reshaped a
+     * conversation the other side had already read — a reply could end up
+     * answering nothing. The row stays so the thread keeps its shape, and the
+     * content is cleared in the same write, so the text is genuinely gone
+     * rather than merely hidden by the client.
+     */
+    await db.message.update({
       where: { id: messageId },
+      data: { deletedAt: new Date(), content: "" },
     });
 
     revalidatePath("/company/workspace/[applicationId]", "layout");

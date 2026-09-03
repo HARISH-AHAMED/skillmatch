@@ -140,6 +140,9 @@ export function toMessage(row: MessageRow): Message {
     channel: row.channel,
     seen: row.seen,
     createdAt: iso(row.createdAt),
+    // The content is cleared at deletion, so a tombstone carries no text.
+    deletedAt: row.deletedAt ? iso(row.deletedAt) : null,
+    editedAt: row.editedAt ? iso(row.editedAt) : null,
   };
 }
 

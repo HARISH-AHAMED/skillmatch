@@ -277,7 +277,9 @@ export interface Project {
   companyId: string;
   company: Pick<
     Company,
-    "id" | "companyName" | "logoUrl" | "location" | "industry" | "trustScore" | "rating"
+    // userId is carried because a direct-message channel is keyed on user
+    // ids, and the freelancer side needs the company one to address a DM.
+    "id" | "userId" | "companyName" | "logoUrl" | "location" | "industry" | "trustScore" | "rating"
   >;
   title: string;
   description: string;
@@ -515,6 +517,10 @@ export interface Message {
   channel: string;
   seen: boolean;
   createdAt: string;
+  /** Set when the sender deleted it. The thread renders a tombstone instead. */
+  deletedAt?: string | null;
+  /** Set the first time the sender edited it, for the "edited" marker. */
+  editedAt?: string | null;
   attachment?: { name: string; size: string; type: string };
 }
 

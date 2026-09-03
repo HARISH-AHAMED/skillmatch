@@ -258,6 +258,8 @@ export function toCompany(row: CompanyRow, extras: CompanyExtras = {}): Company 
 export function toCompanySummary(row: CompanyRow, extras: CompanyExtras = {}) {
   return {
     id: row.id,
+    // The owning user, which is what a DM channel is addressed by.
+    userId: row.userId,
     companyName: row.companyName,
     logoUrl: row.logoUrl || row.user.image || placeholderImage(row.id + ":logo"),
     location: str(row.location),

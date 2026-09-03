@@ -353,6 +353,14 @@ export const MAX_DAILY_HOURS = 16;
 export const REVISION_CAP = 2;
 export const DELIVERABLE_REVISION_CAP = 2;
 export const MESSAGE_TTL_DAYS = 7;
+
+/**
+ * How long after sending a message may still be edited. Measured from the
+ * send, not the last edit, so repeated edits cannot walk a message forward
+ * indefinitely. Shared by the composer and the server action, so the control
+ * disappearing and the action refusing always agree.
+ */
+export const MESSAGE_EDIT_WINDOW_MINUTES = 15;
 export const MAX_SIZES = { image: 5, pdf: 5, video: 20 };
 
 /* ============================================================================

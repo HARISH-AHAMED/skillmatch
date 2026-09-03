@@ -1,21 +1,63 @@
 "use client";
 
-import { Hash, Lock, Paperclip, Send, Users } from "lucide-react";
+import {
+  Ban,
+  Check,
+  CheckCheck,
+  Hash,
+  Lock,
+  Paperclip,
+  Pencil,
+  Send,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Feedback";
+import { ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { sendMessage, shareFile } from "@/actions/collaborationActions";
+import {
+  deleteMessage,
+  editMessage,
+  sendMessage,
+  shareFile,
+} from "@/actions/collaborationActions";
 import { uploadFile } from "@/lib/upload";
 import { useSession } from "@/lib/session";
 import type { Application, Message, Project, Role } from "@/lib/types";
 import { dmChannel, visibleChannelsFor } from "@/lib/domain";
 import type { WorkspaceData } from "@/data/server/workspace";
-import { MESSAGE_TTL_DAYS } from "@/lib/constants";
+import { MESSAGE_EDIT_WINDOW_MINUTES, MESSAGE_TTL_DAYS } from "@/lib/constants";
+import { useNow } from "@/hooks/useNow";
 import { cn, formatTime } from "@/lib/utils";
+
+/**
+ * How often the thread asks for new messages. The old ten-second interval was
+ * a cost ceiling on re-rendering the whole workspace, not a considered cadence;
+ * against an endpoint that returns only messages, this reads as live.
+ */
+const POLL_MS = 2500;
+
+/**
+ * A cheap fingerprint of the thread, so a poll that brings back nothing new
+ * costs no React work. It covers every field the thread renders and that can
+ * change after a message is sent — content and editedAt for edits, deletedAt
+ * for tombstones, seen for read receipts.
+ */
+function signature(messages: Message[]): string {
+  return messages
+    .map((m) => `${m.id}:${m.seen ? 1 : 0}:${m.deletedAt ?? ""}:${m.editedAt ?? ""}`)
+    .join("|");
+}
+
+/** Whether the sender may still edit, mirroring the server's own window. */
+function withinEditWindow(createdAt: string, now: number): boolean {
+  return now - new Date(createdAt).getTime() <= MESSAGE_EDIT_WINDOW_MINUTES * 60_000;
+}
 
 export function WorkspaceChat({
   data,
@@ -36,15 +78,21 @@ export function WorkspaceChat({
   const userId = session?.userId ?? "";
 
   /*
-   * The server's list is the state. A message being sent is layered on top so
-   * it appears immediately, and React drops that layer by itself once the
-   * action settles and the real row arrives — no mirrored copy to keep in step,
-   * and nothing to roll back by hand when a send is refused.
+   * The poll's list is the state, seeded from the server render so the first
+   * paint is not empty. A message being sent is layered on top so it appears
+   * immediately, and React drops that layer by itself once the action settles
+   * and the real row arrives — no mirrored copy to keep in step, and nothing to
+   * roll back by hand when a send is refused.
    */
+  const [serverMessages, setServerMessages] = useState<Message[]>(data.messages);
   const [messages, addOptimistic] = useOptimistic<Message[], Message>(
-    data.messages,
+    serverMessages,
     (current, pending) => [...current, pending],
   );
+  const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
+  // Ticks every 30s so the edit control disappears when the window lapses.
+  const now = useNow(30_000);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [channel, setChannel] = useState("group");
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -72,7 +120,20 @@ export function WorkspaceChat({
       ? team.map((t) => ({ id: t.freelancer.userId, name: t.freelancer.name, avatar: t.freelancer.avatarUrl }))
       : [
           {
-            id: `u-${project.companyId}`,
+            /*
+             * The company's *user* id, which is what a DM channel is keyed on.
+             *
+             * This was `u-${project.companyId}` — a Company row id behind a
+             * made-up prefix, and not a user id at all. Every consequence
+             * followed from that: the freelancer's client built
+             * `dm:<their-user>:u-<company-row>` while the company's client
+             * built `dm:<company-user>:<freelancer-user>`, so the two sides
+             * were writing to and reading from different channels and neither
+             * ever saw the other. The server now also rejects the fabricated
+             * id outright, because a DM counterpart has to be a real party to
+             * the project.
+             */
+            id: project.company.userId,
             name: project.company.companyName,
             avatar: project.company.logoUrl,
           },
@@ -110,20 +171,74 @@ export function WorkspaceChat({
 
   /*
    * There is no socket on this deployment, so the other side's messages are
-   * picked up by asking the server again. Only while the tab is actually being
-   * looked at, so a backgrounded workspace costs nothing.
+   * picked up by asking the server again.
+   *
+   * This used to call router.refresh(), which re-runs the entire workspace
+   * server tree — payment items, the ledger, work logs, tasks, meetings,
+   * completion readiness — every tick, just to learn whether anyone had
+   * spoken. That is what made the chat feel slow, and why the interval had to
+   * be ten seconds to stay affordable at all.
+   *
+   * It now polls one endpoint that returns messages and nothing else, which is
+   * cheap enough to run every couple of seconds. The response replaces the
+   * list wholesale, so an edit, a deletion and a read receipt all arrive by
+   * the same path as a new message.
    */
   useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === "visible") router.refresh();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch(`/api/workspace/${project.id}/messages`, {
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as { messages: Message[] };
+        if (cancelled || !Array.isArray(body.messages)) return;
+        // Only re-render when something actually moved, so a quiet channel
+        // costs one request and no React work.
+        setServerMessages((current) =>
+          signature(current) === signature(body.messages) ? current : body.messages,
+        );
+      } catch {
+        // A dropped poll is not worth surfacing; the next tick retries.
+      }
     };
-    const timer = setInterval(tick, 10000);
-    document.addEventListener("visibilitychange", tick);
+
+    const loop = () => {
+      timer = setTimeout(async () => {
+        await poll();
+        if (!cancelled) loop();
+      }, POLL_MS);
+    };
+
+    // Catch up immediately on mount and whenever the tab is looked at again,
+    // rather than waiting out an interval.
+    void poll();
+    loop();
+    document.addEventListener("visibilitychange", poll);
     return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", tick);
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", poll);
     };
-  }, [router]);
+  }, [project.id]);
+
+  /*
+   * Read receipts. Fired only when this reader actually has something unread
+   * in the channel they are looking at, so an idle tab writes nothing.
+   */
+  useEffect(() => {
+    const unread = visible.some((m) => m.senderId !== userId && !m.seen);
+    if (!unread || document.visibilityState !== "visible") return;
+    void fetch(`/api/workspace/${project.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel }),
+    }).catch(() => {});
+  }, [visible, userId, project.id, channel]);
 
   /**
    * This used to append to local state and stop there: nothing was ever sent,
@@ -160,7 +275,55 @@ export function WorkspaceChat({
         return;
       }
 
-      router.refresh();
+      // The poll picks the real row up; no full-tree refresh for a message.
+      void refetch();
+    });
+  };
+
+  /** Pulls the thread immediately, rather than waiting out the poll interval. */
+  const refetch = async () => {
+    try {
+      const res = await fetch(`/api/workspace/${project.id}/messages`, { cache: "no-store" });
+      if (!res.ok) return;
+      const body = (await res.json()) as { messages: Message[] };
+      if (Array.isArray(body.messages)) setServerMessages(body.messages);
+    } catch {
+      // The next tick retries.
+    }
+  };
+
+  /** Save an edit. The window is also enforced server-side. */
+  const saveEdit = () => {
+    if (!editing) return;
+    const next = editing.draft.trim();
+    const target = messages.find((m) => m.id === editing.id);
+    if (!next || !target) return setEditing(null);
+    if (next === target.content) return setEditing(null);
+
+    setEditing(null);
+    startTransition(async () => {
+      const result = await editMessage(project.id, editing.id, next);
+      if (!result || "error" in result) {
+        toast.error(
+          "That edit was not saved",
+          (result && "error" in result ? result.error : undefined) ?? "Please try again.",
+        );
+      }
+      void refetch();
+    });
+  };
+
+  const removeMessage = (messageId: string) => {
+    setConfirmDelete(null);
+    startTransition(async () => {
+      const result = await deleteMessage(project.id, messageId);
+      if (!result || "error" in result) {
+        toast.error(
+          "That message was not deleted",
+          (result && "error" in result ? result.error : undefined) ?? "Please try again.",
+        );
+      }
+      void refetch();
     });
   };
 
@@ -293,6 +456,11 @@ export function WorkspaceChat({
               {visible.map((m, i) => {
                 const mine = m.senderId === userId;
                 const showAvatar = i === 0 || visible[i - 1].senderId !== m.senderId;
+                const isDeleted = !!m.deletedAt;
+                const isEditing = editing?.id === m.id;
+                // The control is hidden once the window lapses; the action
+                // refuses independently, so this is a courtesy, not the rule.
+                const canEdit = mine && !isDeleted && withinEditWindow(m.createdAt, now);
                 return (
                   <li
                     key={m.id}
@@ -322,20 +490,117 @@ export function WorkspaceChat({
                         </p>
                       )}
 
-                      <div
-                        className={cn(
-                          "rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[13.5px] leading-[1.6]",
-                          mine
-                            ? "bg-[var(--color-brand)] text-white"
-                            : "bg-[var(--color-surface-alt)] text-[var(--color-text-primary)]",
-                        )}
-                      >
-                        {m.content}
-                      </div>
+                      {isEditing ? (
+                        /* Editing in place, so the message keeps its position
+                           in the thread rather than jumping to the composer. */
+                        <div className="flex w-full flex-col gap-1.5">
+                          <textarea
+                            autoFocus
+                            value={editing.draft}
+                            onChange={(e) =>
+                              setEditing({ id: m.id, draft: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                saveEdit();
+                              }
+                              if (e.key === "Escape") setEditing(null);
+                            }}
+                            rows={2}
+                            aria-label="Edit message"
+                            className="min-w-[14rem] resize-none rounded-[var(--radius-lg)] border border-[var(--color-brand)] bg-[var(--color-surface)] px-3 py-2 text-[13.5px] leading-[1.5] focus:outline-none focus:shadow-[var(--shadow-focus)]"
+                          />
+                          <span className="flex items-center gap-2 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={saveEdit}
+                              className="font-semibold text-[var(--color-brand-active)]"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditing(null)}
+                              className="text-[var(--color-text-muted)]"
+                            >
+                              Cancel
+                            </button>
+                            <span className="text-[var(--color-text-muted)]">
+                              Enter to save · Esc to cancel
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="group/message flex items-center gap-1.5">
+                          {/* Own-message controls sit outside the bubble so
+                              they never overlap the text. */}
+                          {mine && !isDeleted && (
+                            <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  aria-label="Edit message"
+                                  onClick={() => setEditing({ id: m.id, draft: m.content })}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)]"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                aria-label="Delete message"
+                                onClick={() => setConfirmDelete(m.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-error-fg)]"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </span>
+                          )}
 
-                      {!showAvatar && (
-                        <span className="mt-1 text-[10.5px] text-[var(--color-text-muted)]">
-                          {formatTime(m.createdAt)}
+                          <div
+                            className={cn(
+                              "rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[13.5px] leading-[1.6]",
+                              isDeleted
+                                ? "border border-dashed border-[var(--color-border)] bg-transparent italic text-[var(--color-text-muted)]"
+                                : mine
+                                  ? "bg-[var(--color-brand)] text-white"
+                                  : "bg-[var(--color-surface-alt)] text-[var(--color-text-primary)]",
+                            )}
+                          >
+                            {isDeleted ? (
+                              <span className="flex items-center gap-1.5">
+                                <Ban className="h-3.5 w-3.5 shrink-0" />
+                                This message was deleted
+                              </span>
+                            ) : (
+                              m.content
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Time, edited marker and read receipt on one line. */}
+                      {!isEditing && (
+                        <span className="mt-1 flex items-center gap-1.5 text-[10.5px] text-[var(--color-text-muted)]">
+                          {!showAvatar && <span>{formatTime(m.createdAt)}</span>}
+                          {m.editedAt && !isDeleted && <span>edited</span>}
+                          {mine && !isDeleted && (
+                            <span
+                              title={m.seen ? "Seen" : "Sent"}
+                              aria-label={m.seen ? "Seen" : "Sent"}
+                              className={cn(
+                                "flex items-center",
+                                m.seen && "text-[var(--color-brand-active)]",
+                              )}
+                            >
+                              {m.seen ? (
+                                <CheckCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -394,6 +659,16 @@ export function WorkspaceChat({
           </p>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && removeMessage(confirmDelete)}
+        title="Delete this message?"
+        message="Everyone in the channel will see that a message was deleted. The text is removed for good and cannot be restored."
+        confirmLabel="Delete"
+        destructive
+      />
     </div>
   );
 }

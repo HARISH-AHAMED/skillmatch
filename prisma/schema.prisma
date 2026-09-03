@@ -366,12 +366,23 @@ model Message {
   channel   String   @default("group") // "group", "freelancers", or "dm:userId1:userId2"
   seen      Boolean  @default(false)
   createdAt DateTime @default(now())
+  /// Soft delete. Deleting used to remove the row outright, which silently
+  /// reshaped a conversation the other side had already read — a reply could
+  /// end up answering nothing. The row stays and the thread renders a
+  /// tombstone in its place; the content is cleared at the same time, so the
+  /// text is genuinely gone rather than merely hidden by the client.
+  deletedAt DateTime?
+  /// Set the first time a message is edited, so the thread can mark it and so
+  /// the edit window is measured against the original send, not the last edit.
+  editedAt  DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([senderId])
+  /// The chat polls for messages after a cursor, which is this index.
+  @@index([projectId, createdAt])
 }
 
 model SharedFile {
