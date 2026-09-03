@@ -38,6 +38,20 @@ export function CertificateRender({
   const ink = "#0B0F0D";
   const muted = "#5C6660";
 
+  /*
+   * The page ground is pure white on purpose.
+   *
+   * Signatures and company logos are uploaded as flat images, and most are
+   * exported with an opaque white background rather than transparency. Against
+   * an off-white ground each of those sat in a visible pale rectangle. Matching
+   * the ground to the artwork is what makes an uploaded signature read as
+   * having been signed onto the page.
+   *
+   * One constant feeds both the page and the hairline drawn through the corner
+   * band, so the two can never drift to different whites.
+   */
+  const ground = "#FFFFFF";
+
   // MINIMAL drops the decorative corners; the document is otherwise identical,
   // so a certificate stays recognisable whichever layout issued it.
   const showCorners = config.layout !== "MINIMAL";
@@ -59,9 +73,9 @@ export function CertificateRender({
       <article
         id="frivvo-certificate"
         className="relative aspect-[1.414/1] w-full overflow-hidden"
-        style={{ color: ink, backgroundColor: "#F7F8F7", containerType: "inline-size" }}
+        style={{ color: ink, backgroundColor: ground, containerType: "inline-size" }}
       >
-        <Ornament accent={accent} ink={ink} show={showCorners} />
+        <Ornament accent={accent} ink={ink} ground={ground} show={showCorners} />
 
         {/* ---- Inner frame ---- */}
         {config.borderStyle !== "NONE" && (
@@ -135,24 +149,13 @@ export function CertificateRender({
             {data.durationText ? `, over ${data.durationText}.` : "."}
           </p>
 
-          {/* Skills */}
-          {data.skills.length > 0 && (
-            <div className="mt-[1.7%] flex max-w-[86%] flex-nowrap items-center justify-center gap-[1.2%] overflow-hidden">
-              {data.skills.slice(0, 5).map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full px-[1.8cqw] py-[0.58cqw] text-[1.58cqw] leading-none font-medium whitespace-nowrap capitalize"
-                  style={{
-                    color: accent,
-                    border: `1.5px solid ${accent}66`,
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          )}
+          {/*
+            The skills row was removed from the document deliberately: it
+            competed with the engagement statement for the same band of the
+            page and left the attestation footer cramped. The skills are still
+            snapshotted on the certificate record and still credited on the
+            freelancer's profile — they are simply not printed here.
+          */}
 
           {/* ---- Attestation row: signature | issuer logo | date ---- */}
           <div className="mt-auto grid w-full grid-cols-[1fr_auto_1fr] items-end gap-[3.4%] pt-[2%]">
@@ -321,7 +324,17 @@ function Globe({ accent }: { accent: string }) {
  * bands. The rounded green sweep is the one shape that needs real round caps,
  * so it alone is a rotated rounded rect.
  */
-function Ornament({ accent, ink, show }: { accent: string; ink: string; show: boolean }) {
+function Ornament({
+  accent,
+  ink,
+  ground,
+  show,
+}: {
+  accent: string;
+  ink: string;
+  ground: string;
+  show: boolean;
+}) {
   if (!show) return null;
 
   // Bands are described at the top-left corner and mirrored into the
@@ -363,7 +376,7 @@ function Ornament({ accent, ink, show }: { accent: string; ink: string; show: bo
       <g>
         <polygon points={band(0, 322)} fill={ink} />
         {/* The hairline that splits the dark band, in the page ground. */}
-        <polygon points={band(243, 262)} fill="#F7F8F7" />
+        <polygon points={band(243, 262)} fill={ground} />
         {/* Rounded green sweep, riding just outside the dark band. */}
         <g transform="translate(108 250) rotate(-45)">
           <rect x="-236" y="-27" width="472" height="54" rx="27" fill={accent} />
@@ -373,7 +386,7 @@ function Ornament({ accent, ink, show }: { accent: string; ink: string; show: bo
       {/* Bottom-right corner, the same construction mirrored through the centre. */}
       <g transform="translate(1414 1000) rotate(180)">
         <polygon points={band(0, 300)} fill={ink} />
-        <polygon points={band(226, 244)} fill="#F7F8F7" />
+        <polygon points={band(226, 244)} fill={ground} />
         <g transform="translate(100 232) rotate(-45)">
           <rect x="-218" y="-26" width="436" height="52" rx="26" fill={accent} />
         </g>
