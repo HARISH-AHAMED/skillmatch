@@ -45,6 +45,51 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  /*
+   * On a narrow screen the panel spans the viewport instead of hanging off the
+   * bell.
+   *
+   * It was anchored with `right-0`, which aligns it to the *button*, not to the
+   * screen — and the button is not the last thing in the header, the avatar is.
+   * At 375px that put the panel's right edge 61px in from the viewport and its
+   * left edge 23px off the screen, so it was clipped on one side and visibly
+   * off-centre on the other.
+   *
+   * The vertical anchor stays where it is: the two headers this mounts in are
+   * different heights, and `top-[calc(100%+8px)]` already tracks whichever one
+   * it lands in. Only the horizontal axis needs to escape the button, which it
+   * cannot do while absolutely positioned inside it — hence the measured
+   * switch to fixed, taken once on open.
+   */
+  const [sheetTop, setSheetTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const place = () => {
+      /*
+       * The negation of Tailwind's `sm` breakpoint, not `max-width: 639px`.
+       *
+       * A viewport can sit on a fractional width — device emulation and
+       * browser zoom both produce them — and at 639.x neither `max-width:
+       * 639px` nor `min-width: 640px` matches. Written as `max-width` this
+       * left a one-pixel band where the sheet had been dismissed and the
+       * anchored panel had not yet taken over, which is the same off-screen
+       * panel in miniature. Asking the same question the CSS asks closes it.
+       */
+      if (window.matchMedia("(min-width: 640px)").matches) return setSheetTop(null);
+      const rect = buttonRef.current?.getBoundingClientRect();
+      setSheetTop(rect ? Math.round(rect.bottom + 8) : null);
+    };
+
+    place();
+    // Both headers are sticky, so the button does not move on scroll; only a
+    // resize or a rotation can change where the sheet belongs.
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [open]);
 
   const router = useRouter();
   const { notifications: items } = useChrome();
@@ -66,6 +111,7 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unread ? ` — ${unread} unread` : ""}`}
@@ -91,7 +137,12 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.99 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
-            style={{ zIndex: 100 }}
+            style={{
+              zIndex: 100,
+              ...(sheetTop !== null
+                ? { position: "fixed" as const, top: sheetTop, left: 12, right: 12, width: "auto" }
+                : {}),
+            }}
             className="absolute right-0 top-[calc(100%+8px)] w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-4 py-3">
@@ -113,7 +164,7 @@ export function NotificationCenter({ inverse }: { inverse?: boolean }) {
               )}
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[min(420px,60svh)] overflow-y-auto overscroll-contain">
               {items.length === 0 && (
                 <p className="px-4 py-10 text-center text-[13px] text-[var(--color-text-muted)]">
                   Nothing yet. Activity on your projects will show up here.
