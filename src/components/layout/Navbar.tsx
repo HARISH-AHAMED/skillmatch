@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
-import { Logo } from "@/components/brand/Logo";
+import { LogoWordmark } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -47,8 +47,8 @@ export function Navbar() {
           <div className="flex h-[68px] items-center justify-between gap-6">
             {/* Left: logo + nav */}
             <div className="flex min-w-0 items-center gap-8">
-              <Link href="/" className="shrink-0" aria-label="FRIVVO home">
-                <Logo size={34} />
+              <Link href="/" className="shrink-0 text-[23px]" aria-label="FRIVVO home">
+                <LogoWordmark className="font-black tracking-[-0.045em]" />
               </Link>
               <nav className="hidden items-center gap-1 lg:flex">
                 {MARKETING_NAV.map((item) => {
