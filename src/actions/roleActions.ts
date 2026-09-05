@@ -35,10 +35,19 @@ export interface RoleInput {
 /** ROLE-002 — a sane ceiling on openings for one named role. */
 const MAX_ROLE_SLOTS = 100;
 
+/** A role as it now stands in the database, for the caller to re-seed its editor with. */
+export interface SavedRole {
+  id: string;
+  name: string;
+  description: string | null;
+  slots: number;
+  allowApprentice: boolean;
+}
+
 export async function saveProjectRoles(
   projectId: string,
   roles: RoleInput[]
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; roles?: SavedRole[] }> {
   const session = await auth();
   if (!session?.user || session.user.role !== Role.COMPANY) {
     return { success: false, error: "Unauthorized" };
@@ -138,9 +147,17 @@ export async function saveProjectRoles(
     ),
   ]);
 
+  // Read back so the caller learns the ids of the roles just created — an
+  // editor still holding its local keys would otherwise re-create them.
+  const persisted = await db.projectRole.findMany({
+    where: { projectId },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, description: true, slots: true, allowApprentice: true },
+  });
+
   revalidatePath(`/company/projects/${projectId}`);
   revalidatePath("/company/applicants");
-  return { success: true };
+  return { success: true, roles: persisted };
 }
 
 /**

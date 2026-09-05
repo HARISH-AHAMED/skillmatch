@@ -35,6 +35,13 @@ import type { Application, Project, ScreeningQuestion } from "@/lib/types";
 import type { CompensationType } from "@/lib/types";
 import { formatMoney } from "@/lib/utils";
 
+/**
+ * A role added in this session has no row yet, so it is given a local key to
+ * track it in the list. That key is not an id the server knows, and must be
+ * dropped before saving — see `persist`.
+ */
+const NEW_ROLE_KEY_PREFIX = "role-new-";
+
 export function EditProjectClient({
   project,
   hired,
@@ -203,16 +210,38 @@ export function EditProjectClient({
   const persist = async () => {
     await editProject(project.id, { ...columns(), isVisible: form.isVisible });
 
-    await saveProjectRoles(
+    const savedRoles = await saveProjectRoles(
       project.id,
       roles.map((r) => ({
-        id: r.id,
+        // Only a real row id may go back: a local key looks to the server like
+        // an id belonging to another project, and the whole save is refused.
+        id: r.id.startsWith(NEW_ROLE_KEY_PREFIX) ? undefined : r.id,
         name: r.name,
         description: r.description,
         slots: r.slots,
         allowApprentice: r.allowApprentice,
       })),
     );
+    // This action reports failure in its result rather than throwing, so
+    // without this the roles are dropped behind a "Project updated" toast.
+    if (!savedRoles.success) {
+      throw new Error(savedRoles.error ?? "Could not save the roles on this project.");
+    }
+    // Swap the local keys for the real ids, so saving twice edits the same
+    // rows instead of deleting and re-creating them.
+    if (savedRoles.roles) {
+      const hiredById = new Map(roles.map((r) => [r.id, r.hiredCount]));
+      setRoles(
+        savedRoles.roles.map((r) => ({
+          id: r.id,
+          name: r.name,
+          description: r.description ?? "",
+          slots: r.slots,
+          allowApprentice: r.allowApprentice,
+          hiredCount: hiredById.get(r.id) ?? 0,
+        })),
+      );
+    }
 
     // dueDate has its own action because changing it notifies the team.
     await updateProjectDueDate(project.id, form.dueDate || null);
@@ -559,7 +588,7 @@ export function EditProjectClient({
                   setRoles((p) => [
                     ...p,
                     {
-                      id: `role-new-${Date.now()}`,
+                      id: `${NEW_ROLE_KEY_PREFIX}${Date.now()}`,
                       name: "",
                       description: "",
                       slots: 1,
